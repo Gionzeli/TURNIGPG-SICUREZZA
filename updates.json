@@ -1,0 +1,87 @@
+[
+  {
+    "t": "Nuova versione: accessi e collaboratori",
+    "b": "Accesso riservato con approvazione dell’amministratore, collaborazione con data di inizio e fine attivabile o disattivabile, pagina aggiornamenti, lettura automatica di busta paga e turni da immagine, pagina donazioni.",
+    "d": 1794045000000
+  },
+  {
+    "t": "Lettura dei PDF",
+    "b": "La lettura automatica di busta paga e turni ora accetta anche i PDF (prime pagine), oltre a foto e screenshot.",
+    "d": 1794050000000
+  },
+  {
+    "t": "Nuova grafica Material Design",
+    "b": "Nuova grafica in stile Material Design 3 di Google, con colori, schede arrotondate e tema chiaro/scuro. In più: riepilogo dei giorni (ferie, riposi, permessi, compensativi) e postazioni ripulite.",
+    "d": 1794060000000
+  },
+  {
+    "t": "Nuova pagina di accesso e registrazione",
+    "b": "Nuova pagina di accesso con i 3 passaggi (Accedi, Richiedi, Approvazione) e modulo di registrazione con nome, ruolo e messaggio per l’amministratore.",
+    "d": 1794070000000
+  },
+  {
+    "t": "Info, privacy e sicurezza",
+    "b": "Aggiunta la pagina Info e privacy: cosa fa l’app, come funziona e come vengono trattati i dati. Rafforzata la protezione: i collaboratori non vedono più gli altri e i file di backup vengono controllati.",
+    "d": 1794080000000
+  },
+  {
+    "t": "Grande aggiornamento",
+    "b": "Novità: calendario del mese, ferie e permessi residui, grafico del netto con confronto sulla busta paga reale, turni rapidi e copia settimana, blocco con PIN, esportazione Excel (CSV) e backup funzionante. Per l’amministratore: avviso scadenze e rinnovo rapido delle collaborazioni.",
+    "d": 1794090000000
+  },
+  {
+    "t": "Due pagine, tasto Esci, backup cifrato",
+    "b": "L’app ora ha due pagine: Turni (aggiungi giornata, riepilogo giorni, lista del mese, turni rapidi) e Busta paga (stime, calendario, ferie, grafico, strumenti). Nella lista compaiono i simboli colorati di notturno, domenica/festivo, piantonato, riposo non goduto e buono pasto; i festivi si riconoscono da soli. Aggiunti il tasto Esci e l’occhio per mostrare le password. Il backup cifrato usa AES-256-GCM.",
+    "d": 1794100000000
+  },
+  {
+    "t": "Piantonamento diurno, notturno, domenica e festivo",
+    "b": "Nella pagina Turni il riepilogo è ora diviso in tre gruppi: giornate (turno, riposo, riposo compensativo, permesso, ferie, malattia), indennità (notturni, domeniche, festivi, riposi non goduti) e piantonamento (diurno, notturno, domenica, festivo). Nella lista di ogni giornata compaiono le stesse etichette colorate.",
+    "d": 1794110000000
+  },
+  {
+    "t": "Indicatori dei turni alla lettura",
+    "b": "Ogni giornata di lavoro mostra sempre di che tipo è: diurno o notturno, feriale, domenica o festivo, piantonamento. La lettura dei turni con l’AI riconosce ora piantonamento e notturno. I turni già salvati vengono aggiornati da soli e c’è il pulsante Aggiorna indicatori nella lista del mese.",
+    "d": 1794120000000
+  },
+  {
+    "t": "Doppioni eliminati",
+    "b": "Le giornate doppie (stesso giorno, tipo e orari) vengono rimosse da sole all’apertura, con la possibilità di annullare. Il modulo, la lettura dei turni con l’AI e la copia settimana non creano più doppioni. Nel riepilogo giorni non c’è più il riquadro “Turno in riposo”, che ripeteva “Riposi non goduti”.",
+    "d": 1794130000000
+  },
+  {
+    "t": "Riepilogo giorni semplificato",
+    "b": "Il riepilogo giorni è ora uno solo, senza sezioni separate: turni, diurni, notturni, domeniche, festivi, piantonamento (con il dettaglio diurno, notturno, domenica e festivo), riposi non goduti, riposo, riposo compensativo, permesso, ferie e malattia.",
+    "d": 1794140000000
+  },
+  {
+    "t": "Riepilogo giorni unito",
+    "b": "Riepilogo giorni ancora più semplice: “Domeniche e festivi”, “Permessi e riposi compensativi” e “Diurni e piantonamento” sono ora un solo riquadro ciascuno.",
+    "d": 1794150000000
+  },
+  {
+    "t": "Postazioni mancanti",
+    "b": "La lettura dei turni con l’AI ora distingue il reparto o posto di servizio dal nome dell’ospedale e, rileggendo il foglio, completa le giornate già presenti a cui manca la postazione. Le giornate incomplete sono segnalate in lista e in cima al riepilogo.",
+    "d": 1794160000000
+  },
+  {
+    "t": "Giornate unite e un buono pasto al giorno",
+    "b": "Le voci dello stesso giorno sono ora raggruppate in una sola scheda con tutti i dettagli (postazione, orari, ore, indicatori) e il totale delle ore del giorno. Il buono pasto vale uno al giorno, sia per il turno 6/18 sia per il 18/6, nel conteggio, nella scheda buoni pasto e nell’esportazione Excel.",
+    "d": 1794170000000
+  },
+  {
+    "t": "Recupero backup, guida e mansioni",
+    "b": "Novità: codice di recupero per il backup cifrato (se dimentichi la password lo scrivi al suo posto); scelta della mansione (GPG, sicurezza, portierato); al primo accesso guida illustrata e parlata con caricamento di busta paga e turni; lettura di PDF, foto, Excel, CSV e Word; pulsante i su ogni turno con tutte le informazioni.",
+    "d": 1794180000000
+  },
+  {
+    "t": "Messaggio d’invito ai collaboratori",
+    "b": "Nel pannello Collaboratori c’è un messaggio d’invito pronto: il link seguito da una breve spiegazione su come entrare e cosa fa l’app. Si può modificare, copiare, condividere o inviare con WhatsApp ed email.",
+    "d": 1794190000000
+  },
+  {
+    "t": "Versione autonoma (PWA)",
+    "b": "L’app si può installare sul telefono e funziona anche senza Claude e senza connessione. Nuovo logo, tasto Esci che chiude l’app, pagina di accesso, guida con voce più naturale e testo evidenziato, riposo lavorato, tasto per la donazione e più modi per condividere il link (WhatsApp, Telegram, SMS, email, QR code).",
+    "d": 1794200000000
+  }
+]
