@@ -83,5 +83,30 @@
     "t": "Versione autonoma (PWA)",
     "b": "L’app si può installare sul telefono e funziona anche senza Claude e senza connessione. Nuovo logo, tasto Esci che chiude l’app, pagina di accesso, guida con voce più naturale e testo evidenziato, riposo lavorato, tasto per la donazione e più modi per condividere il link (WhatsApp, Telegram, SMS, email, QR code).",
     "d": 1794200000000
+  },
+  {
+    "t": "Lettura automatica con Gemini gratuito",
+    "b": "La lettura di busta paga e turni usa Gemini gratuito di Google: crei la tua chiave su aistudio.google.com/apikey e la incolli in Busta paga › Lettura automatica. C’è il pulsante “Prova la chiave”, la scelta automatica del modello e l’invio diretto dei PDF. Con il piano gratuito Google può usare i contenuti inviati per migliorare i suoi servizi.",
+    "d": 1794220000000
+  },
+  {
+    "t": "Ferie e permessi aggiornati",
+    "b": "Per i permessi senza orari ora scrivi le ore nel modulo e la lettura dei turni le riconosce. La scheda mostra da quando a quando conta e avvisa se un permesso non ha ore.",
+    "d": 1794240000000
+  },
+  {
+    "t": "Turni 6/18 e 18/6 contati come uno",
+    "b": "I turni 6/18 e 18/6 divisi su più postazioni nello stesso giorno contano come un unico turno, di domenica, nei feriali e nei festivi: ore, straordinario e indennità si contano una sola volta.",
+    "d": 1794250000000
+  },
+  {
+    "t": "Guida più breve",
+    "b": "La guida illustrata e parlata del primo ingresso ha 5 schede invece di 7 e parte da sola.",
+    "d": 1794260000000
+  },
+  {
+    "t": "Riepilogo compatto e icone",
+    "b": "Il riepilogo giorni mostra i 4 totali principali e il resto con “Mostra tutti”. Modifica ed Elimina sono piccole icone accanto alla “i”.",
+    "d": 1794270000000
   }
 ]
