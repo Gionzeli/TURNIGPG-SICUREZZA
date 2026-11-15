@@ -108,5 +108,11 @@
     "t": "Riepilogo compatto e icone",
     "b": "Il riepilogo giorni mostra i 4 totali principali e il resto con “Mostra tutti”. Modifica ed Elimina sono piccole icone accanto alla “i”.",
     "d": 1794270000000
+  },
+  {
+    "t": "Versione 2.0",
+    "v": "2.0",
+    "d": 1794300000000,
+    "b": "Registrazione del profilo sul dispositivo (nome, mansione e PIN) e accesso con il PIN ogni volta che si riapre l’app o si preme Esci. Lettura di busta paga e turni con un servizio AI gratuito senza chiavi da copiare (Puter, con un account gratuito creato una volta sola). Pagina Info e privacy unita alla pagina Accesso. Donazione, suggerimenti e segnalazione di problemi via WhatsApp nella pagina Condividi. In Busta paga calendario, dettaglio, ferie e permessi e netto dell’anno sono finestre piccole con il tasto Espandi, e il profilo è unito al blocco con PIN. L’app si adatta a ogni schermo."
   }
 ]

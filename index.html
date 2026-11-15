@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Turni Gpg/sicurezza</title>
 <meta name="referrer" content="no-referrer">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://generativelanguage.googleapis.com; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://js.puter.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-src https:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
 <meta name="theme-color" content="#0B57D0"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Turni GPG"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
@@ -17,7 +17,7 @@ html{scroll-padding-top:env(safe-area-inset-top,0px)}
 body{margin:0;background:var(--bg);color:var(--tx);font:400 15px/1.5 Roboto,"Google Sans Text",system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:.01em}
 header{background:var(--soft);color:var(--soft-tx);padding:16px 20px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5;display:flex;justify-content:space-between;align-items:center;gap:8px;border-radius:0 0 28px 28px;box-shadow:var(--sh)}
 header b{font-size:22px;font-weight:500;letter-spacing:0}header span{opacity:.75;font-size:13px}
-main{max-width:1000px;margin:0 auto;padding:16px;display:grid;gap:16px}
+main{max-width:1280px;margin:0 auto;padding:clamp(10px,2.4vw,24px);padding-left:max(clamp(10px,2.4vw,24px),env(safe-area-inset-left));padding-right:max(clamp(10px,2.4vw,24px),env(safe-area-inset-right));display:grid;gap:16px}
 .card{background:var(--card);border-radius:24px;padding:18px 20px;box-shadow:var(--sh)}
 h1{font-size:28px;font-weight:400;margin:0}h3{margin:0 0 12px;font-size:16px;font-weight:500;letter-spacing:.01em}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.sp{justify-content:space-between}
@@ -79,7 +79,7 @@ textarea{width:100%;min-height:90px;border-radius:12px;border:1px solid var(--bd
 .cd i{font-style:normal;font-size:12px;font-weight:500}.cd.td{outline:2px solid var(--pr)}.cc{font-size:13px;line-height:1}
 .bar{height:8px;border-radius:99px;background:var(--bg);overflow:hidden}.bar i{display:block;height:100%;background:var(--pr);border-radius:99px}
 .chip{display:inline-flex;align-items:center;background:var(--soft);border-radius:999px}.chip button{background:transparent;color:var(--soft-tx);height:36px;padding:0 12px;box-shadow:none}
-#lock,#bye{position:fixed;inset:0;z-index:99;background:var(--bg);display:grid;place-items:center;padding:20px}#lock .card,#bye .card{width:100%;max-width:340px;text-align:center;display:grid;gap:10px}
+#lock,#bye,#reg{position:fixed;inset:0;z-index:99;background:var(--bg);display:grid;place-items:center;padding:20px}#lock .card,#bye .card,#reg .card{width:100%;max-width:340px;text-align:center;display:grid;gap:10px}
 .pw{position:relative}.pw input{padding-right:50px}.pw .eye{position:absolute;right:4px;top:4px;height:40px;width:40px;padding:0;background:transparent;border-radius:50%;color:var(--mu);display:grid;place-items:center;box-shadow:none}
 .tg.fl{background:color-mix(in srgb,var(--h) 18%,var(--card));color:color-mix(in srgb,var(--h) 72%,var(--tx));display:inline-block;margin:4px 4px 0 0}
 header button{background:color-mix(in srgb,var(--soft-tx) 12%,transparent);color:var(--soft-tx);height:36px;padding:0 18px}
@@ -103,6 +103,22 @@ details.info summary{cursor:pointer;list-style:none;font-size:16px;font-weight:5
 .insbar{display:flex;gap:12px;align-items:center;width:calc(100% - 32px);max-width:968px;margin:12px auto 0;padding:12px 16px}.insbar .m{flex:1;min-width:0}.insbar .m b{display:block}
 .steps li.bad{background:var(--bad);color:var(--bad-tx)}.steps li.bad::before{content:"!";background:var(--bad-tx);color:var(--bad)}
 .ico{width:36px;height:36px;padding:0;flex:none;border-radius:50%;background:transparent;color:var(--pr);display:grid;place-items:center;box-shadow:none}.ico:hover{background:var(--sc)}.ico.del{color:#B3261E}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{font-size:clamp(14px,.3vw + 13.4px,17px)}
+.wrap{max-width:1280px;margin:0 auto;padding:12px clamp(10px,2.4vw,24px) 0}
+input,select,textarea{font-size:16px}
+details.fold{padding:10px 16px}details.fold>summary{display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;min-height:38px}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold .ft{font-weight:500;font-size:15px}details.fold .fs{margin-left:auto;font-size:12px;color:var(--mu);text-align:right}
+details.fold>summary::after{content:"Espandi";font-size:12px;font-weight:700;color:var(--soft-tx);background:var(--soft);padding:5px 12px;border-radius:999px;flex:none}
+details.fold[open]>summary::after{content:"Riduci"}details.fold[open]>summary{margin-bottom:12px}
+@media (max-width:560px){#nav{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}#nav::-webkit-scrollbar{display:none}#nav button{flex:none}header{padding:12px 14px}.kpis{grid-template-columns:repeat(2,minmax(0,1fr))}details.fold .fs{display:none}}
+@media (max-width:360px){.g2{grid-template-columns:1fr}.tiles{grid-template-columns:repeat(2,minmax(0,1fr))}h1{font-size:22px}button{padding:0 14px}.cd{min-height:44px}}
+@media (min-width:760px){.tiles{grid-template-columns:repeat(auto-fill,minmax(130px,1fr))}.kpis{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (min-width:1100px){body{font-size:16.5px}.cols{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}main{gap:20px}}
+@media (orientation:landscape) and (max-height:520px){header{position:static}#lock .card,#bye .card,#onb .card,#pop .card{max-height:94vh;overflow:auto}}
+#lock,#bye,#onb,#pop{min-height:100vh;min-height:100dvh}
+@media print{details.fold>summary::after{display:none}}
 </style>
 </head>
 <body>
@@ -110,9 +126,9 @@ details.info summary{cursor:pointer;list-style:none;font-size:16px;font-weight:5
 <symbol id="lgm" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0B57D0"/><circle cx="380" cy="132" r="80" fill="#1A73E8" opacity=".6"/><circle cx="132" cy="380" r="80" fill="#1A73E8" opacity=".43"/><path d="M256 68L376 112V214C376 286 326 334 256 362C186 334 136 286 136 214V112Z" fill="#fff"/><circle cx="256" cy="210" r="58" fill="#D3E3FD" stroke="#0B57D0" stroke-width="11"/><path d="M256 210V176M256 210L282 224" stroke="#0B57D0" stroke-width="9" stroke-linecap="round" fill="none"/><circle cx="256" cy="210" r="7" fill="#0B57D0"/></symbol>
 <symbol id="lg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0B57D0"/><circle cx="380" cy="132" r="80" fill="#1A73E8" opacity=".6"/><circle cx="132" cy="380" r="80" fill="#1A73E8" opacity=".43"/><path d="M256 46L376 90V192C376 264 326 312 256 340C186 312 136 264 136 192V90Z" fill="#fff"/><circle cx="256" cy="188" r="58" fill="#D3E3FD" stroke="#0B57D0" stroke-width="11"/><path d="M256 188V154M256 188L282 202" stroke="#0B57D0" stroke-width="9" stroke-linecap="round" fill="none"/><circle cx="256" cy="188" r="7" fill="#0B57D0"/><text x="256" y="414" text-anchor="middle" font-family="Roboto,Arial,sans-serif" font-size="56" font-weight="800" fill="#fff" letter-spacing="2">TURNI GPG</text><text x="256" y="464" text-anchor="middle" font-family="Roboto,Arial,sans-serif" font-size="36" font-weight="500" fill="#D3E3FD">/sicurezza</text></symbol></svg>
 <header><div class="brand"><svg class="lgm" role="img" aria-label="Logo Turni GPG/sicurezza"><use href="#lgm"/></svg><b>Turni GPG<span>/sicurezza</span></b></div><button id="exit" class="noprint">Esci</button></header>
-<nav id="nav" class="row noprint" style="max-width:1000px;margin:0 auto;padding:10px 16px 0"><button data-p="turni">Turni</button><button data-p="paga">Busta paga</button><button data-p="agg">Aggiornamenti</button><button data-p="adm" id="nav_adm" hidden>Collaboratori</button><button data-p="info">Info e privacy</button><button data-p="dona">Dona</button><button data-p="gate">Accesso</button></nav>
+<nav id="nav" class="row noprint wrap"><button data-p="turni">Turni</button><button data-p="paga">Busta paga</button><button data-p="agg">Aggiornamenti</button><button data-p="adm" id="nav_adm" hidden>Collaboratori</button><button data-p="gate">Accesso</button></nav>
 <div id="insbar" class="card insbar noprint" hidden><svg class="lgm" role="img" aria-label="Logo"><use href="#lgm"/></svg><div class="m"><b>Installa Turni GPG/sicurezza</b><div class="hint" id="insmsg"></div></div><button class="pri" id="insgo" type="button">Installa</button><button class="ic" id="insno" type="button">Più tardi</button></div>
-<div id="mbar" class="row sp" hidden style="max-width:1000px;margin:0 auto;padding:14px 16px 0"><div><div class="hint">I tuoi turni</div><h1 id="mlabel"></h1></div><div class="row noprint"><button id="prev" aria-label="Mese precedente">‹</button><button id="next" aria-label="Mese successivo">›</button><button id="print">Stampa / PDF</button></div></div>
+<div id="mbar" class="row sp wrap" hidden><div><div class="hint">I tuoi turni</div><h1 id="mlabel"></h1></div><div class="row noprint"><button id="prev" aria-label="Mese precedente">‹</button><button id="next" aria-label="Mese successivo">›</button><button id="print">Stampa / PDF</button></div></div>
 <main id="pg_turni" hidden>
   <div class="cols">
     <div style="display:grid;gap:14px">
@@ -148,21 +164,21 @@ details.info summary{cursor:pointer;list-style:none;font-size:16px;font-weight:5
   <div class="kpis" id="kpis"></div>
   <div class="cols">
     <div style="display:grid;gap:14px">
-      <div class="card" id="brk"></div>
+      <details class="card fold" id="brk"></details>
       <div class="card" id="meal"></div>
-      <div class="card" id="resid"></div>
-      <div class="card" id="chart"></div>
+      <details class="card fold" id="resid"></details>
+      <details class="card fold" id="chart"></details>
     </div>
     <div style="display:grid;gap:14px">
-      <div class="card" id="cal"></div>
-            <div class="card noprint" id="prof"></div><div class="card noprint" id="secu"></div>
+      <details class="card fold" id="cal"></details>
+            <details class="card noprint fold" id="prof"><summary><span class="ft">Profilo e sicurezza</span><span class="fs" id="profs"></span></summary><div id="profA"></div><hr style="border:0;border-top:1px solid var(--bd);margin:14px 0"><div id="secu"></div></details>
     </div>
   </div>
   <details class="card noprint" id="pbox"><summary>Parametri personali</summary><p class="hint">Valori della tua busta paga. Si salvano su questo dispositivo.</p><div class="g2" id="params"></div><div class="row" style="margin-top:10px"><button id="resetp">Ripristina predefiniti</button></div></details>
   <div class="card noprint" id="aibox" hidden>
     <h3>Lettura automatica con AI</h3>
     <p class="hint">Carica un file (PDF, foto, Excel, CSV o Word) della tua busta paga o del foglio turni: l’AI legge i dati e li inserisce per te. Dei PDF si leggono le prime pagine. Controlla sempre i valori letti.</p>
-    <div id="aikey" class="upc" hidden style="margin-bottom:10px"><b>Lettura automatica gratuita (Gemini)</b><span class="hint">Serve una chiave gratuita di Google, senza carta di credito: 1) apri <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener">aistudio.google.com/apikey</a> 2) accedi con Google 3) premi “Crea chiave API” 4) incolla qui la chiave. Resta solo su questo dispositivo.</span><span class="hint"><b>Privacy:</b> con il piano gratuito Google può usare i contenuti inviati per migliorare i suoi servizi. Usalo solo se ti sta bene.</span><div class="pw"><input id="aik" type="password" placeholder="Chiave Gemini" autocomplete="off"><button type="button" class="eye" data-eye="aik" aria-label="Mostra password"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button></div><input id="aim" placeholder="Modello (facoltativo: vuoto = scelta automatica)"><div class="row"><button type="button" id="aisave">Salva</button><button type="button" id="aitest">Prova la chiave</button></div></div>
+    <div id="aikey" class="upc" hidden style="margin-bottom:10px"><b>Lettura automatica gratuita, senza chiavi</b><span class="hint">La lettura usa il servizio gratuito Puter: non devi copiare nessuna chiave. La prima volta tocca “Collega” e crea un account gratuito (basta l’email o un tocco): serve una volta sola.</span><span class="hint"><b>Privacy:</b> i file letti vengono inviati a Puter e al modello AI. Se non ti sta bene, inserisci i dati a mano.</span><div class="row"><button type="button" id="aiconn">Collega il servizio AI</button><span class="tg w" id="aistat">non collegato</span></div></div>
     <div class="row"><button id="aip">Leggi busta paga</button><button id="ait">Leggi turni</button></div>
     <input type="file" id="aif" accept="image/*,application/pdf,.pdf,.csv,.tsv,.txt,.xlsx,.xls,.ods,.docx" hidden><p class="hint" id="aist"></p>
   </div>
@@ -174,34 +190,36 @@ details.info summary{cursor:pointer;list-style:none;font-size:16px;font-weight:5
   <p class="hint">Stima indicativa basata sui tuoi parametri. Il cedolino ufficiale può differire.</p>
 </main>
 <main id="pg_gate" hidden><div class="card gate">
-<svg class="lgbig" role="img" aria-label="Logo"><use href="#lg"/></svg><h1>Accesso e registrazione</h1><p class="hint">Turni GPG/sicurezza · area riservata ai collaboratori</p>
+<svg class="lgbig" role="img" aria-label="Logo"><use href="#lg"/></svg><h1>Accesso e registrazione</h1><p class="hint">Turni GPG/sicurezza · area riservata ai collaboratori · versione <span id="vergate"></span></p>
 <ol class="steps" id="gsteps"><li>Accedi</li><li>Richiedi</li><li>Approvazione</li></ol>
 <div id="gstate" class="gstate"></div>
 <form id="rf" hidden><div><label>Nome e cognome</label><input id="rn" required maxlength="60" autocomplete="name"></div><div><label>Ruolo o postazione (facoltativo)</label><input id="rr" maxlength="60"></div><div><label>Messaggio per l’amministratore (facoltativo)</label><textarea id="rm" maxlength="300"></textarea></div><button class="pri" style="width:100%">Invia richiesta di accesso</button></form>
 <div id="rpend" hidden></div>
 <button class="ic" id="gexit" type="button">Esci</button>
 </div><div id="info_a" style="display:grid;gap:16px;margin-top:16px;text-align:left"></div></main>
-<main id="pg_agg" hidden><h1>Aggiornamenti</h1>
+<main id="pg_agg" hidden><h1>Aggiornamenti <span class="tg" id="verlab"></span></h1>
 <form class="card noprint" id="uf" hidden><h3>Pubblica un aggiornamento</h3><input id="ut" placeholder="Titolo" required><textarea id="ub" placeholder="Cosa è cambiato" required></textarea><button class="pri">Pubblica per tutti</button></form>
 <div id="ulist" style="display:grid;gap:10px"></div></main>
-<main id="pg_adm" hidden><h1>Collaboratori</h1>
+<main id="pg_adm" hidden><h1 id="admh">Collaboratori</h1>
 
 <div id="adm_cards" style="display:contents"><div class="card"><h3>Richieste in attesa</h3><div id="reqs"></div></div>
 <div class="card"><h3>Collaboratori approvati</h3><div id="mems"></div></div></div>
 <div class="card"><h3 id="invh">Invita un collaboratore</h3><p class="hint" id="invh0">1. Invita la persona dal menu Condividi della pagina. 2. Invia questo messaggio: contiene il link e una breve spiegazione, puoi modificarlo. 3. Quando chiede l’accesso, approvala qui sotto.</p><div id="invselw" style="margin-bottom:8px"><label>Link da condividere</label><select id="invsel"><option value="pwa">App autonoma (installabile)</option><option value="claude">Versione con accesso e approvazione</option></select></div><div id="invurlw" style="margin-bottom:8px"><label>Indirizzo dell’app autonoma</label><input id="invurl" inputmode="url" placeholder="https://…"></div><textarea id="invt" style="min-height:260px"></textarea>
 <div class="row"><button class="pri" id="invcp">Copia messaggio</button><button id="invsh">Condividi…</button><button id="invlk">Copia solo il link</button><button id="invqr">QR code</button><button id="invtx">Salva come file</button></div>
 <div class="row" style="margin-top:8px"><a class="btnl" id="invwa" target="_blank" rel="noopener">WhatsApp</a><a class="btnl" id="invtg" target="_blank" rel="noopener">Telegram</a><a class="btnl" id="invsm">SMS</a><a class="btnl" id="invml">Email</a><button class="ic" id="invrs">Ripristina testo</button></div>
-<p class="hint" id="invhint">“Condividi…” apre il menu del telefono (Bluetooth, Quick Share, AirDrop…). Se non si apre, usa gli altri pulsanti o il QR code.</p></div></main>
-<main id="pg_info" hidden><h1>Info e privacy</h1><div id="info_b" style="display:grid;gap:16px"></div></main>
-<main id="pg_dona" hidden><h1>Sostieni il servizio</h1>
-<div class="card"><p>Se vuoi collaborare per migliorare il servizio puoi fare una <b>donazione</b>. Ogni contributo aiuta a mantenere e far crescere l’app.</p><button class="pri" id="dnbtn" style="width:100%;height:52px;font-size:16px">💝 Fai una donazione</button></div>
+<p class="hint" id="invhint">“Condividi…” apre il menu del telefono (Bluetooth, Quick Share, AirDrop…). Se non si apre, usa gli altri pulsanti o il QR code.</p></div>
+<div class="card" id="admpub"><h3>Pubblica gli aggiornamenti dell’app</h3><p class="hint">Versione attuale: <b id="verb"></b>. L’app su GitHub non si aggiorna da sola: dopo ogni modifica carica i 3 file nuovi.</p><a class="btnl" style="background:var(--pr);color:var(--pr-tx)" target="_blank" rel="noopener" href="https://github.com/Gionzeli/TURNIGPG-SICUREZZA/upload/main">Apri la pagina di caricamento su GitHub</a><ol class="hint" style="margin:10px 0 0;padding-left:20px"><li>Trascina <b>index.html</b>, <b>sw.js</b> e <b>updates.json</b></li><li>Premi <b>Commit changes</b></li><li>Dopo 1-2 minuti l’app è aggiornata per tutti</li></ol></div>
+<div class="card" id="supcard"><h3>Suggerimenti o problemi</h3><p class="hint">Hai un’idea per migliorare l’app o hai trovato qualcosa che non funziona? Scrivi all’amministratore su WhatsApp.</p><div class="row"><a class="btnl" style="background:var(--pr);color:var(--pr-tx)" id="wa_s" target="_blank" rel="noopener">Ho un suggerimento</a><a class="btnl" id="wa_p" target="_blank" rel="noopener">Segnala un problema</a></div></div>
+<div class="card"><h3>Sostieni il servizio</h3><p>Se vuoi collaborare per migliorare il servizio puoi fare una <b>donazione</b>. Ogni contributo aiuta a mantenere e far crescere l’app.</p><button class="pri" id="dnbtn" style="width:100%;height:52px;font-size:16px">💝 Fai una donazione</button></div>
 <div class="card" id="dnpanel" hidden><h3>Sostieni il servizio</h3><p>Grazie! Puoi fare un bonifico con questi dati.</p><div class="line"><span>Intestatario</span><b id="dn_name"></b></div><div class="line"><span>IBAN</span><b id="dn_iban"></b></div><div class="row" style="margin-top:10px"><button class="pri" id="cpi">Copia IBAN</button><button class="ic" id="dnhide">Nascondi</button></div></div></main>
 <div id="bye" hidden><div class="card"><svg class="lgbig" role="img" aria-label="Logo"><use href="#lg"/></svg><h3>App chiusa</h3><p class="hint">I tuoi dati restano al sicuro su questo dispositivo. Puoi chiudere questa finestra.</p><button class="pri" id="rejoin">Riapri l’app</button></div></div>
 <div id="pop" hidden><div class="card"><div id="popc"></div><button class="pri" id="popx" style="width:100%;margin-top:12px">Chiudi</button></div></div>
 <div id="onb" hidden><div class="card" id="onbc"></div><input type="file" id="ob_f1" accept="image/*,application/pdf,.pdf,.csv,.tsv,.txt,.xlsx,.xls,.ods,.docx" hidden><input type="file" id="ob_f2" accept="image/*,application/pdf,.pdf,.csv,.tsv,.txt,.xlsx,.xls,.ods,.docx" hidden></div>
-<div id="lock" hidden><div class="card"><div class="hero">🔒</div><h3>App bloccata</h3><div class="pw"><input id="lpin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN" autocomplete="off"><button type="button" class="eye" data-eye="lpin" aria-label="Mostra password"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button></div><p class="hint" id="lmsg"></p><button class="pri" id="lok">Sblocca</button><button class="ic" id="lforgot">PIN dimenticato</button></div></div>
+<div id="reg" hidden><div class="card"><svg class="lgbig" role="img" aria-label="Logo"><use href="#lg"/></svg><h3>Crea il tuo profilo</h3><p class="hint">Serve solo su questo dispositivo: nome, mansione e un PIN per entrare ogni volta.</p><form id="regf" style="display:grid;gap:10px;text-align:left"></form><p class="hint" id="rg_msg" style="color:var(--bad-tx)"></p></div></div>
+<div id="lock" hidden><div class="card"><div class="hero">🔒</div><h3 id="lkh">App bloccata</h3><div class="pw"><input id="lpin" type="password" inputmode="numeric" maxlength="6" placeholder="PIN" autocomplete="off"><button type="button" class="eye" data-eye="lpin" aria-label="Mostra password"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg></button></div><p class="hint" id="lmsg"></p><button class="pri" id="lok">Sblocca</button><button class="ic" id="lforgot">PIN dimenticato</button></div></div>
 <div id="snack"><span id="smsg"></span><button id="sundo">Annulla</button></div>
 <script>
+const APP_VER="2.0",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -292,7 +310,7 @@ $("ftitle").textContent="Modifica giornata";$("cancel").style.display="";typeUI(
 $("sundo").onclick=()=>{const f=undoItem;undoItem=null;$("snack").style.display="none";if(f)f()};
 $("prev").onclick=()=>{const[y,m]=S.month.split("-").map(Number),d=new Date(y,m-2,1);S.month=d.getFullYear()+"-"+pad(d.getMonth()+1);render()};
 $("next").onclick=()=>{const[y,m]=S.month.split("-").map(Number),d=new Date(y,m,1);S.month=d.getFullYear()+"-"+pad(d.getMonth()+1);render()};
-$("print").onclick=()=>window.print();
+$("print").onclick=()=>{document.querySelectorAll("details.fold").forEach(d=>d.open=true);window.print()};
 $("exp").onclick=()=>dl("backup-turni-gpg-"+today()+".json",JSON.stringify({app:"Turni Gpg/sicurezza online",params:S.params,shifts:S.shifts,extra:{quota:X.quota,real:X.real,tpl:X.tpl}},null,2));
 $("imp").onclick=()=>$("file").click();
 $("file").onchange=e=>{const f=e.target.files[0];e.target.value="";if(!f)return;const r=new FileReader();r.onload=async()=>{try{let o=JSON.parse(r.result);
@@ -306,8 +324,13 @@ fillParams();resetForm();render();
 let U=null,DB=null,ME=null,ADMIN=false,MEM=null,MYREQ=null,REQ=[],REQD={},MEMS=[],UPD=[],CUR="turni",ready=false;
 const STANDALONE=!window.claude,LINK=STANDALONE?location.href.split("#")[0].split("?")[0]:"https://claude.ai/artifact/4RQnSUGP2sJxAikMtccYLn",fd=d=>d?d.split("-").reverse().join("/"):"";
 const okAccess=()=>{if(ADMIN||STANDALONE)return true;const t=today();return !!(MEM&&MEM.active&&(!MEM.start||t>=MEM.start)&&(!MEM.end||t<=MEM.end))};
-function show(p){if((p==="turni"||p==="paga")&&!okAccess())p="gate";if(p==="adm"&&!ADMIN&&!STANDALONE)p="agg";CUR=p;["turni","paga","gate","agg","adm","info","dona"].forEach(x=>$("pg_"+x).hidden=x!==p);
-document.querySelectorAll("#nav button").forEach(b=>{b.className=b.dataset.p===p?"pri":"";if(b.dataset.p==="turni"||b.dataset.p==="paga")b.hidden=!okAccess()});$("aibox").hidden=!okAccess();$("mbar").hidden=!(p==="turni"||p==="paga");if(ready&&okAccess()&&!X.onb&&!obOpen)startOnb();if(p!=="dona"&&dnOn){dnOn=false;dnR()}}
+function show(p){if((p==="turni"||p==="paga"||p==="adm")&&!okAccess())p="gate";CUR=p;["turni","paga","gate","agg","adm"].forEach(x=>$("pg_"+x).hidden=x!==p);
+const adm=ADMIN&&!STANDALONE;document.querySelectorAll("#nav button").forEach(b=>{b.className=b.dataset.p===p?"pri":"";if(b.dataset.p==="turni"||b.dataset.p==="paga"||b.dataset.p==="adm")b.hidden=!okAccess()});
+if(!adm)$("nav_adm").textContent="Condividi";$("admh").textContent=adm?"Collaboratori":"Condividi e supporto";$("invselw").hidden=!adm;
+$("aibox").hidden=!okAccess();$("mbar").hidden=!(p==="turni"||p==="paga");
+if(ready&&okAccess()){if((!X.name||!X.pin)&&!regOpen)showReg();else if(!X.onb&&!obOpen&&!regOpen)startOnb()}
+if(p!=="adm"&&dnOn){dnOn=false;dnR()}
+if(p==="paga"&&STANDALONE&&!puterChecked){puterChecked=true;puterSignedIn().then(setAiStat)}}
 function refresh(){const t=today(),st=$("gstate"),f=$("rf"),pd=$("rpend");f.hidden=true;pd.hidden=true;let step=0,bad=false,msg="";
 if(!ready)msg="Verifica accesso…";
 else if(STANDALONE){step=3;msg="Modalità personale: non serve registrarsi. L’app funziona su questo dispositivo e i tuoi dati restano qui."}
@@ -319,8 +342,8 @@ else{step=1;msg="Compila i tuoi dati: l’amministratore approverà la richiesta
 st.textContent=msg;st.className="gstate"+(bad?" bad":"");
 [...$("gsteps").children].forEach((li,i)=>li.className=i<step?"done":i===step?"on":"");if(bad&&$("gsteps").children[2])$("gsteps").children[2].className="bad";
 show(CUR)}
-function renderUpd(){$("ulist").innerHTML=UPD.length?UPD.map(u=>`<div class="card"><div class="row sp"><b>${esc(u.t)}</b><span class="hint">${new Date(u.d).toLocaleDateString("it-IT")}</span></div><p style="white-space:pre-wrap;margin:6px 0 0">${esc(u.b)}</p>${ADMIN?`<button class="ic" data-du="${esc(u.id)}">Elimina</button>`:""}</div>`).join(""):'<p class="hint">Nessun aggiornamento.</p>'}
-function admBadge(){if(STANDALONE)return;const n=REQ.filter(id=>!MEMS.some(m=>m.id===id)).length;$("nav_adm").textContent="Collaboratori"+(n?" ("+n+")":"");$("nav_adm").setAttribute("aria-label",n?"Collaboratori, "+n+" richieste in attesa":"Collaboratori")}
+function renderUpd(){$("ulist").innerHTML=UPD.length?UPD.map(u=>`<div class="card"><div class="row sp"><b>${esc(u.t)}</b><span class="hint">${u.v?`<span class="tg">v${esc(u.v)}</span> `:""}${new Date(u.d).toLocaleDateString("it-IT")}</span></div><p style="white-space:pre-wrap;margin:6px 0 0">${esc(u.b)}</p>${ADMIN?`<button class="ic" data-du="${esc(u.id)}">Elimina</button>`:""}</div>`).join(""):'<p class="hint">Nessun aggiornamento.</p>'}
+function admBadge(){if(STANDALONE||!ADMIN)return;const n=REQ.filter(id=>!MEMS.some(m=>m.id===id)).length;$("nav_adm").textContent="Collaboratori"+(n?" ("+n+")":"");$("nav_adm").setAttribute("aria-label",n?"Collaboratori, "+n+" richieste in attesa":"Collaboratori")}
 function durEnd(id){const du=document.querySelector(`[data-dur="${id}"]`),st=document.querySelector(`[data-s="${id}"]`),en=document.querySelector(`[data-n="${id}"]`);if(!du||!st||!en||du.value==="c")return;en.value=(du.value==="0"||!st.value)?"":addM(st.value,Number(du.value))}
 function confirmTap(b,label){if(b.dataset.cf==="1")return true;b.dataset.cf="1";b._t=b.textContent;b.textContent=label;b.style.color="#B3261E";b.style.fontWeight="700";setTimeout(()=>{if(b.dataset.cf==="1"){b.dataset.cf="";b.textContent=b._t;b.style.color="";b.style.fontWeight=""}},5000);return false}
 async function renderAdm(){admBadge();const ids=[...new Set([...REQ,...MEMS.map(m=>m.id)])];let P={};if(ids.length&&U){try{P=await U.profiles(ids)}catch(e){}}
@@ -333,8 +356,7 @@ $("mems").innerHTML=(soon?`<div class="gstate">Collaborazioni in scadenza o scad
 async function boot(){refresh();
 try{if(window.claude){U=await claude.use("user");DB=await claude.use("db")}}catch(e){}
 try{ADMIN=U?await U.isOwner():false;ME=U?await U.id():null}catch(e){}
-ready=true;$("nav_adm").hidden=!ADMIN;$("uf").hidden=!ADMIN;
-if(STANDALONE){$("nav_adm").hidden=false;$("nav_adm").textContent="Condividi";$("adm_cards").hidden=true;loadUpd()}
+ready=true;$("uf").hidden=!ADMIN;$("adm_cards").hidden=!(ADMIN&&!STANDALONE);$("admpub").hidden=!(ADMIN&&!STANDALONE);if(STANDALONE)loadUpd();
 if(DB){try{
 if(ME){DB.doc("members/"+ME).onSnapshot(x=>{MEM=x.exists?x.data():null;refresh()},()=>{});DB.doc("requests/"+ME).onSnapshot(x=>{MYREQ=x.exists?x.data():null;refresh()},()=>{})}
 DB.collection("updates").onSnapshot(q=>{UPD=q.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.d-a.d);renderUpd()},()=>{});
@@ -350,7 +372,7 @@ else if(d.r){if(!confirmTap(e.target,"Confermi il rifiuto?"))return;await DB.doc
 else if(d.t){const m=MEMS.find(x=>x.id===d.t);await DB.doc("members/"+d.t).update({active:!m.active})}
 else if(d.rn){const[id,k]=d.rn.split(":"),m=MEMS.find(x=>x.id===id),b=(m&&m.end&&m.end>today())?m.end:today();await DB.doc("members/"+id).update({end:addM(b,Number(k)),active:true})}else if(d.x){if(!confirmTap(e.target,"Confermi la rimozione?"))return;await DB.doc("members/"+d.x).delete()}}catch(x){snack("Operazione non riuscita")}};
 $("pg_adm").onchange=async e=>{const d=e.target.dataset;if(d.dur)durEnd(d.dur);if(d.s)durEnd(d.s);if(d.n){const du=document.querySelector(`[data-dur="${d.n}"]`);if(du)du.value="c"}try{if(d.ms)await DB.doc("members/"+d.ms).update({start:e.target.value});if(d.me)await DB.doc("members/"+d.me).update({end:e.target.value})}catch(x){snack("Modifica non salvata")}};
-const PWA_DEF="https://gionzeli.github.io/TURNIGPG-SICUREZZA/",pwaUrl=()=>{try{const v=localStorage.getItem("tg_pwa_url");if(v&&/^https:\/\/\S+$/.test(v))return v.replace(/\/+$/,"")}catch(e){}return PWA_DEF},usePwa=()=>STANDALONE||($("invsel").value==="pwa"&&!!pwaUrl()),ilink=()=>STANDALONE?LINK:(usePwa()?pwaUrl():LINK);
+const PWA_DEF="https://gionzeli.github.io/TURNIGPG-SICUREZZA/",pwaUrl=()=>{try{const v=localStorage.getItem("tg_pwa_url");if(v&&/^https:\/\/\S+$/.test(v))return v.replace(/\/+$/,"")}catch(e){}return PWA_DEF},usePwa=()=>STANDALONE||!ADMIN||($("invsel").value==="pwa"&&!!pwaUrl()),ilink=()=>STANDALONE?LINK:(usePwa()?pwaUrl():LINK);
 const INV=()=>usePwa()?`Ciao! Ti consiglio “Turni GPG/sicurezza”, l’app per registrare i tuoi turni e stimare la busta paga. Va bene per guardie giurate, addetti alla sicurezza e portieri.
 
 🔗 ${ilink()}
@@ -392,7 +414,7 @@ $("uf").onsubmit=async e=>{e.preventDefault();try{await DB.collection("updates")
 $("ulist").onclick=async e=>{const id=e.target.dataset.du;if(!id||!ADMIN)return;try{await DB.doc("updates/"+id).delete()}catch(x){snack("Eliminazione non riuscita")}};
 const loadJs=u=>new Promise((ok,ko)=>{const s=document.createElement("script");s.src=u;s.onload=ok;s.onerror=()=>ko({code:"lib"});document.head.appendChild(s)});
 async function shrink(f){try{const bm=await createImageBitmap(f),k=Math.min(1,2000/Math.max(bm.width,bm.height)),c=document.createElement("canvas");c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext("2d").drawImage(bm,0,0,c.width,c.height);return await new Promise(r=>c.toBlob(r,"image/jpeg",.88))}catch(e){return f}}
-function aiErr(x){console.error(x);const c=x&&x.code,m={not_granted:"Hai negato il permesso: riprova e consenti la lettura del file.",images_unavailable:"Qui la lettura di immagini non è disponibile: apri l’app dal link nel browser.",image_rejected:"Formato o dimensione del file non accettati: prova con una foto JPG/PNG o un PDF più leggero.",rate_limited:"Hai raggiunto il limite di utilizzo gratuito: riprova tra qualche minuto.",invalid_json:"Ho letto il file ma non ho trovato dati chiari: prova con un’immagine più nitida.",refused:"La lettura è stata rifiutata.",not_declared:"Funzione non abilitata: avvisa l’amministratore.",capability_disabled:"Funzione disattivata nell’organizzazione.",lib:"Non riesco a caricare il lettore del file: usa una foto o uno screenshot.",fmt:"Formato non supportato: usa PDF, foto, Excel, CSV o Word (.docx).",empty:"Non ho trovato contenuto leggibile nel file.",na:"Lettura AI non disponibile in questa vista: apri l’app dal link nel browser.",nokey:"Per la lettura automatica inserisci la chiave Gemini gratuita (Busta paga › Lettura automatica).",badkey:"La chiave Gemini non è valida o è stata revocata: creane una nuova su aistudio.google.com/apikey.",api:"Il servizio AI non ha risposto: riprova più tardi."};return (m[c]||"Lettura non riuscita")+(c?" ["+c+"]":"")}
+function aiErr(x){console.error(x);const c=x&&x.code,m={not_granted:"Hai negato il permesso: riprova e consenti la lettura del file.",images_unavailable:"Qui la lettura di immagini non è disponibile: apri l’app dal link nel browser.",image_rejected:"Formato o dimensione del file non accettati: prova con una foto JPG/PNG o un PDF più leggero.",rate_limited:"Hai finito l’uso gratuito del servizio AI per ora: riprova più tardi.",invalid_json:"Ho letto il file ma non ho trovato dati chiari: prova con un’immagine più nitida.",refused:"La lettura è stata rifiutata.",not_declared:"Funzione non abilitata: avvisa l’amministratore.",capability_disabled:"Funzione disattivata nell’organizzazione.",lib:"Non riesco a caricare il lettore del file: usa una foto o uno screenshot.",fmt:"Formato non supportato: usa PDF, foto, Excel, CSV o Word (.docx).",empty:"Non ho trovato contenuto leggibile nel file.",na:"Lettura AI non disponibile in questa vista: apri l’app dal link nel browser.",noputer:"Per leggere i documenti collega il servizio AI gratuito (Busta paga › Lettura automatica › Collega).",api:"Il servizio AI non ha risposto: riprova più tardi."};return (m[c]||"Lettura non riuscita")+(c?" ["+c+"]":"")}
 async function pdfToImgs(f,max){const B="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";if(!window.pdfjsLib){await loadJs(B+"pdf.min.js");await loadJs(B+"pdf.worker.min.js")}
 const pdf=await pdfjsLib.getDocument({data:await f.arrayBuffer()}).promise,out=[];
 for(let i=1;i<=Math.min(pdf.numPages,max);i++){const pg=await pdf.getPage(i),vp=pg.getViewport({scale:1.6}),c=document.createElement("canvas");c.width=vp.width;c.height=vp.height;await pg.render({canvasContext:c.getContext("2d"),viewport:vp}).promise;out.push(await new Promise(r=>c.toBlob(r,"image/jpeg",.85)))}return out}
@@ -417,8 +439,8 @@ $("aif").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)aiImport(
 
 const XK="tg_extra_v1",CI={turno:["🕘","#1A73E8"],turno_riposo:["⚡","#E8710A"],riposo:["🛌","#607D8B"],riposo_compensativo:["🔄","#1E8E3E"],ferie:["🏖️","#12B5CB"],permesso:["📝","#F9AB00"],malattia:["🤒","#D93025"]};
 const cleanX=o=>{const q=o.quota||{},r={},t=[];for(const k in(o.real||{}))if(/^\d{4}-\d{2}$/.test(k)&&Number.isFinite(Number(o.real[k])))r[k]=Number(o.real[k]);(Array.isArray(o.tpl)?o.tpl:[]).slice(0,12).forEach(x=>{if(x&&TYPES[x.type]){const tm=v=>/^\d{2}:\d{2}$/.test(v)?v:"";t.push({type:x.type,post:String(x.post||"").slice(0,80),st:tm(x.st),en:tm(x.en),n:!!x.n,sun:!!x.sun,p:!!x.p,rs:!!x.rs,mv:!!x.mv})}});return{quota:{ferie:Math.max(0,Number(q.ferie)||0),perm:Math.max(0,Number(q.perm)||0)},real:r,tpl:t}};
-let X={quota:{ferie:0,perm:0},real:{},tpl:[],pin:null,salt:null};
-try{const r=JSON.parse(localStorage.getItem(XK)||"null");if(r&&typeof r==="object"){X={...X,...cleanX(r)};X.mig=r.mig===1?1:0;X.role=["gpg","sicurezza","portierato"].includes(r.role)?r.role:"";X.onb=r.onb===1?1:0;if(/^[0-9a-f]{64}$/.test(r.pin||"")&&/^[0-9a-f]{32}$/.test(r.salt||"")){X.pin=r.pin;X.salt=r.salt;X.it=Number.isInteger(r.it)&&r.it>=100000&&r.it<=5e6?r.it:150000}}}catch(e){}
+let X={quota:{ferie:0,perm:0},real:{},tpl:[],pin:null,salt:null,name:""};
+try{const r=JSON.parse(localStorage.getItem(XK)||"null");if(r&&typeof r==="object"){X={...X,...cleanX(r)};X.mig=r.mig===1?1:0;X.role=["gpg","sicurezza","portierato"].includes(r.role)?r.role:"";X.onb=r.onb===1?1:0;X.name=typeof r.name==="string"?r.name.slice(0,60):"";if(/^[0-9a-f]{64}$/.test(r.pin||"")&&/^[0-9a-f]{32}$/.test(r.salt||"")){X.pin=r.pin;X.salt=r.salt;X.it=Number.isInteger(r.it)&&r.it>=100000&&r.it<=5e6?r.it:150000}}}catch(e){}
 const xsave=()=>{try{localStorage.setItem(XK,JSON.stringify(X))}catch(e){}};
 const addD=(iso,n)=>{const[y,m,d]=iso.split("-").map(Number),x=new Date(y,m-1,d+n);return x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate())};
 const addM=(iso,n)=>{const[y,m,d]=iso.split("-").map(Number),x=new Date(y,m-1+n,d);return x.getFullYear()+"-"+pad(x.getMonth()+1)+"-"+pad(x.getDate())};
@@ -446,8 +468,15 @@ function secuHTML(){let h='<h3>Blocco con PIN</h3><p class="hint">Chiede un codi
 if(pinEdit)return h+'<div class="g2">'+PWF('pin1','Nuovo PIN (4-6 cifre)')+PWF('pin2','Ripeti PIN')+'</div><div class="row" style="margin-top:8px"><button class="pri" id="pinok">Salva PIN</button><button id="pincancel">Annulla</button></div>';
 return h+(X.pin?'<div class="row"><span class="tg ok">PIN attivo</span><button id="pinset">Cambia PIN</button><button id="pinoff">Rimuovi PIN</button></div>':'<button id="pinset">Imposta PIN</button>')}
 async function hp(pin,salt,it){const en=new TextEncoder(),k=await crypto.subtle.importKey("raw",en.encode(pin),"PBKDF2",false,["deriveBits"]),b=await crypto.subtle.deriveBits({name:"PBKDF2",salt:en.encode(salt),iterations:it||150000,hash:"SHA-256"},k,256);return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,"0")).join("")}
-function lock(){if(X.pin){$("lpin").type="password";$("lock").hidden=false;$("lpin").value="";$("lmsg").textContent=""}}
-function extra(){$("prof").innerHTML=profHTML();$("cal").innerHTML=calHTML();$("resid").innerHTML=residHTML();$("chart").innerHTML=chartHTML();$("qk").innerHTML=qkHTML();$("secu").innerHTML=secuHTML()}
+function lock(){if(X.pin){$("lpin").type="password";$("lock").hidden=false;$("lkh").textContent=X.name?"Ciao "+X.name.split(" ")[0]+", inserisci il PIN":"App bloccata";$("lpin").value="";$("lmsg").textContent=""}}
+function foldOf(id,title,summ,body){$(id).innerHTML='<summary><span class="ft">'+title+'</span><span class="fs">'+summ+'</span></summary>'+body}
+function extra(){const L=monthShifts(),c=calc(L),yr=S.month.slice(0,4),Y=S.shifts.filter(s=>s.date.startsWith(yr)),fe=Y.filter(s=>s.type==="ferie").length,pe=Y.filter(s=>s.type==="permesso").reduce((a,s)=>a+(s.hours||0),0),q=X.quota,mn=new Date(+yr,+S.month.slice(5)-1,1).toLocaleDateString("it-IT",{month:"long"}),nd=new Set(L.map(s=>s.date)).size,rv=X.real[S.month],strip=h=>h.replace(/^<h3[^>]*>.*?<\/h3>/,"");
+$("profA").innerHTML=profHTML();$("profs").textContent=(X.name?X.name+" · ":"")+(X.pin?"PIN attivo":"PIN non impostato");
+foldOf("cal","Calendario",mn+" · "+nd+" giornat"+(nd===1?"a":"e"),strip(calHTML()));
+foldOf("resid","Ferie e permessi "+yr,"Ferie "+fe+(q.ferie?"/"+q.ferie:"")+" · Permessi "+pe.toFixed(1)+"h"+(q.perm?"/"+q.perm:""),strip(residHTML()));
+foldOf("chart","Netto dell’anno","Netto "+mn+": "+eur(c.net)+(rv!=null?" · reale "+eur(rv):""),strip(chartHTML()));
+{const b=$("brk"),raw=b.innerHTML;if(!raw.startsWith("<summary")){const m=raw.match(/^<h3[^>]*>(.*?)<\/h3>([\s\S]*)$/);foldOf("brk",m?m[1]:"Dettaglio busta paga","Lordo "+eur(c.gross)+" · Netto "+eur(c.net),m?m[2]:raw)}}
+$("qk").innerHTML=qkHTML();$("secu").innerHTML=secuHTML()}
 const _render=render;render=function(){_render();extra()};
 $("cal").onclick=e=>{const b=e.target.closest("[data-cd]");if(!b)return;show("turni");$("date").value=b.dataset.cd;applyAuto("date");$("f").scrollIntoView({behavior:"smooth",block:"start"})};
 $("resid").onchange=e=>{const k=e.target.dataset.q;if(!k)return;const n=num(e.target.value);X.quota[k]=n!==null&&n>=0?n:0;xsave();extra()};
@@ -480,6 +509,16 @@ const bx=$("rcbox");bx.hidden=false;bx.innerHTML='<b>Codice di recupero di quest
 document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-eye]");if(!b)return;const i=$(b.dataset.eye),sh=i.type==="password";i.type=sh?"text":"password";b.innerHTML=sh?EYEOFF:EYE;b.setAttribute("aria-label",sh?"Nascondi password":"Mostra password")});
 function closeApp(){stopSay();["bpw","bpw2","lpin"].forEach(k=>{const e=$(k);if(e){e.value="";e.type="password"}});$("pop").hidden=true;$("bye").hidden=false;setTimeout(()=>{try{window.close()}catch(e){}},150)}
 $("exit").onclick=closeApp;$("gexit").onclick=closeApp;
+let regOpen=false;
+$("regf").innerHTML=`<div><label>Nome e cognome</label><input id="rg_n" required maxlength="60" autocomplete="name"></div><div><label>Mansione</label><select id="rg_r"><option value="gpg">Guardia giurata (GPG)</option><option value="sicurezza">Sicurezza</option><option value="portierato">Portierato</option></select></div><div><label>PIN (4-6 cifre)</label>${PWF("rg_p1","PIN")}</div><div><label>Ripeti il PIN</label>${PWF("rg_p2","Ripeti il PIN")}</div><button class="pri" type="submit">Crea profilo</button>`;
+const regMsg=t=>{$("rg_msg").textContent=t};
+function showReg(){regOpen=true;$("reg").hidden=false;$("rg_n").value=X.name||"";$("rg_r").value=X.role||"gpg";$("rg_p1").value=$("rg_p2").value="";$("rg_msg").textContent=""}
+$("regf").onsubmit=async e=>{e.preventDefault();const n=$("rg_n").value.trim(),a=$("rg_p1").value,b=$("rg_p2").value;
+if(n.length<2)return regMsg("Scrivi nome e cognome");if(!/^\d{4,6}$/.test(a))return regMsg("Il PIN deve avere da 4 a 6 cifre");if(a!==b)return regMsg("I due PIN non coincidono");
+if(!(window.crypto&&crypto.subtle))return regMsg("Questo browser non permette di creare il PIN");
+try{const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString(16).padStart(2,"0")).join("");X.pin=await hp(a,salt,600000);X.salt=salt;X.it=600000;X.name=n;X.role=$("rg_r").value;xsave();applyRole();regOpen=false;$("reg").hidden=true;extra();show(CUR)}catch(x){regMsg("Profilo non creato: riprova")}};
+$("verlab").textContent="v"+APP_VER;$("vergate").textContent=APP_VER;$("verb").textContent=APP_VER;
+{const e=encodeURIComponent,base="https://wa.me/"+ADMIN_WA+"?text=";$("wa_s").href=base+e("Ciao, ho un suggerimento per l’app Turni GPG/sicurezza (versione "+APP_VER+"):\n");$("wa_p").href=base+e("Ciao, ho trovato un problema nell’app Turni GPG/sicurezza (versione "+APP_VER+").\nCosa è successo:\n")}
 $("rejoin").onclick=()=>{$("bye").hidden=true;lock()};
 function dkey(s){return[s.date,s.type,s.start_time||"",s.end_time||""].join("|")}
 function dedupe(q){const g={},rm=new Set(),rank=s=>["is_night","is_sunday","is_piantonato","is_rest_not_enjoyed","has_meal_voucher"].filter(k=>s[k]).length+(s.post?1:0);
@@ -512,24 +551,22 @@ $("insmsg").textContent=DEFI?"Aggiungila alla schermata Home: si apre a schermo 
 $("insgo").onclick=()=>{if(DEFI){DEFI.prompt();DEFI=null;insBar()}};$("insno").onclick=()=>{try{localStorage.setItem("tg_ins_off","1")}catch(e){}insBar()};
 try{window.addEventListener&&window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFI=e;extra();insBar()});window.addEventListener&&window.addEventListener("appinstalled",()=>{DEFI=null;insBar()})}catch(e){}
 document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-install]")&&DEFI){DEFI.prompt();DEFI=null;extra()}});
-const aiCfg=()=>{try{return JSON.parse(localStorage.getItem("tg_gem_v1")||"{}")}catch(e){return{}}};
-try{localStorage.removeItem("tg_ai_v1")}catch(e){}
-const GB="https://generativelanguage.googleapis.com/v1beta/";
-const gfetch=(c,model,parts)=>fetch(GB+"models/"+encodeURIComponent(model)+":generateContent",{method:"POST",headers:{"content-type":"application/json","x-goog-api-key":c.key},body:JSON.stringify({contents:[{parts}],generationConfig:{responseMimeType:"application/json",temperature:0.1}})});
-async function gpick(c){const r=await fetch(GB+"models?pageSize=200",{headers:{"x-goog-api-key":c.key}});if(r.status===400||r.status===401||r.status===403)throw{code:"badkey"};if(!r.ok)throw{code:"api"};
-const j=await r.json(),v=m=>parseFloat((m.name.match(/gemini-([\d.]+)-flash$/)||[0,0])[1]),ok=(j.models||[]).filter(m=>(m.supportedGenerationMethods||[]).includes("generateContent")&&/^models\/gemini-[\d.]+-flash$/.test(m.name)).sort((a,b)=>v(b)-v(a));return ok.length?ok[0].name.replace("models/",""):null}
-const stSample={limits:async()=>({images:{maxCount:8}}),json:async(prompt,o)=>{const c=aiCfg();if(!c.key)throw{code:"nokey"};const parts=[];
-for(const im of(o&&o.images)||[])parts.push({inline_data:{mime_type:im.type||"image/jpeg",data:b64(new Uint8Array(await im.arrayBuffer()))}});
-for(const d of(o&&o.docs)||[])parts.push({inline_data:{mime_type:"application/pdf",data:b64(new Uint8Array(await d.arrayBuffer()))}});
-parts.push({text:prompt+"\n\nRispondi solo con JSON valido, senza altro testo."});
-let r=c.model?await gfetch(c,c.model,parts):null;
-if(!r||r.status===404){const m=await gpick(c);if(!m)throw{code:"api"};try{localStorage.setItem("tg_gem_v1",JSON.stringify({...c,model:m,auto:true}))}catch(e){}r=await gfetch(c,m,parts)}
-if(r.status===400||r.status===401||r.status===403){let msg="";try{msg=JSON.stringify(await r.clone().json())}catch(e){}throw{code:(r.status!==400||/API key|API_KEY/i.test(msg))?"badkey":"api"}}
-if(r.status===429)throw{code:"rate_limited"};if(!r.ok)throw{code:"api"};
-const j=await r.json(),tx=(((j.candidates||[])[0]||{}).content||{parts:[]}).parts.map(x=>x.text||"").join(""),m=tx.match(/[\[{][\s\S]*[\]}]/);if(!m)throw{code:"invalid_json"};try{return JSON.parse(m[0])}catch(e){throw{code:"invalid_json"}}}};
-$("aikey").hidden=!STANDALONE;{const c=aiCfg();$("aik").value=c.key||"";$("aim").value=c.auto?"":(c.model||"")}
-$("aisave").onclick=()=>{try{localStorage.setItem("tg_gem_v1",JSON.stringify({key:$("aik").value.trim(),model:$("aim").value.trim()}));snack("Impostazioni salvate")}catch(e){snack("Non salvato")}};
-$("aitest").onclick=async()=>{const st=$("aist"),c={key:$("aik").value.trim()};if(!c.key){st.textContent=aiErr({code:"nokey"});return}st.textContent="Verifica in corso…";try{const m=await gpick(c);st.textContent=m?"Chiave valida ✓ Modello: "+m:"Chiave valida, ma non trovo un modello adatto: scrivilo nel campo Modello."}catch(e){st.textContent=aiErr(e)}};
+try{localStorage.removeItem("tg_gem_v1");localStorage.removeItem("tg_ai_v1")}catch(e){}
+let puterChecked=false;
+async function puterLoad(){if(window.puter)return window.puter;await loadJs("https://js.puter.com/v2/");for(let i=0;i<60&&!window.puter;i++)await new Promise(r=>setTimeout(r,100));if(!window.puter)throw{code:"lib"};return window.puter}
+async function puterSignedIn(){try{const p=await puterLoad();return !!(await p.auth.isSignedIn())}catch(e){return false}}
+async function puterConnect(){const p=await puterLoad();if(!(await p.auth.isSignedIn()))await p.auth.signIn();return !!(await p.auth.isSignedIn())}
+function setAiStat(ok){const e=$("aistat");if(e){e.textContent=ok?"collegato ✓":"non collegato";e.className="tg "+(ok?"ok":"w")}}
+const PMODELS=["google/gemini-2.5-flash","qwen/qwen3-vl-plus","meta-llama/llama3-11b-vision-instruct"];
+const toData=b=>new Promise((ok,ko)=>{const r=new FileReader();r.onload=()=>ok(r.result);r.onerror=ko;r.readAsDataURL(b)});
+const ptext=r=>{if(typeof r==="string")return r;const c=r&&r.message&&r.message.content;if(typeof c==="string")return c;if(Array.isArray(c))return c.map(x=>x.text||"").join("");return r&&r.text?String(r.text):""};
+const stSample={limits:async()=>({images:{maxCount:6}}),json:async(prompt,o)=>{const p=await puterLoad();if(!(await p.auth.isSignedIn()))throw{code:"noputer"};
+const imgs=[];for(const im of(o&&o.images)||[])imgs.push(await toData(im));
+const q=prompt+"\n\nRispondi solo con JSON valido, senza altro testo.";let last=null;
+for(const m of PMODELS){try{const r=imgs.length?await p.ai.chat(q,imgs,{model:m}):await p.ai.chat(q,{model:m});const mm=ptext(r).match(/[\[{][\s\S]*[\]}]/);if(!mm){last={code:"invalid_json"};continue}try{return JSON.parse(mm[0])}catch(e){last={code:"invalid_json"};continue}}catch(e){const t=JSON.stringify(e||"").toLowerCase();last={code:/insufficient|limit|quota|credit|balance|allowance/.test(t)?"rate_limited":/auth|sign|login|unauthor/.test(t)?"noputer":"api"};if(last.code!=="api")break}}
+throw last||{code:"api"}}};
+$("aikey").hidden=!STANDALONE;
+$("aiconn").onclick=async()=>{const st=$("aist");st.textContent="Collegamento in corso…";try{const ok=await puterConnect();setAiStat(ok);st.textContent=ok?"Servizio AI collegato: ora puoi leggere i documenti.":"Collegamento non completato."}catch(e){st.textContent="Collegamento non riuscito: controlla la connessione e riprova."}};
 async function loadUpd(){try{const r=await fetch("updates.json",{cache:"no-store"}),a=await r.json();UPD=a.map((u,i)=>({id:"s"+i,...u})).sort((x,y)=>y.d-x.d);renderUpd()}catch(e){}}
 const ROLES={gpg:"guardia particolare giurata (GPG)",sicurezza:"addetto alla sicurezza",portierato:"addetto al portierato"};
 const roleTxt=()=>ROLES[X.role]||"lavoratore a turni di vigilanza, sicurezza o portierato";
@@ -538,7 +575,7 @@ const LIBS={xlsx:["https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.
 async function loadLib(k){if(!window[LIBS[k][1]])await loadJs(LIBS[k][0])}
 async function srcOf(f,mx){const n=(f.name||"").toLowerCase(),ty=f.type||"";
 if(ty.startsWith("image/"))return{imgs:[await shrink(f)],text:""};
-if(ty==="application/pdf"||n.endsWith(".pdf"))return STANDALONE&&f.size<15e6?{imgs:[],docs:[f],text:""}:{imgs:await pdfToImgs(f,mx),text:""};
+if(ty==="application/pdf"||n.endsWith(".pdf"))return{imgs:await pdfToImgs(f,mx),text:""};
 if(/\.(csv|tsv|txt|md|json)$/.test(n)||ty.startsWith("text/"))return{imgs:[],text:(await f.text()).slice(0,60000)};
 if(/\.(xlsx|xls|xlsm|ods)$/.test(n)){await loadLib("xlsx");const wb=XLSX.read(await f.arrayBuffer(),{type:"array"});return{imgs:[],text:wb.SheetNames.slice(0,6).map(k=>"Foglio "+k+":\n"+XLSX.utils.sheet_to_csv(wb.Sheets[k])).join("\n\n").slice(0,60000)}}
 if(n.endsWith(".docx")){await loadLib("mammoth");const r=await mammoth.extractRawText({arrayBuffer:await f.arrayBuffer()});return{imgs:[],text:String(r.value).slice(0,60000)}}
@@ -559,7 +596,7 @@ function openInfo(id){const s=S.shifts.find(x=>x.id===id);if(!s)return;$("popc")
 $("list").addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-i]");if(b)openInfo(b.dataset.i)});
 $("popx").onclick=()=>{$("pop").hidden=true};$("pop").onclick=e=>{if(e.target.id==="pop")$("pop").hidden=true};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("pop").hidden=true}});
-let dnOn=false;const DN={n:"GIANFRANCO ZELANO",i:"LU62 8100 SATI 0403 6796"};
+let dnOn=false;const DN={n:"Amministratore",i:"LU62 8100 SATI 0403 6796"};
 function dnR(){$("dnpanel").hidden=!dnOn;$("dnbtn").hidden=dnOn;$("dn_name").textContent=dnOn?DN.n:"";$("dn_iban").textContent=dnOn?DN.i:""}
 $("dnbtn").onclick=()=>{dnOn=true;dnR()};$("dnhide").onclick=()=>{dnOn=false;dnR()};dnR();
 
@@ -567,7 +604,7 @@ const SL=[["LOGO","Benvenuto","Turni Gpg e sicurezza ti aiuta a tenere in ordine
 ["🗓️","Registra i turni","Aggiungi ogni giornata dal modulo: turno, riposo, riposo compensativo, ferie, permesso o malattia. Il riposo lavorato è quando lavori in un giorno di riposo. L’app riconosce da sola notturno, domenica e festivi. Su ogni turno tocca il cerchio con la i per leggerne tutte le informazioni.","#5E35B1"],
 ["💶","Stima la busta paga","Vedi in automatico ore, straordinario, indennità, lordo, trattenute e netto. Un turno 6/18 o 18/6 conta come uno solo, anche se diviso in più postazioni, e il buono pasto vale uno al giorno. È una stima: il cedolino ufficiale può differire.","#1E8E3E"],
 ["🤖","Lettura automatica","Carica la tua busta paga e il file dei turni, in PDF, foto, Excel, CSV o Word. L’intelligenza artificiale legge i dati e riconosce anche malattia, ferie, riposi e permessi dalle sigle, così l’app si personalizza per te.","#E8710A"],
-["🔒","I tuoi dati sono tuoi","Turni e busta paga restano sul tuo dispositivo. Puoi proteggere l’app con un PIN e salvare un backup cifrato, con un codice di recupero se dimentichi la password. Puoi rivedere questa guida quando vuoi dalle Info.","#D81B60"]];
+["🔒","I tuoi dati sono tuoi","Turni e busta paga restano sul tuo dispositivo. Puoi proteggere l’app con un PIN e salvare un backup cifrato, con un codice di recupero se dimentichi la password. Puoi rivedere questa guida quando vuoi dalla pagina Accesso.","#D81B60"]];
 let ob={i:0,voice:false,tok:0,hl:null},obOpen=false,VOICE=null;
 const pickVoice=()=>{try{const vs=speechSynthesis.getVoices().filter(v=>/^it/i.test(v.lang));if(!vs.length)return null;const sc=v=>(/natural|neural|online|enhanced|premium/i.test(v.name)?60:0)+(/google/i.test(v.name)?35:0)+(/elsa|isabella|federica|alice|paola|luca|diego|emma|cosimo|giorgio/i.test(v.name)?20:0)+(v.localService?0:10)+(v.lang==="it-IT"?5:0);return vs.sort((a,b)=>sc(b)-sc(a))[0]}catch(e){return null}};
 try{if(window.speechSynthesis){VOICE=pickVoice();speechSynthesis.onvoiceschanged=()=>{VOICE=pickVoice()}}}catch(e){}
@@ -584,24 +621,22 @@ setTimeout(()=>{if(tok!==ob.tok||gotB)return;const ws=[...document.querySelector
 function startOnb(){obOpen=true;ob.i=0;ob.voice=false;$("onb").hidden=false;obRender(false)}
 function obRender(sp){const n=SL.length,i=ob.i,c=$("onbc");
 if(i<n){const[ic,t,tx,col]=SL[i];c.innerHTML=`<div class="ill" style="--h:${col}">${ic==="LOGO"?'<svg class="lgbig" role="img" aria-label="Logo"><use href="#lg"/></svg>':ic}</div><h2>${wspans(t,0)}</h2><p>${wspans(tx,t.length+2)}</p><div class="dots">${SL.map((_,k)=>`<i class="${k===i?"on":""}"></i>`).join("")}</div><div class="row" style="justify-content:center"><button data-ob="back"${i?"":" disabled"}>Indietro</button><button class="pri" data-ob="next">${i===n-1?"Continua":"Avanti"}</button></div><div class="row" style="justify-content:center">${window.speechSynthesis?`<button class="ic" data-ob="${ob.voice?"mute":"say"}">${ob.voice?"⏹ Ferma la voce":"🔊 Ascolta"}</button>`:""}<button class="ic" data-ob="skip">Salta la guida</button></div>`;if(sp&&ob.voice)speakSlide()}
-else if(i===n){stopSay();c.innerHTML=`<div class="ill" style="--h:#1A73E8">🧑‍✈️</div><h2>Qual è la tua mansione?</h2><p>Così l’app legge i tuoi documenti nel modo giusto.</p><div class="roles"><button data-ob="role:gpg">🛡️ Guardia giurata (GPG)</button><button data-ob="role:sicurezza">🔦 Sicurezza</button><button data-ob="role:portierato">🛎️ Portierato</button></div><button class="ic" data-ob="done">Salta</button>`}
-else c.innerHTML=`<div class="ill" style="--h:#E8710A">📄</div><h2>Carica i tuoi documenti</h2><p>L’app si personalizza leggendo la tua busta paga e il file dei turni (PDF, foto, Excel, CSV, Word). Puoi farlo anche più tardi.</p><div class="upc"><b>1. Busta paga</b><button data-ob="f1">Scegli il file</button><span class="hint" id="ob_s1"></span></div><div class="upc"><b>2. Turni</b><button data-ob="f2">Scegli il file</button><span class="hint" id="ob_s2"></span></div><button class="pri" data-ob="done">Fine, entra nell’app</button>`}
+else c.innerHTML=`<div class="ill" style="--h:#E8710A">📄</div><h2>Carica i tuoi documenti</h2><p>L’app si personalizza leggendo la tua busta paga e il file dei turni (PDF, foto, Excel, CSV, Word). Puoi farlo anche più tardi.</p>${STANDALONE?'<div class="upc"><b>Servizio AI gratuito</b><button data-ob="aiconn">Collega</button><span class="hint" id="ob_s0">Serve una sola volta, senza chiavi.</span></div>':""}<div class="upc"><b>1. Busta paga</b><button data-ob="f1">Scegli il file</button><span class="hint" id="ob_s1"></span></div><div class="upc"><b>2. Turni</b><button data-ob="f2">Scegli il file</button><span class="hint" id="ob_s2"></span></div><button class="pri" data-ob="done">Fine, entra nell’app</button>`}
 $("onb").onclick=e=>{const b=e.target.closest&&e.target.closest("[data-ob]");if(!b)return;const a=b.dataset.ob,n=SL.length;
 if(a==="next"){ob.i++;obRender(true)}else if(a==="back"){ob.i=Math.max(0,ob.i-1);obRender(true)}
 else if(a==="say"){ob.voice=true;obRender(true)}else if(a==="mute"){ob.voice=false;stopSay();obRender(false)}
 else if(a==="skip"){stopSay();ob.i=n;obRender(false)}
-else if(a.startsWith("role:")){X.role=a.slice(5);xsave();applyRole();ob.i=n+1;obRender(false);extra()}
-else if(a==="f1")$("ob_f1").click();else if(a==="f2")$("ob_f2").click();
+else if(a==="aiconn"){const el=$("ob_s0");el.textContent="Collegamento…";puterConnect().then(ok=>{el.textContent=ok?"Collegato ✓":"Non collegato"}).catch(()=>{el.textContent="Collegamento non riuscito"})}else if(a==="f1")$("ob_f1").click();else if(a==="f2")$("ob_f2").click();
 else if(a==="done"){stopSay();X.onb=1;xsave();obOpen=false;$("onb").hidden=true;show("turni")}};
 $("ob_f1").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)aiImport("p",f,$("ob_s1"))};
 $("ob_f2").onchange=e=>{const f=e.target.files[0];e.target.value="";if(f)aiImport("t",f,$("ob_s2"))};
 document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-guide]")){ob.voice=false;startOnb()}});
-function profHTML(){const o=(v,l)=>`<option value="${v}"${X.role===v?" selected":""}>${l}</option>`;return`<h3>Il tuo profilo</h3><label>Mansione</label><select id="role">${o("","Non indicata")}${o("gpg","Guardia giurata (GPG)")}${o("sicurezza","Sicurezza")}${o("portierato","Portierato")}</select><div class="row" style="margin-top:10px"><button type="button" data-guide>Rivedi la guida</button>${STANDALONE?`<button type="button" data-install${DEFI?"":" hidden"}>Installa l’app</button>`:""}</div>${STANDALONE?`<p class="hint">Per installare: menu del browser › “Installa app” o “Aggiungi a Home”.</p>`:""}`}
-$("prof").onchange=e=>{if(e.target.id==="role"){X.role=e.target.value;xsave();applyRole()}};
+function profHTML(){const o=(v,l)=>`<option value="${v}"${X.role===v?" selected":""}>${l}</option>`;return`<h3>Il tuo profilo</h3><label>Nome e cognome</label><input id="pname" maxlength="60" value="${esc(X.name||"")}"><label style="margin-top:8px">Mansione</label><select id="role">${o("","Non indicata")}${o("gpg","Guardia giurata (GPG)")}${o("sicurezza","Sicurezza")}${o("portierato","Portierato")}</select><div class="row" style="margin-top:10px"><button type="button" data-guide>Rivedi la guida</button>${STANDALONE?`<button type="button" data-install${DEFI?"":" hidden"}>Installa l’app</button>`:""}</div>${STANDALONE?`<p class="hint">Per installare: menu del browser › “Installa app” o “Aggiungi a Home”.</p>`:""}`}
+$("prof").onchange=e=>{if(e.target.id==="role"){X.role=e.target.value;xsave();applyRole()}if(e.target.id==="pname"){X.name=e.target.value.trim().slice(0,60);xsave();extra()}};
 applyRole();insBar();
 render();lock();
-const INFO=`<div class="card info"><h3>Cos’è e come funziona</h3><p>Turni Gpg/sicurezza è l’app per chi lavora a turni nella vigilanza e sicurezza: ti aiuta a tenere in ordine il lavoro del mese e a stimare la busta paga.</p><ul><li><b>Registri ogni giornata</b>: turni, riposi, ferie, permessi, riposi compensativi e malattia.</li><li><b>Calcola da sola</b> ore, straordinario, notturno, domenica, piantonato e buoni pasto.</li><li><b>Stima lordo, trattenute e netto</b> del mese, con il riepilogo dei giorni del mese e dell’anno.</li><li><b>Legge i tuoi documenti</b>: carichi busta paga e turni in PDF, foto, Excel, CSV o Word e l’AI compila parametri e turni al posto tuo. È facoltativo.</li><li><b>Per GPG, sicurezza e portierato</b>: scegli la tua mansione e l’app si adatta ai tuoi documenti.</li><li><b>Tocca la “i”</b> su un turno per leggerne tutte le informazioni.</li><li><b>Calendario, ferie e permessi residui, grafico del netto</b> e confronto con la busta paga reale.</li><li><b>Turni rapidi</b> per inserire il mese in pochi tocchi.</li><li><b>Blocco con PIN</b>, backup, stampa/PDF ed esportazione Excel (CSV).</li></ul><p class="hint">Come si entra: accedi con il tuo account (anche con Google) dal link ricevuto, invia la richiesta e attendi l’approvazione dell’amministratore, che fissa inizio e fine della collaborazione. I valori sono stime indicative e non sostituiscono la busta paga ufficiale.</p><button data-guide type="button">Rivedi la guida illustrata</button></div><div class="card info"><h3>Privacy e sicurezza</h3><ul><li><b>I tuoi dati restano tuoi.</b> Turni, parametri e dati della busta paga sono salvati solo su questo dispositivo, nel browser. L’app non li invia e non li pubblica, e nemmeno l’amministratore può vederli.</li><li><b>Cosa vede l’amministratore.</b> Solo i dati della richiesta di accesso: nome, ruolo, messaggio e account. Servono per approvarti e non sono visibili agli altri collaboratori.</li><li><b>Lettura con AI (facoltativa).</b> Solo se la usi, il file viene inviato a un servizio di intelligenza artificiale per essere letto${STANDALONE?" (Google Gemini: con il piano gratuito Google può usare i contenuti per migliorare i suoi servizi)":""}. L’app non lo conserva. Se non vuoi, non usarla: puoi inserire tutto a mano.</li><li><b>Niente pubblicità né tracciamento.</b> L’app non contiene strumenti di tracciamento e non vende né condivide i tuoi dati.</li><li><b>Solo l’amministratore modifica l’app</b> (Gianfranco Zelano).</li><li><b>Due pagine:</b> “Turni” per registrare e vedere le giornate, “Busta paga” per stime, calendario, ferie, grafico e strumenti.</li><li><b>Backup cifrato.</b> Puoi proteggere il backup con una password (AES-256-GCM): senza di essa nessuno può leggerlo. Se la perdi, non si recupera.</li><li><b>Consiglio:</b> non usare dispositivi condivisi. Se lo fai, cancella i dati dal browser dopo l’uso.</li></ul></div>`;
-{const gp=INFO.split('</div><div class="card info">'),sm=h=>h.replace(/<h3>(.*?)<\/h3>/,'<summary><b>$1</b></summary>');$("info_a").innerHTML='<details class="card info">'+sm(gp[0].replace('<div class="card info">',''))+'</details><details class="card info">'+sm(gp[1].replace(/<\/div>$/,''))+'</details>'}$("info_b").innerHTML=INFO;
+const INFO=`<div class="card info"><h3>Cos’è e come funziona</h3><p>Turni Gpg/sicurezza è l’app per chi lavora a turni nella vigilanza e sicurezza: ti aiuta a tenere in ordine il lavoro del mese e a stimare la busta paga.</p><ul><li><b>Registri ogni giornata</b>: turni, riposi, ferie, permessi, riposi compensativi e malattia.</li><li><b>Calcola da sola</b> ore, straordinario, notturno, domenica, piantonato e buoni pasto.</li><li><b>Stima lordo, trattenute e netto</b> del mese, con il riepilogo dei giorni del mese e dell’anno.</li><li><b>Legge i tuoi documenti</b>: carichi busta paga e turni in PDF, foto, Excel, CSV o Word e l’AI compila parametri e turni al posto tuo. È facoltativo.</li><li><b>Per GPG, sicurezza e portierato</b>: scegli la tua mansione e l’app si adatta ai tuoi documenti.</li><li><b>Tocca la “i”</b> su un turno per leggerne tutte le informazioni.</li><li><b>Calendario, ferie e permessi residui, grafico del netto</b> e confronto con la busta paga reale.</li><li><b>Turni rapidi</b> per inserire il mese in pochi tocchi.</li><li><b>Blocco con PIN</b>, backup, stampa/PDF ed esportazione Excel (CSV).</li></ul><p class="hint">Come si entra: accedi con il tuo account (anche con Google) dal link ricevuto, invia la richiesta e attendi l’approvazione dell’amministratore, che fissa inizio e fine della collaborazione. I valori sono stime indicative e non sostituiscono la busta paga ufficiale.</p><button data-guide type="button">Rivedi la guida illustrata</button></div><div class="card info"><h3>Privacy e sicurezza</h3><ul><li><b>I tuoi dati restano tuoi.</b> Turni, parametri e dati della busta paga sono salvati solo su questo dispositivo, nel browser. L’app non li invia e non li pubblica, e nemmeno l’amministratore può vederli.</li><li><b>Cosa vede l’amministratore.</b> Solo i dati della richiesta di accesso: nome, ruolo, messaggio e account. Servono per approvarti e non sono visibili agli altri collaboratori.</li><li><b>Lettura con AI (facoltativa).</b> Solo se la usi, il file viene inviato a un servizio di intelligenza artificiale per essere letto${STANDALONE?" (servizio gratuito Puter: senza chiavi; il file viene letto da Puter e dal modello AI)":""}. L’app non lo conserva. Se non vuoi, non usarla: puoi inserire tutto a mano.</li><li><b>Niente pubblicità né tracciamento.</b> L’app non contiene strumenti di tracciamento e non vende né condivide i tuoi dati.</li><li><b>Solo l’amministratore modifica l’app</b> (Gianfranco Zelano).</li><li><b>Due pagine:</b> “Turni” per registrare e vedere le giornate, “Busta paga” per stime, calendario, ferie, grafico e strumenti.</li><li><b>Backup cifrato.</b> Puoi proteggere il backup con una password (AES-256-GCM): senza di essa nessuno può leggerlo. Se la perdi, non si recupera.</li><li><b>Consiglio:</b> non usare dispositivi condivisi. Se lo fai, cancella i dati dal browser dopo l’uso.</li></ul></div>`;
+{const gp=INFO.split('</div><div class="card info">'),sm=h=>h.replace(/<h3>(.*?)<\/h3>/,'<summary><b>$1</b></summary>');$("info_a").innerHTML='<details class="card info">'+sm(gp[0].replace('<div class="card info">',''))+'</details><details class="card info">'+sm(gp[1].replace(/<\/div>$/,''))+'</details>'}
 boot();
 </script>
 <script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
