@@ -1,7 +1,14 @@
 // Configurazione pubblica dell'app Web Firebase.
-// Inserisci i valori della Console Firebase e imposta enabled: true solo dopo aver pubblicato le regole Firestore.
+// L'integrazione resta disattivata finché autenticazione e regole Firestore non sono pronte.
 window.TURNI_FIREBASE_CONFIG = {
   enabled: false,
-  firebaseConfig: { apiKey: "INSERISCI_API_KEY", authDomain: "INSERISCI_PROJECT_ID.firebaseapp.com", projectId: "INSERISCI_PROJECT_ID", appId: "INSERISCI_APP_ID" },
+  firebaseConfig: {
+    apiKey: "AIzaSyBjKrteq43vs9PGLQWXjwsqSxp0EUCytLc",
+    authDomain: "turnigpg-sicurezza.firebaseapp.com",
+    projectId: "turnigpg-sicurezza",
+    storageBucket: "turnigpg-sicurezza.firebasestorage.app",
+    messagingSenderId: "1012200710111",
+    appId: "1:1012200710111:web:4b53776befc0d9e9642e6a"
+  },
   ADMIN_EMAIL: "zelanogianfranco@gmail.com"
 };
