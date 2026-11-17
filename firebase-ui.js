@@ -1,6 +1,6 @@
 const cfg=window.TURNI_FIREBASE_CONFIG;
 if(cfg?.enabled){
- const { register, login, logout, resetPassword, watchAuth, getAccess, loadPrivateData, savePrivateData, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember, db } = await import("./firebase-client.js");
+ const { register, login, logout, resetPassword, submitAccessRequest, watchAuth, getAccess, loadPrivateData, savePrivateData, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember, db } = await import("./firebase-client.js");
  const { doc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
  const gate=document.getElementById("pg_gate"),host=document.createElement("section");
  host.className="card";host.id="firebase-auth-ui";
@@ -10,7 +10,7 @@ if(cfg?.enabled){
  <div id="fb-reg-fields" hidden><label for="fb-name">Nome e cognome</label><input id="fb-name" maxlength="60" autocomplete="name"><label for="fb-role">Mansione</label><select id="fb-role"><option value="gpg">Guardia giurata (GPG)</option><option value="sicurezza">Sicurezza</option><option value="portierato">Portierato</option></select></div>
  <button class="pri" id="fb-submit">Accedi</button></form>
  <div class="row"><button id="fb-toggle">Crea account</button><button id="fb-reset">Password dimenticata</button><button id="fb-logout" hidden>Esci dall’account</button></div>
- <div id="fb-notices"></div><div id="fb-admin"></div><p class="hint">Accesso solo con email e password. Dopo la verifica dell’indirizzo, l’amministratore deve approvare la richiesta. Notifiche solo interne all’app, nessuna push.</p>`;
+ <div id="fb-request" hidden><label for="fb-rname">Nome e cognome</label><input id="fb-rname" maxlength="60"><label for="fb-rrole">Mansione</label><select id="fb-rrole"><option value="gpg">Guardia giurata (GPG)</option><option value="sicurezza">Sicurezza</option><option value="portierato">Portierato</option></select><button class="pri" id="fb-send-request">Invia richiesta di accesso</button></div><div id="fb-notices"></div><div id="fb-admin"></div><p class="hint">Accesso solo con email e password. Dopo la verifica dell’indirizzo, l’amministratore deve approvare la richiesta. Notifiche solo interne all’app, nessuna push.</p>`;
  gate.insertBefore(host,gate.querySelector("#rpend"));
  const $=id=>document.getElementById(id),safe=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
  let registering=false,current=null,unsubNotes=null,unsubReq=null,unsubMember=null,preparedUid=null,itemsCache=[],memberCache=[],saveListener=null,cloudWrites=Promise.resolve();
@@ -19,6 +19,7 @@ if(cfg?.enabled){
  $("fb-login").onsubmit=async e=>{e.preventDefault();try{status(registering?"Creazione account…":"Accesso…");if(registering){await register($("fb-email").value.trim(),$("fb-pass").value,$("fb-name").value,$("fb-role").value);status("Account creato. Controlla la posta, verifica l’indirizzo e poi accedi.");}else await login($("fb-email").value.trim(),$("fb-pass").value);}catch(err){status(err.message||"Operazione non riuscita.")}};
  $("fb-reset").onclick=async()=>{const email=$("fb-email").value.trim();if(!email){status("Inserisci prima il tuo indirizzo email.");return}try{await resetPassword(email);status("Email per reimpostare la password inviata.")}catch(e){status(e.message||"Invio non riuscito.")}};
  $("fb-logout").onclick=()=>logout().catch(e=>status(e.message));
+ $("fb-send-request").onclick=async()=>{if(!current)return;try{await submitAccessRequest(current,$("fb-rname").value,$("fb-rrole").value);$("fb-request").hidden=true;status("Richiesta inviata: attendi l’approvazione dell’amministratore.")}catch(e){status(e.message||"Invio richiesta non riuscito.")}};
  const emit=(u,a,m,r)=>window.dispatchEvent(new CustomEvent("turni-firebase-session",{detail:{uid:u?.uid||null,admin:a,member:m,request:r}}));
  async function prepare(u){
   if(preparedUid===u.uid)return;preparedUid=u.uid;
@@ -58,7 +59,7 @@ if(cfg?.enabled){
   emit(u,a,m,r);
   if(!window.__TURNI_UPDATES_WATCH){window.__TURNI_UPDATES_WATCH=true;onSnapshot(collection(db,"updates"),snap=>{const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>(y.d||0)-(x.d||0));window.dispatchEvent(new CustomEvent("turni-firebase-updates",{detail:{items}}))},()=>status("Aggiornamenti non disponibili al momento."))}
   if(a||m?.active){status(a?"Accesso amministratore attivo.":"Accesso approvato. I tuoi dati sono separati.");await prepare(u);if(!unsubNotes)unsubNotes=watchMyNotifications(u.uid,notifications)}
-  else status(r?"Richiesta ricevuta: attendi l’approvazione dell’amministratore.":"Account verificato: la richiesta di accesso non risulta ancora presente.");
+  else { $("fb-request").hidden=!!r; status(r?"Richiesta ricevuta: attendi l’approvazione dell’amministratore.":"Inserisci nome e mansione per inviare la richiesta di accesso."); }
   if(a&&!unsubReq)unsubReq=watchAdminRequests(requests);if(a&&!window.__TURNI_MEMBERS_WATCH){window.__TURNI_MEMBERS_WATCH=true;onSnapshot(collection(db,"members"),snap=>{memberCache=snap.docs.map(d=>({id:d.id,...d.data()}));renderAdmin()},()=>status("Elenco collaboratori non disponibile."))}
  }
  watchAuth(async u=>{
