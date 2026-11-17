@@ -1,8 +1,7 @@
 # Turni GPG/sicurezza
 
 App per registrare i turni e stimare la busta paga, per guardie giurate (GPG), sicurezza e portierato.
-Si installa sul telefono come una vera app (PWA) e funziona anche senza connessione.
-I tuoi dati restano sul tuo dispositivo.
+Si installa sul telefono come una vera app (PWA). Le funzioni locali restano disponibili sul dispositivo; quando Firebase viene configurato e attivato, l'accesso richiede internet e turni/parametri vengono sincronizzati nello spazio privato dell'account.
 
 ## Pubblicarla su GitHub Pages (gratis)
 
@@ -47,11 +46,16 @@ Quando ti viene preparata una nuova versione:
 
 ## Cosa cambia rispetto alla versione dentro Claude
 - **Nessun limite di utilizzo** per turni, calcoli, calendario, backup cifrato, PIN e guida.
-- **Nessuna registrazione né approvazione dei collaboratori**: ognuno usa l'app sul suo telefono con i suoi dati.
+- **Modalità locale**: se Firebase non è configurato (`firebase-config.js` con `enabled: false`), l'app resta personale e salva i dati nel browser.
+- **Modalità collaboratori Firebase**: imposta la configurazione in `firebase-config.js`, pubblica `firestore.rules` e attiva `enabled: true`. L'accesso è solo email/password, con verifica email e approvazione dell'amministratore `zelanogianfranco@gmail.com`. Ogni account ha i propri dati e riceve notifiche interne all'app.
 - **Lettura automatica di busta paga e turni**: usa Gemini gratuito di Google. Ognuno crea la sua chiave gratis (senza carta) su
   https://aistudio.google.com/apikey e la incolla in *Busta paga › Lettura automatica*.
   Con il piano gratuito Google può usare i contenuti inviati per migliorare i suoi servizi: se non ti sta bene, inserisci i dati a mano.
 
 ## Privacy
-Turni, busta paga e impostazioni restano nel browser del telefono. L'app non ha pubblicità né strumenti di tracciamento.
+In modalità locale, turni, busta paga e impostazioni restano nel browser del telefono. In modalità Firebase, turni e parametri sono archiviati nel documento privato dell'account; il profilo/PIN resta sul dispositivo. La prima migrazione dei dati locali chiede conferma e non cancella l'archivio originale. L'app non ha pubblicità né strumenti di tracciamento.
 Solo se usi la lettura automatica, il file viene inviato a Google Gemini con la tua chiave.
+
+
+## Configurazione Firebase
+Consulta `FIREBASE_SETUP.md`. Il progetto Firebase deve essere creato nella Console Google del proprietario; questo repository contiene l'interfaccia, il client e le regole, ma non può creare il progetto nell'account Google al suo posto.
