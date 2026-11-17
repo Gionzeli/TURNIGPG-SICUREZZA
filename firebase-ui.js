@@ -13,6 +13,7 @@ if(cfg?.enabled){
  } 
  const { register, login, logout, resetPassword, submitAccessRequest, watchAuth, getAccess, loadPrivateData, savePrivateData, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember, db } = client||{};
  const { doc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc } = firestore||{};
+ if(client&&firestore){
  host.innerHTML=`<h3>Account collaboratore</h3><p class="hint" id="fb-status">Connessione sicura…</p>
  <form id="fb-login" style="display:grid;gap:10px"><div><label for="fb-email">Email</label><input id="fb-email" type="email" autocomplete="username" required></div>
  <div><label for="fb-pass">Password</label><input id="fb-pass" type="password" autocomplete="current-password" minlength="6" required></div>
@@ -82,6 +83,7 @@ if(cfg?.enabled){
   await activate(u,false,m,r);
   unsubMember=onSnapshot(doc(db,"members",u.uid),async s=>{const fresh=s.exists()?s.data():null;if(fresh?.active){if(preparedUid!==u.uid)await activate(u,false,fresh,r);else{emit(u,false,fresh,r);status("Accesso approvato. Il tuo account è attivo.")}}else{window.__TURNI_CLOUD_READY=false;preparedUid=null;emit(u,false,fresh,r);status("La richiesta è in attesa oppure l’accesso è sospeso.")}});
  }).catch(e=>status(e.message||"Errore di collegamento Firebase."));
+ }
 } else if(cfg){
  const gate=document.getElementById("pg_gate"),card=gate?.querySelector(".card.gate");
  if(card){const note=document.createElement("p");note.className="hint";note.textContent="Accesso collaboratori Firebase non ancora attivato. La PWA continua a funzionare in modalità locale; per attivare registrazione e approvazione occorre completare la configurazione descritta in FIREBASE_SETUP.md.";card.appendChild(note)}
