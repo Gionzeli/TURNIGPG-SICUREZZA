@@ -1,31 +1,20 @@
-# Integrazione Firebase — Turni GPG
+# Attivazione Firebase — Turni GPG/sicurezza
 
-Questa è la base tecnica dell'integrazione; **non è ancora attiva nell'interfaccia della PWA**. La versione pubblicata continua a funzionare come prima finché non viene configurato Firebase e completato il collegamento UI.
+L'interfaccia Firebase è collegata alla PWA, ma resta disattivata finché non configuri il progetto. La modalità locale continua a funzionare nel frattempo.
 
-## Funzioni previste
-- Firebase Authentication: email e password, verifica email e recupero password.
-- Accesso subordinato ad approvazione: richiesta in `accessRequests/{uid}`, autorizzazione amministrativa in `members/{uid}`.
-- Dati personali isolati in `privateData/{uid}`.
-- Notifiche interne in `notifications/{uid}/items/{notificationId}`; nessun Firebase Cloud Messaging e nessuna push.
-- Amministratore: `zelanogianfranco@gmail.com`, con email verificata.
+1. Crea un progetto nella Console Firebase e registra un'app Web.
+2. Attiva Authentication > Email/Password e crea Firestore.
+3. Inserisci apiKey, authDomain, projectId e appId in `firebase-config.js`; imposta `enabled: true` solo dopo aver pubblicato le regole.
+4. Pubblica `firestore.rules` in Firestore > Rules.
+5. Aggiungi il dominio GitHub Pages in Authentication > Settings > Authorized domains.
+6. Verifica registrazione, verifica email, login, approvazione, notifiche, recupero password e migrazione prima di invitare collaboratori.
 
-## Configurazione una tantum
-1. Creare un progetto Firebase e registrare un'app Web.
-2. Abilitare Authentication > Email/Password e il controllo di verifica email.
-3. Creare Firestore Database.
-4. Copiare `firebase-config.example.js` in `firebase-config.js` e sostituire i tre valori con quelli dell'app Web. Il file di configurazione Web contiene identificatori pubblici, non password o chiavi private.
-5. Pubblicare `firestore.rules` in Firestore > Rules.
-6. Aggiungere il dominio GitHub Pages in Authentication > Settings > Authorized domains.
+Amministratore: `zelanogianfranco@gmail.com` (email verificata). Non inserire password o chiavi private nel repository.
 
-## Modello dati
-- `accessRequests/{uid}`: richiesta e stato della registrazione.
-- `members/{uid}`: stato approvato, date di inizio/fine e nome.
-- `privateData/{uid}`: parametri e turni del singolo utente.
-- `notifications/{uid}/items/{id}`: avvisi interni destinati a un singolo utente.
+## Migrazione e isolamento
 
-## Attenzione prima di attivare
-- Non inserire chiavi Admin SDK, service account o password nel repository.
-- La regola amministrativa usa l'indirizzo email verificato; proteggere quindi l'accesso a quella casella con autenticazione a due fattori.
-- La PWA attuale usa localStorage per i dati. Il passaggio a `privateData/{uid}` richiede una migrazione esplicita e verificata per non sovrascrivere i dati locali. Non cancellare il vecchio archivio.
-- L'interfaccia di registrazione/login, la verifica dello stato membro, il salvataggio cloud e il ripristino locale/cloud devono essere collegati e testati prima di distribuire l'accesso obbligatorio.
-- Le notifiche sono in-app e si leggono quando l'app è aperta; non vengono inviate notifiche push al telefono.
+Dopo l'approvazione, turni e parametri vengono salvati in un documento privato associato all'UID Firebase. Al primo accesso viene chiesto esplicitamente se importare l'archivio locale precedente; il vecchio archivio non viene cancellato. Se esistono dati locali personali e dati cloud, viene chiesto quale versione usare. I dati del profilo/PIN vengono separati per account sul dispositivo; il vecchio archivio resta intatto.
+
+## Ancora necessario
+
+Il progetto Firebase non è stato creato nel tuo account Google. Devi completare i passaggi della Console e inserire la configurazione dell'app Web. Finché `enabled: false`, la PWA resta in modalità locale e non avvia l'autenticazione cloud.
