@@ -1,9 +1,18 @@
 const cfg=window.TURNI_FIREBASE_CONFIG;
 if(cfg?.enabled){
- const { register, login, logout, resetPassword, submitAccessRequest, watchAuth, getAccess, loadPrivateData, savePrivateData, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember, db } = await import("./firebase-client.js");
- const { doc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
  const gate=document.getElementById("pg_gate"),host=document.createElement("section");
  host.className="card";host.id="firebase-auth-ui";
+ host.innerHTML='<h3>Account collaboratore</h3><p class="hint">Caricamento del servizio di accesso…</p>';
+ if(gate)gate.insertBefore(host,gate.querySelector("#rpend"));
+ let client,firestore;
+ try{
+  [client,firestore]=await Promise.all([import("./firebase-client.js"),import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js")]);
+ }catch(error){
+  host.innerHTML='<h3>Account collaboratore</h3><p class="hint" style="color:var(--bad-tx)">Il servizio di accesso non è riuscito a caricarsi: '+String(error?.message||error).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))+'</p><p class="hint">Riprova più tardi o contatta l’amministratore.</p>';
+  console.error("Turni GPG Firebase init:",error);
+ } 
+ const { register, login, logout, resetPassword, submitAccessRequest, watchAuth, getAccess, loadPrivateData, savePrivateData, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember, db } = client||{};
+ const { doc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc } = firestore||{};
  host.innerHTML=`<h3>Account collaboratore</h3><p class="hint" id="fb-status">Connessione sicura…</p>
  <form id="fb-login" style="display:grid;gap:10px"><div><label for="fb-email">Email</label><input id="fb-email" type="email" autocomplete="username" required></div>
  <div><label for="fb-pass">Password</label><input id="fb-pass" type="password" autocomplete="current-password" minlength="6" required></div>
@@ -11,7 +20,7 @@ if(cfg?.enabled){
  <button class="pri" id="fb-submit">Accedi</button></form>
  <div class="row"><button id="fb-toggle">Crea account</button><button id="fb-reset">Password dimenticata</button><button id="fb-logout" hidden>Esci dall’account</button></div>
  <div id="fb-request" hidden><label for="fb-rname">Nome e cognome</label><input id="fb-rname" maxlength="60"><label for="fb-rrole">Mansione</label><select id="fb-rrole"><option value="gpg">Guardia giurata (GPG)</option><option value="sicurezza">Sicurezza</option><option value="portierato">Portierato</option></select><button class="pri" id="fb-send-request">Invia richiesta di accesso</button></div><div id="fb-notices"></div><div id="fb-admin"></div><p class="hint">Accesso solo con email e password. Dopo la verifica dell’indirizzo, l’amministratore deve approvare la richiesta. Notifiche solo interne all’app, nessuna push.</p>`;
- gate.insertBefore(host,gate.querySelector("#rpend"));
+
  const $=id=>document.getElementById(id),safe=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
  let registering=false,current=null,unsubNotes=null,unsubReq=null,unsubMember=null,preparedUid=null,itemsCache=[],memberCache=[],saveListener=null,cloudWrites=Promise.resolve();
  const status=t=>$("fb-status").textContent=t;
