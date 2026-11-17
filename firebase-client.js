@@ -1,5 +1,5 @@
 // Modulo Firebase per Turni GPG. Richiede firebase-config.js compilato.
-import { firebaseConfig, ADMIN_EMAIL } from "./firebase-config.js";
+const { firebaseConfig, ADMIN_EMAIL } = window.TURNI_FIREBASE_CONFIG || {};
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
@@ -10,7 +10,7 @@ import {
   query, orderBy, onSnapshot, serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-const configured = firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("INSERISCI_")
+const configured = firebaseConfig && firebaseConfig.apiKey && !firebaseConfig.apiKey.startsWith("INSERISCI_")
   && firebaseConfig.projectId && !firebaseConfig.projectId.startsWith("INSERISCI_")
   && firebaseConfig.appId && !firebaseConfig.appId.startsWith("INSERISCI_");
 if (!configured) throw new Error("Configurazione Firebase mancante: completa firebase-config.js.");
@@ -18,7 +18,7 @@ if (!configured) throw new Error("Configurazione Firebase mancante: completa fir
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const adminEmail = ADMIN_EMAIL.toLowerCase();
+export const adminEmail = String(ADMIN_EMAIL || "").toLowerCase();
 
 export async function register(email, password, name, role = "") {
   const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
