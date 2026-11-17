@@ -568,7 +568,7 @@ const imgs=[];for(const im of(o&&o.images)||[])imgs.push(await toData(im));
 const q=prompt+"\n\nRispondi solo con JSON valido, senza altro testo.";let last=null;
 for(const m of PMODELS){try{const r=imgs.length?await p.ai.chat(q,imgs,{model:m}):await p.ai.chat(q,{model:m});const mm=ptext(r).match(/[\[{][\s\S]*[\]}]/);if(!mm){last={code:"invalid_json"};continue}try{return JSON.parse(mm[0])}catch(e){last={code:"invalid_json"};continue}}catch(e){const t=JSON.stringify(e||"").toLowerCase();last={code:/insufficient|limit|quota|credit|balance|allowance/.test(t)?"rate_limited":/auth|sign|login|unauthor/.test(t)?"noputer":"api"};if(last.code!=="api")break}}
 throw last||{code:"api"}}};
-$("aikey").hidden=!STANDALONE;
+$("aikey").hidden=false;
 $("aiconn").onclick=async()=>{const st=$("aist");st.textContent="Collegamento in corso…";try{const ok=await puterConnect();setAiStat(ok);st.textContent=ok?"Servizio AI collegato: ora puoi leggere i documenti.":"Collegamento non completato."}catch(e){st.textContent="Collegamento non riuscito: controlla la connessione e riprova."}};
 async function loadUpd(){try{const r=await fetch("updates.json",{cache:"no-store"}),a=await r.json();UPD=a.map((u,i)=>({id:"s"+i,...u})).sort((x,y)=>y.d-x.d);renderUpd()}catch(e){}}
 const ROLES={gpg:"guardia particolare giurata (GPG)",sicurezza:"addetto alla sicurezza",portierato:"addetto al portierato"};
