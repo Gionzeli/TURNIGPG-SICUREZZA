@@ -1,7 +1,7 @@
 const cfg=window.TURNI_FIREBASE_CONFIG;
 if(cfg?.enabled){
  const { register, login, logout, resetPassword, watchAuth, getAccess, loadPrivateData, savePrivateData, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember, db } = await import("./firebase-client.js");
- const { doc, getDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
+ const { doc, getDoc, onSnapshot, collection, addDoc, deleteDoc } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
  const gate=document.getElementById("pg_gate"),host=document.createElement("section");
  host.className="card";host.id="firebase-auth-ui";
  host.innerHTML=`<h3>Account collaboratore</h3><p class="hint" id="fb-status">Connessione sicura…</p>
@@ -41,9 +41,13 @@ if(cfg?.enabled){
  $("fb-notices").onclick=e=>{const b=e.target.closest("[data-read]");if(b&&current)markNotificationRead(current.uid,b.dataset.read).catch(()=>status("Aggiornamento notifica non riuscito."))};
  function notifications(ns){$("fb-notices").innerHTML=ns.length?"<h3>Notifiche interne</h3>"+ns.map(n=>'<div class="it"><div class="m"><b>'+safe(n.title)+'</b><small>'+safe(n.message)+'</small></div>'+(n.read?"":'<button data-read="'+safe(n.id)+'">Segna letta</button>')+"</div>").join(""):""}
  function requests(rs){itemsCache=rs.filter(r=>r.status==="pending");const pending=itemsCache;$("fb-admin").innerHTML="<h3>Richieste di accesso</h3>"+(pending.length?pending.map(r=>'<div class="it"><div class="m"><b>'+safe(r.name)+'</b><small>'+safe(r.email)+' · '+safe(r.role)+' · '+safe(r.status)+'</small><label>Inizio</label><input type="date" id="fb-s-'+safe(r.uid)+'"><label>Fine</label><input type="date" id="fb-e-'+safe(r.uid)+'"></div><button data-approve="'+safe(r.uid)+'">Approva</button></div>').join(""):"<p class='hint'>Nessuna richiesta.</p>")}
+ const uf=document.getElementById("uf");
+ uf.onsubmit=async e=>{e.preventDefault();try{await addDoc(collection(db,"updates"),{t:document.getElementById("ut").value.trim(),b:document.getElementById("ub").value.trim(),d:Date.now()});uf.reset();status("Aggiornamento pubblicato.")}catch(x){status(x.message||"Pubblicazione non riuscita.")}};
+ document.getElementById("ulist").onclick=async e=>{const id=e.target.dataset.du;if(!id||!current||current.email.toLowerCase()!==String(cfg.ADMIN_EMAIL).toLowerCase())return;try{await deleteDoc(doc(db,"updates",id))}catch(x){status(x.message||"Eliminazione non riuscita.")}};
  $("fb-admin").onclick=async e=>{const b=e.target.closest("[data-approve]");if(!b||!current)return;try{const r=itemsCache.find(x=>x.uid===b.dataset.approve);await approveMember(r.uid,{...r,start:$("fb-s-"+r.uid).value,end:$("fb-e-"+r.uid).value});status("Collaboratore approvato.")}catch(x){status(x.message||"Approvazione non riuscita.")}};
  async function activate(u,a,m,r){
   emit(u,a,m,r);
+  if(!window.__TURNI_UPDATES_WATCH){window.__TURNI_UPDATES_WATCH=true;onSnapshot(collection(db,"updates"),snap=>{const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>(y.d||0)-(x.d||0));window.dispatchEvent(new CustomEvent("turni-firebase-updates",{detail:{items}}))},()=>status("Aggiornamenti non disponibili al momento."))}
   if(a||m?.active){status(a?"Accesso amministratore attivo.":"Accesso approvato. I tuoi dati sono separati.");await prepare(u);if(!unsubNotes)unsubNotes=watchMyNotifications(u.uid,notifications)}
   else status(r?"Richiesta ricevuta: attendi l’approvazione dell’amministratore.":"Account verificato: la richiesta di accesso non risulta ancora presente.");
   if(a&&!unsubReq)unsubReq=watchAdminRequests(requests);
