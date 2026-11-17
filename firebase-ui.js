@@ -73,4 +73,7 @@ if(cfg?.enabled){
   await activate(u,false,m,r);
   unsubMember=onSnapshot(doc(db,"members",u.uid),async s=>{const fresh=s.exists()?s.data():null;if(fresh?.active){if(preparedUid!==u.uid)await activate(u,false,fresh,r);else{emit(u,false,fresh,r);status("Accesso approvato. Il tuo account è attivo.")}}else{window.__TURNI_CLOUD_READY=false;preparedUid=null;emit(u,false,fresh,r);status("La richiesta è in attesa oppure l’accesso è sospeso.")}});
  }).catch(e=>status(e.message||"Errore di collegamento Firebase."));
+} else if(cfg){
+ const gate=document.getElementById("pg_gate"),card=gate?.querySelector(".card.gate");
+ if(card){const note=document.createElement("p");note.className="hint";note.textContent="Accesso collaboratori Firebase non ancora attivato. La PWA continua a funzionare in modalità locale; per attivare registrazione e approvazione occorre completare la configurazione descritta in FIREBASE_SETUP.md.";card.appendChild(note)}
 }
