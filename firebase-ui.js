@@ -1,7 +1,7 @@
-import { register, login, logout, resetPassword, watchAuth, getAccess, loadPrivateData, savePrivateData, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember } from "./firebase-client.js";
-import { doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 const cfg=window.TURNI_FIREBASE_CONFIG;
 if(cfg?.enabled){
+ const { register, login, logout, resetPassword, watchAuth, getAccess, loadPrivateData, savePrivateData, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember, db } = await import("./firebase-client.js");
+ const { doc, getDoc, onSnapshot } = await import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js");
  const gate=document.getElementById("pg_gate"),host=document.createElement("section");
  host.className="card";host.id="firebase-auth-ui";
  host.innerHTML=`<h3>Account collaboratore</h3><p class="hint" id="fb-status">Connessione sicura…</p>
@@ -13,7 +13,7 @@ if(cfg?.enabled){
  <div id="fb-notices"></div><div id="fb-admin"></div><p class="hint">Accesso solo con email e password. Dopo la verifica dell’indirizzo, l’amministratore deve approvare la richiesta. Notifiche solo interne all’app, nessuna push.</p>`;
  gate.insertBefore(host,gate.querySelector("#rpend"));
  const $=id=>document.getElementById(id),safe=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
- let registering=false,current=null,unsubNotes=null,unsubReq=null,unsubMember=null,preparedUid=null,itemsCache=[];
+ let registering=false,current=null,unsubNotes=null,unsubReq=null,unsubMember=null,preparedUid=null,itemsCache=[],saveListener=null;
  const status=t=>$("fb-status").textContent=t;
  $("fb-toggle").onclick=()=>{registering=!registering;$("fb-reg-fields").hidden=!registering;$("fb-name").required=registering;$("fb-submit").textContent=registering?"Registrati":"Accedi";$("fb-toggle").textContent=registering?"Ho già un account":"Crea account";$("fb-pass").autocomplete=registering?"new-password":"current-password"};
  $("fb-login").onsubmit=async e=>{e.preventDefault();try{status(registering?"Creazione account…":"Accesso…");if(registering){await register($("fb-email").value.trim(),$("fb-pass").value,$("fb-name").value,$("fb-role").value);status("Account creato. Controlla la posta, verifica l’indirizzo e poi accedi.");}else await login($("fb-email").value.trim(),$("fb-pass").value);}catch(err){status(err.message||"Operazione non riuscita.")}};
@@ -36,7 +36,7 @@ if(cfg?.enabled){
   }else if(cloud)window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
   else if(local)await savePrivateData(u.uid,local);
   window.__TURNI_CLOUD_READY=true;
-  window.addEventListener("turni-data-save",e=>{if(current?.uid===u.uid&&window.__TURNI_CLOUD_READY)savePrivateData(u.uid,e.detail.data).catch(()=>status("Salvataggio cloud non riuscito: verifica la connessione."))});
+  if(saveListener)window.removeEventListener("turni-data-save",saveListener);saveListener=e=>{if(current?.uid===u.uid&&window.__TURNI_CLOUD_READY)savePrivateData(u.uid,e.detail.data).catch(()=>status("Salvataggio cloud non riuscito: verifica la connessione."))};window.addEventListener("turni-data-save",saveListener);
  }
  $("fb-notices").onclick=e=>{const b=e.target.closest("[data-read]");if(b&&current)markNotificationRead(current.uid,b.dataset.read).catch(()=>status("Aggiornamento notifica non riuscito."))};
  function notifications(ns){$("fb-notices").innerHTML=ns.length?"<h3>Notifiche interne</h3>"+ns.map(n=>'<div class="it"><div class="m"><b>'+safe(n.title)+'</b><small>'+safe(n.message)+'</small></div>'+(n.read?"":'<button data-read="'+safe(n.id)+'">Segna letta</button>')+"</div>").join(""):""}
@@ -55,8 +55,8 @@ if(cfg?.enabled){
   await u.reload();if(!u.emailVerified){status("Verifica l’indirizzo email dal messaggio ricevuto, poi torna qui ed effettua l’accesso.");emit(u,false,null,null);return}
   const admin=u.email.toLowerCase()===String(cfg.ADMIN_EMAIL).toLowerCase();
   if(admin){await activate(u,true,null,null);return}
-  const m=await getAccess(u.uid),snap=await getDoc(doc((await import("./firebase-client.js")).db,"accessRequests",u.uid)),r=snap.exists()?snap.data():null;
+  const m=await getAccess(u.uid),snap=await getDoc(doc(db,"accessRequests",u.uid)),r=snap.exists()?snap.data():null;
   await activate(u,false,m,r);
-  unsubMember=onSnapshot(doc((await import("./firebase-client.js")).db,"members",u.uid),async s=>{const fresh=s.exists()?s.data():null;if(fresh?.active&&preparedUid!==u.uid)await activate(u,false,fresh,r);else if(!fresh?.active){window.__TURNI_CLOUD_READY=false;emit(u,false,fresh,r);status("La richiesta è in attesa oppure l’accesso è sospeso.")}});
+  unsubMember=onSnapshot(doc(db,"members",u.uid),async s=>{const fresh=s.exists()?s.data():null;if(fresh?.active&&preparedUid!==u.uid)await activate(u,false,fresh,r);else if(!fresh?.active){window.__TURNI_CLOUD_READY=false;emit(u,false,fresh,r);status("La richiesta è in attesa oppure l’accesso è sospeso.")}});
  }).catch(e=>status(e.message||"Errore di collegamento Firebase."));
 }
