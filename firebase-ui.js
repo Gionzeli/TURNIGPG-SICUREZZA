@@ -70,6 +70,6 @@ if(cfg?.enabled){
   if(admin){await activate(u,true,null,null);return}
   const m=await getAccess(u.uid),snap=await getDoc(doc(db,"accessRequests",u.uid)),r=snap.exists()?snap.data():null;
   await activate(u,false,m,r);
-  unsubMember=onSnapshot(doc(db,"members",u.uid),async s=>{const fresh=s.exists()?s.data():null;if(fresh?.active&&preparedUid!==u.uid)await activate(u,false,fresh,r);else if(!fresh?.active){window.__TURNI_CLOUD_READY=false;emit(u,false,fresh,r);status("La richiesta è in attesa oppure l’accesso è sospeso.")}});
+  unsubMember=onSnapshot(doc(db,"members",u.uid),async s=>{const fresh=s.exists()?s.data():null;if(fresh?.active){if(preparedUid!==u.uid)await activate(u,false,fresh,r);else{emit(u,false,fresh,r);status("Accesso approvato. Il tuo account è attivo.")}}else{window.__TURNI_CLOUD_READY=false;emit(u,false,fresh,r);status("La richiesta è in attesa oppure l’accesso è sospeso.")}});
  }).catch(e=>status(e.message||"Errore di collegamento Firebase."));
 }
