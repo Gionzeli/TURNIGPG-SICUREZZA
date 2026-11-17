@@ -3,7 +3,8 @@ if(cfg?.enabled){
  const gate=document.getElementById("pg_gate"),host=document.createElement("section");
  host.className="card";host.id="firebase-auth-ui";
  host.innerHTML='<h3>Account collaboratore</h3><p class="hint">Caricamento del servizio di accesso…</p>';
- if(gate)gate.insertBefore(host,gate.querySelector("#rpend"));
+ const gateCard=gate?.querySelector(".card.gate");
+ if(gateCard)gateCard.insertBefore(host,gateCard.querySelector("#rpend"));else if(gate)gate.append(host);
  let client,firestore;
  try{
   [client,firestore]=await Promise.all([import("./firebase-client.js"),import("https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js")]);
