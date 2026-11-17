@@ -13,7 +13,7 @@ if(cfg?.enabled){
  <div id="fb-notices"></div><div id="fb-admin"></div><p class="hint">Accesso solo con email e password. Dopo la verifica dell’indirizzo, l’amministratore deve approvare la richiesta. Notifiche solo interne all’app, nessuna push.</p>`;
  gate.insertBefore(host,gate.querySelector("#rpend"));
  const $=id=>document.getElementById(id),safe=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
- let registering=false,current=null,unsubNotes=null,unsubReq=null,unsubMember=null,preparedUid=null,itemsCache=[],saveListener=null;
+ let registering=false,current=null,unsubNotes=null,unsubReq=null,unsubMember=null,preparedUid=null,itemsCache=[],saveListener=null,cloudWrites=Promise.resolve();
  const status=t=>$("fb-status").textContent=t;
  $("fb-toggle").onclick=()=>{registering=!registering;$("fb-reg-fields").hidden=!registering;$("fb-name").required=registering;$("fb-submit").textContent=registering?"Registrati":"Accedi";$("fb-toggle").textContent=registering?"Ho già un account":"Crea account";$("fb-pass").autocomplete=registering?"new-password":"current-password"};
  $("fb-login").onsubmit=async e=>{e.preventDefault();try{status(registering?"Creazione account…":"Accesso…");if(registering){await register($("fb-email").value.trim(),$("fb-pass").value,$("fb-name").value,$("fb-role").value);status("Account creato. Controlla la posta, verifica l’indirizzo e poi accedi.");}else await login($("fb-email").value.trim(),$("fb-pass").value);}catch(err){status(err.message||"Operazione non riuscita.")}};
@@ -36,11 +36,11 @@ if(cfg?.enabled){
   }else if(cloud)window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
   else if(local)await savePrivateData(u.uid,local);
   window.__TURNI_CLOUD_READY=true;
-  if(saveListener)window.removeEventListener("turni-data-save",saveListener);saveListener=e=>{if(current?.uid===u.uid&&window.__TURNI_CLOUD_READY)savePrivateData(u.uid,e.detail.data).catch(()=>status("Salvataggio cloud non riuscito: verifica la connessione."))};window.addEventListener("turni-data-save",saveListener);
+  if(saveListener)window.removeEventListener("turni-data-save",saveListener);saveListener=e=>{if(current?.uid===u.uid&&window.__TURNI_CLOUD_READY)cloudWrites=cloudWrites.then(()=>savePrivateData(u.uid,e.detail.data)).catch(()=>status("Salvataggio cloud non riuscito: verifica la connessione."))};window.addEventListener("turni-data-save",saveListener);
  }
  $("fb-notices").onclick=e=>{const b=e.target.closest("[data-read]");if(b&&current)markNotificationRead(current.uid,b.dataset.read).catch(()=>status("Aggiornamento notifica non riuscito."))};
  function notifications(ns){$("fb-notices").innerHTML=ns.length?"<h3>Notifiche interne</h3>"+ns.map(n=>'<div class="it"><div class="m"><b>'+safe(n.title)+'</b><small>'+safe(n.message)+'</small></div>'+(n.read?"":'<button data-read="'+safe(n.id)+'">Segna letta</button>')+"</div>").join(""):""}
- function requests(rs){itemsCache=rs;$("fb-admin").innerHTML="<h3>Richieste di accesso</h3>"+(rs.length?rs.map(r=>'<div class="it"><div class="m"><b>'+safe(r.name)+'</b><small>'+safe(r.email)+' · '+safe(r.role)+' · '+safe(r.status)+'</small><label>Inizio</label><input type="date" id="fb-s-'+safe(r.uid)+'"><label>Fine</label><input type="date" id="fb-e-'+safe(r.uid)+'"></div><button data-approve="'+safe(r.uid)+'">Approva</button></div>').join(""):"<p class='hint'>Nessuna richiesta.</p>")}
+ function requests(rs){itemsCache=rs.filter(r=>r.status==="pending");const pending=itemsCache;$("fb-admin").innerHTML="<h3>Richieste di accesso</h3>"+(pending.length?pending.map(r=>'<div class="it"><div class="m"><b>'+safe(r.name)+'</b><small>'+safe(r.email)+' · '+safe(r.role)+' · '+safe(r.status)+'</small><label>Inizio</label><input type="date" id="fb-s-'+safe(r.uid)+'"><label>Fine</label><input type="date" id="fb-e-'+safe(r.uid)+'"></div><button data-approve="'+safe(r.uid)+'">Approva</button></div>').join(""):"<p class='hint'>Nessuna richiesta.</p>")}
  $("fb-admin").onclick=async e=>{const b=e.target.closest("[data-approve]");if(!b||!current)return;try{const r=itemsCache.find(x=>x.uid===b.dataset.approve);await approveMember(r.uid,{...r,start:$("fb-s-"+r.uid).value,end:$("fb-e-"+r.uid).value});status("Collaboratore approvato.")}catch(x){status(x.message||"Approvazione non riuscita.")}};
  async function activate(u,a,m,r){
   emit(u,a,m,r);
