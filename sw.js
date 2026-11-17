@@ -1,6 +1,6 @@
 /* Turni GPG/sicurezza - service worker. Cambia VERSION a ogni nuova versione dell'app. */
-const VERSION="tg-v2.0";
-const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
+const VERSION="tg-v2.1";
+const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","firebase-config.js","firebase-client.js","firebase-ui.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
 self.addEventListener("install",e=>{e.waitUntil(caches.open(VERSION).then(c=>c.addAll(ASSETS)).then(()=>self.skipWaiting()))});
 self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==VERSION).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
 self.addEventListener("fetch",e=>{
