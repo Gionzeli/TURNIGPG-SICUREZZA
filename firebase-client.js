@@ -29,6 +29,7 @@ export async function register(email, password, name, role = "") {
     role: String(role || "").trim().slice(0, 60),
     status: "pending", createdAt: serverTimestamp()
   });
+  await signOut(auth);
   return credential.user;
 }
 export async function login(email, password) {
