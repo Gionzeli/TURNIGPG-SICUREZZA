@@ -40,15 +40,26 @@ async function loadModel(onProgress){
 }
 
 async function loadOCR(onProgress){
-  if(!_ocrModule)_ocrModule=import("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/+esm")
-    .catch(e=>{_ocrModule=null;throw e});
-  const mod=await _ocrModule;
-  const T=mod && typeof mod.createWorker==="function" ? mod :
-    (mod && mod.default && typeof mod.default.createWorker==="function" ? mod.default :
-    (mod && mod.default && mod.default.default && typeof mod.default.default.createWorker==="function" ? mod.default.default : null));
+  if(!window.Tesseract || typeof window.Tesseract.createWorker!=="function"){
+    if(!_ocrModule){
+      _ocrModule=new Promise((resolve,reject)=>{
+        const script=document.createElement("script");
+        script.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";
+        script.async=true;
+        script.onload=()=>{
+          if(window.Tesseract && typeof window.Tesseract.createWorker==="function")resolve(window.Tesseract);
+          else reject(new Error("Il file OCR è stato caricato ma l'API Tesseract non è disponibile."));
+        };
+        script.onerror=()=>reject(new Error("Impossibile scaricare il componente OCR da jsDelivr."));
+        document.head.appendChild(script);
+      }).catch(e=>{_ocrModule=null;throw e});
+    }
+    await _ocrModule;
+  }
+  const T=window.Tesseract;
   if(!T || typeof T.createWorker!=="function"){
     _ocrModule=null;
-    throw new Error("Modulo OCR caricato, ma createWorker non è disponibile. Riprova tra poco.");
+    throw new Error("Componente OCR non pronto: manca createWorker.");
   }
   const worker=await T.createWorker(["ita","eng"],1,{
     workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
