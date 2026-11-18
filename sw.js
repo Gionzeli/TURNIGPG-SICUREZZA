@@ -1,5 +1,5 @@
 /* Turni GPG/sicurezza - service worker. Cambia VERSION a ogni nuova versione dell'app. */
-const VERSION="tg-v3.24";
+const VERSION="tg-v3.25";
 const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","firebase-config.js","firebase-client.js","firebase-ui.js","firebase-ui-v3-13.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
 
 self.addEventListener("install", event => {
