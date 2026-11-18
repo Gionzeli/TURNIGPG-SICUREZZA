@@ -84,7 +84,11 @@ function parseTurns(text){
    post=post.replace(/\b(?:piazza|p\.zza|via|viale|corso)\b.*$/ig," ");
    post=post.replace(/\s+/g," ").replace(/^[\s|,:;.-]+|[\s|,:;.-]+$/g,"").trim();
    post=post.replace(/^(?:postazione|posto|servizio)\s*[:=-]\s*/i,"");
-   if(post)x.post=post.slice(0,70);
+   const knownPosts=["Pronto soccorso oculistico","Pronto soccorso triace","Pronto soccorso verdi","Farmacia Modugno","Varco Pietracola","Varco Storelli","Varco Ennio","Psichiatria","Farmacia"];
+   const normalizedPost=norm(post);
+   const recognizedPost=knownPosts.find(name=>normalizedPost.includes(norm(name)));
+   if(recognizedPost)x.post=recognizedPost;
+   else if(post)x.post=post.slice(0,70);
   }
   if((type==="turno"||type==="turno_riposo")&&(!x.start_time||!x.end_time||x.start_time===x.end_time))continue;
   const key=[x.date,x.type,x.start_time,x.end_time,norm(x.post)].join("|");
