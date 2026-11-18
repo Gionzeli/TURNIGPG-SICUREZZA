@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.1.6 – Dati solo sul dispositivo",
+    "v": "2.1.6",
+    "d": 1795044000000,
+    "b": "Rafforzata la modalità locale: salvataggio dei turni e dei parametri esclusivamente sul dispositivo, senza invio dei dati a Firebase o ad altri sistemi di sincronizzazione. Le copie già presenti non vengono cancellate."
+  },
+  {
     "t": "Versione 2.1.5 – Modalità solo dispositivo",
     "v": "2.1.5",
     "d": 1795043000000,
