@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.1.5 – Modalità solo dispositivo",
+    "v": "2.1.5",
+    "d": 1795043000000,
+    "b": "Disattivati accesso Firebase e sincronizzazione dei dati personali. Turni, parametri e profilo vengono conservati localmente sul dispositivo. Se sul browser era presente un solo profilo collaboratore, ne viene copiata la cache locale senza cancellare le copie precedenti."
+  },
+  {
     "t": "Versione 2.1.4 – Riduzione memoria lettura AI",
     "v": "2.1.4",
     "d": 1795042000000,
