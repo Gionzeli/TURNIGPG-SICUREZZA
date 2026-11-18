@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.7 – Lettura dei PDF ruotati e turni separati",
+    "v": "2.3.7",
+    "d": 1795046400000,
+    "b": "Corretta l’estrazione dei fogli GPG impaginati in colonne ruotate: date, orari e postazioni vengono letti nella stessa colonna. Ogni fascia oraria resta un turno separato; ferie e riposi compensativi vengono riconosciuti come causali, non come ore lavorate. Nessun dato già salvato viene cancellato."
+  },
+  {
     "t": "Versione 2.3.6 – Ricostruzione turni per data",
     "v": "2.3.6",
     "d": 1795042800000,
