@@ -21,10 +21,11 @@ async function loadModel(onProgress){
     const m=await loadTransformers();
     const progress_callback=x=>{
       if(!onProgress)return;
-      const p=Number.isFinite(x?.progress)?Math.round(x.progress):null;
+      const p=Number.isFinite(x?.progress)?Math.round(x.progress<=1?x.progress*100:x.progress):null;
       onProgress({phase:x?.status||"download",progress:p,file:x?.file||""});
     };
     const opts={dtype:"q4",progress_callback};
+    if(!navigator.gpu)onProgress?.({phase:"cpu",progress:null});
     try{
       opts.device=navigator.gpu?"webgpu":"wasm";
       _generator=await m.pipeline("text-generation",MODEL_ID,opts);
