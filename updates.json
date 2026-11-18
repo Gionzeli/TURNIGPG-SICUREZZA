@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.2 – Aggiornamento forzato del lettore OCR",
+    "v": "2.3.2",
+    "d": 1795039800000,
+    "b": "Aggiornato il collegamento del lettore locale con un identificativo nuovo e rinnovata la cache dell’app. Serve a evitare che il browser riutilizzi la vecchia versione del lettore OCR che tentava di caricare il worker da unpkg. I documenti continuano a essere elaborati sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.1 – Corretto caricamento OCR su Android",
     "v": "2.3.1",
     "d": 1795039214536,
