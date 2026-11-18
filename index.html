@@ -537,7 +537,7 @@ for(let i=1;i<=count;i++){
   for(const it of tc.items||[]){
    const t=String(it.str||"").trim();if(!t)continue;
    const tr=it.transform||[],x=Number(tr[4])||0,y=Number(tr[5])||0;
-   let row=rows.find(z=>Math.abs(z.y-y)<6);
+   let row=rows.find(z=>Math.abs(z.y-y)<9);
    if(!row){row={y,items:[]};rows.push(row)}
    const count=row.items.length;row.y=(row.y*count+y)/(count+1);
    row.items.push({x,t});
