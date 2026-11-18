@@ -54,54 +54,34 @@ function fullDate(line){
  m=s.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m){const d=+m[3],mo=+m[2],y=+m[1],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return m[0]}return "";
 }
 function parseTurns(text){
- const source=String(text||"").replace(/\r/g,"\n").replace(/\n{3,}/g,"\n\n");
  const out=[],seen=new Set(),dateRe=/\b(?:\d{1,2}[/. -]\d{1,2}[/. -](?:\d{2}|\d{4})|\d{4}-\d{2}-\d{2})\b/g;
  const timeRe=/\b([01]?\d|2[0-3])\s*[:,.]\s*([0-5]\d)\b/g;
- const lines=source.split("\n");let periodStart="";
- // Ogni data apre un nuovo segmento: i frammenti successivi (orari/postazione)
- // vengono associati solo a quella data e mai al turno seguente.
- const records=[];
+ const lines=String(text||"").replace(/\r/g,"\n").split("\n");let currentDate="",periodStart="";
+ const addRest=(date,type,raw)=>{const x={date,type,post:"",start_time:"",end_time:"",piantonamento:false,notturno:false,ore:0};const key=[date,type,norm(raw)].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}};
+ const addShift=(date,segment,start,end,postRaw)=>{
+  let post=String(postRaw||"").replace(/\s*\|\s*/g," ").replace(/\bVIGILANZA\s+FISSA\b/ig," ").replace(/\bAOUC\s+POLICLINICO\s+BARI\b/ig," ").replace(/\b(?:lun|mar|mer|gio|ven|sab|dom)(?:ed[iì])?\.?\b/ig," ").replace(/\s+/g," ").replace(/^[\s|,:;.-]+|[\s|,:;.-]+$/g,"").trim();
+  if(!post)return;const n=norm(segment),x={date,type:"turno",post:post.slice(0,120),start_time:start,end_time:end,piantonamento:/piant/i.test(n+" "+norm(post)),notturno:false,ore:0};x.notturno=+end.slice(0,2)<+start.slice(0,2);
+  const key=[date,"turno",start,end,norm(post)].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}
+ };
  for(const raw of lines){
-  const line=raw.replace(/^\s*(?:RIGA|Riga)\s+\d+\s*:\s*/i,"").trim();
-  if(!line)continue;
-  const period=line.match(/\bDAL\s+(\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4})\s+AL\b/i);
-  if(period){periodStart=fullDate(period[1]);continue}
-  dateRe.lastIndex=0;let m,found=[];
-  while((m=dateRe.exec(line))!==null){const d=fullDate(m[0]);if(d)found.push({date:d,start:m.index,end:m.index+m[0].length})}
-  if(found.length){
-   for(let i=0;i<found.length;i++){
-    const cur=found[i],end=i+1<found.length?found[i+1].start:line.length;
-    records.push({date:cur.date,parts:[line.slice(cur.end,end)]});
-   }
-  }else if(records.length){
-   // Riga senza data: può contenere la continuazione delle celle della riga
-   // precedente. Si ferma automaticamente quando compare la data successiva.
-   records[records.length-1].parts.push(line);
-  }else{
-   const day=line.match(/^\s*(\d{1,2})\s+(?:lun|mar|mer|gio|ven|sab|dom)\b/i);
-   if(day&&periodStart){const d=+day[1],p=periodStart.split("-").map(Number);let y=p[0],mo=p[1];if(d<p[2]){mo++;if(mo>12){mo=1;y++}}const dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)records.push({date:y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0"),parts:[line.replace(day[0],"")]})}
-  }
- }
- for(const rec of records){
-  const flat=rec.parts.join(" ").replace(/\s*\|\s*/g," ").replace(/\s+/g," ").trim();
-  if(!flat)continue;
-  const n=norm(flat),matches=[...flat.matchAll(timeRe)],times=matches.map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
-  if(/\briposo(?:\s+semplice)?\b/i.test(n)&&times.length<2){
-   const x={date:rec.date,type:"riposo",post:"",start_time:"",end_time:"",piantonamento:false,notturno:false,ore:0};
-   const key=[x.date,x.type,"","","riposo-effettivo"].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}continue;
-  }
-  if(times.length<2)continue;
-  let post=flat.slice(matches[1].index+matches[1][0].length);
-  post=post.replace(/\s+\d{1,2}[,.]\d{2}\s*$/,"").replace(/\b(?:ore\s+)?\d{1,2}:\d{2}\s*$/i,"").replace(/\b(?:note|totale ore servizi|ore)\b.*$/i,"");
-  post=post.replace(/\b(?:lun|mar|mer|gio|ven|sab|dom)(?:ed[iì])?\.?\b/ig," ").replace(/\bVIGILANZA\s+FISSA\b/ig," ").replace(/\bAOUC\s+POLICLINICO\s+BARI\b/ig," ").replace(/\s+/g," ").replace(/^[\s|,:;.-]+|[\s|,:;.-]+$/g,"").trim();
-  if(!post)continue;
-  const x={date:rec.date,type:"turno",post:post.slice(0,120),start_time:times[0],end_time:times[1],piantonamento:/piant/i.test(n),notturno:false,ore:0};
-  x.notturno=+x.end_time.slice(0,2)<+x.start_time.slice(0,2);
-  const key=[x.date,x.type,x.start_time,x.end_time,norm(x.post)].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}
+  const line=raw.replace(/^\s*(?:RIGA|Riga)\s+\d+\s*:\s*/i,"").trim();if(!line)continue;
+  const period=line.match(/\bDAL\s+(\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4})\s+AL\b/i);if(period){periodStart=fullDate(period[1]);continue}
+  dateRe.lastIndex=0;const found=[];let dm;while((dm=dateRe.exec(line))!==null){const d=fullDate(dm[0]);if(d)found.push({date:d,end:dm.index+dm[0].length})}
+  let segment=line;
+  if(found.length){currentDate=found[0].date;segment=line.slice(found[0].end);if(found.length>1)continue}
+  else{const day=line.match(/^\s*(\d{1,2})\s+(?:lun|mar|mer|gio|ven|sab|dom)\b/i);if(day&&periodStart){const d=+day[1],p=periodStart.split("-").map(Number);let y=p[0],mo=p[1];if(d<p[2]){mo++;if(mo>12){mo=1;y++}}const dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d){currentDate=y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");segment=line.replace(day[0],"")}}}
+  if(!currentDate||!segment.trim())continue;
+  const matches=[...segment.matchAll(timeRe)];
+  if(matches.length>=2){for(let i=0;i+1<matches.length;i+=2){const a=matches[i],b=matches[i+1],next=matches[i+2],start=String(a[1]).padStart(2,"0")+":"+a[2],end=String(b[1]).padStart(2,"0")+":"+b[2];addShift(currentDate,segment,start,end,segment.slice(b.index+b[0].length,next?next.index:segment.length))}continue}
+  const n=norm(segment.replace(/\s*\|\s*/g," "));
+  if(/\briposo\s+compensativo\b/.test(n)){addRest(currentDate,"riposo_compensativo",segment);continue}
+  if(/\bferie\b/.test(n)){addRest(currentDate,"ferie",segment);continue}
+  if(/\b(?:turno\s+di\s+riposo|riposo\s+semplice|\briposo\b)/.test(n)){addRest(currentDate,"riposo",segment);continue}
+  if(/\bpermesso\b/.test(n)){addRest(currentDate,"permesso",segment);continue}
+  if(/\bmalattia\b/.test(n)){addRest(currentDate,"malattia",segment);continue}
  }
  return out;
 }
-
 function parseTraining(text){
  const lines=String(text||"").split(/\r?\n/).map(x=>x.replace(/^RIGA \d+:\s*/i,"").replace(/^Riga \d+:\s*/i,"").trim()).filter(Boolean);
  const dateLines=lines.map(x=>({line:x,date:fullDate(x)})).filter(x=>x.date);
