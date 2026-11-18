@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.2.9 – Migliorata lettura delle righe PDF",
+    "v": "2.2.9",
+    "d": 1795048800000,
+    "b": "Il lettore PDF raggruppa con maggiore tolleranza i testi delle celle sulla stessa riga, così da riconoscere insieme data, orari e postazione. Nella postazione viene rimossa la dicitura generica “Vigilanza fissa”."
+  },
+  {
     "t": "Versione 2.2.8 – Correzione date per ogni riga del PDF",
     "v": "2.2.8",
     "d": 1795035600000,
