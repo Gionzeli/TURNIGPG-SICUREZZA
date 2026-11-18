@@ -5,7 +5,7 @@ async function loadOCR(onProgress){
   if(!_ocrModule){_ocrModule=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";s.async=true;s.onload=()=>window.Tesseract&&typeof window.Tesseract.createWorker==="function"?resolve(window.Tesseract):reject(new Error("OCR non disponibile"));s.onerror=()=>reject(new Error("Download componente OCR non riuscito"));document.head.appendChild(s)}).catch(e=>{_ocrModule=null;throw e})}
   await _ocrModule;
  }
- return window.Tesseract.createWorker(["ita","eng"],1,{workerPath:"https://unpkg.com/tesseract.js@5.1.1/dist/worker.min.js",corePath:"https://unpkg.com/tesseract.js-core@5.1.1",langPath:"https://tessdata.projectnaptha.com/4.0.0",logger:m=>onProgress?.({phase:"ocr",progress:Number.isFinite(m?.progress)?Math.round(m.progress*100):null,status:m?.status||"",detail:m?.status?("OCR: "+m.status):"Preparazione OCR…" })});
+ return window.Tesseract.createWorker(["ita","eng"],1,{workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",langPath:"https://tessdata.projectnaptha.com/4.0.0",logger:m=>onProgress?.({phase:"ocr",progress:Number.isFinite(m?.progress)?Math.round(m.progress*100):null,status:m?.status||"",detail:m?.status?("OCR: "+m.status):"Preparazione OCR…" })});
 }
 function rowsFromWords(words){
  const clean=(words||[]).filter(w=>String(w.text||"").trim()&&w.bbox),hs=clean.map(w=>Math.max(1,w.bbox.y1-w.bbox.y0)).sort((a,b)=>a-b),tol=Math.max(7,(hs[Math.floor(hs.length/2)]||14)*.7),rows=[];
