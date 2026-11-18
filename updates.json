@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.2.8 – Correzione date per ogni riga del PDF",
+    "v": "2.2.8",
+    "d": 1795035600000,
+    "b": "Ogni turno viene associato alla data presente nella propria riga. Le righe senza una data riconosciuta non vengono attribuite automaticamente al giorno precedente, per evitare turni concentrati su una sola giornata."
+  },
+  {
     "t": "Versione 2.2.7 – Migliorata lettura PDF turni GPG",
     "v": "2.2.7",
     "d": 1795033800000,
