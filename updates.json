@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.3 – Ricomposizione delle righe dei turni",
+    "v": "2.3.3",
+    "d": 1795040023908,
+    "b": "Il lettore locale ricompone i frammenti di testo che il PDF o l’OCR separano su più righe, mantenendo ogni turno associato alla data presente nella sua riga. Non applica automaticamente regole contrattuali GPG a sicurezza o portierato. I dati già salvati restano invariati."
+  },
+  {
     "t": "Versione 2.3.2 – Aggiornamento forzato del lettore OCR",
     "v": "2.3.2",
     "d": 1795039800000,
