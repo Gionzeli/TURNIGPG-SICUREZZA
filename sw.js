@@ -1,5 +1,5 @@
 /* Turni GPG/sicurezza - service worker. Cambia VERSION a ogni nuova versione dell'app. */
-const VERSION="tg-v3.11";
+const VERSION="tg-v3.12";
 const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","firebase-config.js","firebase-client.js","firebase-ui.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
 
 self.addEventListener("install", event => {
@@ -48,7 +48,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (url.pathname.endsWith("updates.json") || url.pathname.endsWith("firebase-config.js")) {
+  if (url.pathname.endsWith("updates.json") || url.pathname.endsWith("firebase-config.js") || url.pathname.endsWith("firebase-ui.js") || url.pathname.endsWith("firebase-client.js")) {
     event.respondWith(
       fetch(request, { cache: "no-store" }).then(save).catch(() => caches.match(request))
     );
