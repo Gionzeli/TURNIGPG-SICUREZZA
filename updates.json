@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.1.8 – Riconoscimento documenti più accurato",
+    "v": "2.1.8",
+    "d": 1795046000000,
+    "b": "Migliorata l'estrazione locale dei dati da buste paga, turni e attestati: gestione delle righe OCR, delle colonne e dei valori su righe adiacenti. I documenti restano elaborati sul dispositivo; i dati riconosciuti sono mostrati per conferma."
+  },
+  {
     "t": "Versione 2.1.7 – Lettura documenti locale senza modello pesante",
     "v": "2.1.7",
     "d": 1795045000000,
