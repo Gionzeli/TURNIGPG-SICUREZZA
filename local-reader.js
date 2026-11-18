@@ -50,45 +50,40 @@ function fullDate(line){
  m=line.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m){const d=+m[3],mo=+m[2],y=+m[1],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return m[0]}return "";
 }
 function parseTurns(text){
- const lines=String(text||"").split(/\r?\n/),out=[],seen=new Set();
+ const lines=String(text||"").split(/\\r?\\n/),out=[],seen=new Set();
  let currentDate="";
+ const timeRe=/\\b([01]?\\d|2[0-3])\\s*[,.:]\\s*([0-5]\\d)\\b/g;
+ const knownNoise=/\\b(?:vigilanza\\s+fissa|a\\.?o\\.?u\\.?c\\.?\\s+policlinico(?:\\s+di)?\\s+bari)\\b/ig;
+ const addressRe=/\\b(?:piazza|p\\.?zza|via|viale|corso|strada|largo)\\b.*$/ig;
  for(const raw of lines){
-  const line=raw.replace(/^RIGA \d+:\s*/i,"").replace(/^Riga \d+:\s*/i,"").trim();if(!line)continue;
+  const line=raw.replace(/^RIGA \\d+:\\s*/i,"").replace(/^Riga \\d+:\\s*/i,"").trim();if(!line)continue;
   const foundDate=fullDate(line);if(foundDate)currentDate=foundDate;
-  // Nei PDF tabellari la data appare solo sulla prima riga di una giornata:
-  // le righe successive (altri turni dello stesso giorno) ereditano la data.
   const date=foundDate||currentDate;if(!date)continue;
-  const flat=line.replace(/\s*\|\s*/g," ");
-  const timeRe=/\b([01]?\d|2[0-3])\s*[,.:]\s*([0-5]\d)\b/g;
+  const flat=line.replace(/\\s*\\|\\s*/g," ");
   const matches=[...flat.matchAll(timeRe)];
   const times=matches.map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
   const n=norm(line);let type="";
-  if(/\b(rc|riposo compensativo)\b/.test(n))type="riposo_compensativo";
-  else if(/\b(rl|riposo lavorato|riposo non goduto)\b/.test(n))type="turno_riposo";
-  else if(/\b(ferie|fer)\b/.test(n))type="ferie";
-  else if(/\b(malattia|mal)\b/.test(n))type="malattia";
-  else if(/\b(permesso|rol)\b/.test(n))type="permesso";
-  else if(/\b(riposo|rp)\b/.test(n))type="riposo";
+  if(/\\b(rc|riposo compensativo)\\b/.test(n))type="riposo_compensativo";
+  else if(/\\b(rl|riposo lavorato|riposo non goduto)\\b/.test(n))type="turno_riposo";
+  else if(/\\b(ferie|fer)\\b/.test(n))type="ferie";
+  else if(/\\b(malattia|mal)\\b/.test(n))type="malattia";
+  else if(/\\b(permesso|rol)\\b/.test(n))type="permesso";
+  else if(/\\b(riposo|rp)\\b/.test(n))type="riposo";
   else if(times.length>=2)type="turno";
   if(!type)continue;
   const x={date,type,post:"",start_time:"",end_time:"",piantonamento:/piant|portier/i.test(n),notturno:false,ore:0};
   if(times.length>=2){
    x.start_time=times[0];x.end_time=times[1];
    x.notturno=+times[1].slice(0,2)<+times[0].slice(0,2);
-   // La postazione è il testo dopo il secondo orario, anche se OCR
-   // restituisce le colonne separate da barre verticali.
+   // Estrae il contenuto della colonna postazione in modo libero:
+   // non usa un elenco chiuso di postazioni, così supporta sedi e collaboratori diversi.
    let post=flat.slice(matches[1].index+matches[1][0].length);
-   post=post.replace(/\bVIGILANZA\s+fissa\b/ig," ");
-   post=post.replace(/\bA\.?O\.?U\.?C\.?\s+POLICLINICO(?:\s+DI)?\s+BARI\b/ig," ");
-   post=post.replace(/\b(?:piazza|p\.zza|via|viale|corso)\s+giulio\s+cesare\b.*$/ig," ");
-   post=post.replace(/\b(?:piazza|p\.zza|via|viale|corso)\b.*$/ig," ");
-   post=post.replace(/\s+/g," ").replace(/^[\s|,:;.-]+|[\s|,:;.-]+$/g,"").trim();
-   post=post.replace(/^(?:postazione|posto|servizio)\s*[:=-]\s*/i,"");
-   const knownPosts=["Pronto soccorso oculistico","Pronto soccorso triace","Pronto soccorso verdi","Farmacia Modugno","Varco Pietracola","Varco Storelli","Varco Ennio","Psichiatria","Farmacia"];
-   const normalizedPost=norm(post);
-   const recognizedPost=knownPosts.find(name=>normalizedPost.includes(norm(name)));
-   if(recognizedPost)x.post=recognizedPost;
-   else if(post)x.post=post.slice(0,70);
+   post=post.replace(knownNoise," ").replace(addressRe," ");
+   post=post.replace(/\\b(?:postazione|posto|servizio)\\s*[:=-]\\s*/ig," ");
+   post=post.replace(/\\s+/g," ").replace(/^[\\s|,:;.-]+|[\\s|,:;.-]+$/g,"").trim();
+   // Se il testo OCR mette la causale dopo la postazione, rimuove solo le diciture note.
+   post=post.replace(/\\b(?:turno|servizio)\\s+di\\s+vigilanza\\b/ig," ").replace(/\\s+/g," ").trim();
+   if(post)x.post=post.slice(0,90);
   }
   if((type==="turno"||type==="turno_riposo")&&(!x.start_time||!x.end_time||x.start_time===x.end_time))continue;
   const key=[x.date,x.type,x.start_time,x.end_time,norm(x.post)].join("|");
