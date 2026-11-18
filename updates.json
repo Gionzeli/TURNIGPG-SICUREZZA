@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.4 – Turni separati, senza accorpamenti",
+    "v": "2.3.4",
+    "d": 1795041000000,
+    "b": "Corretto il lettore dei turni: ogni riga del PDF viene analizzata separatamente e non eredita né accumula orari o postazioni dalle righe successive. Le righe senza una data riconosciuta vengono ignorate invece di essere fuse con un altro turno. Anteprima prima del salvataggio; i dati già presenti restano invariati. Lettura eseguita sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.3 – Ricomposizione delle righe dei turni",
     "v": "2.3.3",
     "d": 1795040023908,
