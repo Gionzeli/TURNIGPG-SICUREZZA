@@ -1,16 +1,64 @@
 /* Turni GPG/sicurezza - service worker. Cambia VERSION a ogni nuova versione dell'app. */
-const VERSION="tg-v3.7";
+const VERSION="tg-v3.8";
 const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","firebase-config.js","firebase-client.js","firebase-ui.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
-self.addEventListener("install",e=>{e.waitUntil(caches.open(VERSION).then(c=>Promise.all(ASSETS.map(a=>c.add(a).catch(err=>{console.warn("Cache asset non disponibile:",a,err)}))).then(()=>self.skipWaiting()))});
-self.addEventListener("activate",e=>{e.waitUntil(caches.keys().then(k=>Promise.all(k.filter(x=>x!==VERSION).map(x=>caches.delete(x)))).then(()=>self.clients.claim()))});
-self.addEventListener("fetch",e=>{
-  const r=e.request,u=new URL(r.url);
-  if(r.method!=="GET"||u.origin!==location.origin)return;
-  const save=res=>{if(res&&res.ok){const c=res.clone();caches.open(VERSION).then(x=>x.put(r,c))}return res};
-  if(r.mode==="navigate"){
-    e.respondWith(fetch(r,{cache:"no-store"}).then(save).catch(()=>caches.match(r).then(hit=>hit||caches.match("./index.html"))));
+
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(VERSION)
+      .then(cache => Promise.all(
+        ASSETS.map(asset =>
+          cache.add(asset).catch(error => {
+            console.warn("Cache asset non disponibile:", asset, error);
+          })
+        )
+      ))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(key => key !== VERSION).map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("fetch", event => {
+  const request = event.request;
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== location.origin) return;
+
+  const save = response => {
+    if (response && response.ok) {
+      const copy = response.clone();
+      caches.open(VERSION).then(cache => cache.put(request, copy));
+    }
+    return response;
+  };
+
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request, { cache: "no-store" })
+        .then(save)
+        .catch(() => caches.match(request).then(hit => hit || caches.match("./index.html")))
+    );
     return;
   }
-  if(u.pathname.endsWith("updates.json")||u.pathname.endsWith("firebase-config.js")){e.respondWith(fetch(r,{cache:"no-store"}).then(save).catch(()=>caches.match(r)));return}
-  e.respondWith(caches.match(r).then(hit=>{const net=fetch(r).then(save).catch(()=>hit);return hit||net}));
+
+  if (url.pathname.endsWith("updates.json") || url.pathname.endsWith("firebase-config.js")) {
+    event.respondWith(
+      fetch(request, { cache: "no-store" }).then(save).catch(() => caches.match(request))
+    );
+    return;
+  }
+
+  event.respondWith(
+    caches.match(request).then(hit => {
+      const network = fetch(request).then(save).catch(() => hit);
+      return hit || network;
+    })
+  );
 });
