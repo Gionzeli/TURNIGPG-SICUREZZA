@@ -9,7 +9,7 @@ function chooseProfile(){
   // Il modello completo viene usato solo su dispositivi con RAM, CPU e WebGPU adeguati.
   const full=memory>=8&&cores>=8&&!!navigator.gpu;
   return full?{modelId:FULL_MODEL,modelSize:"modello completo (circa 800 MB)",inputLimit:60000,maxTokens:900,device:"webgpu",name:"completo"}:
-    {modelId:LIGHT_MODEL,modelSize:"modello leggero (download ridotto)",inputLimit:12000,maxTokens:700,device:"wasm",name:"leggero"};
+    {modelId:LIGHT_MODEL,modelSize:"modello leggero (download ridotto)",inputLimit:8000,maxTokens:450,device:"wasm",name:"leggero"};
 }
 const PROFILE=chooseProfile();
 const MODEL_ID=PROFILE.modelId,MODEL_SIZE=PROFILE.modelSize;
@@ -17,7 +17,7 @@ const MODEL_ID=PROFILE.modelId,MODEL_SIZE=PROFILE.modelSize;
 async function loadTransformers(){
   if(!_transformersPromise){
     _transformersPromise=import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.2/+esm")
-      .then(m=>{m.env.useBrowserCache=true;m.env.allowRemoteModels=true;m.env.allowLocalModels=false;return m})
+      .then(m=>{m.env.useBrowserCache=true;m.env.allowRemoteModels=true;m.env.allowLocalModels=false;try{m.env.backends.onnx.wasm.numThreads=1}catch(e){}return m})
       .catch(e=>{_transformersPromise=null;throw e});
   }
   return _transformersPromise;
