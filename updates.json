@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.1.7 – Lettura documenti locale senza modello pesante",
+    "v": "2.1.7",
+    "d": 1795045000000,
+    "b": "Rimosso il modello generativo che poteva bloccare i telefoni. I PDF con testo vengono estratti localmente; le scansioni usano OCR locale. Aggiunti riconoscimento strutturato iniziale per buste paga e turni e archivio locale per attestati di formazione, con anteprima prima del salvataggio. I documenti non vengono inviati a servizi AI."
+  },
+  {
     "t": "Versione 2.1.6 – Dati solo sul dispositivo",
     "v": "2.1.6",
     "d": 1795044000000,
