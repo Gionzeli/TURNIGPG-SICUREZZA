@@ -305,7 +305,7 @@ main>*,.card>*,.row>*,.cols>*,.g2>*,.kpis>*,.tiles>*,#pop dl>*{min-width:0}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.6",ADMIN_WA="393923801549";
+const APP_VER="2.3.7",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -533,18 +533,17 @@ for(let i=1;i<=count;i++){
  const pg=await pdf.getPage(i);
  let pageText="";
  try{
-  const tc=await pg.getTextContent(),rows=[];
-  for(const it of tc.items||[]){
-   const t=String(it.str||"").trim();if(!t)continue;
-   const tr=it.transform||[],x=Number(tr[4])||0,y=Number(tr[5])||0;
-   // Tolleranza stretta e ancorata alla prima cella: evita che due turni
-   // su righe vicine vengano fusi dalla media progressiva delle coordinate.
-   let row=rows.find(z=>Math.abs(z.anchor-y)<3.5);
-   if(!row){row={y,anchor:y,items:[]};rows.push(row)}
-   row.items.push({x,t});
-  }
-  pageText=rows.sort((a,b)=>b.y-a.y).map(row=>row.items.sort((a,b)=>a.x-b.x).map(v=>v.t).join(" | ")).filter(Boolean).join("\n");
- }catch(e){console.warn("Estrazione testo PDF pagina "+i,e)}
+  const tc=await pg.getTextContent(),items=(tc.items||[]).map(it=>({t:String(it.str||"").trim(),tr:it.transform||[]})).filter(v=>v.t);
+  const dateItems=items.filter(v=>/\b\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4}\b/.test(v.t));
+  const dateRows=[];
+  for(const v of dateItems){const y=Number(v.tr[5])||0;let r=dateRows.find(z=>Math.abs(z.anchor-y)<30);if(!r){r={anchor:y,items:[]};dateRows.push(r)}r.items.push(v)}
+  const bestDateRow=dateRows.sort((a,b)=>b.items.length-a.items.length)[0];
+  const vertical=!!bestDateRow&&bestDateRow.items.length>=2&&(Math.max(...bestDateRow.items.map(v=>Number(v.tr[4])||0))-Math.min(...bestDateRow.items.map(v=>Number(v.tr[4])||0)))>30,rows=[];
+  // Nei fogli ruotati ogni giornata è una colonna verticale: raggruppa per X.
+  for(const v of items){const x=Number(v.tr[4])||0,y=Number(v.tr[5])||0,key=vertical?x:y;let row=rows.find(z=>Math.abs(z.anchor-key)<3.5);if(!row){row={key,anchor:key,items:[]};rows.push(row)}row.items.push({x,y,t:v.t})}
+  pageText=vertical
+   ?rows.sort((a,b)=>b.key-a.key).map(row=>row.items.sort((a,b)=>b.y-a.y).map(v=>v.t).join(" | ")).filter(Boolean).join("\n")
+   :rows.sort((a,b)=>b.key-a.key).map(row=>row.items.sort((a,b)=>a.x-b.x).map(v=>v.t).join(" | ")).filter(Boolean).join("\n"); }catch(e){console.warn("Estrazione testo PDF pagina "+i,e)}
  if(pageText)texts.push("PAGINA "+i+":\n"+pageText);
  const readableChars=(pageText.match(/[A-Za-zÀ-ÿ0-9]/g)||[]).length;
  // Il testo PDF può essere leggibile ma avere celle della tabella separate su righe diverse.
@@ -802,7 +801,7 @@ const INFO=`<div class="card info"><h3>Cos’è e come funziona</h3><p>Turni Gpg
 boot();
 </script>
 
-<script type="module" src="local-reader.js?v=2.3.6"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.67").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script type="module" src="local-reader.js?v=2.3.7"></script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.68").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
