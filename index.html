@@ -332,7 +332,7 @@ function show(p){if((p==="turni"||p==="paga"||p==="adm")&&!okAccess())p="gate";C
 const adm=ADMIN&&!STANDALONE;document.querySelectorAll("#nav button").forEach(b=>{b.className=b.dataset.p===p?"pri":"";if(b.dataset.p==="turni"||b.dataset.p==="paga"||b.dataset.p==="adm")b.hidden=!okAccess()});if(window.TURNI_FIREBASE_CONFIG?.enabled){$("nav_adm").hidden=true;const gb=document.querySelector('#nav button[data-p="gate"]');if(gb)gb.textContent=ADMIN?"Account / richieste":"Accesso";}
 if(!adm)$("nav_adm").textContent="Condividi";$("admh").textContent=adm?"Collaboratori":"Condividi e supporto";$("invselw").hidden=!adm;
 $("aibox").hidden=!okAccess();$("mbar").hidden=!(p==="turni"||p==="paga");
-if(ready&&okAccess()){if((!X.name||!X.pin)&&!regOpen)showReg();else if(!X.onb&&!obOpen&&!regOpen)startOnb()}
+if(ready&&okAccess()&&STANDALONE){if((!X.name||!X.pin)&&!regOpen)showReg();else if(!X.onb&&!obOpen&&!regOpen)startOnb()}
 if(p!=="adm"&&dnOn){dnOn=false;dnR()}
 if(p==="paga"&&STANDALONE&&!puterChecked){puterChecked=true;puterSignedIn().then(setAiStat)}}
 function refresh(){const t=today(),st=$("gstate"),f=$("rf"),pd=$("rpend");f.hidden=true;pd.hidden=true;let step=0,bad=false,msg="";
