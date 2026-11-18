@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.8 – Grafica Material 3 Expressive",
+    "v": "2.3.8",
+    "d": 1795046400000,
+    "b": "Rinnovata l’interfaccia con Material 3 Expressive: palette dinamica viola, superfici e schede più morbide, navigazione a pillole e controlli più leggibili. Modifica solo grafica e presentazione: turni, parametri, profili e dati salvati restano invariati."
+  },
+  {
     "t": "Versione 2.3.7 – Lettura dei PDF ruotati e turni separati",
     "v": "2.3.7",
     "d": 1795046400000,
