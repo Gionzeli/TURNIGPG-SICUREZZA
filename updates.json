@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.2.7 – Migliorata lettura PDF turni GPG",
+    "v": "2.2.7",
+    "d": 1795033800000,
+    "b": "Riconoscimento delle date più robusto nei PDF con celle separate o spazi tra giorno, mese e anno. Nessun turno viene salvato senza anteprima e conferma."
+  },
+  {
     "t": "Versione 2.2.6 – Correzione riposi nei programmi PDF",
     "v": "2.2.6",
     "d": 1795048200000,
