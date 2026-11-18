@@ -305,7 +305,7 @@ main>*,.card>*,.row>*,.cols>*,.g2>*,.kpis>*,.tiles>*,#pop dl>*{min-width:0}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.2.9",ADMIN_WA="393923801549";
+const APP_VER="2.3.0",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -546,8 +546,10 @@ for(let i=1;i<=count;i++){
  }catch(e){console.warn("Estrazione testo PDF pagina "+i,e)}
  if(pageText)texts.push("PAGINA "+i+":\n"+pageText);
  const readableChars=(pageText.match(/[A-Za-zÀ-ÿ0-9]/g)||[]).length;
- // Nei PDF normali usa direttamente il testo selezionabile: OCR solo sulle pagine senza testo utile.
- if(readableChars>=20)continue;
+ // Il testo PDF può essere leggibile ma avere celle della tabella separate su righe diverse.
+ // Se non troviamo una riga con data e due orari, affianchiamo OCR locale della pagina.
+ const hasShiftRow=pageText.split(/\r?\n/).some(line=>/\b\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4}\b/.test(line)&&((line.match(/\b(?:[01]?\d|2[0-3])\s*[:,.]\s*[0-5]\d\b/g)||[]).length>=2));
+ if(readableChars>=20&&hasShiftRow)continue;
  const vp=pg.getViewport({scale:1.5}),c=document.createElement("canvas"),ctx=c.getContext("2d");
  if(!ctx)throw{code:"pdf_canvas"};
  c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);
@@ -800,6 +802,6 @@ boot();
 </script>
 
 <script type="module" src="local-reader.js"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.60").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.61").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
