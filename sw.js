@@ -48,7 +48,7 @@ self.addEventListener("fetch", event => {
     return;
   }
 
-  if (url.pathname.endsWith("updates.json") || url.pathname.endsWith("firebase-config.js") || url.pathname.endsWith("firebase-ui.js") || url.pathname.endsWith("firebase-client.js")) {
+  if (url.pathname.endsWith("updates.json")) {
     event.respondWith(
       fetch(request, { cache: "no-store" }).then(save).catch(() => caches.match(request))
     );
