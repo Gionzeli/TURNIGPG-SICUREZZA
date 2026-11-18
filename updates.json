@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.2.2 – Riconoscimento postazioni turni",
+    "v": "2.2.2",
+    "d": 1795032000000,
+    "b": "Il lettore PDF riconosce le postazioni abituali (Varco Ennio, Varco Storelli, Varco Pietracola, Farmacia, Farmacia Modugno, Pronto soccorso triace, Pronto soccorso verdi, Pronto soccorso oculistico e Psichiatria), mantenendo separati i turni anche quando condividono la stessa data. I dati già salvati restano sul dispositivo."
+  },
+  {
     "t": "Versione 2.2.1 – Più turni nella stessa giornata",
     "v": "2.2.1",
     "d": 1795031000000,
