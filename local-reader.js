@@ -50,44 +50,29 @@ function fullDate(line){
  m=line.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m){const d=+m[3],mo=+m[2],y=+m[1],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return m[0]}return "";
 }
 function parseTurns(text){
- const lines=String(text||"").split(/\\r?\\n/),out=[],seen=new Set();
- let currentDate="";
- const timeRe=/\\b([01]?\\d|2[0-3])\\s*[,.:]\\s*([0-5]\\d)\\b/g;
- const knownNoise=/\\b(?:vigilanza\\s+fissa|a\\.?o\\.?u\\.?c\\.?\\s+policlinico(?:\\s+di)?\\s+bari)\\b/ig;
- const addressRe=/\\b(?:piazza|p\\.?zza|via|viale|corso|strada|largo)\\b.*$/ig;
+ const lines=String(text||"").split(/\r?\n/),out=[],seen=new Set();
+ let currentDate="",periodStart="";
+ const timeRe=/\b([01]?\d|2[0-3])\s*[:,.]\s*([0-5]\d)\b/g;
+ const weekdays="lun|mar|mer|gio|ven|sab|dom";
+ const monthDayDate=(day,base)=>{if(!base)return "";const p=base.split("-").map(Number);let y=p[0],m=p[1];if(day<p[2]){m++;if(m>12){m=1;y++}}const dt=new Date(y,m-1,day);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===day?y+"-"+String(m).padStart(2,"0")+"-"+String(day).padStart(2,"0"):""};
  for(const raw of lines){
-  const line=raw.replace(/^RIGA \\d+:\\s*/i,"").replace(/^Riga \\d+:\\s*/i,"").trim();if(!line)continue;
-  const foundDate=fullDate(line);if(foundDate)currentDate=foundDate;
-  const date=foundDate||currentDate;if(!date)continue;
-  const flat=line.replace(/\\s*\\|\\s*/g," ");
-  const matches=[...flat.matchAll(timeRe)];
-  const times=matches.map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
-  const n=norm(line);let type="";
-  if(/\\b(rc|riposo compensativo)\\b/.test(n))type="riposo_compensativo";
-  else if(/\\b(rl|riposo lavorato|riposo non goduto)\\b/.test(n))type="turno_riposo";
-  else if(/\\b(ferie|fer)\\b/.test(n))type="ferie";
-  else if(/\\b(malattia|mal)\\b/.test(n))type="malattia";
-  else if(/\\b(permesso|rol)\\b/.test(n))type="permesso";
-  else if(/\\b(riposo|rp)\\b/.test(n))type="riposo";
-  else if(times.length>=2)type="turno";
-  if(!type)continue;
-  const x={date,type,post:"",start_time:"",end_time:"",piantonamento:/piant|portier/i.test(n),notturno:false,ore:0};
-  if(times.length>=2){
-   x.start_time=times[0];x.end_time=times[1];
-   x.notturno=+times[1].slice(0,2)<+times[0].slice(0,2);
-   // Estrae il contenuto della colonna postazione in modo libero:
-   // non usa un elenco chiuso di postazioni, così supporta sedi e collaboratori diversi.
-   let post=flat.slice(matches[1].index+matches[1][0].length);
-   post=post.replace(knownNoise," ").replace(addressRe," ");
-   post=post.replace(/\\b(?:postazione|posto|servizio)\\s*[:=-]\\s*/ig," ");
-   post=post.replace(/\\s+/g," ").replace(/^[\\s|,:;.-]+|[\\s|,:;.-]+$/g,"").trim();
-   // Se il testo OCR mette la causale dopo la postazione, rimuove solo le diciture note.
-   post=post.replace(/\\b(?:turno|servizio)\\s+di\\s+vigilanza\\b/ig," ").replace(/\\s+/g," ").trim();
-   if(post)x.post=post.slice(0,90);
-  }
-  if((type==="turno"||type==="turno_riposo")&&(!x.start_time||!x.end_time||x.start_time===x.end_time))continue;
-  const key=[x.date,x.type,x.start_time,x.end_time,norm(x.post)].join("|");
-  if(seen.has(key))continue;seen.add(key);out.push(x);
+  const flat=raw.replace(/^RIGA\s+\d+\s*:\s*/i,"").replace(/^Riga\s+\d+\s*:\s*/i,"").replace(/\s*\|\s*/g," ").replace(/\s+/g," ").trim();if(!flat)continue;
+  const n=norm(flat),period=flat.match(/\bDAL\s+(\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4})\s+AL\b/i);
+  if(period){periodStart=fullDate(period[1]);if(periodStart)currentDate=periodStart}
+  let date=fullDate(flat);
+  const dayRow=flat.match(new RegExp("^\\s*(\\d{1,2})\\s+(?:"+weekdays+")\\b","i"));
+  if(dayRow&&periodStart)date=monthDayDate(+dayRow[1],periodStart);
+  if(date)currentDate=date;else date=currentDate;
+  if(!date)continue;
+  const matches=[...flat.matchAll(timeRe)],times=matches.map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
+  if(/\briposo\b/.test(n)||/\b(riposo semplice|riposo settimanale)\b/.test(n)||times.length<2)continue;
+  const x={date,type:"turno",post:"",start_time:times[0],end_time:times[1],piantonamento:/piant|portier/i.test(n),notturno:false,ore:0};
+  x.notturno=+x.end_time.slice(0,2)<+x.start_time.slice(0,2);
+  let post=flat.slice(matches[1].index+matches[1][0].length);
+  post=post.replace(/\s+\d{1,2}[,.]\d{2}\s*$/,"").replace(/\b(?:ore\s+)?\d{1,2}:\d{2}\s*$/i,"").replace(/\b(?:note|totale ore servizi|ore)\b.*$/i,"");
+  post=post.replace(/\s+/g," ").replace(/^[\s|,:;.-]+|[\s|,:;.-]+$/g,"").trim();
+  if(post)x.post=post.slice(0,120);if(!x.post)continue;
+  const key=[x.date,x.type,x.start_time,x.end_time,norm(x.post)].join("|");if(seen.has(key))continue;seen.add(key);out.push(x);
  }
  return out;
 }
