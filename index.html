@@ -6,7 +6,7 @@
 <title>Turni Gpg/sicurezza</title>
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-src https:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
-<meta name="theme-color" content="#0B57D0"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#6750A4"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Turni GPG"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 :root{--bg:#F3F5FC;--card:#FFFFFF;--tx:#1A1C20;--mu:#44474F;--bd:#C4C6D0;--pr:#0B57D0;--pr-tx:#FFFFFF;--soft:#D3E3FD;--soft-tx:#041E49;--ok:#C4EED0;--ok-tx:#052E12;--warn:#FFE6A8;--warn-tx:#3B2A00;--bad:#F9DEDC;--bad-tx:#410E0B;--sc:#E3E9F7;--sc-tx:#1C2A44;--sh:0 1px 3px rgba(26,28,32,.14),0 1px 2px rgba(26,28,32,.08);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -201,6 +201,67 @@ main>*,.card>*,.row>*,.cols>*,.g2>*,.kpis>*,.tiles>*,#pop dl>*{min-width:0}
   #snack{gap:8px;padding:10px 14px}
 }
 
+
+/* Material 3 Expressive — restyling grafico, senza modificare dati o funzioni */
+:root{
+ --bg:#F8F5FA;--card:#FFFBFE;--tx:#201A23;--mu:#625B66;--bd:#D8D1DC;
+ --pr:#6750A4;--pr-tx:#FFFFFF;--soft:#EADDFF;--soft-tx:#21005D;
+ --ok:#C4EED0;--ok-tx:#052E12;--warn:#F9DFB0;--warn-tx:#3D2C00;
+ --bad:#F9DEDC;--bad-tx:#410E0B;--sc:#E8DEF8;--sc-tx:#1D192B;
+ --sh:0 2px 6px rgba(45,35,55,.08),0 1px 2px rgba(45,35,55,.06);
+}
+@media(prefers-color-scheme:dark){
+ :root:not([data-theme="light"]){--bg:#141218;--card:#211D25;--tx:#E9E0EB;--mu:#CAC1CE;--bd:#49434E;--pr:#D0BCFF;--pr-tx:#381E72;--soft:#4F378B;--soft-tx:#EADDFF;--sc:#36313D;--sc-tx:#E8DEF8;--sh:0 2px 8px rgba(0,0,0,.22)}
+}
+:root[data-theme="dark"]{--bg:#141218;--card:#211D25;--tx:#E9E0EB;--mu:#CAC1CE;--bd:#49434E;--pr:#D0BCFF;--pr-tx:#381E72;--soft:#4F378B;--soft-tx:#EADDFF;--sc:#36313D;--sc-tx:#E8DEF8;--sh:0 2px 8px rgba(0,0,0,.22)}
+body{font-family:Roboto,"Google Sans",system-ui,-apple-system,"Segoe UI",sans-serif;letter-spacing:0;background:var(--bg)}
+header{background:var(--pr);color:var(--pr-tx);border-radius:0 0 30px 30px;padding:18px clamp(16px,3vw,28px);box-shadow:0 3px 12px color-mix(in srgb,var(--pr) 18%,transparent)}
+header b{font-size:23px;font-weight:650;letter-spacing:-.45px}
+header span{opacity:.82}
+header button{background:color-mix(in srgb,var(--pr-tx) 16%,transparent);color:var(--pr-tx);border:1px solid color-mix(in srgb,var(--pr-tx) 20%,transparent);font-weight:650}
+main{gap:18px}
+.card{border:1px solid color-mix(in srgb,var(--bd) 55%,transparent);border-radius:28px;padding:clamp(16px,2.2vw,22px);box-shadow:var(--sh)}
+h1{font-weight:650;letter-spacing:-.7px}
+h3{font-size:17px;font-weight:650;letter-spacing:-.2px}
+.kpi{border-radius:26px;padding:17px;border:1px solid color-mix(in srgb,var(--bd) 35%,transparent);box-shadow:var(--sh)}
+.kpi:nth-child(1){background:#EADDFF;color:#21005D}
+.kpi:nth-child(2){background:#C8F0D2;color:#073B20}
+.kpi:nth-child(3){background:#F9DFB0;color:#3D2C00}
+.kpi.net{background:var(--pr);color:var(--pr-tx)}
+.kpi b{font-size:clamp(23px,3vw,29px);font-weight:700;letter-spacing:-.6px}
+#nav{margin:14px auto 4px;max-width:1280px;padding:6px 10px;gap:7px;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
+#nav::-webkit-scrollbar{display:none}
+#nav button{flex:0 0 auto;min-height:44px;height:44px;padding:0 18px;border-radius:16px;background:transparent;color:var(--mu);font-weight:600;border:1px solid transparent;white-space:nowrap}
+#nav button.pri{background:var(--soft);color:var(--soft-tx);border-color:color-mix(in srgb,var(--pr) 12%,transparent);font-weight:750}
+button{min-height:44px;height:auto;padding:0 20px;border-radius:16px;font-weight:650;letter-spacing:0;transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
+button.pri{background:var(--pr);color:var(--pr-tx)}
+button.ic{min-height:40px;height:40px;border-radius:14px}
+button:active{transform:scale(.97)}
+input,select,textarea{border-radius:16px;border-color:var(--bd);background:color-mix(in srgb,var(--card) 92%,var(--bg));min-height:50px}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 3px color-mix(in srgb,var(--pr) 18%,transparent);border-color:var(--pr)}
+.chk{border-radius:16px;min-height:48px}
+.chk:has(input:checked){background:var(--soft);color:var(--soft-tx);border-color:var(--pr)}
+.it{border-radius:22px;padding:12px;background:color-mix(in srgb,var(--soft) 25%,var(--bg));border:1px solid color-mix(in srgb,var(--bd) 45%,transparent)}
+.dt{border-radius:16px;font-weight:700;background:var(--soft);color:var(--soft-tx)}
+.tg{border-radius:999px;padding:4px 11px;font-weight:650}
+.tile{border-radius:26px;padding:15px}
+.tile:nth-child(3n+1){--h:#6750A4!important}
+.tile:nth-child(3n+2){--h:#006B5F!important}
+.tile:nth-child(3n){--h:#A34A00!important}
+.tile b{font-weight:750}
+.gstate{border-radius:20px}
+#pop .card,#lock .card,#bye .card,#reg .card,#onb .card{border-radius:30px}
+#snack{border-radius:18px}
+details summary{padding:3px 0;font-weight:650}
+@media(max-width:640px){
+ #nav{margin:10px 8px 4px;padding:5px 8px}
+ #nav button{padding:0 15px}
+ main{gap:13px}
+ .card{border-radius:24px}
+ .kpi{border-radius:22px}
+}
+@media(prefers-reduced-motion:reduce){button{transition:none}button:active{transform:none}}
+
 </style>
 </head>
 <body>
@@ -305,7 +366,7 @@ main>*,.card>*,.row>*,.cols>*,.g2>*,.kpis>*,.tiles>*,#pop dl>*{min-width:0}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.7",ADMIN_WA="393923801549";
+const APP_VER="2.3.8",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -802,6 +863,6 @@ boot();
 </script>
 
 <script type="module" src="local-reader.js?v=2.3.7"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.68").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.69").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
