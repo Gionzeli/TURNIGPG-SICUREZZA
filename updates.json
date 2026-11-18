@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.1.2 – Correzione avanzamento AI locale",
+    "v": "2.1.2",
+    "d": 1795040000000,
+    "b": "Corretto il calcolo della percentuale mostrata durante il caricamento del modello AI locale."
+  },
+  {
     "t": "Versione 2.1.1 – Correzione avvio WebAssembly",
     "v": "2.1.1",
     "d": 1795039200000,
