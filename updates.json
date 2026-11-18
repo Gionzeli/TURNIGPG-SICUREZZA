@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.1 – Corretto caricamento OCR su Android",
+    "v": "2.3.1",
+    "d": 1795039214536,
+    "b": "Allineati worker e motore Tesseract.js al CDN jsDelivr già autorizzato dalla sicurezza dell’app. Evitato il caricamento da unpkg che impediva l’avvio dell’OCR su alcuni browser Android. Aggiornata la cache della PWA senza toccare i dati salvati."
+  },
+  {
     "t": "Versione 2.3.0 – OCR locale di supporto per tabelle PDF",
     "v": "2.3.0",
     "d": 1795036594560,
