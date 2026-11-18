@@ -51,12 +51,17 @@ function fullDate(line){
 }
 function parseTurns(text){
  const lines=String(text||"").split(/\r?\n/),out=[],seen=new Set();
+ let currentDate="";
  for(const raw of lines){
   const line=raw.replace(/^RIGA \d+:\s*/i,"").replace(/^Riga \d+:\s*/i,"").trim();if(!line)continue;
-  const date=fullDate(line);if(!date)continue;
-  // I fogli turni usano spesso 6,00 / 18,00 oltre a 06:00 / 18.00.
+  const foundDate=fullDate(line);if(foundDate)currentDate=foundDate;
+  // Nei PDF tabellari la data appare solo sulla prima riga di una giornata:
+  // le righe successive (altri turni dello stesso giorno) ereditano la data.
+  const date=foundDate||currentDate;if(!date)continue;
+  const flat=line.replace(/\s*\|\s*/g," ");
   const timeRe=/\b([01]?\d|2[0-3])\s*[,.:]\s*([0-5]\d)\b/g;
-  const times=[...line.matchAll(timeRe)].map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
+  const matches=[...flat.matchAll(timeRe)];
+  const times=matches.map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
   const n=norm(line);let type="";
   if(/\b(rc|riposo compensativo)\b/.test(n))type="riposo_compensativo";
   else if(/\b(rl|riposo lavorato|riposo non goduto)\b/.test(n))type="turno_riposo";
@@ -67,13 +72,13 @@ function parseTurns(text){
   else if(times.length>=2)type="turno";
   if(!type)continue;
   const x={date,type,post:"",start_time:"",end_time:"",piantonamento:/piant|portier/i.test(n),notturno:false,ore:0};
-  if(times.length>=2){x.start_time=times[0];x.end_time=times[1];x.notturno=+times[1].slice(0,2)<+times[0].slice(0,2)}
-  // Riunisce le colonne successive agli orari e rimuove causale, struttura e indirizzo.
-  const parts=line.split(/\s*\|\s*/).map(v=>v.replace(/^[A-Z]=/i,"").trim()).filter(Boolean);
-  let lastTime=-1;
-  parts.forEach((p,i)=>{if([...p.matchAll(timeRe)].length||times.some(t=>p.replace(/[, .]/g,":").includes(t)))lastTime=i});
-  if(lastTime>=0){
-   let post=parts.slice(lastTime+1).join(" ").replace(/\bVIGILANZA\s+fissa\b/ig," ");
+  if(times.length>=2){
+   x.start_time=times[0];x.end_time=times[1];
+   x.notturno=+times[1].slice(0,2)<+times[0].slice(0,2);
+   // La postazione è il testo dopo il secondo orario, anche se OCR
+   // restituisce le colonne separate da barre verticali.
+   let post=flat.slice(matches[1].index+matches[1][0].length);
+   post=post.replace(/\bVIGILANZA\s+fissa\b/ig," ");
    post=post.replace(/\bA\.?O\.?U\.?C\.?\s+POLICLINICO(?:\s+DI)?\s+BARI\b/ig," ");
    post=post.replace(/\b(?:piazza|p\.zza|via|viale|corso)\s+giulio\s+cesare\b.*$/ig," ");
    post=post.replace(/\b(?:piazza|p\.zza|via|viale|corso)\b.*$/ig," ");
