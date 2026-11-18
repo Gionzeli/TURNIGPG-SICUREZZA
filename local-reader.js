@@ -39,7 +39,7 @@ function parseTurns(text){
  if(/\b(rc|riposo compensativo)\b/.test(n))type="riposo_compensativo";else if(/\b(ferie|fer)\b/.test(n))type="ferie";else if(/\b(malattia|mal)\b/.test(n))type="malattia";else if(/\b(permesso|rol)\b/.test(n))type="permesso";else if(/\b(riposo|rp|r)\b/.test(n))type="riposo";else if(times.length>=2)type="turno";if(!type)continue;
  const x={date,type,post:"",start_time:"",end_time:"",piantonamento:/piant|portier/i.test(n),notturno:false,ore:0};
  if(times.length>=2){x.start_time=times[0];x.end_time=times[1];x.notturno=+times[1].slice(0,2)<+times[0].slice(0,2)}
- const parts=line.split("|").map(x=>x.trim()),pi=parts.findIndex(p=>p.includes(times[0]||"__never__"));if(pi>=0&&parts[pi+1])x.post=parts[pi+1].slice(0,70);
+ const parts=line.split("|").map(x=>x.trim());let lastTime=-1;parts.forEach((p,i)=>{if(times.some(t=>p.includes(t)))lastTime=i});if(lastTime>=0&&parts[lastTime+1]&&!/^(?:[01]?\\d|2[0-3])[:.][0-5]\\d$/.test(parts[lastTime+1]))x.post=parts[lastTime+1].slice(0,70);
  if((type==="turno"||type==="turno_riposo")&&(!x.start_time||!x.end_time||x.start_time===x.end_time))continue;out.push(x);
  }return out;
 }
