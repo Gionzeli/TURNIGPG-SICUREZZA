@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.0.4 – Lettura AI locale e privata",
+    "v": "2.0.4",
+    "d": 1795046500000,
+    "b": "La lettura di PDF, fotografie, fogli turni e buste paga usa OCR e un modello AI eseguiti sul dispositivo. Il documento originale e il testo riconosciuto non vengono inviati a servizi AI esterni. Il modello locale richiede un primo download di circa 800 MB. I dati importati continuano a seguire le normali impostazioni di salvataggio e sincronizzazione dell’app."
+  },
+  {
     "t": "Versione 2.0.3 – Importazione di più turni nello stesso giorno",
     "v": "2.0.3",
     "d": 1795046400000,
