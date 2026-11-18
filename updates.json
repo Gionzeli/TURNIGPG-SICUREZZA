@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.2.6 – Correzione riposi nei programmi PDF",
+    "v": "2.2.6",
+    "d": 1795048200000,
+    "b": "Le righe indicate esplicitamente come Riposo o Riposo semplice vengono importate come riposi effettivi, non come riposi lavorati. Le righe con orario e postazione restano turni di lavoro. Anteprima prima del salvataggio."
+  },
+  {
     "t": "Versione 2.2.5 – Riposo lavorato sicurezza e portierato",
     "v": "2.2.5",
     "d": 1795035000000,
