@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.1.1 – Correzione avvio WebAssembly",
+    "v": "2.1.1",
+    "d": 1795039200000,
+    "b": "Aggiornata la Content Security Policy per consentire la compilazione WebAssembly richiesta dal motore AI locale, usando wasm-unsafe-eval senza abilitare unsafe-eval."
+  },
+  {
     "t": "Versione 2.1.0 – Lettura diretta dei PDF normali",
     "v": "2.1.0",
     "d": 1795039200000,
