@@ -45,7 +45,8 @@ function parsePayslip(text,fields){
  return out;
 }
 function fullDate(line){
- let m=line.match(/\b(\d{1,2})[\/. -](\d{1,2})[\/. -](\d{4})\b/);if(m){const d=+m[1],mo=+m[2],y=+m[3],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
+ let m=line.match(/\b(\d{1,2})[\/. -](\d{1,2})[\/. -](\d{2}|\d{4})\b/);
+ if(m){const d=+m[1],mo=+m[2],rawYear=+m[3],y=m[3].length===2?(rawYear>=70?1900+rawYear:2000+rawYear):rawYear,dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
  m=line.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m){const d=+m[3],mo=+m[2],y=+m[1],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return m[0]}return "";
 }
 function parseTurns(text){
@@ -53,7 +54,9 @@ function parseTurns(text){
  for(const raw of lines){
   const line=raw.replace(/^RIGA \d+:\s*/i,"").replace(/^Riga \d+:\s*/i,"").trim();if(!line)continue;
   const date=fullDate(line);if(!date)continue;
-  const times=[...line.matchAll(/\b([01]?\d|2[0-3])[:.]([0-5]\d)\b/g)].map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
+  // I fogli turni usano spesso 6,00 / 18,00 oltre a 06:00 / 18.00.
+  const timeRe=/\b([01]?\d|2[0-3])\s*[,.:]\s*([0-5]\d)\b/g;
+  const times=[...line.matchAll(timeRe)].map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
   const n=norm(line);let type="";
   if(/\b(rc|riposo compensativo)\b/.test(n))type="riposo_compensativo";
   else if(/\b(rl|riposo lavorato|riposo non goduto)\b/.test(n))type="turno_riposo";
@@ -65,13 +68,18 @@ function parseTurns(text){
   if(!type)continue;
   const x={date,type,post:"",start_time:"",end_time:"",piantonamento:/piant|portier/i.test(n),notturno:false,ore:0};
   if(times.length>=2){x.start_time=times[0];x.end_time=times[1];x.notturno=+times[1].slice(0,2)<+times[0].slice(0,2)}
-  // Mantiene le colonne OCR: la postazione è cercata dopo l'ultima colonna con un orario.
+  // Riunisce le colonne successive agli orari e rimuove causale, struttura e indirizzo.
   const parts=line.split(/\s*\|\s*/).map(v=>v.replace(/^[A-Z]=/i,"").trim()).filter(Boolean);
   let lastTime=-1;
-  parts.forEach((p,i)=>{if(times.some(t=>p.includes(t)))lastTime=i});
+  parts.forEach((p,i)=>{if([...p.matchAll(timeRe)].length||times.some(t=>p.replace(/[, .]/g,":").includes(t)))lastTime=i});
   if(lastTime>=0){
-   const candidate=parts.slice(lastTime+1).find(p=>p&&!/\b\d{1,2}[\/.-]\d{1,2}[\/.-]\d{4}\b/.test(p)&&!/^\d{1,2}[:.]\d{2}$/.test(p));
-   if(candidate)x.post=candidate.replace(/^(?:postazione|posto|servizio)\s*[:=-]\s*/i,"").slice(0,70);
+   let post=parts.slice(lastTime+1).join(" ").replace(/\bVIGILANZA\s+fissa\b/ig," ");
+   post=post.replace(/\bA\.?O\.?U\.?C\.?\s+POLICLINICO(?:\s+DI)?\s+BARI\b/ig," ");
+   post=post.replace(/\b(?:piazza|p\.zza|via|viale|corso)\s+giulio\s+cesare\b.*$/ig," ");
+   post=post.replace(/\b(?:piazza|p\.zza|via|viale|corso)\b.*$/ig," ");
+   post=post.replace(/\s+/g," ").replace(/^[\s|,:;.-]+|[\s|,:;.-]+$/g,"").trim();
+   post=post.replace(/^(?:postazione|posto|servizio)\s*[:=-]\s*/i,"");
+   if(post)x.post=post.slice(0,70);
   }
   if((type==="turno"||type==="turno_riposo")&&(!x.start_time||!x.end_time||x.start_time===x.end_time))continue;
   const key=[x.date,x.type,x.start_time,x.end_time,norm(x.post)].join("|");
