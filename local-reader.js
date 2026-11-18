@@ -64,7 +64,9 @@ function parseTurns(text){
   let date=fullDate(flat);
   const dayRow=flat.match(new RegExp("^\\s*(\\d{1,2})\\s+(?:"+weekdays+")\\b","i"));
   if(dayRow&&periodStart)date=monthDayDate(+dayRow[1],periodStart);
-  if(date)currentDate=date;else date=currentDate;
+  // Ogni riga del PDF deve usare la propria data. Non ereditare la data
+  // della riga precedente: altrimenti i turni senza data riconosciuta
+  // finiscono tutti concentrati sullo stesso giorno.
   if(!date)continue;
   const matches=[...flat.matchAll(timeRe)],times=matches.map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
   // "Riposo" e "Riposo semplice" espliciti sono riposi effettivi, non riposi lavorati.
