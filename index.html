@@ -119,6 +119,72 @@ details.fold[open]>summary::after{content:"Riduci"}details.fold[open]>summary{ma
 @media (orientation:landscape) and (max-height:520px){header{position:static}#lock .card,#bye .card,#onb .card,#pop .card{max-height:94vh;overflow:auto}}
 #lock,#bye,#onb,#pop{min-height:100vh;min-height:100dvh}
 @media print{details.fold>summary::after{display:none}}
+
+/* Adattamento esteso a telefoni, tablet e desktop */
+html,body{width:100%;max-width:100%;overflow-x:hidden}
+body{min-width:0}
+main,.wrap,header,nav,.card,.kpi,.cols,.row,.it,.sg,.dsum{min-width:0;max-width:100%}
+main{width:100%;grid-template-columns:minmax(0,1fr)}
+.cols{grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
+.cols>*{min-width:0}
+.row>*{min-width:0;max-width:100%}
+.card{padding:clamp(12px,2.2vw,20px);overflow-wrap:anywhere}
+input,select,textarea,button{max-width:100%;min-width:0}
+input,select,textarea{min-width:0}
+img,svg,canvas,video,iframe{max-width:100%}
+pre,code{max-width:100%;white-space:pre-wrap;overflow-wrap:anywhere}
+table{max-width:100%;border-collapse:collapse}
+.it,.sg,.dsum{flex-wrap:wrap}
+.it .m,.sg .m{flex:1 1 160px;min-width:0;overflow-wrap:anywhere}
+#snack{width:max-content;max-width:calc(100% - 24px);box-sizing:border-box}
+#pop .card,#lock .card,#bye .card,#reg .card,#onb .card{min-width:0;max-width:100%;box-sizing:border-box}
+@media(max-width:640px){
+  header{gap:6px;padding:10px 12px;border-radius:0 0 18px 18px}
+  header b{font-size:clamp(16px,4.5vw,20px)}
+  header span{font-size:11px}
+  .brand{gap:7px;min-width:0}
+  .lgm{width:32px;height:32px}
+  header button{padding:0 12px;flex:none}
+  main{padding:10px;gap:12px}
+  .wrap{padding-left:10px;padding-right:10px}
+  .card{border-radius:18px;padding:14px}
+  .cols{grid-template-columns:minmax(0,1fr);gap:12px}
+  .g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .row{gap:7px}
+  .row button{max-width:100%;white-space:normal;line-height:1.2;height:auto;min-height:40px;padding-top:8px;padding-bottom:8px}
+  .steps{flex-wrap:wrap}
+  .steps li{min-width:calc(33.333% - 8px)}
+  .insbar{width:calc(100% - 20px);padding:10px;gap:8px}
+  #nav{max-width:100%;padding-top:8px;padding-bottom:8px}
+  #nav button{padding-left:14px;padding-right:14px}
+}
+@media(max-width:380px){
+  .g2{grid-template-columns:minmax(0,1fr)}
+  .kpis{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .kpi{padding:10px}
+  .kpi b{font-size:20px}
+  .tiles{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .tile{padding:10px}
+  .tile b{font-size:24px}
+  h1{font-size:21px}
+  .dt{width:44px}
+  .it{gap:8px;padding:9px}
+  #lock,#bye,#reg{padding:12px}
+  #pop{padding:8px}
+}
+@media(min-width:641px) and (max-width:900px){
+  main{padding:16px}
+  .cols{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(orientation:landscape) and (max-height:520px){
+  header{position:relative}
+  #lock,#bye,#reg,#pop,#onb{align-items:start;overflow-y:auto}
+  #lock .card,#bye .card,#reg .card,#pop .card,#onb .card{margin:auto;max-height:none}
+}
+@supports(padding:max(0px)){
+  main{padding-left:max(10px,env(safe-area-inset-left));padding-right:max(10px,env(safe-area-inset-right))}
+}
+
 </style>
 </head>
 <body>
