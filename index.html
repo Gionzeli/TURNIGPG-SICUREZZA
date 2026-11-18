@@ -362,7 +362,7 @@ $("mems").innerHTML=(soon?`<div class="gstate">Collaborazioni in scadenza o scad
 async function boot(){refresh();
 try{if(window.claude){U=await claude.use("user");DB=await claude.use("db")}}catch(e){}
 try{ADMIN=U?await U.isOwner():false;ME=U?await U.id():null}catch(e){}
-ready=true;$("uf").hidden=!ADMIN;$("adm_cards").hidden=!(ADMIN&&!STANDALONE);$("admpub").hidden=!(ADMIN&&!STANDALONE);if(STANDALONE)loadUpd();
+ready=true;$("uf").hidden=!ADMIN;$("adm_cards").hidden=!(ADMIN&&!STANDALONE);$("admpub").hidden=!(ADMIN&&!STANDALONE);loadUpd();
 if(DB){try{
 if(ME){DB.doc("members/"+ME).onSnapshot(x=>{MEM=x.exists?x.data():null;refresh()},()=>{});DB.doc("requests/"+ME).onSnapshot(x=>{MYREQ=x.exists?x.data():null;refresh()},()=>{})}
 DB.collection("updates").onSnapshot(q=>{UPD=q.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>b.d-a.d);renderUpd()},()=>{});
@@ -578,7 +578,7 @@ for(const m of PMODELS){const modes=imgs.length?[imgs,null]:[null];for(const im 
 throw last||{code:"api"}}};
 $("aikey").hidden=false;
 $("aiconn").onclick=async()=>{const st=$("aist");st.textContent="Collegamento in corso…";try{const ok=await puterConnect();setAiStat(ok);st.textContent=ok?"Servizio AI collegato: ora puoi leggere i documenti.":"Collegamento non completato."}catch(e){st.textContent="Collegamento non riuscito: controlla la connessione e riprova."}};
-async function loadUpd(){try{const r=await fetch("updates.json",{cache:"no-store"}),a=await r.json();UPD=a.map((u,i)=>({id:"s"+i,...u})).sort((x,y)=>y.d-x.d);renderUpd()}catch(e){}}
+async function loadUpd(){try{const r=await fetch("updates.json?rev=20261118",{cache:"no-store"}),a=await r.json();STATIC_UPD=a.map((u,i)=>({id:"s"+i,...u}));const all=[...STATIC_UPD,...UPD.filter(u=>!String(u.id||"").startsWith("s"))],seen=new Set();UPD=all.filter(u=>{const k=String(u.v||"")+"|"+String(u.t||"");if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>(y.d||0)-(x.d||0));renderUpd()}catch(e){}}
 const ROLES={gpg:"guardia particolare giurata (GPG)",sicurezza:"addetto alla sicurezza",portierato:"addetto al portierato"};
 const roleTxt=()=>ROLES[X.role]||"lavoratore a turni di vigilanza, sicurezza o portierato";
 function applyRole(){const pi=$("is_piantonato"),pe=pi&&pi.parentElement;if(pe)pe.style.display=X.role==="portierato"?"none":""}
@@ -606,7 +606,7 @@ function openInfo(id){const s=S.shifts.find(x=>x.id===id);if(!s)return;$("popc")
 $("list").addEventListener("click",e=>{const b=e.target.closest&&e.target.closest("[data-i]");if(b)openInfo(b.dataset.i)});
 $("popx").onclick=()=>{$("pop").hidden=true};$("pop").onclick=e=>{if(e.target.id==="pop")$("pop").hidden=true};
 document.addEventListener("keydown",e=>{if(e.key==="Escape"){$("pop").hidden=true}});
-let dnOn=false;const DN={n:"Amministratore",i:"LU62 8100 SATI 0403 6796"};
+let STATIC_UPD=[];let dnOn=false;const DN={n:"Amministratore",i:"LU62 8100 SATI 0403 6796"};
 function dnR(){$("dnpanel").hidden=!dnOn;$("dnbtn").hidden=dnOn;$("dn_name").textContent=dnOn?DN.n:"";$("dn_iban").textContent=dnOn?DN.i:""}
 $("dnbtn").onclick=()=>{dnOn=true;dnR()};$("dnhide").onclick=()=>{dnOn=false;dnR()};dnR();
 
@@ -650,7 +650,7 @@ const INFO=`<div class="card info"><h3>Cos’è e come funziona</h3><p>Turni Gpg
 window.addEventListener("turni-firebase-session", function(e) {const d=e.detail||{};ready=true;ME=d.uid||null;ADMIN=!!d.admin;MEM=d.member||null;MYREQ=d.request||null;if(d.uid&&okAccess()&&CUR==="gate")CUR="turni";$("uf").hidden=!ADMIN;if(d.uid){KEY="tg_online_v1_user_"+d.uid;XK="tg_extra_v1_user_"+d.uid;S={params:{...DEF},shifts:[],month:today().slice(0,7)};try{const raw=localStorage.getItem(KEY);if(raw){const o=JSON.parse(raw);S.params={...DEF,...(o.params||{})};S.shifts=Array.isArray(o.shifts)?o.shifts:[]}}catch(_){}try{const raw=localStorage.getItem(XK),r=raw?JSON.parse(raw):null;X=r&&typeof r==="object"?{...X,...cleanX(r),mig:r.mig===1?1:0,role:["gpg","sicurezza","portierato"].includes(r.role)?r.role:"",onb:r.onb===1?1:0,name:typeof r.name==="string"?r.name.slice(0,60):""}:{quota:{ferie:0,perm:0},real:{},tpl:[],pin:null,salt:null,name:"",role:"",onb:0};if(r&&/^[0-9a-f]{64}$/.test(r.pin||"")&&/^[0-9a-f]{32}$/.test(r.salt||"")){X.pin=r.pin;X.salt=r.salt;X.it=Number.isInteger(r.it)&&r.it>=100000&&r.it<=5e6?r.it:150000}else{X.pin=null;X.salt=null}}catch(_){X.pin=null;X.salt=null;X.name="";X.role="";X.onb=0}try{fillParams();render()}catch(err){console.error("Turni GPG: ripristino profilo",err);snack("Profilo caricato: aggiorna la schermata")}refresh();
  }
 });
-window.addEventListener("turni-firebase-updates",e=>{UPD=Array.isArray(e.detail?.items)?e.detail.items:[];renderUpd()});
+window.addEventListener("turni-firebase-updates",e=>{const cloud=Array.isArray(e.detail?.items)?e.detail.items:[];const all=[...STATIC_UPD,...cloud],seen=new Set();UPD=all.filter(u=>{const k=String(u.v||"")+"|"+String(u.t||"");if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>(y.d||0)-(x.d||0));renderUpd()});
 window.addEventListener("turni-firebase-data-load",e=>{const d=e.detail||{};if(!d.data)return;try{S.params={...DEF,...(d.data.params&&typeof d.data.params==="object"?d.data.params:{})};S.shifts=Array.isArray(d.data.shifts)?d.data.shifts:[];S.month=today().slice(0,7);save();fillParams();render();snack("Dati del tuo account caricati")}catch(err){console.error("Turni GPG: caricamento dati cloud",err);snack("Problema nel caricamento dei dati: riprova")}});
 boot();
 </script>
