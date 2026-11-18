@@ -3,7 +3,8 @@ const { firebaseConfig, ADMIN_EMAIL } = window.TURNI_FIREBASE_CONFIG || {};
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
   getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
-  signOut, sendEmailVerification, sendPasswordResetEmail, onAuthStateChanged
+  signOut, sendEmailVerification, sendPasswordResetEmail, onAuthStateChanged,
+  EmailAuthProvider, reauthenticateWithCredential
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
 import {
   getFirestore, doc, getDoc, setDoc, updateDoc, collection, addDoc,
@@ -40,6 +41,13 @@ export async function login(email, password) {
     throw new Error("Verifica prima il tuo indirizzo email: controlla la posta.");
   }
   return credential.user;
+}
+export async function verifyPinResetPassword(password) {
+  const user = auth.currentUser;
+  if (!user || !user.email) throw new Error("Sessione Firebase non attiva. Accedi nuovamente al tuo account.");
+  const credential = EmailAuthProvider.credential(user.email, password);
+  await reauthenticateWithCredential(user, credential);
+  return true;
 }
 export const logout = () => signOut(auth);
 export const resetPassword = email => sendPasswordResetEmail(auth, email.trim());
