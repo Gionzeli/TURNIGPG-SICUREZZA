@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.0 – OCR locale di supporto per tabelle PDF",
+    "v": "2.3.0",
+    "d": 1795036594560,
+    "b": "Se il testo selezionabile del PDF non presenta data e due orari nella stessa riga, l’app affianca OCR locale della pagina per ricomporre le celle della tabella. I documenti restano elaborati sul dispositivo; anteprima obbligatoria prima del salvataggio."
+  },
+  {
     "t": "Versione 2.2.9 – Migliorata lettura delle righe PDF",
     "v": "2.2.9",
     "d": 1795048800000,
