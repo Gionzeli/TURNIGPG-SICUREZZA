@@ -648,7 +648,7 @@ window.addEventListener("turni-firebase-updates",e=>{UPD=Array.isArray(e.detail?
 window.addEventListener("turni-firebase-data-load",e=>{const d=e.detail||{};if(!d.data)return;try{S.params={...DEF,...(d.data.params&&typeof d.data.params==="object"?d.data.params:{})};S.shifts=Array.isArray(d.data.shifts)?d.data.shifts:[];S.month=today().slice(0,7);save();fillParams();render();snack("Dati del tuo account caricati")}catch(err){console.error("Turni GPG: caricamento dati cloud",err);snack("Problema nel caricamento dei dati: riprova")}});
 boot();
 </script>
-<script type="module" src="firebase-ui.js"></script>
+<script type="module" src="firebase-ui.js?v=tg-v3.12"></script>
 <script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.11").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
