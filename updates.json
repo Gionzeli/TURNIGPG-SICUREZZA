@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.0.9 – Correzione caricamento OCR",
+    "v": "2.0.9",
+    "d": 1795039200000,
+    "b": "Spostati worker e motore OCR su un CDN alternativo, con percorso esplicito per i dati linguistici italiani e inglesi. La schermata mostra anche la fase effettiva di caricamento."
+  },
+  {
     "t": "Versione 2.0.8 – Avvio OCR compatibile Android",
     "v": "2.0.8",
     "d": 1795039200000,
