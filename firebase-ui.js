@@ -76,6 +76,7 @@ if(cfg?.enabled){
   if(a&&!unsubReq)unsubReq=watchAdminRequests(requests);if(a&&!window.__TURNI_MEMBERS_WATCH){window.__TURNI_MEMBERS_WATCH=true;onSnapshot(collection(db,"members"),snap=>{memberCache=snap.docs.map(d=>({id:d.id,...d.data()}));renderAdmin()},()=>status("Elenco collaboratori non disponibile."))}
  }
  watchAuth(async u=>{
+  try{
   current=u||null;window.__TURNI_CLOUD_READY=false;preparedUid=null;$("fb-logout").hidden=!u;
   if(unsubNotes){unsubNotes();unsubNotes=null}if(unsubReq){unsubReq();unsubReq=null}if(unsubMember){unsubMember();unsubMember=null}
   if(!u){status("Accedi con email e password oppure crea un account.");emit(null,false,null,null);return}
@@ -85,7 +86,8 @@ if(cfg?.enabled){
   const m=await getAccess(u.uid),snap=await getDoc(doc(db,"accessRequests",u.uid)),r=snap.exists()?snap.data():null;
   await activate(u,false,m,r);
   unsubMember=onSnapshot(doc(db,"members",u.uid),async s=>{const fresh=s.exists()?s.data():null;if(fresh?.active){if(preparedUid!==u.uid)await activate(u,false,fresh,r);else{emit(u,false,fresh,r);status("Accesso approvato. Il tuo account è attivo.")}}else{window.__TURNI_CLOUD_READY=false;preparedUid=null;emit(u,false,fresh,r);status("La richiesta è in attesa oppure l’accesso è sospeso.")}});
- }).catch(e=>status(e.message||"Errore di collegamento Firebase."));
+  }catch(e){status(e.message||"Errore di collegamento Firebase.");console.error("Turni GPG: errore sessione Firebase",e)}
+ });
  }
 } else if(cfg){
  const gate=document.getElementById("pg_gate"),card=gate?.querySelector(".card.gate");
