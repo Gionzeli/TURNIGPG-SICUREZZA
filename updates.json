@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.2.1 – Più turni nella stessa giornata",
+    "v": "2.2.1",
+    "d": 1795031000000,
+    "b": "Il lettore dei turni PDF mantiene la stessa data sulle righe successive e registra separatamente più fasce orarie nello stesso giorno. Migliorata anche l'estrazione della postazione dopo il secondo orario."
+  },
+  {
     "t": "Versione 2.2.0 – Correzione lettura turni PDF",
     "v": "2.2.0",
     "d": 1795030000000,
