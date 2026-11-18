@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.5 – Correzione separazione righe PDF/OCR",
+    "v": "2.3.5",
+    "d": 1795041600000,
+    "b": "Raggruppamento delle parole PDF e OCR basato su righe geometriche stabili e tolleranza più stretta. Evita di unire parole appartenenti a turni su righe vicine. Non modifica i turni già salvati."
+  },
+  {
     "t": "Versione 2.3.4 – Turni separati, senza accorpamenti",
     "v": "2.3.4",
     "d": 1795041000000,
