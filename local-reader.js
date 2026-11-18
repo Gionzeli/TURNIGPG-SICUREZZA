@@ -40,13 +40,13 @@ async function loadModel(onProgress){
 }
 
 async function loadOCR(onProgress){
-  if(!_ocrModule)_ocrModule=import("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/+esm");
+  if(!_ocrModule)_ocrModule=import("https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.esm.min.js");
   const T=await _ocrModule;
-  const worker=await T.createWorker("ita+eng",1,{
+  const worker=await T.createWorker(["ita","eng"],1,{
     workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",
     corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",
     langPath:"https://tessdata.projectnaptha.com/4.0.0",
-    logger:m=>onProgress?.({phase:"ocr",progress:Number.isFinite(m?.progress)?Math.round(m.progress*100):null,status:m?.status||""})
+    logger:m=>onProgress?.({phase:"ocr",progress:Number.isFinite(m?.progress)?Math.round(m.progress*100):null,status:m?.status||"",detail:m?.status?("OCR: "+m.status):"Preparazione OCR…" })
   });
   return worker;
 }
