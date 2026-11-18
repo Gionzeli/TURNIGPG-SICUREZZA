@@ -305,7 +305,7 @@ main>*,.card>*,.row>*,.cols>*,.g2>*,.kpis>*,.tiles>*,#pop dl>*{min-width:0}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.0.2",ADMIN_WA="393923801549";
+const APP_VER="2.0.3",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -612,7 +612,7 @@ try{const salt=[...crypto.getRandomValues(new Uint8Array(16))].map(x=>x.toString
 $("verlab").textContent="v"+APP_VER;$("vergate").textContent=APP_VER;$("verb").textContent=APP_VER;
 {const e=encodeURIComponent,base="https://wa.me/"+ADMIN_WA+"?text=";$("wa_s").href=base+e("Ciao, ho un suggerimento per l’app Turni GPG/sicurezza (versione "+APP_VER+"):\n");$("wa_p").href=base+e("Ciao, ho trovato un problema nell’app Turni GPG/sicurezza (versione "+APP_VER+").\nCosa è successo:\n")}
 $("rejoin").onclick=()=>{$("bye").hidden=true;lock()};
-function dkey(s){return[s.date,s.type,s.start_time||"",s.end_time||""].join("|")}
+function dkey(s){return[s.date,s.type,s.start_time||"",s.end_time||"",String(s.post||"").trim().toLocaleLowerCase("it")].join("|")}
 function dedupe(q){const g={},rm=new Set(),rank=s=>["is_night","is_sunday","is_piantonato","is_rest_not_enjoyed","has_meal_voucher"].filter(k=>s[k]).length+(s.post?1:0);
 S.shifts.forEach(s=>(g[dkey(s)]=g[dkey(s)]||[]).push(s));
 Object.values(g).forEach(a=>{if(a.length>1){a.sort((x,y)=>rank(y)-rank(x));a.slice(1).forEach(s=>rm.add(s.id))}});
@@ -737,6 +737,6 @@ window.addEventListener("turni-firebase-data-load",e=>{const d=e.detail||{};if(!
 boot();
 </script>
 <script type="module" src="firebase-ui-v3-13.js"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.30").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.31").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
