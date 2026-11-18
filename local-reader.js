@@ -21,7 +21,7 @@ async function loadModel(onProgress){
     const m=await loadTransformers();
     const progress_callback=x=>{
       if(!onProgress)return;
-      const p=Number.isFinite(x?.progress)?Math.round(x.progress<=1?x.progress*100:x.progress):null;
+      const raw=Number(x?.progress);const p=Number.isFinite(raw)&&raw>=0&&raw<=100?Math.round(raw<=1?raw*100:raw):null;
       onProgress({phase:x?.status||"download",progress:p,file:x?.file||""});
     };
     const opts={dtype:"q4",progress_callback};
