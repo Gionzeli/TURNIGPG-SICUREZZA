@@ -65,7 +65,14 @@ function parseTurns(text){
   if(date)currentDate=date;else date=currentDate;
   if(!date)continue;
   const matches=[...flat.matchAll(timeRe)],times=matches.map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
-  if(/\briposo\b/.test(n)||/\b(riposo semplice|riposo settimanale)\b/.test(n)||times.length<2)continue;
+  // Per sicurezza e portierato, "Riposo" e "Riposo semplice" indicano riposo lavorato,
+  // anche se il documento non riporta una fascia oraria.
+  if(/\briposo(?:\s+semplice)?\b/i.test(n)&&times.length<2){
+   const x={date,type:"turno_riposo",post:"",start_time:"",end_time:"",piantonamento:false,notturno:false,ore:0};
+   const key=[x.date,x.type,"","","riposo-lavorato"].join("|");
+   if(!seen.has(key)){seen.add(key);out.push(x)}continue;
+  }
+  if(times.length<2)continue;
   const x={date,type:"turno",post:"",start_time:times[0],end_time:times[1],piantonamento:/piant|portier/i.test(n),notturno:false,ore:0};
   x.notturno=+x.end_time.slice(0,2)<+x.start_time.slice(0,2);
   let post=flat.slice(matches[1].index+matches[1][0].length);
