@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.1.0 – Lettura diretta dei PDF normali",
+    "v": "2.1.0",
+    "d": 1795039200000,
+    "b": "I PDF con testo selezionabile vengono letti direttamente tramite PDF.js. La conversione in immagini e l'OCR locale vengono eseguiti soltanto sulle pagine senza testo utile, evitando il blocco del caricamento OCR sui PDF normali."
+  },
+  {
     "t": "Versione 2.0.9 – Correzione caricamento OCR",
     "v": "2.0.9",
     "d": 1795039200000,
