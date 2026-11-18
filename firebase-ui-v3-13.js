@@ -40,15 +40,23 @@ if(cfg?.enabled){
   try{local=JSON.parse(localStorage.getItem(key)||"null")}catch(_){}
   const cloud=await loadPrivateData(u.uid);
   if(!local&&legacy){
-   const yes=confirm("Su questo dispositivo sono presenti dati locali precedenti. Vuoi importarli nel tuo account personale? L’archivio originale non sarà cancellato.");
-   if(yes){const old=JSON.parse(legacy);await savePrivateData(u.uid,old);localStorage.setItem(key,JSON.stringify(old));window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:old}}))}
-   else if(cloud)window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
-   else window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:{params:{},shifts:[]}}}));
+   let old=null;try{old=JSON.parse(legacy)}catch(_){}
+   if(cloud){
+    localStorage.setItem(key,JSON.stringify(cloud));
+    window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
+   }else if(old){
+    await savePrivateData(u.uid,old);localStorage.setItem(key,JSON.stringify(old));
+    window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:old}}));
+   }else window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:{params:{},shifts:[]}}}));
   }else if(local&&cloud){
-   if(confirm("Sono presenti dati sia sul dispositivo sia nel cloud. OK: usa il cloud. Annulla: mantieni i dati locali."))window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
-   else await savePrivateData(u.uid,local);
-  }else if(cloud)window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
-  else if(local)await savePrivateData(u.uid,local);
+   // Il cloud è la copia principale. Conserva una copia locale di sicurezza prima di riallineare.
+   if(!localStorage.getItem(key+"_backup"))localStorage.setItem(key+"_backup",JSON.stringify(local));
+   localStorage.setItem(key,JSON.stringify(cloud));
+   window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
+  }else if(cloud){
+   localStorage.setItem(key,JSON.stringify(cloud));
+   window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
+  }else if(local)await savePrivateData(u.uid,local);
   window.__TURNI_CLOUD_READY=true;
   if(saveListener)window.removeEventListener("turni-data-save",saveListener);saveListener=e=>{if(current?.uid===u.uid&&window.__TURNI_CLOUD_READY)cloudWrites=cloudWrites.then(()=>savePrivateData(u.uid,e.detail.data)).catch(()=>status("Salvataggio cloud non riuscito: verifica la connessione."))};window.addEventListener("turni-data-save",saveListener);
  }
