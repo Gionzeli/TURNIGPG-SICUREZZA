@@ -305,7 +305,7 @@ main>*,.card>*,.row>*,.cols>*,.g2>*,.kpis>*,.tiles>*,#pop dl>*{min-width:0}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.0.9",ADMIN_WA="393923801549";
+const APP_VER="2.1.0",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -503,13 +503,46 @@ $("ulist").onclick=async e=>{const id=e.target.dataset.du;if(!id||!ADMIN)return;
 const loadJs=u=>new Promise((ok,ko)=>{const s=document.createElement("script");s.src=u;s.onload=ok;s.onerror=()=>ko({code:"lib"});document.head.appendChild(s)});
 async function shrink(f){try{const bm=await createImageBitmap(f),k=Math.min(1,2000/Math.max(bm.width,bm.height)),c=document.createElement("canvas");c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext("2d").drawImage(bm,0,0,c.width,c.height);return await new Promise(r=>c.toBlob(r,"image/jpeg",.88))}catch(e){return f}}
 function aiErr(x){console.error(x);const c=x&&x.code,m={not_granted:"Consenti la lettura del file e riprova.",images_unavailable:"La lettura delle immagini non è disponibile in questo browser.",image_rejected:"Formato o dimensione del file non accettati: prova JPG, PNG o un PDF più leggero.",invalid_json:"Il documento è stato letto, ma non sono stati riconosciuti dati sufficientemente chiari. Controlla la qualità del file.",lib:"Non riesco a caricare i componenti del lettore locale: controlla la connessione e riprova.",fmt:"Formato non supportato: usa PDF, foto, Excel, CSV o Word (.docx).",empty:"Non ho trovato contenuto leggibile nel file.",local_model:"Il modello AI locale non è disponibile su questo dispositivo o browser.",model_download:"Download del modello locale non riuscito. Controlla la connessione e lo spazio disponibile.",ocr:"Non sono riuscito a leggere il testo dell’immagine. Prova una foto più nitida.",api:"La lettura locale non è riuscita: riprova."};const extra={pdf_load:"Non riesco a caricare il lettore PDF: controlla la connessione e riprova.",pdf_empty:"Il PDF risulta vuoto o non contiene pagine leggibili.",pdf_canvas:"Non sono riuscito a convertire una pagina del PDF.",pdf_read:"Il PDF non è stato letto correttamente: potrebbe essere protetto o danneggiato.",bad:"La lettura è terminata, ma i dati restituiti non sono validi. Nessun turno è stato salvato."};const raw=x&&(x.detail||x.message||(x.error&&(x.error.message||x.error.code))||x.code)||((typeof x==="string")?x:"");const detail=typeof raw==="string"?raw:String(raw||"");return (m[c]||extra[c]||"Lettura non riuscita")+(detail&&detail!==c?" — "+detail.replace(/[<>]/g,"").slice(0,180):"")}
-async function pdfToImgs(f,max){const B="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";try{if(!window.pdfjsLib)await loadJs(B+"pdf.min.js");if(!window.pdfjsLib)throw{code:"pdf_load"};pdfjsLib.GlobalWorkerOptions.workerSrc=B+"pdf.worker.min.js";
-const data=await f.arrayBuffer();if(!data||!data.byteLength)throw{code:"pdf_empty"};const task=pdfjsLib.getDocument({data,useWorkerFetch:false,isEvalSupported:false});const pdf=await task.promise,out=[],texts=[],count=Math.min(pdf.numPages,Math.max(1,Number(max)||6));
+async function pdfToImgs(f,max){
+const B="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
+try{
+if(!window.pdfjsLib)await loadJs(B+"pdf.min.js");
+if(!window.pdfjsLib)throw{code:"pdf_load"};
+pdfjsLib.GlobalWorkerOptions.workerSrc=B+"pdf.worker.min.js";
+const data=await f.arrayBuffer();
+if(!data||!data.byteLength)throw{code:"pdf_empty"};
+const task=pdfjsLib.getDocument({data,useWorkerFetch:false,isEvalSupported:false});
+const pdf=await task.promise,out=[],texts=[],count=Math.min(pdf.numPages,Math.max(1,Number(max)||6));
 if(!count)throw{code:"pdf_empty"};
-for(let i=1;i<=count;i++){const pg=await pdf.getPage(i);
-try{const tc=await pg.getTextContent(),rows=[];for(const it of tc.items||[]){const t=String(it.str||"").trim();if(!t)continue;const tr=it.transform||[],x=Number(tr[4])||0,y=Number(tr[5])||0;let row=rows.find(z=>Math.abs(z.y-y)<3);if(!row){row={y,items:[]};rows.push(row)}row.items.push({x,t})}const pageText=rows.sort((a,b)=>b.y-a.y).map(row=>row.items.sort((a,b)=>a.x-b.x).map(v=>v.t).join(" | ")).filter(Boolean).join("\n");if(pageText)texts.push("PAGINA "+i+":\n"+pageText)}catch(e){console.warn("Estrazione testo PDF pagina "+i,e)}
-const vp=pg.getViewport({scale:1.25}),c=document.createElement("canvas"),ctx=c.getContext("2d");if(!ctx)throw{code:"pdf_canvas"};c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);await pg.render({canvasContext:ctx,viewport:vp}).promise;const blob=await new Promise((resolve,reject)=>{try{c.toBlob(v=>v?resolve(v):reject({code:"pdf_canvas"}),"image/jpeg",.82)}catch(e){reject({code:"pdf_canvas"})}});if(!blob||!blob.size)throw{code:"pdf_canvas"};out.push(blob);c.width=1;c.height=1}
-if(!out.length)throw{code:"pdf_empty"};return{imgs:out,text:texts.join("\n\n").slice(0,60000)}}catch(e){if(e&&e.code)throw e;console.error("Errore conversione PDF",e);throw{code:"pdf_read"}}}
+for(let i=1;i<=count;i++){
+ const pg=await pdf.getPage(i);
+ let pageText="";
+ try{
+  const tc=await pg.getTextContent(),rows=[];
+  for(const it of tc.items||[]){
+   const t=String(it.str||"").trim();if(!t)continue;
+   const tr=it.transform||[],x=Number(tr[4])||0,y=Number(tr[5])||0;
+   let row=rows.find(z=>Math.abs(z.y-y)<3);
+   if(!row){row={y,items:[]};rows.push(row)}
+   row.items.push({x,t});
+  }
+  pageText=rows.sort((a,b)=>b.y-a.y).map(row=>row.items.sort((a,b)=>a.x-b.x).map(v=>v.t).join(" | ")).filter(Boolean).join("\n");
+ }catch(e){console.warn("Estrazione testo PDF pagina "+i,e)}
+ if(pageText)texts.push("PAGINA "+i+":\n"+pageText);
+ const readableChars=(pageText.match(/[A-Za-zÀ-ÿ0-9]/g)||[]).length;
+ // Nei PDF normali usa direttamente il testo selezionabile: OCR solo sulle pagine senza testo utile.
+ if(readableChars>=20)continue;
+ const vp=pg.getViewport({scale:1.5}),c=document.createElement("canvas"),ctx=c.getContext("2d");
+ if(!ctx)throw{code:"pdf_canvas"};
+ c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);
+ await pg.render({canvasContext:ctx,viewport:vp}).promise;
+ const blob=await new Promise((resolve,reject)=>{try{c.toBlob(v=>v?resolve(v):reject({code:"pdf_canvas"}),"image/jpeg",.85)}catch(e){reject({code:"pdf_canvas"})}});
+ if(!blob||!blob.size)throw{code:"pdf_canvas"};
+ out.push(blob);c.width=1;c.height=1;
+}
+return{imgs:out,text:texts.join("\n\n").slice(0,60000)};
+}catch(e){if(e&&e.code)throw e;console.error("Errore conversione PDF",e);throw{code:"pdf_read"}}
+}
 const cleanPost=p=>String(p||"").replace(/A\.?O\.?U\.?C\.?\s*POLICLINICO(\s+DI)?\s+BARI/gi,"").replace(/P(?:iazza|\.?zza|\.)?\s*Giulio\s+Cesare,?\s*(?:n\.?\s*)?11(?:\s*[-–,]?\s*(?:70124\s*)?Bari)?/gi,"").replace(/\s*[-–]\s*[-–]\s*/g," - ").replace(/^[\s\-–,\/]+|[\s\-–,\/]+$/g,"").trim();
 let aiKind="";
 $("aip").onclick=()=>{aiKind="p";$("aif").click()};$("ait").onclick=()=>{aiKind="t";$("aif").click()};
@@ -744,6 +777,6 @@ boot();
 </script>
 <script type="module" src="firebase-ui-v3-13.js"></script>
 <script type="module" src="local-reader.js"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.39").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.40").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
