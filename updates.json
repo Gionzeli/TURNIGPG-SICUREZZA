@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.2.3 – Postazioni libere e documenti di più servizi",
+    "v": "2.2.3",
+    "d": 1795033000000,
+    "b": "Il lettore turni non usa più un elenco chiuso di postazioni: conserva il testo riconosciuto nella colonna della postazione, anche per sedi e collaboratori diversi. Mantiene la data sulle righe successive e separa i turni della stessa giornata. Importazione PDF, Excel e immagini secondo il formato del documento."
+  },
+  {
     "t": "Versione 2.2.2 – Riconoscimento postazioni turni",
     "v": "2.2.2",
     "d": 1795032000000,
