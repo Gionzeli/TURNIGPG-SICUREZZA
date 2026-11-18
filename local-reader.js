@@ -52,39 +52,29 @@ function fullDate(line){
  m=s.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m){const d=+m[3],mo=+m[2],y=+m[1],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return m[0]}return "";
 }
 function parseTurns(text){
- const rawLines=String(text||"").split(/\r?\n/),out=[],seen=new Set(),rows=[];
- let periodStart="",active=null;
+ const rawLines=String(text||"").split(/\r?\n/),out=[],seen=new Set();
+ let periodStart="";
  const timeRe=/\b([01]?\d|2[0-3])\s*[:,.]\s*([0-5]\d)\b/g;
  const weekdays="lun|mar|mer|gio|ven|sab|dom";
  const monthDayDate=(day,base)=>{if(!base)return "";const p=base.split("-").map(Number);let y=p[0],m=p[1];if(day<p[2]){m++;if(m>12){m=1;y++}}const dt=new Date(y,m-1,day);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===day?y+"-"+String(m).padStart(2,"0")+"-"+String(day).padStart(2,"0"):""};
- // PDF.js e OCR possono spezzare una riga visiva in più righe di testo.
- // Accorpiamo i frammenti SOLO fino alla successiva data: ogni turno mantiene
- // quindi la propria data e non eredita quella del turno precedente.
+ // Ogni riga estratta viene trattata come un turno autonomo.
+ // Non accorpiamo mai righe consecutive: se una data manca o non viene letta,
+ // è più sicuro segnalare un turno assente che mescolare orari di giorni diversi.
  for(const raw of rawLines){
   const flat=raw.replace(/^RIGA\s+\d+\s*:\s*/i,"").replace(/^Riga\s+\d+\s*:\s*/i,"").replace(/\s*\|\s*/g," ").replace(/\s+/g," ").trim();
   if(!flat)continue;
   const period=flat.match(/\bDAL\s+(\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4})\s+AL\b/i);
-  if(period){periodStart=fullDate(period[1]);if(active)rows.push(active);active=null;continue}
+  if(period){periodStart=fullDate(period[1]);continue}
   let date=fullDate(flat);
   const dayRow=flat.match(new RegExp("^\\s*(\\d{1,2})\\s+(?:"+weekdays+")\\b","i"));
   if(dayRow&&periodStart)date=monthDayDate(+dayRow[1],periodStart);
-  if(date){
-   if(active)rows.push(active);
-   active={date,parts:[flat]};
-  }else if(active){
-   // Le righe successive appartengono alla stessa riga tabellare estratta
-   // solo quando il PDF/OCR ha separato le celle in frammenti verticali.
-   active.parts.push(flat);
-  }
- }
- if(active)rows.push(active);
- for(const row of rows){
-  const flat=row.parts.join(" ").replace(/\s+/g," ").trim(),date=row.date,n=norm(flat);
-  const matches=[...flat.matchAll(timeRe)],times=matches.map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
+  if(!date)continue;
+  const n=norm(flat),matches=[...flat.matchAll(timeRe)],times=matches.map(m=>String(m[1]).padStart(2,"0")+":"+m[2]);
   if(/\briposo(?:\s+semplice)?\b/i.test(n)&&times.length<2){
    const x={date,type:"riposo",post:"",start_time:"",end_time:"",piantonamento:false,notturno:false,ore:0};
    const key=[x.date,x.type,"","","riposo-effettivo"].join("|");
-   if(!seen.has(key)){seen.add(key);out.push(x)}continue;
+   if(!seen.has(key)){seen.add(key);out.push(x)}
+   continue;
   }
   if(times.length<2)continue;
   const x={date,type:"turno",post:"",start_time:times[0],end_time:times[1],piantonamento:/piant/i.test(n),notturno:false,ore:0};
@@ -93,8 +83,11 @@ function parseTurns(text){
   post=post.replace(/\s+\d{1,2}[,.]\d{2}\s*$/,"").replace(/\b(?:ore\s+)?\d{1,2}:\d{2}\s*$/i,"").replace(/\b(?:note|totale ore servizi|ore)\b.*$/i,"");
   post=post.replace(/\s+/g," ").replace(/^[\s|,:;.-]+|[\s|,:;.-]+$/g,"").trim();
   post=post.replace(/\bVIGILANZA\s+FISSA\b/ig,"").replace(/\bAOUC\s+POLICLINICO\s+BARI\b/ig,"").replace(/\s+/g," ").trim();
-  if(post)x.post=post.slice(0,120);if(!x.post)continue;
-  const key=[x.date,x.type,x.start_time,x.end_time,norm(x.post)].join("|");if(seen.has(key))continue;seen.add(key);out.push(x);
+  if(post)x.post=post.slice(0,120);
+  if(!x.post)continue;
+  const key=[x.date,x.type,x.start_time,x.end_time,norm(x.post)].join("|");
+  if(seen.has(key))continue;
+  seen.add(key);out.push(x);
  }
  return out;
 }
