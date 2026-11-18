@@ -45,9 +45,11 @@ function parsePayslip(text,fields){
  return out;
 }
 function fullDate(line){
- let m=line.match(/\b(\d{1,2})[\/. -](\d{1,2})[\/. -](\d{2}|\d{4})\b/);
+ const s=String(line||"").replace(/\\s*([/.])\\s*/g,"$1").replace(/\\s*-\\s*/g,"-");
+ let m=s.match(/\\b(\\d{1,2})[/. -](\\d{1,2})[/. -](\\d{2}|\\d{4})\\b/);
+ if(!m)m=s.match(/\\b(\\d{1,2})\\s+(\\d{1,2})\\s+(\\d{2}|\\d{4})\\b/);
  if(m){const d=+m[1],mo=+m[2],rawYear=+m[3],y=m[3].length===2?(rawYear>=70?1900+rawYear:2000+rawYear):rawYear,dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0")}
- m=line.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m){const d=+m[3],mo=+m[2],y=+m[1],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return m[0]}return "";
+ m=s.match(/\\b(\\d{4})-(\\d{2})-(\\d{2})\\b/);if(m){const d=+m[3],mo=+m[2],y=+m[1],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return m[0]}return "";
 }
 function parseTurns(text){
  const lines=String(text||"").split(/\r?\n/),out=[],seen=new Set();
