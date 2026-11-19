@@ -67,15 +67,15 @@ self.onmessage = async (event) => {
     busy = true;
     try {
       self.postMessage({ type: "status", message: "Analisi eseguita localmente sul dispositivo…" });
-      const prompt = "Estrai i dati del documento in JSON. Usa esattamente questa struttura: {\\\"tipo_documento\\\":\\\"cedolino\\\",\\\"campi\\\":[{\\\"nome\\\":\\\"Paga base\\\",\\\"valore\\\":\\\"1.468,88\\\"}]}. L'esempio mostra solo la forma: NON copiare i suoi valori. Nel documento qui sotto trova tutte le voci e i relativi importi. Non inventare, non omettere gli importi leggibili, non chiedere conferma. Rispondi solo con JSON.\\nDOCUMENTO:\\n" + text + "\\nJSON:";
+      const prompt = "<|im_start|>system\\nSei un estrattore di cedolini. Restituisci solo JSON valido con questa forma: {\\\"tipo_documento\\\":\\\"cedolino\\\",\\\"campi\\\":[{\\\"nome\\\":\\\"Paga base\\\",\\\"valore\\\":\\\"importo\\\"}],\\\"incertezze\\\":[]}. Estrai ogni voce e il suo importo esattamente come appare. Non copiare i valori dell'esempio. Distingui Paga base, Scatti, Retribuzione e Ferie godute. Non inventare né chiedere conferma.\\n<|im_end|>\\n<|im_start|>user\\n" + text + "\\n<|im_end|>\\n<|im_start|>assistant\\n";
       const output = await generator(prompt, {
-        max_new_tokens: 220,
+        max_new_tokens: 256,
         do_sample: false
       });
       const generated = output && output[0] && output[0].generated_text;
       const fullText = String(generated || "");
       const raw = fullText.startsWith(prompt) ? fullText.slice(prompt.length).trim() : fullText.trim();
-      const parsed = extractJsonObject(raw);
+      const normalized = raw.replace(/\\\\\"/g, '"' ).replace(/\\\\n/g, "\\n");\n      const parsed = extractJsonObject(normalized);
       self.postMessage({
         type: "result",
         answer: parsed ? JSON.stringify(parsed, null, 2) : raw,
