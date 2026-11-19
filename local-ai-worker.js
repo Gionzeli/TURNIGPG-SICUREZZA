@@ -74,7 +74,7 @@ self.onmessage = async (event) => {
         },
         {
           role: "user",
-          content: "Estrai i dati dal seguente testo, senza aggiungere informazioni:\\n\\n" + text
+          content: "Estrai i dati dal seguente testo, senza aggiungere informazioni:\n\n" + text
         }
       ];
       const output = await generator(messages, {
