@@ -114,7 +114,7 @@ SCATTI DI ANZIANITA' EUR 92,15
 FERIE GODUTE 4,000 GG EUR 238,98
 PAGA BASE CONTRATTUALE EUR 1.512,40
 RETRIBUZIONE ORDINARIA 10,000 GG EUR 568,20`;
-const variantPrompt = "<|im_start|>system\nEstrai dal documento tutte le voci retributive e gli importi associati. Rispondi solo JSON valido: {\"tipo_documento\":\"cedolino\",\"campi\":[{\"nome\":\"etichetta originale\",\"valore\":\"importo\\"}],\"incertezze\":[]}. Mantieni le etichette originali e non associare importi a voci diverse.\n<|im_end|>\n<|im_start|>user\n/no_think\n" + variant + "\n<|im_end|>\n<|im_start|>assistant\n";
+const variantPrompt = "<|im_start|>system\nEstrai dal documento tutte le voci retributive e gli importi associati. Rispondi solo JSON valido con le chiavi tipo_documento, campi (array di oggetti con nome e valore), incertezze. Mantieni le etichette originali e non associare importi a voci diverse.\n<|im_end|>\n<|im_start|>user\n/no_think\n" + variant + "\n<|im_end|>\n<|im_start|>assistant\n";
 const variantOutput = await generator(variantPrompt, { max_new_tokens: 320, do_sample: false });
 const variantFull = String(variantOutput?.[0]?.generated_text || "");
 const variantAt = variantFull.lastIndexOf("assistant");
