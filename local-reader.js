@@ -28,13 +28,16 @@ function labeledValue(lines,aliases){
  const flat=norm(raw);
  for(const alias of keys){
   const pattern=alias.split(/\s+/).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,ch=>"\\"+ch)).join("\\s+");
-  const hit=new RegExp(pattern,"i").exec(flat);
-  if(!hit)continue;
-  const tail=flat.slice(hit.index+hit[0].length,hit.index+hit[0].length+100)
-   .replace(/\s*([.,])\s*/g,"$1")
-   .replace(/(\d)\s+(\d)/g,"$1$2");
-  const m=tail.match(/^\s*[:=€]?\s*([-+]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,5})?)/);
-  if(m){const v=italianNumber(m[1]);if(v!==null&&v>0)return v}
+  // Il testo PDF può contenere una prima etichetta senza importo e, più avanti,
+  // la stessa etichetta ricostruita correttamente dall'OCR. Esamina tutte le occorrenze.
+  const re=new RegExp(pattern,"ig");let hit;
+  while((hit=re.exec(flat))){
+   const tail=flat.slice(hit.index+hit[0].length,hit.index+hit[0].length+100)
+    .replace(/\s*([.,])\s*/g,"$1")
+    .replace(/(\d)\s+(\d)/g,"$1$2");
+   const m=tail.match(/^\s*[:=€]?\s*([-+]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,5})?)/);
+   if(m){const v=italianNumber(m[1]);if(v!==null&&v>0)return v}
+  }
  }
  for(let i=0;i<lines.length;i++){
   const n=norm(lines[i]);
