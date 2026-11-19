@@ -20,7 +20,7 @@ async function ocrImages(images,onProgress){
  try{for(let i=0;i<images.length;i++){onProgress?.({phase:"ocr-page",page:i+1,total:images.length});const r=await w.recognize(images[i]),t=rowsFromWords(r?.data?.words)||String(r?.data?.text||"").trim();if(t)pages.push("PAGINA "+(i+1)+":\n"+t)}}finally{try{await w.terminate()}catch(e){}}
  return pages.join("\n\n").slice(0,60000);
 }
-const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase();
+const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
 function italianNumber(s){let t=String(s||"").replace(/[^0-9,.-]/g,"");if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,"");const n=Number(t);return Number.isFinite(n)?n:null}
 function labeledValue(lines,aliases){
  const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
@@ -40,6 +40,15 @@ function labeledValue(lines,aliases){
     if(nm){const v=italianNumber(nm[1]);if(v!==null)return v}
    }
   }
+ }
+ // Ultimo tentativo sul testo appiattito: alcuni PDF spezzano l'etichetta
+ // tra righe (es. "Paga" / "base") o usano spazi Unicode.
+ const flat=norm(lines.join(" "));
+ for(const alias of keys){
+  const pattern=alias.split(/\s+/).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("\\s+");
+  const re=new RegExp(pattern+"\\s*(?:€\\s*)?[:=|]?\\s*([-+]?\\s*\\d[\\d.\\s]*(?:,\\d{1,5}|\\.\\d{1,5})?)","i");
+  const m=flat.match(re);
+  if(m){const v=italianNumber(m[1]);if(v!==null)return v}
  }
  return null;
 }
