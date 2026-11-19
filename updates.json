@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.24 – Migliorato il riconoscimento degli importi OCR",
+    "v": "2.3.24",
+    "d": 1795106400000,
+    "b": "📄 LETTURA DELLA BUSTA PAGA\nMigliorato il riconoscimento degli importi quando il PDF o l’OCR confonde alcune cifre (per esempio la lettera O con lo zero) oppure separa le cifre con spazi.\n\n🔎 PAGA BASE E SCATTI\nIl lettore continua a cercare separatamente “Paga base” e “Scatti”: il totale non viene scambiato per la paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma.\n\n🔒 La lettura del documento resta sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.23 – Lettura automatica di tutte le pagine PDF",
     "v": "2.3.23",
     "d": 1795102800000,
