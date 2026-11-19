@@ -588,7 +588,7 @@ for(let i=1;i<=count;i++){
  // Se non troviamo una riga con data e due orari, affianchiamo OCR locale della pagina.
  const hasShiftRow=pageText.split(/\r?\n/).some(line=>/\b\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4}\b/.test(line)&&((line.match(/\b(?:[01]?\d|2[0-3])\s*[:,.]\s*[0-5]\d\b/g)||[]).length>=2));
  // Nei cedolini usa prima il testo PDF già estraibile: evita OCR superfluo e attese lunghe.
- const hasPayslipBaseValue=/\\b(?:paga\\s+base|minimo\\s+tabellare|minimo\\s+contrattuale|retribuzione\\s+base)\\b[\\s\\S]{0,100}?(?:\\d{1,3}(?:\\.\\d{3})+|\\d{3,})(?:,\\d{1,5})?/i.test(pageText);\n if(readableChars>=20&&((forceOCR&&hasPayslipBaseValue)||(!forceOCR&&hasShiftRow)))continue;
+ const hasPayslipBaseValue=/\b(?:paga\s+base|minimo\s+tabellare|minimo\s+contrattuale|retribuzione\s+base)\b[\s\S]{0,100}?(?:\d{1,3}(?:\.\d{3})+|\d{3,})(?:,\d{1,5})?/i.test(pageText);
  const vp=pg.getViewport({scale:1.5}),c=document.createElement("canvas"),ctx=c.getContext("2d");
  if(!ctx)throw{code:"pdf_canvas"};
  c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);
