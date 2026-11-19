@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.14 – Aggiornamenti completi e lettura con errori più chiari",
+    "v": "2.3.14",
+    "d": 1795075860000,
+    "b": "📰 AGGIORNAMENTI\nCorretto il problema che poteva sostituire le novità dell’app con il solo elenco ricevuto da Firebase. Le note locali e quelle online vengono ora unite, ordinate e mostrate insieme.\n\n📄 LETTURA DEI DOCUMENTI\nMigliorata la segnalazione degli errori durante il riconoscimento locale: quando la lettura si interrompe, l’app mostra anche il dettaglio tecnico disponibile, così è possibile individuare il punto da correggere. I documenti restano sul dispositivo e non vengono inviati a servizi esterni.\n\n🔒 I TUOI DATI\nLa modifica non cancella né modifica turni, cedolini o documenti già salvati."
+  },
+  {
     "t": "Versione 2.3.13 – Aggiornamenti più chiari e illustrati",
     "v": "2.3.13",
     "d": 1795067100000,
