@@ -114,8 +114,9 @@ SCATTI DI ANZIANITA' EUR 92,15
 FERIE GODUTE 4,000 GG EUR 238,98
 PAGA BASE CONTRATTUALE EUR 1.512,40
 RETRIBUZIONE ORDINARIA 10,000 GG EUR 568,20`;
-const variantPrompt = "<|im_start|>system\nEstrai dal documento tutte le voci retributive e gli importi associati. Rispondi solo JSON valido con le chiavi tipo_documento, campi (array di oggetti con nome e valore), incertezze. Mantieni le etichette originali e non associare importi a voci diverse.\n<|im_end|>\n<|im_start|>user\n/no_think\n" + variant + "\n<|im_end|>\n<|im_start|>assistant\n";
-const variantOutput = await generator(variantPrompt, { max_new_tokens: 320, do_sample: false });
+const variantPrompt = "<|im_start|>system\nEstrai con precisione quattro associazioni. Restituisci solo JSON valido, senza Markdown. Usa questi nomi di campo: PAGA BASE CONTRATTUALE, SCATTI DI ANZIANITA, FERIE GODUTE, RETRIBUZIONE ORDINARIA. Copia per ciascuno l'importo che compare sulla stessa riga. Non inventare e non scambiare gli importi. Struttura: {\"tipo_documento\":\"cedolino\",\"campi\":[{\"nome\":\"etichetta\",\"valore\":\"importo\"}],\"incertezze\":[]}.\n<|im_end|>\n<|im_start|>user\n/no_think\n" + variant + "\n<|im_end|>\n<|im_start|>assistant\n";
+console.log("VARIANT_START");
+const variantOutput = await generator(variantPrompt, { max_new_tokens: 512, do_sample: false });
 const variantFull = String(variantOutput?.[0]?.generated_text || "");
 const variantAt = variantFull.lastIndexOf("assistant");
 const variantRaw = variantAt >= 0 ? variantFull.slice(variantAt + "assistant".length).trim() : variantFull.trim();
@@ -131,9 +132,30 @@ if (variantStart >= 0) {
   }
 }
 console.log("VARIANT_RAW_BEGIN");
-console.log(variantRaw);
+console.log(variantRaw || "(nessun testo generato)");
 console.log("VARIANT_RAW_END");
-if (!variantParsed) throw new Error("Secondo cedolino: JSON strutturato non valido.");
+if (!variantParsed) {
+  const retryPrompt = "<|im_start|>system\nRestituisci soltanto un oggetto JSON valido con campi e incertezze. Copia le etichette e gli importi esattamente dalle righe; non aggiungere spiegazioni.\n<|im_end|>\n<|im_start|>user\n" + variant + "\n<|im_end|>\n<|im_start|>assistant\n";
+  console.log("VARIANT_RETRY_START");
+  const retryOutput = await generator(retryPrompt, { max_new_tokens: 512, do_sample: false });
+  const retryFull = String(retryOutput?.[0]?.generated_text || "");
+  const retryAt = retryFull.lastIndexOf("assistant");
+  const retryRaw = retryAt >= 0 ? retryFull.slice(retryAt + "assistant".length).trim() : retryFull.trim();
+  const retryClean = retryRaw.replace(/<think>[\\s\\S]*?<\\/think>/gi, "").replace(/```(?:json)?/gi, "").trim();
+  console.log("VARIANT_RETRY_RAW_BEGIN");
+  console.log(retryRaw || "(nessun testo generato)");
+  console.log("VARIANT_RETRY_RAW_END");
+  const retryStart = retryClean.indexOf("{");
+  if (retryStart >= 0) {
+    for (let end = retryClean.lastIndexOf("}"); end > retryStart; end = retryClean.lastIndexOf("}", end - 1)) {
+      try {
+        const candidate = JSON.parse(retryClean.slice(retryStart, end + 1));
+        if (candidate && (Array.isArray(candidate.campi) || Array.isArray(candidate.incertezze))) { variantParsed = candidate; break; }
+      } catch {}
+    }
+  }
+}
+if (!variantParsed) throw new Error("Secondo cedolino: il modello non ha prodotto JSON strutturato neppure al secondo tentativo.");
 const variantFields = [
   ...(Array.isArray(variantParsed.campi) ? variantParsed.campi : []),
   ...(Array.isArray(variantParsed.incertezze) ? variantParsed.incertezze : [])
