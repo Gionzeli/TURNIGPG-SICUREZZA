@@ -65,4 +65,4 @@ const hasFerie = /657[,.]21/.test(flat);
 console.log("QUALITY_CHECK", JSON.stringify({ hasBase, hasScatti, hasRetribuzione, hasFerie, fieldCount: parsed.campi.length }));
 console.log("STRUCTURED_INFERENCE_OK");
 
-// Triggered CI validation after workflow installation. Retry 2.
+// Triggered CI validation after workflow installation. Retry 3.
