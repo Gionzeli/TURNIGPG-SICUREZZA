@@ -39,6 +39,12 @@
     }
     return [];
   }
+  function numericValue(value) {
+    let text = String(value || "").replace(/\\s/g, "");
+    if (text.includes(",")) text = text.replace(/\\./g, "").replace(",", ".");
+    const number = Number(text);
+    return Number.isFinite(number) ? number : null;
+  }
   function verify(sourceText, aiResult) {
     const lines = String(sourceText || "").split(/\r?\n/).map(line => line.trim()).filter(Boolean);
     const aiFields = Array.isArray(aiResult && aiResult.campi) ? aiResult.campi : [];
@@ -65,11 +71,18 @@
       }
       const candidate = String(item && item.valore || "").replace(/\s/g, "");
       const tokens = sourceAmounts(lines, matching[0], field).map(value => value.replace(/\s/g, ""));
-      if (!candidate || !tokens.includes(candidate)) {
+      const candidateNumber = numericValue(candidate);
+      const matched = !!candidate && tokens.some(token => {
+        const sourceNumber = numericValue(token);
+        return sourceNumber !== null && candidateNumber !== null &&
+          Math.abs(sourceNumber - candidateNumber) < 0.000001;
+      });
+      if (!matched) {
         uncertainties.push({ nome: field, motivo: "Importo AI non confermato accanto all'etichetta nel testo originale" });
         continue;
       }
-      if ((field === "paga_base" || field === "scatti") && !/[,.][0-9]{2,5}$/.test(candidate)) {
+      if ((field === "paga_base" || field === "scatti") &&
+          (!/[,.][0-9]{2,5}$/.test(candidate) || !tokens.some(token => /[,.][0-9]{2,5}$/.test(token)))) {
         uncertainties.push({ nome: field, motivo: "Importo incompleto: servono almeno due cifre decimali" });
         continue;
       }
