@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.36 – Turni da 12 ore e buono pasto unico",
+    "v": "2.3.36",
+    "d": 1795130100000,
+    "b": "I turni 06–14 + 14–18 e 18–22 + 22–06 vengono conteggiati come un solo turno da 12 ore: 7 ore e 15 ordinarie e 4 ore e 45 di straordinario. Il conteggio riconosce la coppia anche se una fascia è registrata come riposo lavorato. Il buono pasto resta uno solo per giornata."
+  },
+  {
     "t": "Versione 2.3.35 – Turni consecutivi da 12 ore",
     "v": "2.3.35",
     "d": 1795219200000,
