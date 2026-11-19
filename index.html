@@ -6,7 +6,7 @@
 <title>Turni Gpg/sicurezza</title>
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-src https:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
-<meta name="theme-color" content="#6750A4" id="app-theme-color"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#0877D1" id="app-theme-color"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Turni GPG"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 :root{--bg:#F3F5FC;--card:#FFFFFF;--tx:#1A1C20;--mu:#44474F;--bd:#C4C6D0;--pr:#0B57D0;--pr-tx:#FFFFFF;--soft:#D3E3FD;--soft-tx:#041E49;--ok:#C4EED0;--ok-tx:#052E12;--warn:#FFE6A8;--warn-tx:#3B2A00;--bad:#F9DEDC;--bad-tx:#410E0B;--sc:#E3E9F7;--sc-tx:#1C2A44;--sh:0 1px 3px rgba(26,28,32,.14),0 1px 2px rgba(26,28,32,.08);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -263,6 +263,29 @@ details summary{padding:3px 0;font-weight:650}
 @media(prefers-reduced-motion:reduce){button{transition:none}button:active{transform:none}}
 
 
+
+ /* ColorOS-inspired visual refresh */
+ :root{--bg:#F3F7FB;--card:#FFFFFF;--tx:#17212B;--mu:#657585;--bd:#DCE5ED;--pr:#0877D1;--pr-tx:#FFFFFF;--soft:#E2F2FF;--soft-tx:#07558F;--ok:#DDF5E8;--ok-tx:#17643B;--warn:#FFF0D8;--warn-tx:#875300;--bad:#FCE4E4;--bad-tx:#9B2727;--sc:#E8F1F8;--sc-tx:#24445D;--sh:0 5px 18px rgba(31,73,105,.07),0 1px 3px rgba(31,73,105,.04);--palette-seed:#0877D1}
+ @media(prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#101A24;--card:#192633;--tx:#EAF2F8;--mu:#AABBC9;--bd:#304354;--pr:#58B5F5;--pr-tx:#06233A;--soft:#173D5B;--soft-tx:#D6EEFF;--ok:#183D30;--ok-tx:#BDEBD2;--warn:#49391F;--warn-tx:#FFE4B2;--bad:#4A292D;--bad-tx:#FFD6D8;--sc:#263A4B;--sc-tx:#DCEAF5;--sh:0 6px 20px rgba(0,0,0,.18)}}
+ :root[data-theme="dark"]{--bg:#101A24;--card:#192633;--tx:#EAF2F8;--mu:#AABBC9;--bd:#304354;--pr:#58B5F5;--pr-tx:#06233A;--soft:#173D5B;--soft-tx:#D6EEFF;--ok:#183D30;--ok-tx:#BDEBD2;--warn:#49391F;--warn-tx:#FFE4B2;--bad:#4A292D;--bad-tx:#FFD6D8;--sc:#263A4B;--sc-tx:#DCEAF5;--sh:0 6px 20px rgba(0,0,0,.18)}
+ body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;letter-spacing:0;background:var(--bg)}
+ header{background:linear-gradient(115deg,var(--pr),color-mix(in srgb,var(--pr) 72%,#39B9E8));color:var(--pr-tx);border-radius:0 0 26px 26px;box-shadow:0 5px 18px color-mix(in srgb,var(--pr) 16%,transparent)}
+ header b{font-weight:700;letter-spacing:-.35px}
+ .card{border:1px solid color-mix(in srgb,var(--bd) 70%,transparent);border-radius:24px;box-shadow:var(--sh)}
+ .kpi{border-radius:22px;border:1px solid color-mix(in srgb,var(--bd) 55%,transparent);box-shadow:var(--sh)}
+ .kpi:nth-child(1){background:var(--soft);color:var(--soft-tx)}.kpi:nth-child(2){background:var(--ok);color:var(--ok-tx)}.kpi:nth-child(3){background:var(--warn);color:var(--warn-tx)}.kpi.net{background:var(--pr);color:var(--pr-tx)}
+ #nav button{border-radius:999px}#nav button.pri{background:var(--pr);color:var(--pr-tx);border-color:transparent}
+ button,.btnl{border-radius:999px}button.pri{background:var(--pr);color:var(--pr-tx);box-shadow:0 3px 9px color-mix(in srgb,var(--pr) 18%,transparent)}button.ic{border-radius:50%}
+ input,select,textarea{border-radius:14px;background:var(--card)}.chk{border-radius:14px}
+ .chk:has(input:checked){background:var(--soft);color:var(--soft-tx);border-color:color-mix(in srgb,var(--pr) 45%,var(--bd))}
+ .it{border-radius:18px;background:color-mix(in srgb,var(--soft) 48%,var(--bg));border-color:color-mix(in srgb,var(--bd) 60%,transparent)}
+ .dt{border-radius:14px;background:var(--soft);color:var(--soft-tx)}.tg{border-radius:999px}
+ .tile{border-radius:22px;background:color-mix(in srgb,var(--pr) 8%,var(--card))}
+ .tile:nth-child(3n+1),.tile:nth-child(3n+2),.tile:nth-child(3n){--h:var(--pr)!important}.tile .ti{border-radius:13px}
+ .gstate,.upc{border-radius:18px}#pop .card,#lock .card,#bye .card,#reg .card,#onb .card{border-radius:26px}
+ #snack{border-radius:999px}details.fold>summary::after{border-radius:999px}
+ @media(max-width:640px){.card{border-radius:22px}.kpi{border-radius:20px}}
+
 /* Tavolozza personalizzabile ispirata ai colori dinamici di Material You */
 :root{--palette-seed:#6750A4}
 :root[style*="--pr:"] .kpi:nth-child(1){background:var(--soft);color:var(--soft-tx)}
@@ -385,7 +408,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.36",ADMIN_WA="393923801549";
+const APP_VER="2.3.37",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -875,8 +898,8 @@ if(!X.onb&&!X.pin)startOnb();
 </script>
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
-<script type="module" src="local-reader.js?v=2.3.36"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.104").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script type="module" src="local-reader.js?v=2.3.37"></script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.105").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 
 <script>
 (()=>{
