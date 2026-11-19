@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; connect-src 'self' https://cdn.jsdelivr.net https://huggingface.co https://cdn-lfs.huggingface.co https://cas-bridge.xethub.hf.co https://*.hf.co; worker-src 'self' blob:; img-src 'self' data:">
+<title>Laboratorio AI locale</title>
+<style>
+:root{font:16px/1.5 system-ui,sans-serif;color-scheme:light dark}body{max-width:850px;margin:0 auto;padding:20px;background:Canvas;color:CanvasText}section{border:1px solid #8886;border-radius:16px;padding:16px;margin:14px 0}button{padding:12px 16px;border:0;border-radius:10px;font:inherit;cursor:pointer;margin:6px 6px 6px 0}button:disabled{opacity:.5;cursor:not-allowed}textarea{width:100%;min-height:190px;font:14px/1.5 ui-monospace,monospace;padding:12px;border-radius:10px;box-sizing:border-box}#status{white-space:pre-wrap;padding:12px;background:#8882;border-radius:10px}pre{white-space:pre-wrap;overflow-wrap:anywhere}small{opacity:.8}.warning{border-left:4px solid #d89b27;padding-left:12px}
+</style>
+</head>
+<body>
+<h1>Laboratorio AI locale</h1>
+<p>Prova separata: non modifica l'app Turni e non importa né salva documenti o dati personali.</p>
+<section>
+<h2>Prima di iniziare</h2>
+<p class="warning"><strong>Download facoltativo e voluminoso.</strong> Il modello quantizzato può richiedere diverse centinaia di MB (la variante q4 effettiva può variare). Il runtime e i pesi pubblici vengono scaricati da CDN/Hugging Face e conservati nella cache del browser. Nessun testo inserito viene inviato a questi servizi: l'inferenza avviene nel worker sul dispositivo.</p>
+<p>La prova usa CPU/WASM per privilegiare la compatibilità. Può essere lenta o non funzionare su dispositivi con poca memoria. Non avviare se hai una connessione limitata o poco spazio.</p>
+<label><input id="consent" type="checkbox"> Ho capito che il download può essere grande e voglio avviare la prova.</label><br>
+<button id="load">Scarica e carica il modello gratuito</button>
+<button id="cancel" disabled>Annulla / libera memoria</button>
+</section>
+<section>
+<h2>Test con testo sintetico</h2>
+<p>Usa solo testo inventato, non cedolini o documenti personali in questa prova.</p>
+<textarea id="sample">CEDOLINO DI PROVA
+Azienda: Esempio Servizi S.r.l.
+Periodo: Ottobre 2026
+Paga base: 1.468,88
+Scatti: 84,52
+Retribuzione: 896,19 per 15 giorni
+Ferie godute: 657,21 per 11 giorni</textarea>
+<button id="analyze" disabled>Analizza sul dispositivo</button>
+<div id="status" role="status">Modello non caricato. Nessun download in corso.</div>
+<h3>Risultato grezzo del modello</h3>
+<pre id="result">Nessun risultato.</pre>
+</section>
+<p><small>Prototipo tecnico, non collegato a import turni o buste paga. Verificare ogni risultato: il modello può sbagliare. Per uscire, premi “Annulla / libera memoria”.</small></p>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  let worker = null;
+  let ready = false;
+  const status = (message) => $("status").textContent = message;
+  const stop = () => {
+    if (worker) worker.terminate();
+    worker = null;
+    ready = false;
+    $("analyze").disabled = true;
+    $("cancel").disabled = true;
+    status("Worker terminato. La memoria del modello è stata rilasciata; la cache del download resta disponibile nel browser.");
+  };
+  $("load").addEventListener("click", () => {
+    if (!$("consent").checked) {
+      status("Conferma prima il download facoltativo.");
+      return;
+    }
+    if (worker) return;
+    worker = new Worker("./local-ai-worker.js", { type: "module" });
+    $("load").disabled = true;
+    $("cancel").disabled = false;
+    status("Avvio worker locale…");
+    worker.onmessage = (event) => {
+      const data = event.data || {};
+      if (data.type === "status") status(data.message);
+      if (data.type === "ready") {
+        ready = true;
+        $("analyze").disabled = false;
+        $("load").disabled = true;
+        status("Modello caricato. Puoi provare il testo sintetico.");
+      }
+      if (data.type === "result") {
+        $("result").textContent = data.answer;
+        status("Analisi terminata. Controlla manualmente ogni campo.");
+      }
+      if (data.type === "error") {
+        status("Errore: " + data.message);
+        if (!ready) $("load").disabled = false;
+      }
+      if (data.type === "released") stop();
+    };
+    worker.onerror = (error) => {
+      status("Errore worker: " + (error.message || "sconosciuto"));
+      stop();
+    };
+    worker.postMessage({ type: "load" });
+  });
+  $("analyze").addEventListener("click", () => {
+    if (!worker || !ready) return;
+    $("analyze").disabled = true;
+    $("result").textContent = "Analisi in corso…";
+    worker.postMessage({ type: "analyze", text: $("sample").value });
+  });
+  $("cancel").addEventListener("click", stop);
+  $("sample").addEventListener("input", () => {
+    if (ready) $("analyze").disabled = !$("sample").value.trim();
+  });
+})();
+</script>
+</body>
+</html>
