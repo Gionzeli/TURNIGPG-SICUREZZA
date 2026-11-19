@@ -67,24 +67,14 @@ self.onmessage = async (event) => {
     busy = true;
     try {
       self.postMessage({ type: "status", message: "Analisi eseguita localmente sul dispositivo…" });
-      const messages = [
-        {
-          role: "system",
-          content: "Sei un estrattore documentale. Restituisci un solo oggetto JSON valido, senza Markdown né testo prima o dopo. Schema: {\"tipo_documento\":string,\"lingua\":string,\"azienda\":string|null,\"persona\":string|null,\"periodo\":string|null,\"campi\":[{\"nome\":string,\"valore\":string,\"fonte\":string}],\"incertezze\":[string]}. Non inventare dati. Se un dato manca, usa null o un array vuoto. Conserva importi e date esattamente come appaiono. Se una voce è ambigua, segnalala in incertezze."
-        },
-        {
-          role: "user",
-          content: "Estrai i dati dal seguente testo, senza aggiungere informazioni:\n\n" + text
-        }
-      ];
-      const output = await generator(messages, {
+      const prompt = "ISTRUZIONI: Sei un estrattore documentale. Restituisci un solo oggetto JSON valido, senza Markdown né testo prima o dopo. Schema: {\"tipo_documento\":string,\"lingua\":string,\"azienda\":string|null,\"persona\":string|null,\"periodo\":string|null,\"campi\":[{\"nome\":string,\"valore\":string,\"fonte\":string}],\"incertezze\":[string]}. Non inventare dati. Se un dato manca, usa null o un array vuoto. Conserva importi e date esattamente come appaiono. Segnala le ambiguità.\\n\\nTESTO DA ANALIZZARE:\\n" + text + "\\n\\nJSON:";
+      const output = await generator(prompt, {
         max_new_tokens: 384,
         do_sample: false
       });
       const generated = output && output[0] && output[0].generated_text;
-      const raw = Array.isArray(generated)
-        ? String(generated[generated.length - 1] && generated[generated.length - 1].content || "")
-        : String(generated || "");
+      const fullText = String(generated || "");
+      const raw = fullText.startsWith(prompt) ? fullText.slice(prompt.length).trim() : fullText.trim();
       const parsed = extractJsonObject(raw);
       self.postMessage({
         type: "result",
