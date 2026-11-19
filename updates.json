@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.38 – Corretto riepilogo giorni",
+    "v": "2.3.38",
+    "d": 1795219200000,
+    "b": "Il riepilogo conta le giornate effettive, non il numero di righe o fasce di turno. Due fasce registrate nella stessa data non vengono più sommate come due giorni. Anche le giornate incomplete sono conteggiate una sola volta."
+  },
+  {
     "t": "Versione 2.3.37 – Grafica ispirata a ColorOS",
     "v": "2.3.37",
     "d": 1795132800000,
