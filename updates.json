@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.32 – Riconoscimento delle etichette spezzate nei cedolini",
+    "v": "2.3.32",
+    "d": 1795089600000,
+    "b": "📄 LETTURA BUSTA PAGA\nMigliorata la lettura quando il PDF o l’OCR separa un’etichetta su più righe, per esempio “Paga” e “base” su righe diverse e l’importo su quella successiva.\n\n🔎 VALORI DISTINTI\nPaga base e Scatti continuano a essere cercati separatamente. Il totale e la voce Retribuzione non vengono usati come sostituti della paga base.\n\n🔒 I documenti restano sul dispositivo. I parametri vengono modificati solo dopo l’anteprima e la conferma."
+  },
+  {
     "t": "Versione 2.3.31 – Lettura buste paga con percorso condiviso e importi più affidabili",
     "v": "2.3.31",
     "d": 1795120000000,
