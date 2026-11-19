@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.35 – Turni consecutivi da 12 ore",
+    "v": "2.3.35",
+    "d": 1795219200000,
+    "b": "Le fasce 06–14 + 14–18 e 18–22 + 22–06 vengono conteggiate insieme come un turno da 12 ore: 7 ore e 15 ordinarie e 4 ore e 45 di straordinario. Il buono pasto resta uno solo al giorno, anche quando la giornata è registrata in due fasce."
+  },
+  {
     "t": "Versione 2.3.34 – Paga base e Scatti non si scambiano",
     "v": "2.3.34",
     "d": 1795091400000,
