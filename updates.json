@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.21 – Migliorata la lettura dei cedolini PDF",
+    "v": "2.3.21",
+    "d": 1795107600000,
+    "b": "📄 LETTURA DELLA BUSTA PAGA\nQuando il PDF contiene già testo leggibile con la voce Paga base e il relativo importo, l'app usa direttamente quel testo e non avvia un OCR aggiuntivo che può introdurre righe duplicate o confuse. L'OCR locale resta disponibile quando il PDF non contiene un importo riconoscibile. Nessun documento viene inviato online e i parametri vengono sostituiti solo dopo la tua conferma."
+  },
+  {
     "t": "Versione 2.3.20 – Corretta la ricerca della paga base nel PDF",
     "v": "2.3.20",
     "d": 1795097760000,
