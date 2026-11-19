@@ -74,7 +74,8 @@ self.onmessage = async (event) => {
       });
       const generated = output && output[0] && output[0].generated_text;
       const fullText = String(generated || "");
-      const assistantAt = fullText.lastIndexOf("assistant");\n      const raw = assistantAt >= 0 ? fullText.slice(assistantAt + "assistant".length).trim() : fullText.trim();
+      const assistantAt = fullText.lastIndexOf("assistant");
+      const raw = assistantAt >= 0 ? fullText.slice(assistantAt + "assistant".length).trim() : fullText.trim();
       const normalized = raw.replace(/\\+"/g, '"').replace(/\\n/g, "\n");
       const parsed = extractJsonObject(normalized);
       self.postMessage({
