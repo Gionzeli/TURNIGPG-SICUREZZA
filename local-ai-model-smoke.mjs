@@ -107,3 +107,41 @@ if (!/1[,\.]2/.test(trickyBase)) {
   throw new Error("Caso avverso: il valore anomalo della Paga base non è stato mantenuto o segnalato.");
 }
 console.log("ADVERSARIAL_INFERENCE_OK");
+
+// Secondo cedolino sintetico: etichette estese, ordine diverso e importi differenti.
+const variant = `PROSPETTO RETRIBUTIVO - NOVEMBRE 2026
+SCATTI DI ANZIANITA' EUR 92,15
+FERIE GODUTE 4,000 GG EUR 238,98
+PAGA BASE CONTRATTUALE EUR 1.512,40
+RETRIBUZIONE ORDINARIA 10,000 GG EUR 568,20`;
+const variantPrompt = "<|im_start|>system\\nEstrai dal documento tutte le voci retributive e gli importi associati. Rispondi solo JSON valido: {\\"tipo_documento\\":\\"cedolino\\",\\"campi\\":[{\\"nome\\":\\"etichetta originale\\",\\"valore\\":\\"importo\\\"}],\\"incertezze\\":[]}. Mantieni le etichette originali e non associare importi a voci diverse.\\n<|im_end|>\\n<|im_start|>user\\n/no_think\\n" + variant + "\\n<|im_end|>\\n<|im_start|>assistant\\n";
+const variantOutput = await generator(variantPrompt, { max_new_tokens: 320, do_sample: false });
+const variantFull = String(variantOutput?.[0]?.generated_text || "");
+const variantAt = variantFull.lastIndexOf("assistant");
+const variantRaw = variantAt >= 0 ? variantFull.slice(variantAt + "assistant".length).trim() : variantFull.trim();
+const variantClean = variantRaw.replace(/<think>[\\s\\S]*?<\\/think>/gi, "").replace(/```(?:json)?/gi, "").trim();
+let variantParsed = null;
+const variantStart = variantClean.indexOf("{");
+if (variantStart >= 0) {
+  for (let end = variantClean.lastIndexOf("}"); end > variantStart; end = variantClean.lastIndexOf("}", end - 1)) {
+    try {
+      const candidate = JSON.parse(variantClean.slice(variantStart, end + 1));
+      if (candidate && Array.isArray(candidate.campi)) { variantParsed = candidate; break; }
+    } catch {}
+  }
+}
+if (!variantParsed) throw new Error("Secondo cedolino: JSON strutturato non valido.");
+const variantValue = (label, pattern) => {
+  const field = variantParsed.campi.find(x => String(x.nome || "").toLowerCase().includes(label.toLowerCase()));
+  return field && pattern.test(String(field.valore || ""));
+};
+const variantChecks = {
+  base: variantValue("PAGA BASE", /1\\.512,40/),
+  scatti: variantValue("SCATTI", /92,15/),
+  ferie: variantValue("FERIE", /238,98/),
+  retribuzione: variantValue("RETRIBUZIONE", /568,20/)
+};
+console.log("VARIANT_CHECK", JSON.stringify(variantChecks));
+if (Object.values(variantChecks).some(ok => !ok)) throw new Error("Secondo cedolino: estrazione o associazione errata: " + JSON.stringify(variantChecks));
+console.log("VARIANT_INFERENCE_OK");
+
