@@ -62,7 +62,7 @@ if(cfg?.enabled){
  }
  watchAuth(async u=>{
   try{
-  current=u||null;window.__TURNI_CLOUD_READY=false;preparedUid=null;$("fb-logout").hidden=!u;
+  current=u||null;window.__TURNI_CLOUD_READY=false;$("fb-logout").hidden=!u;
   if(unsubNotes){unsubNotes();unsubNotes=null}if(unsubReq){unsubReq();unsubReq=null}if(unsubMember){unsubMember();unsubMember=null}
   if(!u){status("Accedi con email e password oppure crea un account.");emit(null,false,null,null);return}
   await u.reload();if(!u.emailVerified){status("Verifica l’indirizzo email dal messaggio ricevuto, poi torna qui ed effettua l’accesso.");emit(u,false,null,null);return}
