@@ -347,7 +347,7 @@ details summary{padding:3px 0;font-weight:650}
 
 <div id="adm_cards" style="display:contents"><div class="card"><h3>Richieste in attesa</h3><div id="reqs"></div></div>
 <div class="card"><h3>Collaboratori approvati</h3><div id="mems"></div></div></div>
-<div class="card"><h3 id="invh">Invita un collaboratore</h3><p class="hint" id="invh0">1. Invita la persona dal menu Condividi della pagina. 2. Invia questo messaggio: contiene il link e una breve spiegazione, puoi modificarlo. 3. Quando chiede l’accesso, approvala qui sotto.</p><div id="invselw" style="margin-bottom:8px"><label>Link da condividere</label><select id="invsel"><option value="pwa">App autonoma (installabile)</option><option value="claude">Versione con accesso e approvazione</option></select></div><div id="invurlw" style="margin-bottom:8px"><label>Indirizzo dell’app autonoma</label><input id="invurl" inputmode="url" placeholder="https://…"></div><textarea id="invt" style="min-height:260px"></textarea>
+<div class="card"><h3 id="invh">Invita un collaboratore</h3><p class="hint" id="invh0">1. Invita la persona dal menu Condividi della pagina. 2. Invia questo messaggio: contiene il link e una breve spiegazione, puoi modificarlo. 3. Quando chiede l’accesso, approvala qui sotto.</p><div id="invselw" style="margin-bottom:8px"><label>Link da condividere</label><select id="invsel"><option value="pwa">App con registrazione e approvazione</option></select></div><div id="invurlw" style="margin-bottom:8px"><label>Indirizzo dell’app autonoma</label><input id="invurl" inputmode="url" placeholder="https://…"></div><textarea id="invt" style="min-height:260px"></textarea>
 <div class="row"><button class="pri" id="invcp">Copia messaggio</button><button id="invsh">Condividi…</button><button id="invlk">Copia solo il link</button><button id="invqr">QR code</button><button id="invtx">Salva come file</button></div>
 <div class="row" style="margin-top:8px"><a class="btnl" id="invwa" target="_blank" rel="noopener">WhatsApp</a><a class="btnl" id="invtg" target="_blank" rel="noopener">Telegram</a><a class="btnl" id="invsm">SMS</a><a class="btnl" id="invml">Email</a><button class="ic" id="invrs">Ripristina testo</button></div>
 <p class="hint" id="invhint">“Condividi…” apre il menu del telefono (Bluetooth, Quick Share, AirDrop…). Se non si apre, usa gli altri pulsanti o il QR code.</p></div>
@@ -488,7 +488,7 @@ let U=null,DB=null,ME=null,ADMIN=false,MEM=null,MYREQ=null,REQ=[],REQD={},MEMS=[
 const STANDALONE=false,LINK=STANDALONE?location.href.split("#")[0].split("?")[0]:"https://claude.ai/artifact/4RQnSUGP2sJxAikMtccYLn",fd=d=>d?d.split("-").reverse().join("/"):"";
 const okAccess=()=>{if(ADMIN||STANDALONE)return true;const t=today();return !!(MEM&&MEM.active&&(!MEM.start||t>=MEM.start)&&(!MEM.end||t<=MEM.end))};
 function show(p){if((p==="turni"||p==="paga"||p==="adm")&&!okAccess())p="gate";CUR=p;["turni","paga","gate","agg","adm"].forEach(x=>$("pg_"+x).hidden=x!==p);
-const adm=ADMIN&&!STANDALONE;document.querySelectorAll("#nav button").forEach(b=>{b.className=b.dataset.p===p?"pri":"";if(b.dataset.p==="turni"||b.dataset.p==="paga"||b.dataset.p==="adm")b.hidden=!okAccess()});if(window.TURNI_FIREBASE_CONFIG?.enabled){$("nav_adm").hidden=true;const gb=document.querySelector('#nav button[data-p="gate"]');if(gb)gb.textContent=ADMIN?"Account / richieste":"Accesso";}
+const adm=ADMIN&&!STANDALONE;document.querySelectorAll("#nav button").forEach(b=>{b.className=b.dataset.p===p?"pri":"";if(b.dataset.p==="turni"||b.dataset.p==="paga"||b.dataset.p==="adm")b.hidden=!okAccess()});if(window.TURNI_FIREBASE_CONFIG?.enabled){$("nav_adm").hidden=!ADMIN;const gb=document.querySelector('#nav button[data-p="gate"]');if(gb)gb.textContent=ADMIN?"Account / richieste":"Accesso";}
 if(!adm)$("nav_adm").textContent="Condividi";$("admh").textContent=adm?"Collaboratori":"Condividi e supporto";$("invselw").hidden=!adm;
 $("aibox").hidden=!okAccess();$("mbar").hidden=!(p==="turni"||p==="paga");
 if(ready&&okAccess()&&STANDALONE){if((!X.name||!X.pin)&&!regOpen)showReg();else if(!X.onb&&!obOpen&&!regOpen)startOnb()}
@@ -537,32 +537,8 @@ else if(d.r){if(!confirmTap(e.target,"Confermi il rifiuto?"))return;await DB.doc
 else if(d.t){const m=MEMS.find(x=>x.id===d.t);await DB.doc("members/"+d.t).update({active:!m.active})}
 else if(d.rn){const[id,k]=d.rn.split(":"),m=MEMS.find(x=>x.id===id),b=(m&&m.end&&m.end>today())?m.end:today();await DB.doc("members/"+id).update({end:addM(b,Number(k)),active:true})}else if(d.x){if(!confirmTap(e.target,"Confermi la rimozione?"))return;await DB.doc("members/"+d.x).delete()}}catch(x){snack("Operazione non riuscita")}};
 $("pg_adm").onchange=async e=>{const d=e.target.dataset;if(d.dur)durEnd(d.dur);if(d.s)durEnd(d.s);if(d.n){const du=document.querySelector(`[data-dur="${d.n}"]`);if(du)du.value="c"}try{if(d.ms)await DB.doc("members/"+d.ms).update({start:e.target.value});if(d.me)await DB.doc("members/"+d.me).update({end:e.target.value})}catch(x){snack("Modifica non salvata")}};
-const PWA_DEF="https://gionzeli.github.io/TURNIGPG-SICUREZZA/",pwaUrl=()=>{try{const v=localStorage.getItem("tg_pwa_url");if(v&&/^https:\/\/\S+$/.test(v))return v.replace(/\/+$/,"")}catch(e){}return PWA_DEF},usePwa=()=>STANDALONE||!ADMIN||($("invsel").value==="pwa"&&!!pwaUrl()),ilink=()=>STANDALONE?LINK:(usePwa()?pwaUrl():LINK);
-const INV=()=>usePwa()?`Ciao! Ti consiglio “Turni GPG/sicurezza”, l’app per registrare i tuoi turni e stimare la busta paga. Va bene per guardie giurate, addetti alla sicurezza e portieri.
-
-🔗 ${ilink()}
-
-Come si usa:
-1. Apri il link dal telefono.
-2. Dal menu del browser scegli “Installa app” o “Aggiungi a Home”.
-3. Al primo accesso una guida ti spiega come funziona e ti aiuta a caricare busta paga e turni (PDF, foto, Excel, CSV o Word).
-
-I tuoi dati restano sul tuo dispositivo.
-
-Gianfranco Zelano`:`Ciao! Ti invito a usare “Turni GPG/sicurezza”, l’app per registrare i tuoi turni e stimare la busta paga. Va bene per guardie giurate, addetti alla sicurezza e portieri.
-
-🔗 ${ilink()}
-
-Come si entra:
-1. Apri il link e crea un account con email e password.
-2. Verifica l’indirizzo email e invia la richiesta di accesso.
-3. Attendi la mia approvazione: ti attiverò con una data di inizio e di fine.
-
-Al primo accesso una guida ti spiega come funziona e ti aiuta a caricare busta paga e turni (PDF, foto, Excel, CSV o Word). ${STANDALONE?"I dati restano sul dispositivo.":"I dati dei turni sono salvati nel tuo spazio personale Firebase e non sono visibili agli altri collaboratori."}
-
-Se il link non si apre, scrivimi: potrebbe mancare l’invito.
-
-Gianfranco Zelano`;
+const PWA_DEF="https://gionzeli.github.io/TURNIGPG-SICUREZZA/",pwaUrl=()=>{try{const v=localStorage.getItem("tg_pwa_url");if(v&&/^https:\/\/\S+$/.test(v))return v.replace(/\/+$/,"")}catch(e){}return PWA_DEF},usePwa=()=>true,ilink=()=>pwaUrl();
+const INV=()=>"Ciao! Ti invito a usare “Turni GPG/sicurezza”, l’app per registrare i turni e stimare la busta paga.\n\n🔗 "+ilink()+"\n\nCome registrarti:\n1. Apri il link dal telefono.\n2. Tocca “Crea account” e inserisci email e password.\n3. Verifica il tuo indirizzo email.\n4. Accedi e invia la richiesta di accesso: l’amministratore dovrà approvarla e indicare il periodo di collaborazione.\n\nI turni e le buste paga restano sul tuo dispositivo e non vengono condivisi con gli altri collaboratori.\n\nGianfranco Zelano";
 function invSync(){const t=$("invt").value,e=encodeURIComponent;$("invwa").href="https://wa.me/?text="+e(t);$("invtg").href="https://t.me/share/url?url="+e(ilink())+"&text="+e(t);$("invsm").href="sms:?&body="+e(t);$("invml").href="mailto:?subject="+e("Turni GPG/sicurezza")+"&body="+e(t)}
 function invMode(){const p=usePwa(),em=!STANDALONE&&$("invsel").value==="pwa"&&!pwaUrl();$("invurlw").hidden=STANDALONE||$("invsel").value!=="pwa";$("invh0").textContent=STANDALONE?"Invia questo messaggio per far installare l’app a un collega.":em?"Scrivi sotto l’indirizzo dell’app autonoma. Finché è vuoto viene condiviso il link della versione con accesso e approvazione.":p?"Invia questo messaggio: il collega apre il link e installa l’app, senza registrazione.":"Questa versione richiede l’invito dal menu Condividi della pagina e la tua approvazione, che dai qui sotto."}
 $("invselw").hidden=STANDALONE;$("invsel").value=pwaUrl()?"pwa":"claude";$("invurl").value=pwaUrl();$("invt").value=INV();invSync();invMode();
@@ -867,6 +843,6 @@ boot();
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
 <script type="module" src="local-reader.js?v=2.3.7"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.70").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.71").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
