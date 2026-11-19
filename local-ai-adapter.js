@@ -70,11 +70,12 @@
     const externalSignal = opts.signal;
     const forwardAbort = () => controller.abort();
     if (externalSignal) externalSignal.addEventListener("abort", forwardAbort, { once: true });
-    const timer = setTimeout(() => controller.abort(), timeoutMs);
     let timedOut = false;
-    const timeoutCheck = setInterval(() => {
-      if (controller.signal.aborted && !(externalSignal && externalSignal.aborted)) timedOut = true;
-    }, 25);
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs);
+    const cancelPendingLoad = () => {
+      if (loading && lifecycleController) lifecycleController.abort();
+    };
+    controller.signal.addEventListener("abort", cancelPendingLoad, { once: true });
 
     try {
       const runner = await getRunner(controller.signal);
@@ -101,7 +102,7 @@
       throw error;
     } finally {
       clearTimeout(timer);
-      clearInterval(timeoutCheck);
+      controller.signal.removeEventListener("abort", cancelPendingLoad);
       if (externalSignal) externalSignal.removeEventListener("abort", forwardAbort);
     }
   }
