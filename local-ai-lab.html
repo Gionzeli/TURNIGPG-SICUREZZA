@@ -14,7 +14,7 @@
 <p>Prova separata: non modifica l'app Turni e non importa né salva documenti o dati personali.</p>
 <section>
 <h2>Prima di iniziare</h2>
-<p class="warning"><strong>Download facoltativo e voluminoso.</strong> Il modello quantizzato può richiedere diverse centinaia di MB (la variante q4 effettiva può variare). Il runtime e i pesi pubblici vengono scaricati da CDN/Hugging Face e conservati nella cache del browser. Nessun testo inserito viene inviato a questi servizi: l'inferenza avviene nel worker sul dispositivo.</p>
+<p class="warning"><strong>Download facoltativo e voluminoso.</strong> Il file del modello q4 selezionato è circa 997 MB; si aggiungono runtime e tokenizer. La variante q4f16 da 648 MB non è quella usata da questa prova. Il runtime e i pesi pubblici vengono scaricati da CDN/Hugging Face e conservati nella cache del browser. Nessun testo inserito viene inviato a questi servizi: l'inferenza avviene nel worker sul dispositivo.</p>
 <p>La prova usa CPU/WASM per privilegiare la compatibilità. Può essere lenta o non funzionare su dispositivi con poca memoria. Non avviare se hai una connessione limitata o poco spazio.</p>
 <label><input id="consent" type="checkbox"> Ho capito che il download può essere grande e voglio avviare la prova.</label><br>
 <button id="load">Scarica e carica il modello gratuito</button>
@@ -32,7 +32,7 @@ Retribuzione: 896,19 per 15 giorni
 Ferie godute: 657,21 per 11 giorni</textarea>
 <button id="analyze" disabled>Analizza sul dispositivo</button>
 <div id="status" role="status">Modello non caricato. Nessun download in corso.</div>
-<h3>Risultato grezzo del modello</h3>
+<h3>Risultato del modello</h3>
 <pre id="result">Nessun risultato.</pre>
 </section>
 <p><small>Prototipo tecnico, non collegato a import turni o buste paga. Verificare ogni risultato: il modello può sbagliare. Per uscire, premi “Annulla / libera memoria”.</small></p>
@@ -71,10 +71,10 @@ Ferie godute: 657,21 per 11 giorni</textarea>
       }
       if (data.type === "result") {
         $("result").textContent = data.answer;
-        status("Analisi terminata. Controlla manualmente ogni campo.");
+        $("analyze").disabled = !ready || !$("sample").value.trim();\n        status(data.structured ? "Risultato JSON strutturato. Controlla manualmente ogni campo." : "Il modello non ha prodotto JSON valido: controlla il testo grezzo e riprova.");
       }
       if (data.type === "error") {
-        status("Errore: " + data.message);
+        status("Errore: " + data.message);\n        if (ready) $("analyze").disabled = !$("sample").value.trim();
         if (!ready) {
           if (worker) worker.terminate();
           worker = null;
