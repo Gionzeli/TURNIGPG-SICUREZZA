@@ -78,10 +78,18 @@ self.onmessage = async (event) => {
       const raw = assistantAt >= 0 ? fullText.slice(assistantAt + "assistant".length).trim() : fullText.trim();
       const normalized = raw.replace(/\\+"/g, '"').replace(/\\n/g, "\n");
       const parsed = extractJsonObject(normalized);
+      // La verifica confronta l'output AI con il testo sorgente rimasto in memoria nel worker.
+      // Il testo non viene trasmesso a servizi esterni né salvato.
+      const validationModule = await import("./local-ai-validation.js");
+      const verifier = self.LocalAIVerifier || validationModule;
+      const verification = parsed && verifier && typeof verifier.verify === "function"
+        ? verifier.verify(text, parsed)
+        : { accepted: {}, uncertainties: [{ nome: "Documento", motivo: "L'AI non ha prodotto dati strutturati verificabili" }], complete: false };
       self.postMessage({
         type: "result",
         answer: parsed ? JSON.stringify(parsed, null, 2) : raw,
-        structured: !!parsed
+        structured: !!parsed,
+        verification
       });
     } catch (error) {
       self.postMessage({ type: "error", message: String(error && error.message || error) });
