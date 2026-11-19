@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.27 – Colori personalizzabili in stile Material 3",
+    "v": "2.3.27",
+    "d": 1795113000000,
+    "b": "🎨 PERSONALIZZAZIONE DEI COLORI\nAggiunta una tavolozza personalizzabile: scegli il colore principale e l’app adatta pulsanti, menu, schede e dettagli con tinte coordinate. La preferenza resta salvata solo sul dispositivo.\n\nNota: per motivi di sicurezza e per i limiti delle pagine web, l’app non può leggere automaticamente lo sfondo del telefono. Nessun dato dei turni o delle buste paga viene modificato."
+  },
+  {
     "t": "Versione 2.3.26 – Corretto l’ordine delle note di aggiornamento",
     "v": "2.3.26",
     "d": 1795129140000,
