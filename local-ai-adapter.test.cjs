@@ -3,6 +3,11 @@ const assert = require("node:assert/strict");
 require("./local-ai-adapter.js");
 
 const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const aborted = () => {
+  const error = new Error("stopped");
+  error.name = "AbortError";
+  return error;
+};
 
 (async () => {
   const api = globalThis.LocalDocumentAI;
@@ -31,12 +36,8 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   assert.equal(disposed, 1);
 
   api.configure({
-    loadModel: async () => async () => new Promise((_, reject) => {
-      const error = new Error("stopped");
-      error.name = "AbortError";
-      // Il runner deve poter interrompere il lavoro quando il timeout scatta.
-      arguments;
-      setTimeout(() => reject(error), 0);
+    loadModel: async () => async ({ signal }) => new Promise((_, reject) => {
+      signal.addEventListener("abort", () => reject(aborted()), { once: true });
     }),
     timeoutMs: 1000
   });
@@ -46,16 +47,12 @@ const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
   const external = new AbortController();
   api.configure({
     loadModel: async () => async ({ signal }) => new Promise((_, reject) => {
-      signal.addEventListener("abort", () => {
-        const error = new Error("stopped");
-        error.name = "AbortError";
-        reject(error);
-      }, { once: true });
+      signal.addEventListener("abort", () => reject(aborted()), { once: true });
     }),
     timeoutMs: 5000
   });
   const pending = api.analyze("documento", { signal: external.signal });
-  await delay(10);
+  await delay(20);
   external.abort();
   await assert.rejects(pending, (error) => error && error.name === "AbortError");
   await api.release();
