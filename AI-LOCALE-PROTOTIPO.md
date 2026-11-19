@@ -43,12 +43,12 @@ L'adattatore non è ancora collegato a PDF, OCR, cedolini, turni o parametri. Pr
 
 
 ## Modello candidato da valutare (non ancora integrato)
-La prima prova concreta sarà con **Qwen3-0.6B-Instruct in formato ONNX** tramite Transformers.js. La scheda della variante ONNX dichiara licenza Apache 2.0 e uso con Transformers.js; il pacchetto quantizzato Q4F16 pubblicato è circa 648 MB. La famiglia Qwen3 dichiara copertura di oltre 100 lingue, inclusa l'italiana. Riferimenti: https://huggingface.co/onnx-community/Qwen3-0.6B-Instruct-ONNX e https://huggingface.co/Qwen/Qwen3-0.6B.
+La prova concreta usa **Qwen3-0.6B-Instruct in formato ONNX** tramite Transformers.js. La scheda dichiara licenza Apache 2.0 e uso con Transformers.js. Il file q4 selezionato per WASM è circa 997 MB; esiste una variante q4f16 di circa 648 MB, ma non è quella usata dal laboratorio. La revisione del modello è fissata al commit `54250909aca286a05b9d013c8af7a21859ee6ead` per rendere ripetibile il test. Riferimenti: https://huggingface.co/onnx-community/Qwen3-0.6B-Instruct-ONNX e https://huggingface.co/Qwen/Qwen3-0.6B.
 
-**Limite importante:** 648 MB sono troppi per scaricare automaticamente o imporre il modello su ogni telefono. Quindi il modello resta soltanto candidato per una prova facoltativa, con download esplicito e indicazione della dimensione; non sarà caricato all'avvio e non sarà requisito per aprire l'app. Prima di adottarlo vanno misurati memoria, tempi e accuratezza su esempi sintetici in italiano. Se non supera le prove, non verrà integrato. Nessuna inferenza cloud e nessun costo API.
+**Limite importante:** circa 997 MB più runtime e tokenizer sono troppi per scaricare automaticamente o imporre il modello su ogni telefono. Il download resta facoltativo, esplicito e indicato prima dell'avvio; non sarà caricato all'avvio e non sarà requisito per aprire l'app. Prima di adottarlo vanno misurati memoria, tempi e accuratezza su esempi sintetici in italiano. Se non supera le prove, non verrà integrato. Nessuna inferenza cloud e nessun costo API.
 
 ## Verifiche automatiche aggiunte
-Il workflow GitHub Actions `.github/workflows/local-ai-prototype-tests.yml` esegue il test Node dell'adattatore quando cambiano adattatore o test sul branch prototipo. I test coprono caricamento su richiesta, rilascio, timeout, annullamento e fallimento del caricatore. La presenza del workflow non equivale a un test completato: il risultato va controllato nei run GitHub Actions.
+Il workflow GitHub Actions `.github/workflows/local-ai-prototype-final.yml` esegue i test Node dell'adattatore e del laboratorio quando cambiano i relativi file sul branch prototipo. I test coprono caricamento su richiesta, rilascio, timeout, annullamento e fallimento del caricatore. La presenza del workflow non equivale a un test completato: il risultato va controllato nei run GitHub Actions.
 
 
 ## Laboratorio browser con modello reale (isolato)
@@ -57,3 +57,7 @@ Sono stati aggiunti `local-ai-lab.html` e `local-ai-worker.js`. Il laboratorio u
 La scheda del modello dichiara licenza Apache 2.0 e supporto Transformers.js. Nella cartella ONNX del modello il file `model_q4.onnx` è indicato a circa 997 MB; la variante `model_q4f16.onnx` è circa 648 MB ma non è quella selezionata dal test WASM. Il download è gratuito ma può consumare molti dati e spazio; runtime e pesi provengono da CDN/Hugging Face. Il testo di prova viene passato al worker locale e non è incluso in richieste di rete. Riferimenti: https://huggingface.co/onnx-community/Qwen3-0.6B-Instruct-ONNX e https://huggingface.co/onnx-community/Qwen3-0.6B-Instruct-ONNX/tree/main/onnx.
 
 Il laboratorio accetta soltanto testo digitato e un esempio sintetico: **non legge ancora PDF o immagini**, non è collegato ai parser dell'app e non salva alcun risultato nei parametri. PDF e scansioni richiedono ancora estrazione/OCR locale prima dell'interpretazione. L'interfaccia invita a non usare documenti personali. La prova del codice su GitHub Actions verifica la sintassi e i comportamenti dell'adattatore, ma non esegue il download da quasi 1 GB né dimostra prestazioni o accuratezza del modello su telefoni reali. Queste verifiche restano obbligatorie prima di qualsiasi integrazione.
+
+
+## Aggiornamento verifiche — 19 novembre 2026
+Il worker ora usa una revisione del modello fissata, limita il testo di prova a 6.000 caratteri, tenta di estrarre un oggetto JSON valido e segnala quando il modello restituisce testo non strutturato. Il laboratorio riabilita i pulsanti dopo errore o arresto. Queste sono protezioni del prototipo, non una prova di accuratezza del modello né di compatibilità su tutti i telefoni.
