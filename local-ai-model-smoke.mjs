@@ -126,7 +126,7 @@ if (variantStart >= 0) {
   for (let end = variantClean.lastIndexOf("}"); end > variantStart; end = variantClean.lastIndexOf("}", end - 1)) {
     try {
       const candidate = JSON.parse(variantClean.slice(variantStart, end + 1));
-      if (candidate && Array.isArray(candidate.campi)) { variantParsed = candidate; break; }
+      if (candidate && (Array.isArray(candidate.campi) || Array.isArray(candidate.incertezze))) { variantParsed = candidate; break; }
     } catch {}
   }
 }
