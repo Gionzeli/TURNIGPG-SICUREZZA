@@ -9,7 +9,7 @@ const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/gi)];
 assert.equal(scripts.length, 1, "deve esserci un solo script inline nel laboratorio");
 new vm.Script(scripts[0][1], { filename: "local-ai-lab.inline.js" });
 new vm.Script(worker, { filename: "local-ai-worker.js" });
-assert.match(html, /type="module"/);
+assert.match(html, /new Worker\("\.\/local-ai-worker\.js", \{ type: "module" \}\)/);
 assert.match(html, /Ho capito che il download può essere grande/);
 assert.match(html, /nessun testo inserito viene inviato/i);
 assert.match(worker, /onnx-community\/Qwen3-0\.6B-Instruct-ONNX/);
