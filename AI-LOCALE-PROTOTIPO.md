@@ -40,3 +40,12 @@ Per la compatibilità più ampia, il candidato iniziale è **ONNX Runtime Web**,
 
 ## Gate prima di usare dati reali
 L'adattatore non è ancora collegato a PDF, OCR, cedolini, turni o parametri. Prima servono un modello concreto con licenza verificata, benchmark di memoria/tempo su device reali, test con documenti sintetici di aziende/formati differenti e controllo che nessun testo/documento venga trasmesso in rete. L'estrazione PDF e OCR locale restano necessarie per convertire scansioni in testo; l'AI dovrà interpretare quel testo localmente, non sostituire il meccanismo di acquisizione.
+
+
+## Modello candidato da valutare (non ancora integrato)
+La prima prova concreta sarà con **Qwen3-0.6B-Instruct in formato ONNX** tramite Transformers.js. La scheda della variante ONNX dichiara licenza Apache 2.0 e uso con Transformers.js; il pacchetto quantizzato Q4F16 pubblicato è circa 648 MB. La famiglia Qwen3 dichiara copertura di oltre 100 lingue, inclusa l'italiana. Riferimenti: https://huggingface.co/onnx-community/Qwen3-0.6B-Instruct-ONNX e https://huggingface.co/Qwen/Qwen3-0.6B.
+
+**Limite importante:** 648 MB sono troppi per scaricare automaticamente o imporre il modello su ogni telefono. Quindi il modello resta soltanto candidato per una prova facoltativa, con download esplicito e indicazione della dimensione; non sarà caricato all'avvio e non sarà requisito per aprire l'app. Prima di adottarlo vanno misurati memoria, tempi e accuratezza su esempi sintetici in italiano. Se non supera le prove, non verrà integrato. Nessuna inferenza cloud e nessun costo API.
+
+## Verifiche automatiche aggiunte
+Il workflow GitHub Actions `.github/workflows/local-ai-prototype-tests.yml` esegue il test Node dell'adattatore quando cambiano adattatore o test sul branch prototipo. I test coprono caricamento su richiesta, rilascio, timeout, annullamento e fallimento del caricatore. La presenza del workflow non equivale a un test completato: il risultato va controllato nei run GitHub Actions.
