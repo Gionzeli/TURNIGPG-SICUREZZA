@@ -28,7 +28,8 @@ const prompt = "<|im_start|>system\nSei un estrattore di cedolini. Restituisci s
 const output = await generator(prompt, { max_new_tokens: 384, do_sample: false });
 const generated = output?.[0]?.generated_text;
 const fullText = String(generated || "");
-const assistantAt = fullText.lastIndexOf("assistant");\nconst raw = assistantAt >= 0 ? fullText.slice(assistantAt + "assistant".length).trim() : fullText.trim();
+const assistantAt = fullText.lastIndexOf("assistant");
+const raw = assistantAt >= 0 ? fullText.slice(assistantAt + "assistant".length).trim() : fullText.trim();
 console.log("RAW_OUTPUT_BEGIN");
 console.log(raw);
 console.log("RAW_OUTPUT_END");
