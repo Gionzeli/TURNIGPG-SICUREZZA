@@ -1,5 +1,6 @@
 import { pipeline, env } from "@huggingface/transformers";
 import { StructuredOutputProcessor } from "@huggingface/transformers-structured-output";
+// Test sperimentale: generazione vincolata allo schema JSON, oltre alla verifica dei valori.
 
 const MODEL_ID = "onnx-community/Qwen3-0.6B-Instruct-ONNX";
 const REVISION = "54250909aca286a05b9d013c8af7a21859ee6ead";
