@@ -6,7 +6,7 @@
 <title>Turni Gpg/sicurezza</title>
 <meta name="referrer" content="no-referrer">
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://www.gstatic.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https: wss:; frame-src https:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'self'">
-<meta name="theme-color" content="#6750A4"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
+<meta name="theme-color" content="#6750A4" id="app-theme-color"><link rel="manifest" href="manifest.webmanifest"><link rel="icon" href="favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="favicon-32.png"><link rel="icon" type="image/png" sizes="64x64" href="favicon-64.png"><link rel="icon" type="image/svg+xml" href="icon.svg"><link rel="apple-touch-icon" href="icon-180.png">
 <meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Turni GPG"><meta name="apple-mobile-web-app-status-bar-style" content="default">
 <style>
 :root{--bg:#F3F5FC;--card:#FFFFFF;--tx:#1A1C20;--mu:#44474F;--bd:#C4C6D0;--pr:#0B57D0;--pr-tx:#FFFFFF;--soft:#D3E3FD;--soft-tx:#041E49;--ok:#C4EED0;--ok-tx:#052E12;--warn:#FFE6A8;--warn-tx:#3B2A00;--bad:#F9DEDC;--bad-tx:#410E0B;--sc:#E3E9F7;--sc-tx:#1C2A44;--sh:0 1px 3px rgba(26,28,32,.14),0 1px 2px rgba(26,28,32,.08);color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
@@ -262,6 +262,14 @@ details summary{padding:3px 0;font-weight:650}
 }
 @media(prefers-reduced-motion:reduce){button{transition:none}button:active{transform:none}}
 
+
+/* Tavolozza personalizzabile ispirata ai colori dinamici di Material You */
+:root{--palette-seed:#6750A4}
+:root[style*="--pr:"] .kpi:nth-child(1){background:var(--soft);color:var(--soft-tx)}
+:root[style*="--pr:"] .kpi:nth-child(2){background:color-mix(in srgb,var(--pr) 12%,var(--card));color:var(--tx)}
+:root[style*="--pr:"] .kpi:nth-child(3){background:color-mix(in srgb,var(--pr) 20%,var(--card));color:var(--tx)}
+:root[style*="--pr:"] .tile:nth-child(3n+1),:root[style*="--pr:"] .tile:nth-child(3n+2),:root[style*="--pr:"] .tile:nth-child(3n){--h:var(--pr)!important}
+#palette-color{cursor:pointer;min-height:44px}
 </style>
 </head>
 <body>
@@ -340,7 +348,17 @@ details summary{padding:3px 0;font-weight:650}
 <div id="rpend" hidden></div>
 <button class="ic" id="gexit" type="button">Esci</button>
 </div><div id="info_a" style="display:grid;gap:16px;margin-top:16px;text-align:left"></div></main>
-<main id="pg_agg" hidden><h1>Aggiornamenti <span class="tg" id="verlab"></span></h1>
+<main id="pg_agg" hidden><h1>Aggiornamenti <span class="tg" id="verlab"></span></h1><section class="card" id="palette-card">
+<h3>Personalizza i colori</h3>
+<p class="hint">Scegli un colore principale: l’app crea una tavolozza coordinata per pulsanti, menu e dettagli. La scelta viene salvata solo su questo dispositivo.</p>
+<div class="row" style="align-items:center;gap:12px">
+<label for="palette-color" style="margin:0">Colore principale</label>
+<input id="palette-color" type="color" value="#6750A4" aria-label="Scegli il colore principale" style="width:64px;min-height:44px;padding:4px;flex:none">
+<button class="pri" id="palette-apply" type="button">Applica colore</button>
+<button id="palette-reset" type="button">Ripristina</button>
+</div>
+<p class="hint" id="palette-note">I colori dello sfondo del telefono non sono leggibili direttamente da una pagina web: puoi scegliere qui la tonalità da usare.</p>
+</section>
 <form class="card noprint" id="uf" hidden><h3>Pubblica un aggiornamento</h3><input id="ut" placeholder="Titolo" required><textarea id="ub" placeholder="Cosa è cambiato" required></textarea><button class="pri">Pubblica per tutti</button></form>
 <div id="ulist" style="display:grid;gap:10px"></div></main>
 <main id="pg_adm" hidden><h1 id="admh">Collaboratori</h1>
@@ -367,7 +385,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.26",ADMIN_WA="393923801549";
+const APP_VER="2.3.27",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -772,7 +790,7 @@ $("insgo").onclick=()=>{if(DEFI){DEFI.prompt();DEFI=null;insBar()}};$("insno").o
 try{window.addEventListener&&window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFI=e;extra();insBar()});window.addEventListener&&window.addEventListener("appinstalled",()=>{DEFI=null;insBar()})}catch(e){}
 document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-install]")&&DEFI){DEFI.prompt();DEFI=null;extra()}});
 function mergeUpdates(items){const all=[...STATIC_UPD,...(Array.isArray(items)?items:[]).filter(u=>!String(u.id||"").startsWith("s"))],seen=new Set(),ver=u=>String(u.v||"0").split(".").map(n=>parseInt(n,10)||0);UPD=all.filter(u=>{const k=String(u.v||"")+"|"+String(u.t||"");if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>{const a=ver(x),b=ver(y);for(let i=0;i<Math.max(a.length,b.length);i++){const d=(b[i]||0)-(a[i]||0);if(d)return d}return(y.d||0)-(x.d||0)});renderUpd()}
-async function loadUpd(){try{const r=await fetch("updates.json?rev=20261121",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const a=await r.json();if(!Array.isArray(a))throw new Error("Elenco aggiornamenti non valido");STATIC_UPD=a.map((u,i)=>({id:"s"+i,...u}));mergeUpdates(UPD)}catch(e){console.warn("Aggiornamenti locali non caricati",e);mergeUpdates(UPD)}}
+async function loadUpd(){try{const r=await fetch("updates.json?rev=20261119-2327",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const a=await r.json();if(!Array.isArray(a))throw new Error("Elenco aggiornamenti non valido");STATIC_UPD=a.map((u,i)=>({id:"s"+i,...u}));mergeUpdates(UPD)}catch(e){console.warn("Aggiornamenti locali non caricati",e);mergeUpdates(UPD)}}
 const ROLES={gpg:"guardia particolare giurata (GPG)",sicurezza:"addetto alla sicurezza",portierato:"addetto al portierato"};
 const roleTxt=()=>ROLES[X.role]||"lavoratore a turni di vigilanza, sicurezza o portierato";
 function applyRole(){const pi=$("is_piantonato"),pe=pi&&pi.parentElement;if(pe)pe.style.display=X.role==="portierato"?"none":""}
@@ -851,7 +869,18 @@ if(!X.onb&&!X.pin)startOnb();
 </script>
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
-<script type="module" src="local-reader.js?v=2.3.26"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.94").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script type="module" src="local-reader.js?v=2.3.27"></script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.95").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+
+<script>
+(()=>{
+ const root=document.documentElement, picker=document.getElementById("palette-color");
+ const valid=v=>/^#[0-9a-f]{6}$/i.test(v||"");
+ function applyPalette(color,save){if(!valid(color))return;const c=color.toUpperCase();root.style.setProperty("--pr",c);root.style.setProperty("--pr-tx","#FFFFFF");root.style.setProperty("--soft",`color-mix(in srgb,${c} 17%, #FFFFFF)`);root.style.setProperty("--soft-tx","#241B30");root.style.setProperty("--sc",`color-mix(in srgb,${c} 12%, #FFFFFF)`);root.style.setProperty("--sc-tx","#241B30");root.style.setProperty("--palette-seed",c);const meta=document.getElementById("app-theme-color");if(meta)meta.setAttribute("content",c);if(picker)picker.value=c;if(save){try{localStorage.setItem("tg-color-seed",c)}catch(e){}}}
+ let saved="#6750A4";try{const v=localStorage.getItem("tg-color-seed");if(valid(v))saved=v}catch(e){}applyPalette(saved,false);
+ document.getElementById("palette-apply")?.addEventListener("click",()=>{applyPalette(picker?.value,false);try{localStorage.setItem("tg-color-seed",picker.value)}catch(e){}if(typeof snack==="function")snack("Colori aggiornati")});
+ document.getElementById("palette-reset")?.addEventListener("click",()=>{applyPalette("#6750A4",true);if(typeof snack==="function")snack("Tavolozza ripristinata")});
+})();
+</script>
 </body>
 </html>
