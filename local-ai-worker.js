@@ -75,7 +75,8 @@ self.onmessage = async (event) => {
       const generated = output && output[0] && output[0].generated_text;
       const fullText = String(generated || "");
       const raw = fullText.startsWith(prompt) ? fullText.slice(prompt.length).trim() : fullText.trim();
-      const normalized = raw.replace(/\\\\\"/g, '"' ).replace(/\\\\n/g, "\\n");\n      const parsed = extractJsonObject(normalized);
+      const normalized = raw.replaceAll('\\\\"', '"').replaceAll('\\\\n', "\\n");
+      const parsed = extractJsonObject(normalized);
       self.postMessage({
         type: "result",
         answer: parsed ? JSON.stringify(parsed, null, 2) : raw,
