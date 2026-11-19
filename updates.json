@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.29 – Corretta la lettura delle buste paga",
+    "v": "2.3.29",
+    "d": 1795114800000,
+    "b": "📄 LETTURA BUSTE PAGA\nCorretto un errore nel riconoscimento di spazi, separatori e importi che impediva al lettore di associare correttamente le etichette ai valori del cedolino.\n\n🔎 LETTORE LOCALE CONDIVISO\nLa busta paga usa ora lo stesso percorso locale di lettura dei turni: prima estrae il testo del PDF; se non riconosce davvero la Paga base, passa all’OCR sul dispositivo. Paga base e Scatti vengono riconosciuti separatamente. Non usa Retribuzione o Lavoro ordinario come sostituti della paga base.\n\nI documenti non vengono caricati online e i parametri vengono sostituiti solo dopo la tua conferma."
+  },
+  {
     "t": "Versione 2.3.27 – Colori personalizzabili in stile Material 3",
     "v": "2.3.27",
     "d": 1795113000000,
