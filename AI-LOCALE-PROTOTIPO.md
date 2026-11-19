@@ -61,3 +61,12 @@ Il laboratorio accetta soltanto testo digitato e un esempio sintetico: **non leg
 
 ## Aggiornamento verifiche — 19 novembre 2026
 Il worker ora usa una revisione del modello fissata, limita il testo di prova a 6.000 caratteri, tenta di estrarre un oggetto JSON valido e segnala quando il modello restituisce testo non strutturato. Il laboratorio riabilita i pulsanti dopo errore o arresto. Queste sono protezioni del prototipo, non una prova di accuratezza del modello né di compatibilità su tutti i telefoni.
+
+
+## Percorso rapido senza modello — 19 novembre 2026
+
+Il laboratorio include ora un percorso separato **Lettura rapida locale (senza download)** che richiama il parser già presente in `local-reader.js`. Non scarica pesi AI, non richiede connessione per l'analisi del testo già disponibile e non blocca il thread con un modello generativo. I valori vengono poi confrontati con le etichette e gli importi nel testo originale; Paga base e Scatti sono richiesti come campi essenziali. Il confronto tollera differenze di formattazione numerica (ad esempio 1.468,88 rispetto a 1.468,88000), ma non associa importi a etichette diverse.
+
+Questo percorso è un **lettore locale deterministico, non un'AI**: serve a dare una strada rapida e leggera, non sostituisce l'interpretazione AI per layout nuovi o documenti complessi. Il modello generativo resta facoltativo e non deve essere scaricato per provare la lettura rapida. I test sintetici includono le etichette e gli importi separati su righe consecutive, i 5 decimali e i casi di associazione errata.
+
+La funzione è ancora nel laboratorio isolato; non è stata inserita nell'app pubblicata. Non sono stati eseguiti test fisici su telefoni Android, iPhone o Windows.
