@@ -40,8 +40,8 @@
     return [];
   }
   function numericValue(value) {
-    let text = String(value || "").replace(/\\s/g, "");
-    if (text.includes(",")) text = text.replace(/\\./g, "").replace(",", ".");
+    let text = String(value || "").replace(/\s/g, "");
+    if (text.includes(",")) text = text.replace(/\./g, "").replace(",", ".");
     const number = Number(text);
     return Number.isFinite(number) ? number : null;
   }
