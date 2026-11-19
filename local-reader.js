@@ -24,29 +24,23 @@ const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLo
 function italianNumber(s){let t=String(s||"").replace(/[Oo]/g,"0").replace(/[Il]/g,"1").replace(/\s+/g,"").replace(/[^0-9,.-]/g,"");if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,"");const n=Number(t);return Number.isFinite(n)?n:null}
 function labeledValue(lines,aliases){
  const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
- const raw=lines.join("\n").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ").replace(/^RIGA\s+\d+\s*:\s*/gim,"");
- const flat=norm(raw);
+ const number=/[-+]?(?:[0-9OIl]{1,3}(?:\\.[0-9OIl]{3})+|[0-9OIl]+)(?:\\s*,\\s*[0-9OIl]{1,5})?/;
+ const stop=/\\b(?:paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute)\\b/i;
+ const rows=lines.map(x=>norm(String(x||"").replace(/\\u00a0/g," ").replace(/\\s*\\|\\s*/g," ")));
  for(const alias of keys){
-  const pattern=alias.split(/\s+/).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,ch=>"\\"+ch)).join("\\s+");
-  // Il testo PDF può contenere una prima etichetta senza importo e, più avanti,
-  // la stessa etichetta ricostruita correttamente dall'OCR. Esamina tutte le occorrenze.
-  const re=new RegExp(pattern,"ig");let hit;
-  while((hit=re.exec(flat))){
-   const tail=flat.slice(hit.index+hit[0].length,hit.index+hit[0].length+100)
-    .replace(/\s*([.,])\s*/g,"$1")
-    .replace(/([0-9OIl])\s+([0-9OIl])/g,"$1$2");
-   const m=tail.match(/^\s*[:=€]?\s*([-+]?(?:[0-9OIl]{1,3}(?:\.[0-9OIl]{3})+|[0-9OIl]+)(?:,[0-9OIl]{1,5})?)/);
-   if(m){const v=italianNumber(m[1]);if(v!==null&&v>0)return v}
-  }
- }
- for(let i=0;i<lines.length;i++){
-  const n=norm(lines[i]);
-  for(const key of keys){
-   const at=n.indexOf(key);if(at<0)continue;
-   const tail=[lines[i].slice(Math.min(lines[i].length,at+key.length)),...lines.slice(i+1,i+3)].join(" ")
-    .replace(/\u00a0/g," ").replace(/\s*([.,])\s*/g,"$1").replace(/([0-9OIl])\s+([0-9OIl])/g,"$1$2");
-   const m=tail.match(/^\s*[:=€|]?\s*([-+]?(?:[0-9OIl]{1,3}(?:\.[0-9OIl]{3})+|[0-9OIl]+)(?:,[0-9OIl]{1,5})?)/);
-   if(m){const v=italianNumber(m[1]);if(v!==null&&v>0)return v}
+  const label=new RegExp("(^|[^a-z])"+alias.split(/\\s+/).join("\\\\s+")+"(?=$|[^a-z])","i");
+  for(let i=0;i<rows.length;i++){
+   const hit=label.exec(rows[i]);if(!hit)continue;
+   let tail=rows[i].slice(hit.index+hit[0].length).replace(/^[\\s|:;=€]+/,"");
+   let m=tail.match(number);
+   if(!m){
+    for(let j=i+1;j<Math.min(rows.length,i+4);j++){
+     if(stop.test(rows[j]))break;
+     m=rows[j].replace(/^[^0-9OIl+-]*/,"").match(number);
+     if(m)break;
+    }
+   }
+   if(m){const value=italianNumber(m[0]);if(value!==null&&value>0)return value}
   }
  }
  return null;
@@ -56,19 +50,8 @@ function parsePayslip(text,fields){
  paga_base:["paga base","minimo tabellare","minimo contrattuale","retribuzione base","retribuzione tabellare","stipendio base","minimo ccnl","minimo contrattuale mensile"],scatti:["scatti","scatti anzianita","scatti di anzianita"],altre_fisse:["superminimo","elemento distinto","indennita fissa","altre voci fisse"],ore_mensili:["ore mensili","orario mensile","ore contrattuali"],ore_turno:["ore turno","durata turno","ore giornaliere"],straordinario_perc:["maggiorazione straordinario","straordinario %","maggiorazione straord"],straordinario_ora:["straordinario euro ora","straordinario orario","compenso straordinario"],notturno_turno:["indennita notturna","maggiorazione notturno","notturno turno"],piantonato_turno:["piantonamento","indennita piantonamento"],domenica_ora:["maggiorazione domenicale","lavoro domenicale","domenica ora"],riposo_non_goduto:["riposo non goduto","riposo lavorato","festivita non goduta"],buono_pasto:["buono pasto","ticket restaurant","ticket"],inps_rate:["aliquota inps","inps %","contributi ivs"],irpef_rate:["aliquota irpef","irpef %","ritenuta irpef"],sindacato:["trattenuta sindacale","sindacato"],cessione:["cessione quinto","cessione del quinto"],altre_trattenute:["altre trattenute","totale trattenute"]};
  const out={};
  for(const [key] of fields){const v=labeledValue(lines,aliases[key]||[key.replace(/_/g," ")]);if(v!==null)out[key]=v}
- // Nei cedolini la riga LAVORO ORDINARIO può essere spezzata dall'OCR
- // in colonne separate o distribuita su più righe. Unisci la riga e le due
- // successive, quindi usa il totale finale (non la quantità o la tariffa).
- // Nessun importo è preimpostato: il valore viene letto dal cedolino corrente.
- if(!(Number(out.paga_base)>0)){
-  for(let i=0;i<lines.length;i++){
-   const row=lines.slice(i,Math.min(lines.length,i+3)).join(" ");
-   if(!/\blavoro\s+ordinario\b/i.test(norm(row)))continue;
-   const nums=[...row.matchAll(/\d[\d.]*,\d{1,5}|\d{1,3}(?:\.\d{3})+(?:,\d{1,5})?/g)]
-    .map(m=>italianNumber(m[0])).filter(v=>v!==null&&v>0);
-   if(nums.length>=2){out.paga_base=nums[nums.length-1];break}
-  }
- }
+ // La paga base si legge solo da un'etichetta contrattuale esplicita.
+ // Non usare il totale di LAVORO ORDINARIO: può riferirsi a pochi giorni e non alla base mensile.
  return out;
 }
 function fullDate(line){
