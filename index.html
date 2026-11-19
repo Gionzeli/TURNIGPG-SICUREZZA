@@ -553,13 +553,13 @@ if(STANDALONE){$("invh").textContent="Condividi l’app";$("invh0").textContent=
 $("cpi").onclick=async()=>{try{await navigator.clipboard.writeText("LU628100SATI04036796");snack("IBAN copiato")}catch(e){snack("LU628100SATI04036796")}};
 $("uf").onsubmit=async e=>{e.preventDefault();try{await DB.collection("updates").add({t:$("ut").value.trim(),b:$("ub").value.trim(),d:Date.now()});$("uf").reset();snack("Aggiornamento pubblicato")}catch(x){snack("Pubblicazione non riuscita")}};
 $("ulist").onclick=async e=>{const id=e.target.dataset.du;if(!id||!ADMIN)return;try{await DB.doc("updates/"+id).delete()}catch(x){snack("Eliminazione non riuscita")}};
-const loadJs=u=>new Promise((ok,ko)=>{const s=document.createElement("script");s.src=u;s.onload=ok;s.onerror=()=>ko({code:"lib"});document.head.appendChild(s)});
+const loadJs=u=>new Promise((ok,ko)=>{const s=document.createElement("script");let done=false;const timer=setTimeout(()=>{if(done)return;done=true;s.remove();ko({code:"lib",detail:"tempo scaduto nel caricamento del componente"})},15000);s.src=u;s.onload=()=>{if(done)return;done=true;clearTimeout(timer);ok()};s.onerror=()=>{if(done)return;done=true;clearTimeout(timer);ko({code:"lib",detail:"componente non raggiungibile"})};document.head.appendChild(s)});
 async function shrink(f){try{const bm=await createImageBitmap(f),k=Math.min(1,2000/Math.max(bm.width,bm.height)),c=document.createElement("canvas");c.width=Math.round(bm.width*k);c.height=Math.round(bm.height*k);c.getContext("2d").drawImage(bm,0,0,c.width,c.height);return await new Promise(r=>c.toBlob(r,"image/jpeg",.88))}catch(e){return f}}
 function aiErr(x){console.error(x);const c=x&&x.code,m={not_granted:"Consenti la lettura del file e riprova.",images_unavailable:"La lettura delle immagini non è disponibile in questo browser.",image_rejected:"Formato o dimensione del file non accettati: prova JPG, PNG o un PDF più leggero.",invalid_json:"Il documento è stato letto, ma non sono stati riconosciuti dati sufficientemente chiari. Controlla la qualità del file.",lib:"Non riesco a caricare i componenti del lettore locale: controlla la connessione e riprova.",fmt:"Formato non supportato: usa PDF, foto, Excel, CSV o Word (.docx).",empty:"Non ho trovato contenuto leggibile nel file.",local_model:"Il modello AI locale non è riuscito ad avviarsi su questo dispositivo. Nessun dato del documento è stato salvato: riprova chiudendo prima le altre applicazioni.",model_download:"Lettura locale non riuscita. Nessun dato del documento è stato salvato.",training_unclear:"Non sono riuscito a riconoscere con sufficiente certezza i dati del corso. Nessuna registrazione è stata salvata.",local_storage_full:"Spazio locale insufficiente: esporta un backup e libera spazio.",local_parse:"Non sono riuscito a riconoscere dati affidabili. Nessuna modifica è stata salvata.",ocr:"Non sono riuscito a leggere il testo dell’immagine. Prova una foto più nitida.",api:"La lettura locale non è riuscita: riprova."};const extra={pdf_load:"Non riesco a caricare il lettore PDF: controlla la connessione e riprova.",pdf_empty:"Il PDF risulta vuoto o non contiene pagine leggibili.",pdf_canvas:"Non sono riuscito a convertire una pagina del PDF.",pdf_read:"Il PDF non è stato letto correttamente: potrebbe essere protetto o danneggiato.",bad:"La lettura è terminata, ma alcuni dati del documento non rispettano i formati previsti. Nessun turno è stato salvato.",no_turns:"Non ho trovato turni completi nel documento. La data, i due orari e la postazione potrebbero essere stati estratti separatamente o non essere leggibili. Nessun turno è stato salvato."};const raw=x&&(x.detail||x.message||(x.error&&(x.error.message||x.error.code))||x.code)||((typeof x==="string")?x:"");const detail=typeof raw==="string"?raw:String(raw||"");return (m[c]||extra[c]||"Lettura non riuscita")+(detail&&detail!==c?" — "+detail.replace(/[<>]/g,"").slice(0,180):"")}
 async function pdfToImgs(f,max,forceOCR=false){
 const B="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/";
 try{
-if(!window.pdfjsLib)await loadJs(B+"pdf.min.js");
+if(!window.pdfjsLib){try{await loadJs(B+"pdf.min.js")}catch(first){try{await loadJs("https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js")}catch(second){throw{code:"pdf_load",detail:"lettore PDF non raggiungibile dai server CDN"}}}}
 if(!window.pdfjsLib)throw{code:"pdf_load"};
 pdfjsLib.GlobalWorkerOptions.workerSrc=B+"pdf.worker.min.js";
 const data=await f.arrayBuffer();
@@ -587,7 +587,8 @@ for(let i=1;i<=count;i++){
  // Il testo PDF può essere leggibile ma avere celle della tabella separate su righe diverse.
  // Se non troviamo una riga con data e due orari, affianchiamo OCR locale della pagina.
  const hasShiftRow=pageText.split(/\r?\n/).some(line=>/\b\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4}\b/.test(line)&&((line.match(/\b(?:[01]?\d|2[0-3])\s*[:,.]\s*[0-5]\d\b/g)||[]).length>=2));
- if(readableChars>=20&&hasShiftRow&&!forceOCR)continue;
+ // Nei cedolini usa prima il testo PDF già estraibile: evita OCR superfluo e attese lunghe.
+ if(readableChars>=20&&(forceOCR||hasShiftRow))continue;
  const vp=pg.getViewport({scale:1.5}),c=document.createElement("canvas"),ctx=c.getContext("2d");
  if(!ctx)throw{code:"pdf_canvas"};
  c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);
@@ -846,6 +847,6 @@ if(!X.onb&&!X.pin)startOnb();
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
 <script type="module" src="local-reader.js?v=2.3.10"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.77").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.78").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
