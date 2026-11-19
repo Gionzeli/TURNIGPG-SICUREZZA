@@ -1,9 +1,24 @@
-/* Worker isolato per la prova AI. Nessun documento viene caricato su server.
- * Le sole richieste di rete sono libreria/runtime e pesi del modello pubblico.
+/* Worker isolato per la prova AI. Nessun testo del documento viene passato a endpoint applicativi.
+ * Le richieste di rete servono a scaricare runtime, tokenizer e pesi pubblici del modello.
  */
 let generator = null;
 let busy = false;
 const MODEL_ID = "onnx-community/Qwen3-0.6B-Instruct-ONNX";
+const MODEL_REVISION = "54250909aca286a05b9d013c8af7a21859ee6ead";
+const MAX_INPUT_CHARS = 6000;
+
+function extractJsonObject(raw) {
+  const text = String(raw || "").replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+  const start = text.indexOf("{");
+  if (start < 0) return null;
+  for (let end = text.lastIndexOf("}"); end > start; end = text.lastIndexOf("}", end - 1)) {
+    try {
+      const value = JSON.parse(text.slice(start, end + 1));
+      if (value && typeof value === "object" && !Array.isArray(value)) return value;
+    } catch (_) { /* prova un'altra chiusura JSON */ }
+  }
+  return null;
+}
 
 self.onmessage = async (event) => {
   const data = event.data || {};
@@ -15,17 +30,18 @@ self.onmessage = async (event) => {
     if (busy) return;
     busy = true;
     try {
-      self.postMessage({ type: "status", message: "Scarico runtime e modello gratuito sul dispositivo. Il modello è grande: attendi il completamento." });
+      self.postMessage({ type: "status", message: "Scarico runtime, tokenizer e modello gratuito. Il file q4 è circa 997 MB, oltre ai componenti di supporto." });
       const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.2");
       env.allowRemoteModels = true;
       env.allowLocalModels = false;
       env.useBrowserCache = true;
       env.backends.onnx.wasm.numThreads = 1;
       generator = await pipeline("text-generation", MODEL_ID, {
+        revision: MODEL_REVISION,
         device: "wasm",
         dtype: "q4"
       });
-      self.postMessage({ type: "ready", model: MODEL_ID });
+      self.postMessage({ type: "ready", model: MODEL_ID, revision: MODEL_REVISION });
     } catch (error) {
       generator = null;
       self.postMessage({ type: "error", message: String(error && error.message || error) });
@@ -43,7 +59,7 @@ self.onmessage = async (event) => {
       self.postMessage({ type: "error", message: "Attendi il completamento dell'operazione in corso." });
       return;
     }
-    const text = typeof data.text === "string" ? data.text.slice(0, 12000) : "";
+    const text = typeof data.text === "string" ? data.text.slice(0, MAX_INPUT_CHARS) : "";
     if (!text.trim()) {
       self.postMessage({ type: "error", message: "Inserisci del testo di prova." });
       return;
@@ -54,23 +70,27 @@ self.onmessage = async (event) => {
       const messages = [
         {
           role: "system",
-          content: "Sei un estrattore documentale. Analizza il testo fornito e restituisci esclusivamente un oggetto JSON valido, senza Markdown e senza commenti. Schema: {\"tipo_documento\":string,\"lingua\":string,\"azienda\":string|null,\"persona\":string|null,\"periodo\":string|null,\"campi\":[{\"nome\":string,\"valore\":string,\"fonte\":string}],\"incertezze\":[string]}. Non inventare dati. Se un dato manca, usa null o un array vuoto. Conserva gli importi e le date esattamente come appaiono."
+          content: "Sei un estrattore documentale. Restituisci un solo oggetto JSON valido, senza Markdown né testo prima o dopo. Schema: {\"tipo_documento\":string,\"lingua\":string,\"azienda\":string|null,\"persona\":string|null,\"periodo\":string|null,\"campi\":[{\"nome\":string,\"valore\":string,\"fonte\":string}],\"incertezze\":[string]}. Non inventare dati. Se un dato manca, usa null o un array vuoto. Conserva importi e date esattamente come appaiono. Se una voce è ambigua, segnalala in incertezze."
         },
         {
           role: "user",
-          content: "Estrai i dati da questo testo, senza aggiungere informazioni:\n\n" + text
+          content: "Estrai i dati dal seguente testo, senza aggiungere informazioni:\\n\\n" + text
         }
       ];
       const output = await generator(messages, {
-        max_new_tokens: 320,
-        do_sample: false,
-        temperature: 0.1
+        max_new_tokens: 384,
+        do_sample: false
       });
       const generated = output && output[0] && output[0].generated_text;
-      const answer = Array.isArray(generated)
-        ? generated[generated.length - 1].content
+      const raw = Array.isArray(generated)
+        ? String(generated[generated.length - 1] && generated[generated.length - 1].content || "")
         : String(generated || "");
-      self.postMessage({ type: "result", answer });
+      const parsed = extractJsonObject(raw);
+      self.postMessage({
+        type: "result",
+        answer: parsed ? JSON.stringify(parsed, null, 2) : raw,
+        structured: !!parsed
+      });
     } catch (error) {
       self.postMessage({ type: "error", message: String(error && error.message || error) });
     } finally {
