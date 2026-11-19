@@ -33,7 +33,8 @@ console.log("RAW_OUTPUT_BEGIN");
 console.log(raw);
 console.log("RAW_OUTPUT_END");
 
-const normalized = raw.replace(/\\\\\"/g, '"' ).replace(/\\\\n/g, "\\n");\nconst cleaned = normalized.replace(/<think>[\\s\\S]*?<\/think>/gi, "").trim();
+const normalized = raw.replaceAll('\\\\"', '"').replaceAll('\\\\n', "\\n");
+const cleaned = normalized.replace(/<think>[\\s\\S]*?<\/think>/gi, "").trim();
 let parsed = null;
 const start = cleaned.indexOf("{");
 if (start >= 0) {
