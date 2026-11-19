@@ -1,4 +1,4 @@
-name: Prova inferenza reale AI locale
+name: Prova inferenza reale AI locale # test revisione 2
 on:
   push:
     branches: [ai-locale-prototype]
