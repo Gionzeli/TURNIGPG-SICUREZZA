@@ -49,3 +49,11 @@ La prima prova concreta sarà con **Qwen3-0.6B-Instruct in formato ONNX** tramit
 
 ## Verifiche automatiche aggiunte
 Il workflow GitHub Actions `.github/workflows/local-ai-prototype-tests.yml` esegue il test Node dell'adattatore quando cambiano adattatore o test sul branch prototipo. I test coprono caricamento su richiesta, rilascio, timeout, annullamento e fallimento del caricatore. La presenza del workflow non equivale a un test completato: il risultato va controllato nei run GitHub Actions.
+
+
+## Laboratorio browser con modello reale (isolato)
+Sono stati aggiunti `local-ai-lab.html` e `local-ai-worker.js`. Il laboratorio usa Transformers.js 4.3.2 e il modello pubblico `onnx-community/Qwen3-0.6B-Instruct-ONNX`, con backend CPU/WASM e quantizzazione q4. Il modello non viene caricato all'apertura: l'utente deve spuntare la conferma e premere il pulsante di download. L'inferenza viene eseguita in un Web Worker separato, non sul thread principale dell'interfaccia.
+
+La scheda del modello dichiara licenza Apache 2.0 e supporto Transformers.js. Nella cartella ONNX del modello il file `model_q4.onnx` è indicato a circa 997 MB; la variante `model_q4f16.onnx` è circa 648 MB ma non è quella selezionata dal test WASM. Il download è gratuito ma può consumare molti dati e spazio; runtime e pesi provengono da CDN/Hugging Face. Il testo di prova viene passato al worker locale e non è incluso in richieste di rete. Riferimenti: https://huggingface.co/onnx-community/Qwen3-0.6B-Instruct-ONNX e https://huggingface.co/onnx-community/Qwen3-0.6B-Instruct-ONNX/tree/main/onnx.
+
+Il laboratorio accetta soltanto testo digitato e un esempio sintetico: **non legge ancora PDF o immagini**, non è collegato ai parser dell'app e non salva alcun risultato nei parametri. PDF e scansioni richiedono ancora estrazione/OCR locale prima dell'interpretazione. L'interfaccia invita a non usare documenti personali. La prova del codice su GitHub Actions verifica la sintassi e i comportamenti dell'adattatore, ma non esegue il download da quasi 1 GB né dimostra prestazioni o accuratezza del modello su telefoni reali. Queste verifiche restano obbligatorie prima di qualsiasi integrazione.
