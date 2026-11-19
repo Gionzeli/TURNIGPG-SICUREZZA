@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.18 – Riconoscimento più robusto della paga base",
+    "v": "2.3.18",
+    "d": 1795089300000,
+    "b": "📄 LETTURA DELLA BUSTA PAGA\nRafforzato il riconoscimento delle etichette quando il PDF spezza le parole su righe diverse o usa spazi particolari. Il lettore cerca ora anche nel testo completo ricomposto la voce “Paga base” e il relativo importo.\n\n🔎 VALORI SEPARATI\nLa voce “Scatti” continua a essere riconosciuta separatamente. Il totale paga base più scatti non viene usato come paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma.\n\n🔒 La lettura resta sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.17 – Corretta la lettura di paga base e scatti",
     "v": "2.3.17",
     "d": 1795084500000,
