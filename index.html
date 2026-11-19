@@ -367,7 +367,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.12",ADMIN_WA="393923801549";
+const APP_VER="2.3.13",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -507,7 +507,7 @@ else{step=1;msg="Compila i tuoi dati: l’amministratore approverà la richiesta
 st.textContent=msg;st.className="gstate"+(bad?" bad":"");
 [...$("gsteps").children].forEach((li,i)=>li.className=i<step?"done":i===step?"on":"");if(bad&&$("gsteps").children[2])$("gsteps").children[2].className="bad";
 show(CUR)}
-function renderUpd(){$("ulist").innerHTML=UPD.length?UPD.map(u=>`<div class="card"><div class="row sp"><b>${esc(u.t)}</b><span class="hint">${u.v?`<span class="tg">v${esc(u.v)}</span> `:""}${new Date(u.d).toLocaleDateString("it-IT")}</span></div><p style="white-space:pre-wrap;margin:6px 0 0">${esc(u.b)}</p>${ADMIN?`<button class="ic" data-du="${esc(u.id)}">Elimina</button>`:""}</div>`).join(""):'<p class="hint">Nessun aggiornamento.</p>'}
+function renderUpd(){$("ulist").innerHTML=UPD.length?UPD.map((u,i)=>`<div class="card" style="border-left:5px solid var(--pr)"><div class="row" style="align-items:flex-start;gap:12px"><span aria-hidden="true" style="font-size:28px;line-height:1.2">${i===0?"🆕":"📌"}</span><div style="flex:1;min-width:0"><div class="row sp"><b>${esc(u.t)}</b><span class="hint">${u.v?`<span class="tg">v${esc(u.v)}</span> `:""}${new Date(u.d).toLocaleDateString("it-IT")}</span></div><p style="white-space:pre-wrap;margin:8px 0 0;line-height:1.6">${esc(u.b)}</p></div></div>${ADMIN?`<button class="ic" data-du="${esc(u.id)}">Elimina</button>`:""}</div>`).join(""):'<p class="hint">Nessun aggiornamento.</p>'}
 function admBadge(){if(STANDALONE||!ADMIN)return;const n=REQ.filter(id=>!MEMS.some(m=>m.id===id)).length;$("nav_adm").textContent="Collaboratori"+(n?" ("+n+")":"");$("nav_adm").setAttribute("aria-label",n?"Collaboratori, "+n+" richieste in attesa":"Collaboratori")}
 function durEnd(id){const du=document.querySelector(`[data-dur="${id}"]`),st=document.querySelector(`[data-s="${id}"]`),en=document.querySelector(`[data-n="${id}"]`);if(!du||!st||!en||du.value==="c")return;en.value=(du.value==="0"||!st.value)?"":addM(st.value,Number(du.value))}
 function confirmTap(b,label){if(b.dataset.cf==="1")return true;b.dataset.cf="1";b._t=b.textContent;b.textContent=label;b.style.color="#B3261E";b.style.fontWeight="700";setTimeout(()=>{if(b.dataset.cf==="1"){b.dataset.cf="";b.textContent=b._t;b.style.color="";b.style.fontWeight=""}},5000);return false}
@@ -846,7 +846,7 @@ if(!X.onb&&!X.pin)startOnb();
 </script>
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
-<script type="module" src="local-reader.js?v=2.3.12"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.80").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script type="module" src="local-reader.js?v=2.3.13"></script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.81").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
