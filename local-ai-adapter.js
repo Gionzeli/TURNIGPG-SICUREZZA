@@ -53,7 +53,28 @@
       // Evita rejection non gestite se un chiamante annulla mentre il caricamento continua.
       loading.catch(() => {});
     }
-    return loading;
+    return new Promise((resolve, reject) => {
+      if (signal && signal.aborted) {
+        reject(abortError());
+        return;
+      }
+      let settled = false;
+      const cleanup = () => {
+        if (signal) signal.removeEventListener("abort", onAbort);
+      };
+      const finish = (fn, value) => {
+        if (settled) return;
+        settled = true;
+        cleanup();
+        fn(value);
+      };
+      const onAbort = () => finish(reject, abortError());
+      if (signal) signal.addEventListener("abort", onAbort, { once: true });
+      loading.then(
+        (runner) => finish(resolve, runner),
+        (error) => finish(reject, error)
+      );
+    });
   }
 
   async function analyze(documentText, options) {
@@ -109,10 +130,6 @@
 
   async function release() {
     if (lifecycleController) lifecycleController.abort();
-    const pending = loading;
-    if (pending) {
-      try { await pending; } catch (_) { /* annullamento/caricamento fallito: rilascio comunque */ }
-    }
     const runner = loadedRunner;
     loadedRunner = null;
     loading = null;
