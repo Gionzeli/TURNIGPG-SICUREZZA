@@ -12,7 +12,7 @@ if(cfg?.enabled){
   host.innerHTML='<h3>Account collaboratore</h3><p class="hint" style="color:var(--bad-tx)">Il servizio di accesso non è riuscito a caricarsi: '+String(error?.message||error).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))+'</p><p class="hint">Riprova più tardi o contatta l’amministratore.</p>';
   console.error("Turni GPG Firebase init:",error);
  } 
- const { register, login, logout, resetPassword, submitAccessRequest, watchAuth, getAccess, loadPrivateData, savePrivateData, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember, db } = client||{};
+ const { register, login, logout, resetPassword, submitAccessRequest, watchAuth, getAccess, watchMyNotifications, markNotificationRead, watchAdminRequests, approveMember, suspendMember, db } = client||{};
  const { doc, getDoc, onSnapshot, collection, addDoc, deleteDoc, updateDoc } = firestore||{};
  if(client&&firestore){
  const eyeStyle=document.createElement("style");eyeStyle.textContent=".fb-pw{position:relative}.fb-pw input{padding-right:50px}.fb-eye{position:absolute;right:4px;top:4px;height:40px;width:40px;padding:0;background:transparent;border-radius:50%;color:var(--mu);display:grid;place-items:center;box-shadow:none}";document.head.appendChild(eyeStyle);
@@ -25,7 +25,7 @@ if(cfg?.enabled){
  <div id="fb-request" hidden><label for="fb-rname">Nome e cognome</label><input id="fb-rname" maxlength="60"><label for="fb-rrole">Mansione</label><select id="fb-rrole"><option value="gpg">Guardia giurata (GPG)</option><option value="sicurezza">Sicurezza</option><option value="portierato">Portierato</option></select><button class="pri" id="fb-send-request">Invia richiesta di accesso</button></div><div id="fb-notices"></div><div id="fb-admin"></div><p class="hint">Accesso solo con email e password. Dopo la verifica dell’indirizzo, l’amministratore deve approvare la richiesta. Notifiche solo interne all’app, nessuna push.</p>`;
 
  const $=id=>document.getElementById(id),safe=s=>String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
- let registering=false,current=null,unsubNotes=null,unsubReq=null,unsubMember=null,preparedUid=null,itemsCache=[],memberCache=[],saveListener=null,cloudWrites=Promise.resolve();
+ let registering=false,current=null,unsubNotes=null,unsubReq=null,unsubMember=null,itemsCache=[],memberCache=[];
  const status=t=>$("fb-status").textContent=t;
  $("fb-eye").onclick=()=>{const i=$("fb-pass"),show=i.type==="password";i.type=show?"text":"password";$("fb-eye").setAttribute("aria-label",show?"Nascondi password":"Mostra password");$("fb-eye").title=show?"Nascondi password":"Mostra password"};
  $("fb-toggle").onclick=()=>{registering=!registering;$("fb-reg-fields").hidden=!registering;$("fb-name").required=registering;$("fb-submit").textContent=registering?"Registrati":"Accedi";$("fb-toggle").textContent=registering?"Ho già un account":"Crea account";$("fb-pass").autocomplete=registering?"new-password":"current-password"};
@@ -34,32 +34,9 @@ if(cfg?.enabled){
  $("fb-logout").onclick=()=>logout().catch(e=>status(e.message));
  $("fb-send-request").onclick=async()=>{if(!current)return;try{await submitAccessRequest(current,$("fb-rname").value,$("fb-rrole").value);$("fb-request").hidden=true;status("Richiesta inviata: attendi l’approvazione dell’amministratore.")}catch(e){status(e.message||"Invio richiesta non riuscito.")}};
  const emit=(u,a,m,r)=>window.dispatchEvent(new CustomEvent("turni-firebase-session",{detail:{uid:u?.uid||null,admin:a,member:m,request:r}}));
- async function prepare(u){
-  if(preparedUid===u.uid)return;preparedUid=u.uid;
-  const key="tg_online_v1_user_"+u.uid,legacy=localStorage.getItem("tg_online_v1");let local=null;
-  try{local=JSON.parse(localStorage.getItem(key)||"null")}catch(_){}
-  const cloud=await loadPrivateData(u.uid);
-  if(!local&&legacy){
-   let old=null;try{old=JSON.parse(legacy)}catch(_){}
-   if(cloud){
-    localStorage.setItem(key,JSON.stringify(cloud));
-    window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
-   }else if(old){
-    await savePrivateData(u.uid,old);localStorage.setItem(key,JSON.stringify(old));
-    window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:old}}));
-   }else window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:{params:{},shifts:[]}}}));
-  }else if(local&&cloud){
-   // Il cloud è la copia principale. Conserva una copia locale di sicurezza prima di riallineare.
-   if(!localStorage.getItem(key+"_backup"))localStorage.setItem(key+"_backup",JSON.stringify(local));
-   localStorage.setItem(key,JSON.stringify(cloud));
-   window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
-  }else if(cloud){
-   localStorage.setItem(key,JSON.stringify(cloud));
-   window.dispatchEvent(new CustomEvent("turni-firebase-data-load",{detail:{data:cloud}}));
-  }else if(local)await savePrivateData(u.uid,local);
-  window.__TURNI_CLOUD_READY=true;
-  if(saveListener)window.removeEventListener("turni-data-save",saveListener);saveListener=e=>{if(current?.uid===u.uid&&window.__TURNI_CLOUD_READY)cloudWrites=cloudWrites.then(()=>savePrivateData(u.uid,e.detail.data)).catch(()=>status("Salvataggio cloud non riuscito: verifica la connessione."))};window.addEventListener("turni-data-save",saveListener);
- }
+ const todayISO=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
+ const memberValid=m=>!!(m&&m.active&&(!m.start||todayISO()>=m.start)&&(!m.end||todayISO()<=m.end));
+
  $("fb-notices").onclick=e=>{const b=e.target.closest("[data-read]");if(b&&current)markNotificationRead(current.uid,b.dataset.read).catch(()=>status("Aggiornamento notifica non riuscito."))};
  function notifications(ns){$("fb-notices").innerHTML=ns.length?"<h3>Notifiche interne</h3>"+ns.map(n=>'<div class="it"><div class="m"><b>'+safe(n.title)+'</b><small>'+safe(n.message)+'</small></div>'+(n.read?"":'<button data-read="'+safe(n.id)+'">Segna letta</button>')+"</div>").join(""):""}
  function renderAdmin(){
@@ -79,7 +56,7 @@ if(cfg?.enabled){
  async function activate(u,a,m,r){
   emit(u,a,m,r);
   if(!window.__TURNI_UPDATES_WATCH){window.__TURNI_UPDATES_WATCH=true;onSnapshot(collection(db,"updates"),snap=>{const items=snap.docs.map(d=>({id:d.id,...d.data()})).sort((x,y)=>(y.d||0)-(x.d||0));window.dispatchEvent(new CustomEvent("turni-firebase-updates",{detail:{items}}))},()=>status("Aggiornamenti non disponibili al momento."))}
-  if(a||m?.active){status(a?"Accesso amministratore attivo.":"Accesso approvato. I tuoi dati sono separati.");await prepare(u);if(!unsubNotes)unsubNotes=watchMyNotifications(u.uid,notifications)}
+  if(a||memberValid(m)){status(a?"Accesso amministratore attivo.":"Accesso approvato. Turni e buste paga restano su questo dispositivo.");if(!unsubNotes)unsubNotes=watchMyNotifications(u.uid,notifications)}
   else { $("fb-request").hidden=!!r; status(r?"Richiesta ricevuta: attendi l’approvazione dell’amministratore.":"Inserisci nome e mansione per inviare la richiesta di accesso."); }
   if(a&&!unsubReq)unsubReq=watchAdminRequests(requests);if(a&&!window.__TURNI_MEMBERS_WATCH){window.__TURNI_MEMBERS_WATCH=true;onSnapshot(collection(db,"members"),snap=>{memberCache=snap.docs.map(d=>({id:d.id,...d.data()}));renderAdmin()},()=>status("Elenco collaboratori non disponibile."))}
  }
@@ -93,7 +70,7 @@ if(cfg?.enabled){
   if(admin){await activate(u,true,null,null);return}
   const m=await getAccess(u.uid),snap=await getDoc(doc(db,"accessRequests",u.uid)),r=snap.exists()?snap.data():null;
   await activate(u,false,m,r);
-  unsubMember=onSnapshot(doc(db,"members",u.uid),async s=>{const fresh=s.exists()?s.data():null;if(fresh?.active){if(preparedUid!==u.uid)await activate(u,false,fresh,r);else{emit(u,false,fresh,r);status("Accesso approvato. Il tuo account è attivo.")}}else{window.__TURNI_CLOUD_READY=false;preparedUid=null;emit(u,false,fresh,r);status("La richiesta è in attesa oppure l’accesso è sospeso.")}});
+  unsubMember=onSnapshot(doc(db,"members",u.uid),async s=>{const fresh=s.exists()?s.data():null;if(memberValid(fresh)){emit(u,false,fresh,r);status("Accesso approvato. Il tuo account è attivo.")}else{emit(u,false,fresh,r);status(fresh?.active?"La collaborazione è scaduta o non è ancora iniziata. Contatta l’amministratore.":"La richiesta è in attesa oppure l’accesso è sospeso.")}});
   }catch(e){status(e.message||"Errore di collegamento Firebase.");console.error("Turni GPG: errore sessione Firebase",e)}
  });
  }
