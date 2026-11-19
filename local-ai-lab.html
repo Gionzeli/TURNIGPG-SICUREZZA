@@ -75,7 +75,12 @@ Ferie godute: 657,21 per 11 giorni</textarea>
       }
       if (data.type === "error") {
         status("Errore: " + data.message);
-        if (!ready) $("load").disabled = false;
+        if (!ready) {
+          if (worker) worker.terminate();
+          worker = null;
+          $("load").disabled = false;
+          $("cancel").disabled = true;
+        }
       }
       if (data.type === "released") stop();
     };
