@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.12 – Aggiornamento forzato del lettore locale",
+    "v": "2.3.12",
+    "d": 1795066486104,
+    "b": "Aggiornato il riferimento del lettore locale e la versione della cache dell'app per forzare il caricamento del componente più recente anche nelle installazioni già presenti. I dati personali e i documenti salvati sul dispositivo non vengono cancellati."
+  },
+  {
     "t": "Versione 2.3.11 – Lettura PDF più rapida e stabile",
     "v": "2.3.11",
     "d": 1795131000000,
