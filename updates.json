@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.19 – Corretto il riconoscimento degli importi separati dall’OCR",
+    "v": "2.3.19",
+    "d": 1795092960000,
+    "b": "📄 LETTURA DELLA BUSTA PAGA\nIl lettore gestisce meglio gli importi che l’OCR divide con spazi o separatori, ad esempio tra migliaia e decimali. La ricerca della voce “Paga base” è stata resa più robusta anche quando etichetta e importo sono su righe diverse.\n\n🔎 VALORI DISTINTI\n“Paga base” e “Scatti” restano separati: il totale non viene scambiato per la paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma.\n\n🔒 La lettura resta sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.18 – Riconoscimento più robusto della paga base",
     "v": "2.3.18",
     "d": 1795089300000,
