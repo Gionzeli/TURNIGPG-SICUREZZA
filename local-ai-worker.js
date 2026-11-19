@@ -67,9 +67,9 @@ self.onmessage = async (event) => {
     busy = true;
     try {
       self.postMessage({ type: "status", message: "Analisi eseguita localmente sul dispositivo…" });
-      const prompt = "ISTRUZIONI: Sei un estrattore documentale. Restituisci un solo oggetto JSON valido, senza Markdown né testo prima o dopo. Schema: {\"tipo_documento\":string,\"lingua\":string,\"azienda\":string|null,\"persona\":string|null,\"periodo\":string|null,\"campi\":[{\"nome\":string,\"valore\":string,\"fonte\":string}],\"incertezze\":[string]}. Non inventare dati. Se un dato manca, usa null o un array vuoto. Conserva importi e date esattamente come appaiono. Segnala le ambiguità.\\n\\nTESTO DA ANALIZZARE:\\n" + text + "\\n\\nJSON:";
+      const prompt = "Estrai i dati del documento in JSON. Usa esattamente questa struttura: {\\\"tipo_documento\\\":\\\"cedolino\\\",\\\"campi\\\":[{\\\"nome\\\":\\\"Paga base\\\",\\\"valore\\\":\\\"1.468,88\\\"}]}. L'esempio mostra solo la forma: NON copiare i suoi valori. Nel documento qui sotto trova tutte le voci e i relativi importi. Non inventare, non omettere gli importi leggibili, non chiedere conferma. Rispondi solo con JSON.\\nDOCUMENTO:\\n" + text + "\\nJSON:";
       const output = await generator(prompt, {
-        max_new_tokens: 384,
+        max_new_tokens: 220,
         do_sample: false
       });
       const generated = output && output[0] && output[0].generated_text;
