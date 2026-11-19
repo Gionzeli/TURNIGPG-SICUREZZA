@@ -28,3 +28,15 @@ Il file `local-ai-capabilities.js` espone `window.LocalAIEnvironment.probe()`. L
 
 ## Prossimo gate tecnico
 Provare runtime e modello quantizzato su Android di fascia bassa/media, iPhone/iPad e desktop Windows/macOS. Misurare dimensione download, memoria, tempi, annullamento e comportamento offline. Solo dopo questi test valutare un adattatore AI reale e una migrazione graduale dei parser, mantenendo l'estrazione PDF/OCR locale come ingresso dei documenti.
+
+
+## Scelta preliminare del runtime (documentazione consultata il 19 novembre 2026)
+Per la compatibilità più ampia, il candidato iniziale è **ONNX Runtime Web**, eventualmente usato tramite **Transformers.js** per i modelli NLP: la documentazione ONNX indica il backend WASM/CPU anche su Chrome/Edge Android, Safari iOS e desktop; WebGPU è un'accelerazione facoltativa e non va considerata requisito. Transformers.js usa ONNX Runtime e documenta modelli quantizzati, ma dimensioni e qualità dipendono dal modello scelto. Riferimenti: https://onnxruntime.ai/docs/get-started/with-javascript/web.html e https://huggingface.co/docs/transformers.js/index.
+
+**LiteRT.js** resta un candidato da confrontare per dispositivi compatibili e modelli .tflite; la guida web richiede un browser moderno con WebGPU per il percorso raccomandato, mentre WebNN è ancora sperimentale. Non lo scegliamo come unica base universale. Riferimenti: https://developers.google.com/edge/litert/web/get_started e https://developers.google.com/edge/litert/overview.
+
+## Adattatore isolato
+`local-ai-adapter.js` definisce il contratto per una futura integrazione: caricamento solo quando viene chiamato `analyze()`, limite di testo, timeout, supporto all'annullamento, verifica dell'output strutturato e rilascio del modello dalla memoria. Non contiene un runtime né un modello e non viene caricato da `index.html`; quindi non interpreta ancora documenti e non genera traffico di rete. Il test `local-ai-adapter.test.cjs` verifica il caricamento su richiesta, la forma del risultato e il rilascio.
+
+## Gate prima di usare dati reali
+L'adattatore non è ancora collegato a PDF, OCR, cedolini, turni o parametri. Prima servono un modello concreto con licenza verificata, benchmark di memoria/tempo su device reali, test con documenti sintetici di aziende/formati differenti e controllo che nessun testo/documento venga trasmesso in rete. L'estrazione PDF e OCR locale restano necessarie per convertire scansioni in testo; l'AI dovrà interpretare quel testo localmente, non sostituire il meccanismo di acquisizione.
