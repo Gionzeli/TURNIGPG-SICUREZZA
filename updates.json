@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.17 – Corretta la lettura di paga base e scatti",
+    "v": "2.3.17",
+    "d": 1795084500000,
+    "b": "📄 LETTURA DELLA BUSTA PAGA\nIl lettore riconosce la voce esplicita “Paga base” anche quando l’importo è sulla riga successiva e contiene più decimali. Riconosce inoltre la voce “Scatti” separatamente.\n\n🔎 VALORI DAL CEDOLINO\nLa paga base viene letta dalla voce indicata nel documento: non viene confusa con la retribuzione dei singoli giorni lavorati. I valori vengono mostrati in anteprima e salvati solo dopo la conferma.\n\n🔒 La lettura resta sul dispositivo; nessun importo viene preimpostato."
+  },
+  {
     "t": "Versione 2.3.16 – Migliorata la lettura delle colonne del cedolino",
     "v": "2.3.16",
     "d": 1795080000000,
