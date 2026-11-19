@@ -19,7 +19,7 @@ console.log("MODEL", MODEL_ID, "REVISION", REVISION);
 console.log("START_DOWNLOAD_AND_LOAD");
 const generator = await pipeline("text-generation", MODEL_ID, {
   revision: REVISION,
-  device: "wasm",
+  device: "cpu",
   dtype: "q4"
 });
 console.log("MODEL_READY");
