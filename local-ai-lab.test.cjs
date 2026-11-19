@@ -15,6 +15,6 @@ assert.match(html, /nessun testo inserito viene inviato/i);
 assert.match(worker, /onnx-community\/Qwen3-0\.6B-Instruct-ONNX/);
 assert.match(worker, /device:\s*"wasm"/);
 assert.match(worker, /dtype:\s*"q4"/);
-assert.match(worker, /type:\s*"analyze"/);
+assert.match(worker, /data\.type === "analyze"/);
 assert.doesNotMatch(worker, /fetch\s*\(.*text/i);
 console.log("OK: script del laboratorio e worker validi; modello avviato solo con messaggio esplicito; backend WASM quantizzato.");
