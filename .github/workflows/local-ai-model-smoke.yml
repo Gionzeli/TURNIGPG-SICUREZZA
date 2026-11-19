@@ -16,7 +16,7 @@ jobs:
         with:
           node-version: "20"
       - name: Installa runtime gratuito
-        run: npm_config_fetch_retries=5 npm_config_fetch_retry_mintimeout=20000 npm_config_fetch_retry_maxtimeout=120000 npm install --no-save @huggingface/transformers@4.3.2
+        run: npm_config_fetch_retries=5 npm_config_fetch_retry_mintimeout=20000 npm_config_fetch_retry_maxtimeout=120000 npm install --no-save @huggingface/transformers@4.3.2 @huggingface/transformers-structured-output@4.3.2
       - name: Scarica modello e prova inferenza CPU/WASM
         timeout-minutes: 15
         run: node local-ai-model-smoke.mjs
