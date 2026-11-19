@@ -141,7 +141,7 @@ if (!variantParsed) {
   const retryFull = String(retryOutput?.[0]?.generated_text || "");
   const retryAt = retryFull.lastIndexOf("assistant");
   const retryRaw = retryAt >= 0 ? retryFull.slice(retryAt + "assistant".length).trim() : retryFull.trim();
-  const retryClean = retryRaw.replace(/<think>[\\s\\S]*?<\\/think>/gi, "").replace(/```(?:json)?/gi, "").trim();
+  const retryClean = retryRaw.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/```(?:json)?/gi, "").trim();
   console.log("VARIANT_RETRY_RAW_BEGIN");
   console.log(retryRaw || "(nessun testo generato)");
   console.log("VARIANT_RETRY_RAW_END");
