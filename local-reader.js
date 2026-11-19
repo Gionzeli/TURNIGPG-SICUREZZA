@@ -28,12 +28,16 @@ function labeledValue(lines,aliases){
   const line=lines[i],n=norm(line);
   for(const key of keys){
    const at=n.indexOf(key);if(at<0)continue;
-   const tail=line.slice(Math.min(line.length,at+key.length));
-   const m=tail.match(/(?:€\s*)?[:=]?\s*([-+]?\s*\d[\d.\s]*(?:,\d{1,2}|\.\d{1,2})?)/);
+   // La normalizzazione rimuove gli accenti: ricava la posizione nella riga originale.
+   let end=line.length;for(let j=0;j<=line.length;j++){if(norm(line.slice(0,j)).length>=at+key.length){end=j;break}}
+   const tail=line.slice(end);
+   const m=tail.match(/(?:€\s*)?[:=|]?\s*([-+]?\s*\d[\d.\s]*(?:,\d{1,2}|\.\d{1,2})?)/);
    if(m){const v=italianNumber(m[1]);if(v!==null)return v}
-   // Alcuni cedolini riportano l'etichetta e il valore nella riga successiva.
-   if(i+1<lines.length&&/^\s*(?:€\s*)?[-+]?\s*\d[\d.\s]*(?:,\d{1,2}|\.\d{1,2})?\s*$/.test(lines[i+1])){
-    const v=italianNumber(lines[i+1]);if(v!==null)return v;
+   // Nei cedolini a colonne il valore può comparire nella riga subito successiva.
+   for(let j=i+1;j<Math.min(lines.length,i+3);j++){
+    const next=lines[j].replace(/^RIGA\s+\d+:\s*/i,"").trim();
+    const nm=next.match(/^(?:€\s*)?[:=|]?\s*([-+]?\s*\d[\d.\s]*(?:,\d{1,2}|\.\d{1,2})?)(?:\s*[|;].*)?$/);
+    if(nm){const v=italianNumber(nm[1]);if(v!==null)return v}
    }
   }
  }
