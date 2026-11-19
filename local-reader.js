@@ -24,6 +24,11 @@ const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLo
 function italianNumber(s){let t=String(s||"").replace(/[^0-9,.-]/g,"");if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,"");const n=Number(t);return Number.isFinite(n)?n:null}
 function labeledValue(lines,aliases){
  const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
+ const raw=lines.join("\n").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ").replace(/^RIGA\s+\d+\s*:\s*/gim,"");
+ const flat=norm(raw);
+ for(const alias of keys){
+  const pattern=alias.split(/\s+/).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\function labeledValue(lines,aliases){
+ const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
  for(let i=0;i<lines.length;i++){
   const line=lines[i],n=norm(line);
   for(const key of keys){
@@ -49,6 +54,30 @@ function labeledValue(lines,aliases){
   const re=new RegExp(pattern+"\\s*(?:€\\s*)?[:=|]?\\s*([-+]?\\s*\\d[\\d.\\s]*(?:,\\d{1,5}|\\.\\d{1,5})?)","i");
   const m=flat.match(re);
   if(m){const v=italianNumber(m[1]);if(v!==null)return v}
+ }
+ return null;
+}")).join("\\s+");
+  const re=new RegExp(pattern,"i"), hit=re.exec(flat);
+  if(!hit)continue;
+  // Normalizza gli spazi introdotti dall'OCR dentro importi come
+  // "1 . 468 , 88000" o "1.468, 88000".
+  const tail=flat.slice(hit.index+hit[0].length,hit.index+hit[0].length+100)
+   .replace(/\s*([.,])\s*/g,"$1")
+   .replace(/(\d)\s+(\d)/g,"$1$2");
+  const m=tail.match(/^\s*[:=€]?\s*([-+]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,5})?)/);
+  if(m){const v=italianNumber(m[1]);if(v!==null&&v>0)return v}
+ }
+ // Seconda lettura sulle singole righe, utile quando l'etichetta e il valore
+ // sono stati separati dall'estrazione PDF.
+ for(let i=0;i<lines.length;i++){
+  const n=norm(lines[i]);
+  for(const key of keys){
+   const at=n.indexOf(key);if(at<0)continue;
+   const tail=[lines[i].slice(Math.min(lines[i].length,at+key.length)),...lines.slice(i+1,i+3)].join(" ")
+    .replace(/\u00a0/g," ").replace(/\s*([.,])\s*/g,"$1").replace(/(\d)\s+(\d)/g,"$1$2");
+   const m=tail.match(/^\s*[:=€|]?\s*([-+]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,5})?)/);
+   if(m){const v=italianNumber(m[1]);if(v!==null&&v>0)return v}
+  }
  }
  return null;
 }
