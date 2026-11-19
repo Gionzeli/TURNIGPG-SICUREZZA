@@ -24,18 +24,11 @@ const generator = await pipeline("text-generation", MODEL_ID, {
 });
 console.log("MODEL_READY");
 
-const messages = [
-  {
-    role: "system",
-    content: "Sei un estrattore documentale. Restituisci un solo oggetto JSON valido, senza Markdown né testo prima o dopo. Schema: {\"tipo_documento\":string,\"lingua\":string,\"azienda\":string|null,\"persona\":string|null,\"periodo\":string|null,\"campi\":[{\"nome\":string,\"valore\":string,\"fonte\":string}],\"incertezze\":[string]}. Non inventare dati. Se un dato manca, usa null o un array vuoto. Conserva importi e date esattamente come appaiono."
-  },
-  { role: "user", content: "Estrai i dati da questo testo, senza aggiungere informazioni:\\n\\n" + sample }
-];
-const output = await generator(messages, { max_new_tokens: 384, do_sample: false });
+const prompt = "ISTRUZIONI: Sei un estrattore documentale. Restituisci un solo oggetto JSON valido, senza Markdown né testo prima o dopo. Schema: {\"tipo_documento\":string,\"lingua\":string,\"azienda\":string|null,\"persona\":string|null,\"periodo\":string|null,\"campi\":[{\"nome\":string,\"valore\":string,\"fonte\":string}],\"incertezze\":[string]}. Non inventare dati. Conserva importi e date esattamente come appaiono.\\n\\nTESTO DA ANALIZZARE:\\n" + sample + "\\n\\nJSON:";
+const output = await generator(prompt, { max_new_tokens: 384, do_sample: false });
 const generated = output?.[0]?.generated_text;
-const raw = Array.isArray(generated)
-  ? String(generated.at(-1)?.content || "")
-  : String(generated || "");
+const fullText = String(generated || "");
+const raw = fullText.startsWith(prompt) ? fullText.slice(prompt.length).trim() : fullText.trim();
 console.log("RAW_OUTPUT_BEGIN");
 console.log(raw);
 console.log("RAW_OUTPUT_END");
