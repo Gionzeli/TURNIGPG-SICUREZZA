@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.23 – Lettura automatica di tutte le pagine PDF",
+    "v": "2.3.23",
+    "d": 1795102800000,
+    "b": "📄 LETTURA AUTOMATICA DEI PDF\nL’app non richiede più di selezionare o copiare il testo: elabora tutte le pagine del PDF, anche quando sono immagini o documenti di sola lettura. Migliorata la qualità di acquisizione delle pagine e il riconoscimento OCR locale, usando sia il testo ricostruito per righe sia il testo OCR completo.\n\n🗓️ BUSTE PAGA E TURNI\nLa lettura avviene sul dispositivo. I dati riconosciuti vengono mostrati prima della conferma; se la paga base non è certa, i parametri restano invariati."
+  },
+  {
     "t": "Versione 2.3.22 – Evitato l’OCR quando il PDF contiene già la paga base",
     "v": "2.3.22",
     "d": 1795109400000,
