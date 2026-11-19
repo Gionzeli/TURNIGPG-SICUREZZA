@@ -36,7 +36,7 @@ function labeledValue(lines,aliases){
    // Nei cedolini a colonne il valore può comparire nella riga subito successiva.
    for(let j=i+1;j<Math.min(lines.length,i+3);j++){
     const next=lines[j].replace(/^RIGA\s+\d+:\s*/i,"").trim();
-    const nm=next.match(/^(?:€\s*)?[:=|]?\s*([-+]?\s*\d[\d.\s]*(?:,\d{1,2}|\.\d{1,2})?)(?:\s*[|;].*)?$/);
+    const nm=next.match(/^(?:€\s*)?[:=|]?\s*([-+]?\s*\d[\d.\s]*(?:,\d{1,5}|\.\d{1,5})?)(?:\s*[|;].*)?$/);
     if(nm){const v=italianNumber(nm[1]);if(v!==null)return v}
    }
   }
