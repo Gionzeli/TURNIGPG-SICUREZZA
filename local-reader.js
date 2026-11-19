@@ -25,20 +25,16 @@ function italianNumber(s){let t=String(s||"").replace(/[Oo]/g,"0").replace(/[Il]
 function labeledValue(lines,aliases){
  const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
  // Accetta importi italiani anche quando PDF/OCR inserisce spazi o confonde O/I con 0/1.
- const number=/[-+]?(?:[0-9OIl]{1,3}(?:\\s*\\.\\s*[0-9OIl]{3})+|[0-9OIl]+)(?:\\s*,\\s*[0-9OIl]{1,6})?/;
- const stop=/\\b(?:paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute)\\b/i;
- const rows=lines.map(x=>norm(String(x||"").replace(/\\u00a0/g," ").replace(/\\s*\\|\\s*/g," ")));
+ const number=/[-+]?(?:[0-9OIl]{1,3}(?:\s*\.\s*[0-9OIl]{3})+|[0-9OIl]+)(?:\s*,\s*[0-9OIl]{1,6})?/;
+ const stop=/\b(?:paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute)\b/i;
+ const rows=lines.map(x=>norm(String(x||"").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ")));
  const valueOf=s=>{const m=String(s||"").match(number);if(!m)return null;const n=italianNumber(m[0]);return n!==null&&n>0?n:null};
  for(const alias of keys){
-  const label=new RegExp("(^|[^a-z])"+alias.split(/\\s+/).join("\\s+")+"(?=$|[^a-z])","i");
+  const label=new RegExp("(^|[^a-z])"+alias.split(/\s+/).join("\\s+")+"(?=$|[^a-z])","i");
   for(let i=0;i<rows.length;i++){
    const hit=label.exec(rows[i]);if(!hit)continue;
-   // Prima cerca l'importo immediatamente dopo l'etichetta sulla stessa riga.
-   const tail=rows[i].slice(hit.index+hit[0].length).replace(/^[\\s|:;=€]+/,"");
+   const tail=rows[i].slice(hit.index+hit[0].length).replace(/^[\s|:;=€]+/,"");
    let value=valueOf(tail);if(value!==null)return value;
-   // Se il PDF ha separato etichetta e importo, cerca nelle righe successive.
-   // Se compare un'altra voce retributiva prima dell'importo, non attraversarla:
-   // evita di associare alla Paga base il valore degli Scatti o del totale.
    for(let j=i+1;j<Math.min(rows.length,i+7);j++){
     const boundary=stop.exec(rows[j]);
     const candidate=boundary?rows[j].slice(0,boundary.index):rows[j];
