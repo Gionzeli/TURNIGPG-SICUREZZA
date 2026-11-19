@@ -52,4 +52,36 @@ assert.equal(wrongCrossAssociation.accepted.paga_base, undefined);
 assert.equal(wrongCrossAssociation.accepted.scatti, undefined);
 assert.equal(wrongCrossAssociation.complete, false);
 
-console.log("OK: validazione ancorata alla riga sorgente; importi incrociati e incompleti rifiutati.");
+
+const multiline = `Paga base
+1.468,88000
+Scatti
+84,52000
+1.553,40000
+Retribuzione
+896,19
+Ferie godute
+657,21`;
+const multilineResult = verify(multiline, { campi: [
+  { nome: "Paga base", valore: "1.468,88000" },
+  { nome: "Scatti", valore: "84,52000" },
+  { nome: "Retribuzione", valore: "896,19" },
+  { nome: "Ferie godute", valore: "657,21" }
+]});
+assert.deepEqual(multilineResult.accepted, {
+  paga_base: "1.468,88000", scatti: "84,52000",
+  retribuzione: "896,19", ferie_godute: "657,21"
+});
+assert.equal(multilineResult.complete, true);
+
+const noCrossLine = verify(`Paga base
+Scatti
+1.468,88`, { campi: [
+  { nome: "Paga base", valore: "1.468,88" },
+  { nome: "Scatti", valore: "1.468,88" }
+]});
+assert.equal(noCrossLine.accepted.paga_base, undefined);
+assert.equal(noCrossLine.accepted.scatti, "1.468,88");
+assert.equal(noCrossLine.complete, false);
+
+console.log("OK: validazione su stessa riga o riga immediatamente successiva; importi incrociati e incompleti rifiutati.");
