@@ -40,7 +40,7 @@ console.log("RAW_OUTPUT_BEGIN");
 console.log(raw);
 console.log("RAW_OUTPUT_END");
 
-const cleaned = raw.replace(/<think>[\\s\\S]*?<\\/think>/gi, "").trim();
+const cleaned = raw.replace(/<think>[\\s\\S]*?<\/think>/gi, "").trim();
 let parsed = null;
 const start = cleaned.indexOf("{");
 if (start >= 0) {
@@ -57,7 +57,7 @@ if (start >= 0) {
 if (!parsed || !Array.isArray(parsed.campi)) {
   throw new Error("Il modello non ha restituito JSON strutturato con campi[].");
 }
-const flat = parsed.campi.map(x => `${x.nome || ""}: ${x.valore || ""}`).join("\\n");
+const flat = parsed.campi.map(x => `${x.nome || ""}: ${x.valore || ""}`).join("\n");
 const hasBase = /1468[,.]88/.test(flat);
 const hasScatti = /84[,.]52/.test(flat);
 const hasRetribuzione = /896[,.]19/.test(flat);
