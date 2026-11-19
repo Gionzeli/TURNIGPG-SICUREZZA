@@ -27,48 +27,15 @@ function labeledValue(lines,aliases){
  const raw=lines.join("\n").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ").replace(/^RIGA\s+\d+\s*:\s*/gim,"");
  const flat=norm(raw);
  for(const alias of keys){
-  const pattern=alias.split(/\s+/).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\function labeledValue(lines,aliases){
- const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
- for(let i=0;i<lines.length;i++){
-  const line=lines[i],n=norm(line);
-  for(const key of keys){
-   const at=n.indexOf(key);if(at<0)continue;
-   // La normalizzazione rimuove gli accenti: ricava la posizione nella riga originale.
-   let end=line.length;for(let j=0;j<=line.length;j++){if(norm(line.slice(0,j)).length>=at+key.length){end=j;break}}
-   const tail=line.slice(end);
-   const m=tail.match(/(?:€\s*)?[:=|]?\s*([-+]?\s*\d[\d.\s]*(?:,\d{1,5}|\.\d{1,5})?)/);
-   if(m){const v=italianNumber(m[1]);if(v!==null)return v}
-   // Nei cedolini a colonne il valore può comparire nella riga subito successiva.
-   for(let j=i+1;j<Math.min(lines.length,i+3);j++){
-    const next=lines[j].replace(/^RIGA\s+\d+:\s*/i,"").trim();
-    const nm=next.match(/^(?:€\s*)?[:=|]?\s*([-+]?\s*\d[\d.\s]*(?:,\d{1,5}|\.\d{1,5})?)(?:\s*[|;].*)?$/);
-    if(nm){const v=italianNumber(nm[1]);if(v!==null)return v}
-   }
-  }
- }
- // Ultimo tentativo sul testo appiattito: alcuni PDF spezzano l'etichetta
- // tra righe (es. "Paga" / "base") o usano spazi Unicode.
- const flat=norm(lines.join(" "));
- for(const alias of keys){
-  const pattern=alias.split(/\s+/).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,"\\$&")).join("\\s+");
-  const re=new RegExp(pattern+"\\s*(?:€\\s*)?[:=|]?\\s*([-+]?\\s*\\d[\\d.\\s]*(?:,\\d{1,5}|\\.\\d{1,5})?)","i");
-  const m=flat.match(re);
-  if(m){const v=italianNumber(m[1]);if(v!==null)return v}
- }
- return null;
-}")).join("\\s+");
-  const re=new RegExp(pattern,"i"), hit=re.exec(flat);
+  const pattern=alias.split(/\s+/).map(x=>x.replace(/[.*+?^${}()|[\]\\]/g,ch=>"\\"+ch)).join("\\s+");
+  const hit=new RegExp(pattern,"i").exec(flat);
   if(!hit)continue;
-  // Normalizza gli spazi introdotti dall'OCR dentro importi come
-  // "1 . 468 , 88000" o "1.468, 88000".
   const tail=flat.slice(hit.index+hit[0].length,hit.index+hit[0].length+100)
    .replace(/\s*([.,])\s*/g,"$1")
    .replace(/(\d)\s+(\d)/g,"$1$2");
   const m=tail.match(/^\s*[:=€]?\s*([-+]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,5})?)/);
   if(m){const v=italianNumber(m[1]);if(v!==null&&v>0)return v}
  }
- // Seconda lettura sulle singole righe, utile quando l'etichetta e il valore
- // sono stati separati dall'estrazione PDF.
  for(let i=0;i<lines.length;i++){
   const n=norm(lines[i]);
   for(const key of keys){
