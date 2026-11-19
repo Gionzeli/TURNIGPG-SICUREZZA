@@ -372,7 +372,7 @@ let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
 const FIELDS=[["paga_base","Paga base €"],["scatti","Scatti €"],["altre_fisse","Altre voci fisse €"],["ore_mensili","Ore mensili"],["ore_turno","Ore per turno"],["straordinario_perc","Straordinario %"],["straordinario_ora","Straordinario €/h"],["notturno_turno","Notturno €/turno"],["piantonato_turno","Piantonato €/turno"],["domenica_ora","Domenica €/h"],["riposo_non_goduto","Riposo n.g. €"],["buono_pasto","Buono pasto €"],["inps_rate","INPS %"],["irpef_rate","IRPEF %"],["sindacato","Sindacato €"],["cessione","Cessione quinto €"],["altre_trattenute","Altre trattenute €"]];
-const DEF={paga_base:1468.88,scatti:84.52,altre_fisse:0,ore_mensili:173,ore_turno:7.25,straordinario_perc:30,straordinario_ora:11.67,notturno_turno:4.18,piantonato_turno:0.65,domenica_ora:0.71,riposo_non_goduto:83.64,buono_pasto:5.29,inps_rate:9.86,irpef_rate:11.8,sindacato:14.69,cessione:64,altre_trattenute:0};
+const DEF={paga_base:0,scatti:0,altre_fisse:0,ore_mensili:0,ore_turno:0,straordinario_perc:0,straordinario_ora:0,notturno_turno:0,piantonato_turno:0,domenica_ora:0,riposo_non_goduto:0,buono_pasto:0,inps_rate:0,irpef_rate:0,sindacato:0,cessione:0,altre_trattenute:0};
 let KEY="tg_online_v1";
 // Modalità solo dispositivo: copia la cache locale di un unico profilo esistente.
 // Le vecchie copie vengono conservate e non sono cancellate.
@@ -845,6 +845,6 @@ if(!X.onb)startOnb();
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
 <script type="module" src="local-reader.js?v=2.3.7"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.72").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.73").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 </body>
 </html>
