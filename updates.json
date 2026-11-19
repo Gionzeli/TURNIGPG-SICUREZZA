@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.26 – Corretto l’ordine delle note di aggiornamento",
+    "v": "2.3.26",
+    "d": 1795129140000,
+    "b": "📰 AGGIORNAMENTI\nCorretto l’ordinamento delle note: ora le versioni vengono mostrate dalla più recente alla più vecchia in base al numero di versione, senza essere spostate da date precedenti non coerenti.\n\n🔒 La modifica riguarda solo la visualizzazione delle novità. Turni, cedolini e documenti salvati sul dispositivo non vengono modificati né cancellati."
+  },
+  {
     "t": "Versione 2.3.25 – Lettura cedolino con controllo OCR più preciso",
     "v": "2.3.25",
     "d": 1795086000000,
