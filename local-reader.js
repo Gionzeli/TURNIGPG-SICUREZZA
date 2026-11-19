@@ -25,9 +25,9 @@ function italianNumber(s){let t=String(s||"").replace(/[Oo]/g,"0").replace(/[Il]
 function labeledValue(lines,aliases){
  const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
  // Accetta importi italiani anche quando PDF/OCR inserisce spazi o confonde O/I con 0/1.
- const number=/[-+]?(?:[0-9OIl]{1,3}(?:(?:\s*\.\s*|\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\s*,\s*[0-9OIl]{1,6})?/;
+ const number=/[-+]?(?:[0-9OIl]{1,3}(?:(?:\s*\.\s*|\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\s*,\s*[0-9OIl]{2,5}|\s*\.\s*[0-9OIl]{2})/;
  const stop=/\b(?:paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute)\b/i;
- const rows=lines.map(x=>norm(String(x||"").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ")));
+ const rows=lines.map(x=>norm(String(x||"").replace(/^\s*(?:PAGINA|PAG\.)\s*\d+\s*:?\s*/i,"").replace(/^\s*RIGA\s*\d+\s*:?\s*/i,"").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ")));
  const valueOf=s=>{const m=String(s||"").match(number);if(!m)return null;const n=italianNumber(m[0]);return n!==null&&n>0?n:null};
  for(const alias of keys){
   const label=new RegExp("(^|[^a-z])"+alias.split(/\s+/).join("\\s+")+"(?=$|[^a-z])","i");
