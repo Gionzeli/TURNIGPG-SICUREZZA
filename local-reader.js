@@ -2,7 +2,7 @@
 let _ocrModule=null;
 async function loadOCR(onProgress){
  if(!window.Tesseract||typeof window.Tesseract.createWorker!=="function"){
-  if(!_ocrModule){_ocrModule=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";s.async=true;s.onload=()=>window.Tesseract&&typeof window.Tesseract.createWorker==="function"?resolve(window.Tesseract):reject(new Error("OCR non disponibile"));s.onerror=()=>reject(new Error("Download componente OCR non riuscito"));document.head.appendChild(s)}).catch(e=>{_ocrModule=null;throw e})}
+  if(!_ocrModule){_ocrModule=new Promise((resolve,reject)=>{const s=document.createElement("script");let done=false;const timer=setTimeout(()=>{if(done)return;done=true;s.remove();reject(new Error("Tempo scaduto nel download del componente OCR"))},20000);s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";s.async=true;s.onload=()=>{if(done)return;done=true;clearTimeout(timer);window.Tesseract&&typeof window.Tesseract.createWorker==="function"?resolve(window.Tesseract):reject(new Error("OCR non disponibile"))};s.onerror=()=>{if(done)return;done=true;clearTimeout(timer);reject(new Error("Download componente OCR non riuscito"))};document.head.appendChild(s)}).catch(e=>{_ocrModule=null;throw e})}
   await _ocrModule;
  }
  return window.Tesseract.createWorker(["ita","eng"],1,{workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",langPath:"https://tessdata.projectnaptha.com/4.0.0",logger:m=>onProgress?.({phase:"ocr",progress:Number.isFinite(m?.progress)?Math.round(m.progress*100):null,status:m?.status||"",detail:m?.status?("OCR: "+m.status):"Preparazione OCR…" })});
@@ -54,8 +54,8 @@ function parsePayslip(text,fields){
  // Il valore viene letto da ogni nuova busta paga, senza importi preimpostati.
  if(!(Number(out.paga_base)>0)){
   for(const line of lines){
-   if(!/\\blavoro\\s+ordinario\\b/i.test(norm(line)))continue;
-   const nums=[...line.matchAll(/\\d[\\d.]*,\\d{1,5}|\\d{1,3}(?:\\.\\d{3})+(?:,\\d{1,5})?/g)]
+   if(!/\blavoro\s+ordinario\b/i.test(norm(line)))continue;
+   const nums=[...line.matchAll(/\d[\d.]*,\d{1,5}|\d{1,3}(?:\.\d{3})+(?:,\d{1,5})?/g)]
     .map(m=>italianNumber(m[0])).filter(v=>v!==null&&v>0);
    if(nums.length>=2){out.paga_base=nums[nums.length-1];break}
   }
