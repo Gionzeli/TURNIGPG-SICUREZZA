@@ -34,7 +34,7 @@ console.log("RAW_OUTPUT_BEGIN");
 console.log(raw);
 console.log("RAW_OUTPUT_END");
 
-const normalized = raw.replace(/\\+"/g, '"').replace(/\\n/g, "\n");
+const normalized = raw.replace(/\+"/g, '"').replace(/\n/g, "\n");
 const cleaned = normalized.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 let parsed = null;
 const start = cleaned.indexOf("{");
@@ -71,13 +71,13 @@ console.log("STRUCTURED_INFERENCE_OK");
 // Caso avverso: il valore degli Scatti non deve essere scambiato per la Paga base.
 // È accettabile che il modello segnali una voce come incerta; non è accettabile
 // attribuire l'importo 1468,88 alla Paga base quando nel testo segue Scatti.
-const tricky = "CEDOLINO DI PROVA\\nPaga base: 1,2\\nScatti: 1468,88\\nRetribuzione: 896,19 per 15 giorni\\nFerie godute: 657,21 per 11 giorni";
-const trickyPrompt = "<|im_start|>system\\nLeggi il testo senza correggerlo o completarlo. Associa ogni importo esclusivamente all'etichetta che lo precede. Non spostare mai un importo da una voce a un'altra. Se l'importo è incompleto, riportalo identico e segnala l'incertezza. Rispondi solo JSON con tipo_documento, campi [{nome,valore}], incertezze [{nome,valore}].\\n<|im_end|>\\n<|im_start|>user\\n/no_think\\n" + tricky + "\\n<|im_end|>\\n<|im_start|>assistant\\n";
+const tricky = "CEDOLINO DI PROVA\nPaga base: 1,2\nScatti: 1468,88\nRetribuzione: 896,19 per 15 giorni\nFerie godute: 657,21 per 11 giorni";
+const trickyPrompt = "<|im_start|>system\nLeggi il testo senza correggerlo o completarlo. Associa ogni importo esclusivamente all'etichetta che lo precede. Non spostare mai un importo da una voce a un'altra. Se l'importo è incompleto, riportalo identico e segnala l'incertezza. Rispondi solo JSON con tipo_documento, campi [{nome,valore}], incertezze [{nome,valore}].\n<|im_end|>\n<|im_start|>user\n/no_think\n" + tricky + "\n<|im_end|>\n<|im_start|>assistant\n";
 const trickyOutput = await generator(trickyPrompt, { max_new_tokens: 256, do_sample: false });
 const trickyFull = String(trickyOutput?.[0]?.generated_text || "");
 const trickyAt = trickyFull.lastIndexOf("assistant");
 const trickyRaw = trickyAt >= 0 ? trickyFull.slice(trickyAt + "assistant".length).trim() : trickyFull.trim();
-const trickyClean = trickyRaw.replace(/<think>[\\s\\S]*?<\\/think>/gi, "").replace(/\`\`\`(?:json)?/gi, "").trim();
+const trickyClean = trickyRaw.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/\`\`\`(?:json)?/gi, "").trim();
 console.log("ADVERSARIAL_RAW_BEGIN");
 console.log(trickyClean);
 console.log("ADVERSARIAL_RAW_END");
@@ -95,15 +95,15 @@ if (!trickyParsed) throw new Error("Caso avverso: il modello non ha restituito J
 const trickyFields = [...(Array.isArray(trickyParsed.campi) ? trickyParsed.campi : []), ...(Array.isArray(trickyParsed.incertezze) ? trickyParsed.incertezze : [])];
 const trickyValue = label => {
   const field = trickyFields.find(x => String(x.nome || "").toLowerCase().includes(label.toLowerCase()));
-  return field ? String(field.valore || "").replace(/\\s/g, "") : "";
+  return field ? String(field.valore || "").replace(/\s/g, "") : "";
 };
 const trickyBase = trickyValue("Paga base");
 const trickyScatti = trickyValue("Scatti");
 console.log("ADVERSARIAL_CHECK", JSON.stringify({ trickyBase, trickyScatti, campi: Array.isArray(trickyParsed.campi), incertezze: Array.isArray(trickyParsed.incertezze) }));
-if (/1468[,\\.]88/.test(trickyBase) || !/1468[,\\.]88/.test(trickyScatti)) {
+if (/1468[,\.]88/.test(trickyBase) || !/1468[,\.]88/.test(trickyScatti)) {
   throw new Error("Caso avverso fallito: l'importo degli Scatti è stato associato alla Paga base o perso.");
 }
-if (!/1[,\\.]2/.test(trickyBase)) {
+if (!/1[,\.]2/.test(trickyBase)) {
   throw new Error("Caso avverso: il valore anomalo della Paga base non è stato mantenuto o segnalato.");
 }
 console.log("ADVERSARIAL_INFERENCE_OK");
