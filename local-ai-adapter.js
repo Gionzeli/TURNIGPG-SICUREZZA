@@ -1,6 +1,6 @@
 /* Adattatore AI locale sperimentale.
- * Nessun runtime, modello, fetch, storage o documento viene caricato automaticamente.
- * Il runtime viene fornito esplicitamente solo dal codice di integrazione futuro.
+ * Non contiene runtime, modello, endpoint cloud o caricamento automatico.
+ * Il caricatore deve fornire esplicitamente un runtime eseguito sul dispositivo.
  */
 (function (root) {
   "use strict";
@@ -8,6 +8,7 @@
   let loader = null;
   let loadedRunner = null;
   let loading = null;
+  let lifecycleController = null;
   let timeoutMs = 30000;
   let maxChars = 120000;
 
@@ -25,98 +26,107 @@
       ? Math.min(200000, Math.max(1000, options.maxChars)) : 120000;
   }
 
-  function abortError() {
-    const error = new Error("Operazione annullata.");
+  function abortError(message) {
+    const error = new Error(message || "Operazione annullata.");
     error.name = "AbortError";
     return error;
   }
 
-  async function getRunner(signal) {
-    if (signal && signal.aborted) throw abortError();
-    if (loadedRunner) return loadedRunner;
-    if (!loader) throw new Error("Motore AI locale non configurato.");
+  function getRunner(signal) {
+    if (signal && signal.aborted) return Promise.reject(abortError());
+    if (loadedRunner) return Promise.resolve(loadedRunner);
+    if (!loader) return Promise.reject(new Error("Motore AI locale non configurato."));
     if (!loading) {
-      loading = Promise.resolve().then(() => loader()).then((runner) => {
-        if (typeof runner !== "function") {
-          throw new TypeError("Il motore locale non ha restituito una funzione valida.");
-        }
-        loadedRunner = runner;
-        return runner;
-      }).finally(() => { loading = null; });
+      lifecycleController = new AbortController();
+      const loadSignal = lifecycleController.signal;
+      loading = Promise.resolve()
+        .then(() => loader({ signal: loadSignal }))
+        .then((runner) => {
+          if (loadSignal.aborted) throw abortError();
+          if (typeof runner !== "function") {
+            throw new TypeError("Il motore locale non ha restituito una funzione valida.");
+          }
+          loadedRunner = runner;
+          return runner;
+        })
+        .finally(() => { loading = null; });
+      // Evita rejection non gestite se un chiamante annulla mentre il caricamento continua.
+      loading.catch(() => {});
     }
-    return await Promise.race([
-      loading,
-      new Promise((_, reject) => {
-        if (!signal) return;
-        const onAbort = () => reject(abortError());
-        signal.addEventListener("abort", onAbort, { once: true });
-        loading.finally(() => signal.removeEventListener("abort", onAbort));
-      })
-    ]);
+    return loading;
   }
 
   async function analyze(documentText, options) {
     const opts = options || {};
-    const signal = opts.signal;
     if (typeof documentText !== "string" || !documentText.trim()) {
       throw new TypeError("Il testo del documento è vuoto.");
     }
     if (documentText.length > maxChars) {
       throw new RangeError("Documento troppo lungo per questa prova locale.");
     }
-    if (signal && signal.aborted) throw abortError();
+    if (opts.signal && opts.signal.aborted) throw abortError();
 
-    let timer;
-    let onAbort;
-    const work = (async () => {
-      const runner = await getRunner(signal);
-      if (signal && signal.aborted) throw abortError();
+    const controller = new AbortController();
+    const externalSignal = opts.signal;
+    const forwardAbort = () => controller.abort();
+    if (externalSignal) externalSignal.addEventListener("abort", forwardAbort, { once: true });
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    let timedOut = false;
+    const timeoutCheck = setInterval(() => {
+      if (controller.signal.aborted && !(externalSignal && externalSignal.aborted)) timedOut = true;
+    }, 25);
+
+    try {
+      const runner = await getRunner(controller.signal);
+      if (controller.signal.aborted) {
+        if (timedOut) throw new Error("Tempo massimo AI superato.");
+        throw abortError();
+      }
       const result = await runner({
         text: documentText,
         task: typeof opts.task === "string" ? opts.task : "document",
-        signal: signal || null
+        signal: controller.signal
       });
-      if (signal && signal.aborted) throw abortError();
+      if (controller.signal.aborted) {
+        if (timedOut) throw new Error("Tempo massimo AI superato.");
+        throw abortError();
+      }
       if (!result || typeof result !== "object" || Array.isArray(result)) {
         throw new TypeError("Il modello non ha restituito dati strutturati.");
       }
       return result;
-    })();
-
-    const guards = [work, new Promise((_, reject) => {
-      timer = setTimeout(() => reject(new Error("Tempo massimo AI superato.")), timeoutMs);
-    })];
-    if (signal) guards.push(new Promise((_, reject) => {
-      onAbort = () => reject(abortError());
-      signal.addEventListener("abort", onAbort, { once: true });
-    }));
-
-    try {
-      return await Promise.race(guards);
+    } catch (error) {
+      if (controller.signal.aborted && timedOut) throw new Error("Tempo massimo AI superato.");
+      if (controller.signal.aborted && !(error && error.name === "AbortError")) throw abortError();
+      throw error;
     } finally {
       clearTimeout(timer);
-      if (signal && onAbort) signal.removeEventListener("abort", onAbort);
+      clearInterval(timeoutCheck);
+      if (externalSignal) externalSignal.removeEventListener("abort", forwardAbort);
     }
   }
 
   async function release() {
+    if (lifecycleController) lifecycleController.abort();
+    const pending = loading;
+    if (pending) {
+      try { await pending; } catch (_) { /* annullamento/caricamento fallito: rilascio comunque */ }
+    }
     const runner = loadedRunner;
     loadedRunner = null;
-    if (runner && typeof runner.dispose === "function") {
-      await runner.dispose();
-    }
+    loading = null;
+    lifecycleController = null;
+    if (runner && typeof runner.dispose === "function") await runner.dispose();
   }
 
   root.LocalDocumentAI = Object.freeze({
-    configure: configure,
-    analyze: analyze,
-    release: release,
-    status: function () {
-      return Object.freeze({
-        configured: typeof loader === "function",
-        loaded: typeof loadedRunner === "function",
-        loading: !!loading
-      });
-    }
+    configure,
+    analyze,
+    release,
+    status: () => Object.freeze({
+      configured: typeof loader === "function",
+      loaded: typeof loadedRunner === "function",
+      loading: !!loading
+    })
   });
 })(typeof window !== "undefined" ? window : globalThis);
