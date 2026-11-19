@@ -84,4 +84,14 @@ assert.equal(noCrossLine.accepted.paga_base, undefined);
 assert.equal(noCrossLine.accepted.scatti, "1.468,88");
 assert.equal(noCrossLine.complete, false);
 
+const normalizedPrecision = verify(`Paga base
+1.468,88000
+Scatti
+84,52000`, { campi: [
+  { nome: "Paga base", valore: "1.468,88" },
+  { nome: "Scatti", valore: "84,52" }
+]});
+assert.deepEqual(normalizedPrecision.accepted, { paga_base: "1.468,88", scatti: "84,52" });
+assert.equal(normalizedPrecision.complete, true);
+
 console.log("OK: validazione su stessa riga o riga immediatamente successiva; importi incrociati e incompleti rifiutati.");
