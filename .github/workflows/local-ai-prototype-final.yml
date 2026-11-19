@@ -10,6 +10,8 @@ on:
       - "local-ai-worker.js"
       - "local-ai-lab.html"
       - "local-ai-lab.test.cjs"
+      - "local-ai-validation.js"
+      - "local-ai-validation.test.cjs"
       - ".github/workflows/local-ai-prototype-final.yml"
 
 permissions:
@@ -25,3 +27,4 @@ jobs:
           node-version: 20
       - run: node local-ai-adapter.test.cjs
       - run: node local-ai-lab.test.cjs
+      - run: node local-ai-validation.test.cjs
