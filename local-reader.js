@@ -48,8 +48,13 @@ function labeledValue(lines,aliases){
 function parsePayslip(text,fields){
  const lines=String(text||"").split(/\r?\n/).map(x=>x.replace(/^RIGA \d+:\s*/i,"").replace(/^Riga \d+:\s*/i,"").replace(/\s*\|\s*/g," ").trim()).filter(Boolean),aliases={
  paga_base:["paga base","minimo tabellare","minimo contrattuale","retribuzione base","retribuzione tabellare","stipendio base","minimo ccnl","minimo contrattuale mensile"],scatti:["scatti","scatti anzianita","scatti di anzianita"],altre_fisse:["superminimo","elemento distinto","indennita fissa","altre voci fisse"],ore_mensili:["ore mensili","orario mensile","ore contrattuali"],ore_turno:["ore turno","durata turno","ore giornaliere"],straordinario_perc:["maggiorazione straordinario","straordinario %","maggiorazione straord"],straordinario_ora:["straordinario euro ora","straordinario orario","compenso straordinario"],notturno_turno:["indennita notturna","maggiorazione notturno","notturno turno"],piantonato_turno:["piantonamento","indennita piantonamento"],domenica_ora:["maggiorazione domenicale","lavoro domenicale","domenica ora"],riposo_non_goduto:["riposo non goduto","riposo lavorato","festivita non goduta"],buono_pasto:["buono pasto","ticket restaurant","ticket"],inps_rate:["aliquota inps","inps %","contributi ivs"],irpef_rate:["aliquota irpef","irpef %","ritenuta irpef"],sindacato:["trattenuta sindacale","sindacato"],cessione:["cessione quinto","cessione del quinto"],altre_trattenute:["altre trattenute","totale trattenute"]};
+ // Alcuni PDF/OCR spezzano anche le etichette su righe consecutive
+ // (ad esempio "Paga" / "base" / "1.468,88000"). Aggiunge finestre
+ // di righe adiacenti senza cambiare l'ordine del testo originale.
+ const scanLines=lines.slice();
+ for(let width=2;width<=4;width++)for(let i=0;i+width<=lines.length;i++)scanLines.push(lines.slice(i,i+width).join(" "));
  const out={};
- for(const [key] of fields){const v=labeledValue(lines,aliases[key]||[key.replace(/_/g," ")]);if(v!==null)out[key]=v}
+ for(const [key] of fields){const v=labeledValue(scanLines,aliases[key]||[key.replace(/_/g," ")]);if(v!==null)out[key]=v}
  // La paga base si legge solo da un'etichetta contrattuale esplicita.
  // Non usare il totale di LAVORO ORDINARIO: può riferirsi a pochi giorni e non alla base mensile.
  return out;
