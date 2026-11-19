@@ -88,6 +88,12 @@
       }
       accepted[field] = candidate;
     }
+    for (const required of ["paga_base", "scatti"]) {
+      if (!Object.prototype.hasOwnProperty.call(accepted, required) &&
+          !uncertainties.some(item => item.nome === required)) {
+        uncertainties.push({ nome: required, motivo: "Campo essenziale non confermato: richiede controllo manuale" });
+      }
+    }
     return { accepted, uncertainties, complete: uncertainties.length === 0 && aiFields.length > 0 };
   }
   const api = { verify, FIELD_ALIASES };
