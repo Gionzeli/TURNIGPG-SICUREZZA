@@ -1,20 +1,20 @@
 [
   {
-    "t": "Versione 2.3.12 – Aggiornamento forzato del lettore locale",
-    "v": "2.3.12",
-    "d": 1795066486104,
-    "b": "Aggiornato il riferimento del lettore locale e la versione della cache dell'app per forzare il caricamento del componente più recente anche nelle installazioni già presenti. I dati personali e i documenti salvati sul dispositivo non vengono cancellati."
+    "t": "Versione 2.3.13 – Aggiornamenti più chiari e illustrati",
+    "v": "2.3.13",
+    "d": 1795067100000,
+    "b": "🆕 COSA CAMBIA\nLa sezione Aggiornamenti ora presenta le novità in schede più visibili, con un simbolo, il numero della versione, la data e una spiegazione leggibile.\n\n📅 ORDINE CORRETTO\nLe versioni vengono mostrate dalla più recente alla più vecchia: la novità attuale resta in cima all’elenco.\n\n🔒 I TUOI DATI\nQuesta modifica riguarda solo la visualizzazione degli aggiornamenti. Turni, cedolini e documenti salvati sul dispositivo non vengono modificati né cancellati."
   },
   {
     "t": "Versione 2.3.11 – Lettura PDF più rapida e stabile",
     "v": "2.3.11",
-    "d": 1795131000000,
+    "d": 1795066200000,
     "b": "Migliorata l'apertura dei PDF: per le buste paga viene usato prima il testo già presente nel PDF, evitando OCR superfluo; OCR locale solo quando serve. Aggiunto un secondo server di caricamento del lettore PDF e messaggio di errore se il componente non è raggiungibile. Nessun documento viene inviato online."
   },
   {
     "t": "Versione 2.3.10 – Lettura retribuzione ordinaria",
     "v": "2.3.10",
-    "d": 1795129800000,
+    "d": 1795065900000,
     "b": "Migliorata la lettura delle buste paga: quando la voce LAVORO ORDINARIO riporta quantità, tariffa e totale, l'app riconosce il totale effettivo come paga base, leggendo il valore dal documento inserito (non usa importi fissi). La conferma mostra i valori prima di sostituire i parametri; i dati e i documenti restano sul dispositivo."
   },
   {
