@@ -48,6 +48,18 @@ function parsePayslip(text,fields){
  paga_base:["paga base","minimo tabellare","minimo contrattuale","retribuzione base","retribuzione tabellare","stipendio base","minimo ccnl","minimo contrattuale mensile"],scatti:["scatti anzianita","scatti di anzianita"],altre_fisse:["superminimo","elemento distinto","indennita fissa","altre voci fisse"],ore_mensili:["ore mensili","orario mensile","ore contrattuali"],ore_turno:["ore turno","durata turno","ore giornaliere"],straordinario_perc:["maggiorazione straordinario","straordinario %","maggiorazione straord"],straordinario_ora:["straordinario euro ora","straordinario orario","compenso straordinario"],notturno_turno:["indennita notturna","maggiorazione notturno","notturno turno"],piantonato_turno:["piantonamento","indennita piantonamento"],domenica_ora:["maggiorazione domenicale","lavoro domenicale","domenica ora"],riposo_non_goduto:["riposo non goduto","riposo lavorato","festivita non goduta"],buono_pasto:["buono pasto","ticket restaurant","ticket"],inps_rate:["aliquota inps","inps %","contributi ivs"],irpef_rate:["aliquota irpef","irpef %","ritenuta irpef"],sindacato:["trattenuta sindacale","sindacato"],cessione:["cessione quinto","cessione del quinto"],altre_trattenute:["altre trattenute","totale trattenute"]};
  const out={};
  for(const [key] of fields){const v=labeledValue(lines,aliases[key]||[key.replace(/_/g," ")]);if(v!==null)out[key]=v}
+ // In molti cedolini della vigilanza la retribuzione ordinaria è esposta
+ // come quantità × tariffa giornaliera × totale, senza la dicitura "paga base".
+ // In quel caso usa SOLO il totale finale della riga LAVORO ORDINARIO.
+ // Il valore viene letto da ogni nuova busta paga, senza importi preimpostati.
+ if(!(Number(out.paga_base)>0)){
+  for(const line of lines){
+   if(!/\\blavoro\\s+ordinario\\b/i.test(norm(line)))continue;
+   const nums=[...line.matchAll(/\\d[\\d.]*,\\d{1,5}|\\d{1,3}(?:\\.\\d{3})+(?:,\\d{1,5})?/g)]
+    .map(m=>italianNumber(m[0])).filter(v=>v!==null&&v>0);
+   if(nums.length>=2){out.paga_base=nums[nums.length-1];break}
+  }
+ }
  return out;
 }
 function fullDate(line){
