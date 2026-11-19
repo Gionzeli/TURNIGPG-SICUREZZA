@@ -1,0 +1,27 @@
+name: Verifica finale AI locale
+
+on:
+  push:
+    branches:
+      - ai-locale-prototype
+    paths:
+      - "local-ai-adapter.js"
+      - "local-ai-adapter.test.cjs"
+      - "local-ai-worker.js"
+      - "local-ai-lab.html"
+      - "local-ai-lab.test.cjs"
+      - ".github/workflows/local-ai-prototype-final.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node local-ai-adapter.test.cjs
+      - run: node local-ai-lab.test.cjs
