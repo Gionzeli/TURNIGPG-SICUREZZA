@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.11 – Lettura PDF più rapida e stabile",
+    "v": "2.3.11",
+    "d": 1795131000000,
+    "b": "Migliorata l'apertura dei PDF: per le buste paga viene usato prima il testo già presente nel PDF, evitando OCR superfluo; OCR locale solo quando serve. Aggiunto un secondo server di caricamento del lettore PDF e messaggio di errore se il componente non è raggiungibile. Nessun documento viene inviato online."
+  },
+  {
     "t": "Versione 2.3.10 – Lettura retribuzione ordinaria",
     "v": "2.3.10",
     "d": 1795129800000,
