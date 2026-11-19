@@ -2,8 +2,8 @@ import { pipeline, env } from "@huggingface/transformers";
 import { StructuredOutputProcessor } from "@huggingface/transformers-structured-output";
 // Test sperimentale: generazione vincolata allo schema JSON, oltre alla verifica dei valori.
 
-const MODEL_ID = "onnx-community/Qwen3-0.6B-Instruct-ONNX";
-const REVISION = "54250909aca286a05b9d013c8af7a21859ee6ead";
+const MODEL_ID = "onnx-community/Qwen3-1.7B-ONNX";
+const REVISION = "e1da89f753284b95bd0971c64524f52edc5eb6e3";
 const sample = `CEDOLINO DI PROVA
 Azienda: Esempio Servizi S.r.l.
 Periodo: Ottobre 2026
