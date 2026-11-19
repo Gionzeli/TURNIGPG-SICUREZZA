@@ -22,19 +22,26 @@ async function ocrImages(images,onProgress){
 }
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
 function italianNumber(s){let t=String(s||"").replace(/[Oo]/g,"0").replace(/[Il]/g,"1").replace(/\s+/g,"").replace(/[^0-9,.-]/g,"");if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,"");const n=Number(t);return Number.isFinite(n)?n:null}
-function labeledValue(lines,aliases){
+function labeledValue(lines,aliases,requireCents=false){
  const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
- // Accetta importi italiani anche quando PDF/OCR inserisce spazi o confonde O/I con 0/1.
- const number=/[-+]?(?:[0-9OIl]{1,3}(?:(?:\s*\.\s*|\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\s*,\s*[0-9OIl]{2,5}|\s*\.\s*[0-9OIl]{2})/;
- const stop=/\b(?:paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute)\b/i;
- const rows=lines.map(x=>norm(String(x||"").replace(/^\s*(?:PAGINA|PAG\.)\s*\d+\s*:?\s*/i,"").replace(/^\s*RIGA\s*\d+\s*:?\s*/i,"").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ")));
+ // Il valore contrattuale di Paga base e Scatti deve contenere i centesimi:
+ // non accettare cifre isolate o decimali OCR incompleti come "1" o "1,2".
+ const number=requireCents
+  ? /[-+]?(?:[0-9OIl]{1,3}(?:(?:\\s*\\.\\s*|\\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\\s*,\\s*[0-9OIl]{2,5}|\\s*\\.\\s*[0-9OIl]{2})(?![0-9OIl])/
+  : /[-+]?(?:[0-9OIl]{1,3}(?:(?:\\s*\\.\\s*|\\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\\s*,\\s*[0-9OIl]{2,5}|\\s*\\.\\s*[0-9OIl]{2})?/;
+ const stop=/\\b(?:paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute)\\b/i;
+ const rows=lines.map(x=>norm(String(x||"").replace(/^\\s*(?:PAGINA|PAG\\.)\\s*\\d+\\s*:?\\s*/i,"").replace(/^\\s*RIGA\\s*\\d+\\s*:?\\s*/i,"").replace(/\\u00a0/g," ").replace(/\\s*\\|\\s*/g," ")));
  const valueOf=s=>{const m=String(s||"").match(number);if(!m)return null;const n=italianNumber(m[0]);return n!==null&&n>0?n:null};
  for(const alias of keys){
-  const label=new RegExp("(^|[^a-z])"+alias.split(/\s+/).join("\\s+")+"(?=$|[^a-z])","i");
+  const label=new RegExp("(^|[^a-z])"+alias.split(/\\s+/).join("\\s+")+"(?=$|[^a-z])","i");
   for(let i=0;i<rows.length;i++){
    const hit=label.exec(rows[i]);if(!hit)continue;
-   const tail=rows[i].slice(hit.index+hit[0].length).replace(/^[\s|:;=€]+/,"");
+   let tail=rows[i].slice(hit.index+hit[0].length).replace(/^[\\s|:;=€]+/,"");
+   // Non oltrepassare mai un'altra voce quando le etichette sono sulla stessa riga.
+   const sameRowBoundary=stop.exec(tail);
+   if(sameRowBoundary)tail=tail.slice(0,sameRowBoundary.index);
    let value=valueOf(tail);if(value!==null)return value;
+   if(sameRowBoundary)continue;
    for(let j=i+1;j<Math.min(rows.length,i+7);j++){
     const boundary=stop.exec(rows[j]);
     const candidate=boundary?rows[j].slice(0,boundary.index):rows[j];
@@ -54,7 +61,7 @@ function parsePayslip(text,fields){
  const scanLines=lines.slice();
  for(let width=2;width<=4;width++)for(let i=0;i+width<=lines.length;i++)scanLines.push(lines.slice(i,i+width).join(" "));
  const out={};
- for(const [key] of fields){const v=labeledValue(scanLines,aliases[key]||[key.replace(/_/g," ")]);if(v!==null)out[key]=v}
+ for(const [key] of fields){const v=labeledValue(scanLines,aliases[key]||[key.replace(/_/g," ")],key==="paga_base"||key==="scatti");if(v!==null)out[key]=v}
  // La paga base si legge solo da un'etichetta contrattuale esplicita.
  // Non usare il totale di LAVORO ORDINARIO: può riferirsi a pochi giorni e non alla base mensile.
  return out;
