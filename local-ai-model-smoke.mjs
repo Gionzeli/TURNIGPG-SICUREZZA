@@ -75,7 +75,7 @@ const trickyOutput = await generator(trickyPrompt, { max_new_tokens: 256, do_sam
 const trickyFull = String(trickyOutput?.[0]?.generated_text || "");
 const trickyAt = trickyFull.lastIndexOf("assistant");
 const trickyRaw = trickyAt >= 0 ? trickyFull.slice(trickyAt + "assistant".length).trim() : trickyFull.trim();
-const trickyClean = trickyRaw.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
+const trickyClean = trickyRaw.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/```(?:json)?/gi, "").trim();\nconsole.log("ADVERSARIAL_RAW_BEGIN");\nconsole.log(trickyClean);\nconsole.log("ADVERSARIAL_RAW_END");
 const trickyStart = trickyClean.indexOf("{");
 let trickyParsed = null;
 if (trickyStart >= 0) {
