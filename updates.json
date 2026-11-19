@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.25 – Lettura cedolino con controllo OCR più preciso",
+    "v": "2.3.25",
+    "d": 1795086000000,
+    "b": "📄 LETTURA DELLA BUSTA PAGA\nIl controllo del testo PDF usa ora lo stesso riconoscimento effettivo della voce “Paga base” utilizzato nell’analisi del cedolino. Se il testo estratto sembra contenere un importo ma il lettore non riesce davvero a ricavarlo, viene avviato il riconoscimento OCR locale come alternativa.\n\n🔎 PAGA BASE E SCATTI\nPaga base e scatti restano voci separate. I valori vengono mostrati in anteprima e modificati solo dopo la tua conferma.\n\n🔒 Il PDF viene elaborato sul dispositivo: non viene inviato a Firebase o a servizi AI. I componenti OCR possono essere scaricati da CDN, ma non ricevono il documento."
+  },
+  {
     "t": "Versione 2.3.24 – Migliorato il riconoscimento degli importi OCR",
     "v": "2.3.24",
     "d": 1795106400000,
