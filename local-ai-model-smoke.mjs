@@ -114,12 +114,12 @@ SCATTI DI ANZIANITA' EUR 92,15
 FERIE GODUTE 4,000 GG EUR 238,98
 PAGA BASE CONTRATTUALE EUR 1.512,40
 RETRIBUZIONE ORDINARIA 10,000 GG EUR 568,20`;
-const variantPrompt = "<|im_start|>system\\nEstrai dal documento tutte le voci retributive e gli importi associati. Rispondi solo JSON valido: {\\"tipo_documento\\":\\"cedolino\\",\\"campi\\":[{\\"nome\\":\\"etichetta originale\\",\\"valore\\":\\"importo\\\"}],\\"incertezze\\":[]}. Mantieni le etichette originali e non associare importi a voci diverse.\\n<|im_end|>\\n<|im_start|>user\\n/no_think\\n" + variant + "\\n<|im_end|>\\n<|im_start|>assistant\\n";
+const variantPrompt = "<|im_start|>system\nEstrai dal documento tutte le voci retributive e gli importi associati. Rispondi solo JSON valido: {\"tipo_documento\":\"cedolino\",\"campi\":[{\"nome\":\"etichetta originale\",\"valore\":\"importo\\"}],\"incertezze\":[]}. Mantieni le etichette originali e non associare importi a voci diverse.\n<|im_end|>\n<|im_start|>user\n/no_think\n" + variant + "\n<|im_end|>\n<|im_start|>assistant\n";
 const variantOutput = await generator(variantPrompt, { max_new_tokens: 320, do_sample: false });
 const variantFull = String(variantOutput?.[0]?.generated_text || "");
 const variantAt = variantFull.lastIndexOf("assistant");
 const variantRaw = variantAt >= 0 ? variantFull.slice(variantAt + "assistant".length).trim() : variantFull.trim();
-const variantClean = variantRaw.replace(/<think>[\\s\\S]*?<\\/think>/gi, "").replace(/```(?:json)?/gi, "").trim();
+const variantClean = variantRaw.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/```(?:json)?/gi, "").trim();
 let variantParsed = null;
 const variantStart = variantClean.indexOf("{");
 if (variantStart >= 0) {
@@ -136,7 +136,7 @@ const variantValue = (label, pattern) => {
   return field && pattern.test(String(field.valore || ""));
 };
 const variantChecks = {
-  base: variantValue("PAGA BASE", /1\\.512,40/),
+  base: variantValue("PAGA BASE", /1\.512,40/),
   scatti: variantValue("SCATTI", /92,15/),
   ferie: variantValue("FERIE", /238,98/),
   retribuzione: variantValue("RETRIBUZIONE", /568,20/)
