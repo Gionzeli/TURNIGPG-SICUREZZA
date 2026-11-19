@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.15 – Corretta la lettura dei cedolini PDF",
+    "v": "2.3.15",
+    "d": 1795079460000,
+    "b": "📄 LETTURA DELLA BUSTA PAGA\nCorretto il passaggio che poteva saltare l’OCR quando il PDF conteneva solo una parte del testo. Ora le pagine del cedolino vengono sottoposte al riconoscimento OCR locale quando serve, anche se è già stato estratto del testo.\n\n🔎 ERRORI PIÙ CHIARI\nSe la paga base non viene individuata, l’app lo segnala chiaramente invece di mostrare un errore generico.\n\n🔒 I TUOI DOCUMENTI\nIl riconoscimento avviene sul dispositivo. Il PDF non viene caricato su servizi esterni e i parametri esistenti restano invariati finché non confermi l’anteprima."
+  },
+  {
     "t": "Versione 2.3.14 – Aggiornamenti completi e lettura con errori più chiari",
     "v": "2.3.14",
     "d": 1795075860000,
