@@ -70,9 +70,22 @@ Ferie godute: 657,21 per 11 giorni</textarea>
         status("Modello caricato. Puoi provare il testo sintetico.");
       }
       if (data.type === "result") {
-        $("result").textContent = data.answer;
+        const check = data.verification || { accepted: {}, uncertainties: [{ nome: "Documento", motivo: "Verifica non disponibile" }], complete: false };
+        const report = [
+          "OUTPUT AI",
+          data.answer,
+          "",
+          "CAMPI CONFERMATI DAL TESTO ORIGINALE",
+          JSON.stringify(check.accepted || {}, null, 2),
+          "",
+          "INCERTEZZE / CAMPI RIFIUTATI",
+          JSON.stringify(check.uncertainties || [], null, 2)
+        ].join("\\n");
+        $("result").textContent = report;
         $("analyze").disabled = !ready || !$("sample").value.trim();
-        status(data.structured ? "Risultato JSON strutturato. Controlla manualmente ogni campo." : "Il modello non ha prodotto JSON valido: controlla il testo grezzo e riprova.");
+        status(check.complete && Object.keys(check.accepted || {}).length
+          ? "Verifica automatica superata per i campi elencati. Controlla comunque il documento."
+          : "Verifica incompleta: i campi non confermati non devono essere usati o importati.");
       }
       if (data.type === "error") {
         status("Errore: " + data.message);
