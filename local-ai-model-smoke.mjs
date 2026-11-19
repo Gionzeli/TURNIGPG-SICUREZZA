@@ -130,9 +130,16 @@ if (variantStart >= 0) {
     } catch {}
   }
 }
+console.log("VARIANT_RAW_BEGIN");
+console.log(variantRaw);
+console.log("VARIANT_RAW_END");
 if (!variantParsed) throw new Error("Secondo cedolino: JSON strutturato non valido.");
+const variantFields = [
+  ...(Array.isArray(variantParsed.campi) ? variantParsed.campi : []),
+  ...(Array.isArray(variantParsed.incertezze) ? variantParsed.incertezze : [])
+];
 const variantValue = (label, pattern) => {
-  const field = variantParsed.campi.find(x => String(x.nome || "").toLowerCase().includes(label.toLowerCase()));
+  const field = variantFields.find(x => String(x.nome || "").toLowerCase().includes(label.toLowerCase()));
   return field && pattern.test(String(field.valore || ""));
 };
 const variantChecks = {
