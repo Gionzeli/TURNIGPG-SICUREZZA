@@ -35,7 +35,7 @@ console.log(raw);
 console.log("RAW_OUTPUT_END");
 
 const normalized = raw.replace(/\\+"/g, '"').replace(/\\n/g, "\n");
-const cleaned = normalized.replace(/<think>[\\s\\S]*?<\/think>/gi, "").trim();
+const cleaned = normalized.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
 let parsed = null;
 const start = cleaned.indexOf("{");
 if (start >= 0) {
@@ -52,12 +52,22 @@ if (start >= 0) {
 if (!parsed || !Array.isArray(parsed.campi)) {
   throw new Error("Il modello non ha restituito JSON strutturato con campi[].");
 }
-const flat = parsed.campi.map(x => `${x.nome || ""}: ${x.valore || ""}`).join("\n");
-const hasBase = /1468[,.]88/.test(flat);
-const hasScatti = /84[,.]52/.test(flat);
-const hasRetribuzione = /896[,.]19/.test(flat);
-const hasFerie = /657[,.]21/.test(flat);
-console.log("QUALITY_CHECK", JSON.stringify({ hasBase, hasScatti, hasRetribuzione, hasFerie, fieldCount: parsed.campi.length }));
+const valueFor = label => {
+  const field = parsed.campi.find(x => String(x.nome || "").trim().toLowerCase() === label.toLowerCase());
+  return field ? String(field.valore || "") : "";
+};
+const checks = {
+  hasBase: /1\.468,88/.test(valueFor("Paga base")),
+  hasScatti: /84,52/.test(valueFor("Scatti")),
+  hasRetribuzione: /896,19/.test(valueFor("Retribuzione")),
+  hasFerie: /657,21/.test(valueFor("Ferie godute"))
+};
+console.log("QUALITY_CHECK", JSON.stringify(checks));
+if (Object.values(checks).some(ok => !ok)) {
+  throw new Error("Estrazione incompleta o importo associato all'etichetta sbagliata: " + JSON.stringify(checks));
+}
 console.log("STRUCTURED_INFERENCE_OK");
+
+
 
 // Triggered CI validation after workflow installation. Retry 7.
