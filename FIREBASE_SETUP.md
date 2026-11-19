@@ -1,20 +1,25 @@
-# Attivazione Firebase — Turni GPG/sicurezza
+# Firebase — Turni GPG/sicurezza
 
-L'interfaccia Firebase è collegata alla PWA, ma resta disattivata finché non configuri il progetto. La modalità locale continua a funzionare nel frattempo.
+Il progetto Firebase Web è già configurato in `firebase-config.js` per il progetto `turnigpg-sicurezza`. La PWA usa Firebase soltanto per autenticazione e gestione delle autorizzazioni dei collaboratori.
 
-1. Crea un progetto nella Console Firebase e registra un'app Web.
-2. Attiva Authentication > Email/Password e crea Firestore.
-3. Inserisci apiKey, authDomain, projectId e appId in `firebase-config.js`; imposta `enabled: true` solo dopo aver pubblicato le regole.
-4. Pubblica `firestore.rules` in Firestore > Rules.
-5. Aggiungi il dominio GitHub Pages in Authentication > Settings > Authorized domains.
-6. Verifica registrazione, verifica email, login, approvazione, notifiche, recupero password e migrazione prima di invitare collaboratori.
+## Servizi utilizzati
 
-Amministratore: `zelanogianfranco@gmail.com` (email verificata). Non inserire password o chiavi private nel repository.
+1. Firebase Authentication con email/password e verifica dell'indirizzo.
+2. Firestore per richieste di accesso, autorizzazioni, date di inizio/fine e notifiche amministrative.
+3. L'amministratore `zelanogianfranco@gmail.com` approva o sospende i collaboratori e stabilisce il periodo di validità.
 
-## Migrazione e isolamento
+## Dati che non devono essere caricati su Firebase
 
-Dopo l'approvazione, turni e parametri vengono salvati in un documento privato associato all'UID Firebase. Al primo accesso viene chiesto esplicitamente se importare l'archivio locale precedente; il vecchio archivio non viene cancellato. Se esistono dati locali personali e dati cloud, viene chiesto quale versione usare. I dati del profilo/PIN vengono separati per account sul dispositivo; il vecchio archivio resta intatto.
+Turni, buste paga, parametri economici, documenti, profilo locale e backup restano sul dispositivo. La PWA non deve chiamare funzioni di sincronizzazione per questi dati e non deve usare la raccolta `privateData`.
 
-## Ancora necessario
+Le regole presenti in `firestore.rules` negano ogni accesso a `privateData/{uid}`. Le regole nel repository non vengono pubblicate automaticamente da GitHub Pages: devono corrispondere alle regole attive nella Console Firebase.
 
-Il progetto Firebase non è stato creato nel tuo account Google. Devi completare i passaggi della Console e inserire la configurazione dell'app Web. Finché `enabled: false`, la PWA resta in modalità locale e non avvia l'autenticazione cloud.
+## Controllo prima di invitare collaboratori
+
+- In Firebase Authentication, verificare che il metodo Email/Password sia abilitato.
+- In Authentication > Settings > Authorized domains, verificare il dominio GitHub Pages.
+- In Firestore > Rules, verificare che siano pubblicate le regole del file `firestore.rules`.
+- Provare registrazione, email di verifica, login, richiesta, approvazione, sospensione e scadenza.
+- Verificare che turni e cedolini non vengano creati o letti in Firestore.
+
+Non attivare procedure di migrazione o sincronizzazione dei dati lavorativi.
