@@ -24,11 +24,11 @@ const generator = await pipeline("text-generation", MODEL_ID, {
 });
 console.log("MODEL_READY");
 
-const prompt = "<|im_start|>system\nSei un estrattore di cedolini. Restituisci solo JSON valido con questa forma: {\"tipo_documento\":\"cedolino\",\"campi\":[{\"nome\":\"Paga base\",\"valore\":\"importo\"}],\"incertezze\":[]}. Estrai ogni voce e il suo importo esattamente come appare. Non copiare i valori dell'esempio. Distingui Paga base, Scatti, Retribuzione e Ferie godute. Non inventare né chiedere conferma.\n<|im_end|>\n<|im_start|>user\n" + sample + "\n<|im_end|>\n<|im_start|>assistant\n";
-const output = await generator(prompt, { max_new_tokens: 256, do_sample: false });
+const prompt = "<|im_start|>system\nSei un estrattore di cedolini. Restituisci solo JSON valido con questa forma: {\"tipo_documento\":\"cedolino\",\"campi\":[{\"nome\":\"Paga base\",\"valore\":\"importo\"}],\"incertezze\":[]}. Estrai ogni voce e il suo importo esattamente come appare. Non copiare i valori dell'esempio. Distingui Paga base, Scatti, Retribuzione e Ferie godute. Non inventare né chiedere conferma.\n<|im_end|>\n<|im_start|>user\n/no_think\n" + sample + "\n<|im_end|>\n<|im_start|>assistant\n";
+const output = await generator(prompt, { max_new_tokens: 384, do_sample: false });
 const generated = output?.[0]?.generated_text;
 const fullText = String(generated || "");
-const raw = fullText.startsWith(prompt) ? fullText.slice(prompt.length).trim() : fullText.trim();
+const assistantAt = fullText.lastIndexOf("assistant");\nconst raw = assistantAt >= 0 ? fullText.slice(assistantAt + "assistant".length).trim() : fullText.trim();
 console.log("RAW_OUTPUT_BEGIN");
 console.log(raw);
 console.log("RAW_OUTPUT_END");
