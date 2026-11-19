@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.22 – Evitato l’OCR quando il PDF contiene già la paga base",
+    "v": "2.3.22",
+    "d": 1795109400000,
+    "b": "📄 LETTURA DELLA BUSTA PAGA\nCorretto il flusso PDF: quando il testo originale contiene già la voce “Paga base” con un importo leggibile, l’app usa il testo nativo e salta davvero l’OCR. In questo caso non mescola più testo PDF e testo OCR, che potevano duplicare o confondere le voci.\n\n🔒 Il riconoscimento resta sul dispositivo. I parametri vengono modificati solo dopo l’anteprima e la conferma."
+  },
+  {
     "t": "Versione 2.3.21 – Migliorata la lettura dei cedolini PDF",
     "v": "2.3.21",
     "d": 1795107600000,
