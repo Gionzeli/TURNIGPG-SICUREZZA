@@ -71,10 +71,12 @@ Ferie godute: 657,21 per 11 giorni</textarea>
       }
       if (data.type === "result") {
         $("result").textContent = data.answer;
-        $("analyze").disabled = !ready || !$("sample").value.trim();\n        status(data.structured ? "Risultato JSON strutturato. Controlla manualmente ogni campo." : "Il modello non ha prodotto JSON valido: controlla il testo grezzo e riprova.");
+        $("analyze").disabled = !ready || !$("sample").value.trim();
+        status(data.structured ? "Risultato JSON strutturato. Controlla manualmente ogni campo." : "Il modello non ha prodotto JSON valido: controlla il testo grezzo e riprova.");
       }
       if (data.type === "error") {
-        status("Errore: " + data.message);\n        if (ready) $("analyze").disabled = !$("sample").value.trim();
+        status("Errore: " + data.message);
+        if (ready) $("analyze").disabled = !$("sample").value.trim();
         if (!ready) {
           if (worker) worker.terminate();
           worker = null;
