@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.33 – Importazione cedolino più prudente",
+    "v": "2.3.33",
+    "d": 1795089600000,
+    "b": "📄 RICONOSCIMENTO IMPORTI\nIl lettore richiede ora un importo con cifre decimali: numeri isolati come “1” o “13” non vengono accettati come paga base o scatti.\n\n🔒 PARAMETRI PROTETTI\nQuando importi una busta paga vengono aggiornati soltanto i campi riconosciuti e confermati. I parametri non letti restano invariati: non vengono azzerati.\n\nLa lettura del PDF e l’OCR restano sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.32 – Riconoscimento delle etichette spezzate nei cedolini",
     "v": "2.3.32",
     "d": 1795089600000,
