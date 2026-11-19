@@ -21,7 +21,7 @@ async function ocrImages(images,onProgress){
  return pages.join("\n\n").slice(0,60000);
 }
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
-function italianNumber(s){let t=String(s||"").replace(/[^0-9,.-]/g,"");if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,"");const n=Number(t);return Number.isFinite(n)?n:null}
+function italianNumber(s){let t=String(s||"").replace(/[Oo]/g,"0").replace(/[Il]/g,"1").replace(/\s+/g,"").replace(/[^0-9,.-]/g,"");if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,"");const n=Number(t);return Number.isFinite(n)?n:null}
 function labeledValue(lines,aliases){
  const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
  const raw=lines.join("\n").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ").replace(/^RIGA\s+\d+\s*:\s*/gim,"");
@@ -34,8 +34,8 @@ function labeledValue(lines,aliases){
   while((hit=re.exec(flat))){
    const tail=flat.slice(hit.index+hit[0].length,hit.index+hit[0].length+100)
     .replace(/\s*([.,])\s*/g,"$1")
-    .replace(/(\d)\s+(\d)/g,"$1$2");
-   const m=tail.match(/^\s*[:=€]?\s*([-+]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,5})?)/);
+    .replace(/([0-9OIl])\s+([0-9OIl])/g,"$1$2");
+   const m=tail.match(/^\s*[:=€]?\s*([-+]?(?:[0-9OIl]{1,3}(?:\.[0-9OIl]{3})+|[0-9OIl]+)(?:,[0-9OIl]{1,5})?)/);
    if(m){const v=italianNumber(m[1]);if(v!==null&&v>0)return v}
   }
  }
@@ -44,8 +44,8 @@ function labeledValue(lines,aliases){
   for(const key of keys){
    const at=n.indexOf(key);if(at<0)continue;
    const tail=[lines[i].slice(Math.min(lines[i].length,at+key.length)),...lines.slice(i+1,i+3)].join(" ")
-    .replace(/\u00a0/g," ").replace(/\s*([.,])\s*/g,"$1").replace(/(\d)\s+(\d)/g,"$1$2");
-   const m=tail.match(/^\s*[:=€|]?\s*([-+]?(?:\d{1,3}(?:\.\d{3})+|\d+)(?:,\d{1,5})?)/);
+    .replace(/\u00a0/g," ").replace(/\s*([.,])\s*/g,"$1").replace(/([0-9OIl])\s+([0-9OIl])/g,"$1$2");
+   const m=tail.match(/^\s*[:=€|]?\s*([-+]?(?:[0-9OIl]{1,3}(?:\.[0-9OIl]{3})+|[0-9OIl]+)(?:,[0-9OIl]{1,5})?)/);
    if(m){const v=italianNumber(m[1]);if(v!==null&&v>0)return v}
   }
  }
