@@ -24,7 +24,7 @@ const generator = await pipeline("text-generation", MODEL_ID, {
 });
 console.log("MODEL_READY");
 
-const prompt = "<|im_start|>system\\nSei un estrattore di cedolini. Restituisci solo JSON valido con questa forma: {\\\"tipo_documento\\\":\\\"cedolino\\\",\\\"campi\\\":[{\\\"nome\\\":\\\"Paga base\\\",\\\"valore\\\":\\\"importo\\\"}],\\\"incertezze\\\":[]}. Estrai ogni voce e il suo importo esattamente come appare. Non copiare i valori dell'esempio. Distingui Paga base, Scatti, Retribuzione e Ferie godute. Non inventare né chiedere conferma.\\n<|im_end|>\\n<|im_start|>user\\n" + sample + "\\n<|im_end|>\\n<|im_start|>assistant\\n";
+const prompt = "<|im_start|>system\nSei un estrattore di cedolini. Restituisci solo JSON valido con questa forma: {\"tipo_documento\":\"cedolino\",\"campi\":[{\"nome\":\"Paga base\",\"valore\":\"importo\"}],\"incertezze\":[]}. Estrai ogni voce e il suo importo esattamente come appare. Non copiare i valori dell'esempio. Distingui Paga base, Scatti, Retribuzione e Ferie godute. Non inventare né chiedere conferma.\n<|im_end|>\n<|im_start|>user\n" + sample + "\n<|im_end|>\n<|im_start|>assistant\n";
 const output = await generator(prompt, { max_new_tokens: 256, do_sample: false });
 const generated = output?.[0]?.generated_text;
 const fullText = String(generated || "");
@@ -33,7 +33,7 @@ console.log("RAW_OUTPUT_BEGIN");
 console.log(raw);
 console.log("RAW_OUTPUT_END");
 
-const normalized = raw.replaceAll('\\\\"', '"').replaceAll('\\\\n', "\\n");
+const normalized = raw.replace(/\\+"/g, '"').replace(/\\n/g, "\n");
 const cleaned = normalized.replace(/<think>[\\s\\S]*?<\/think>/gi, "").trim();
 let parsed = null;
 const start = cleaned.indexOf("{");
