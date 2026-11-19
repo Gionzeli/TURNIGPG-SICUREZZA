@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.31 – Lettura buste paga con percorso condiviso e importi più affidabili",
+    "v": "2.3.31",
+    "d": 1795120000000,
+    "b": "📄 LETTURA BUSTE PAGA\nTurni e buste paga passano dallo stesso lettore locale: estrazione del PDF e, quando serve, OCR sul dispositivo. Rafforzata l'associazione tra la voce “Paga base” e il suo importo anche quando il PDF separa etichetta e cifra su righe o colonne diverse.\n\n🔎 NIENTE SCAMBI TRA VOCI\nSe prima dell'importo compare un'altra voce (per esempio “Scatti”), il lettore non attraversa quella voce per prendere un numero sbagliato. Paga base e Scatti restano distinti; Retribuzione e Lavoro ordinario non vengono usati come sostituti.\n\n🔒 Il documento resta sul dispositivo. I parametri vengono mostrati in anteprima e modificati solo dopo la tua conferma."
+  },
+  {
     "t": "Versione 2.3.30 – Lettura buste paga corretta e condivisa",
     "v": "2.3.30",
     "d": 1795116000000,
