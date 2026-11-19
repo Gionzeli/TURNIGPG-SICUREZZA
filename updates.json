@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.16 – Migliorata la lettura delle colonne del cedolino",
+    "v": "2.3.16",
+    "d": 1795080000000,
+    "b": "📄 LETTURA DELLA BUSTA PAGA\nMigliorato il riconoscimento delle voci quando il PDF o l’OCR separa le parole e gli importi in colonne o righe diverse. La voce LAVORO ORDINARIO viene cercata anche quando è spezzata e il totale viene ricavato dal cedolino inserito, senza importi preimpostati.\n\n🔎 CONFERMA PRIMA DEL SALVATAGGIO\nI parametri vengono sostituiti solo dopo aver mostrato l’anteprima e aver ricevuto la conferma. Se la paga base non è riconosciuta, i valori già presenti restano invariati.\n\n🔒 I documenti e i parametri restano sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.15 – Corretta la lettura dei cedolini PDF",
     "v": "2.3.15",
     "d": 1795079460000,
