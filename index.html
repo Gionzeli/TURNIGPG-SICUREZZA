@@ -861,6 +861,7 @@ const INFO=`<div class="card info"><h3>Cos’è e come funziona</h3><p>Turni Gpg
 {const gp=INFO.split('</div><div class="card info">'),sm=h=>h.replace(/<h3>(.*?)<\/h3>/,'<summary><b>$1</b></summary>');$("info_a").innerHTML='<details class="card info">'+sm(gp[0].replace('<div class="card info">',''))+'</details><details class="card info">'+sm(gp[1].replace(/<\/div>$/,''))+'</details>'}
 
 window.addEventListener("turni-firebase-session",e=>{const d=e.detail||{};ME=d.uid||null;ADMIN=!!d.admin;MEM=d.member||null;MYREQ=d.request||null;ready=true;refresh();if(!okAccess())show("gate");else if(CUR==="gate")show("turni")});
+window.addEventListener("turni-firebase-updates",e=>{UPD=Array.isArray(e.detail?.items)?e.detail.items:[];renderUpd()});
 boot();
 </script>
 
