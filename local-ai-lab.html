@@ -83,7 +83,7 @@ Ferie godute: 657,21 per 11 giorni</textarea>
           "",
           "INCERTEZZE / CAMPI RIFIUTATI",
           JSON.stringify(check.uncertainties || [], null, 2)
-        ].join("\\n");
+        ].join("\n");
         $("result").textContent = report;
         $("analyze").disabled = !ready || !$("sample").value.trim();
         status(check.complete && Object.keys(check.accepted || {}).length
@@ -130,7 +130,7 @@ Ferie godute: 657,21 per 11 giorni</textarea>
       "",
       "INCERTEZZE",
       JSON.stringify(verification.uncertainties, null, 2)
-    ].join("\\n");
+    ].join("\n");
     status(Object.keys(verification.accepted).length
       ? "Lettura locale completata. I valori confermati sono sopra; controllali prima di usarli."
       : "Nessun importo confermato: non usare questi dati.");
