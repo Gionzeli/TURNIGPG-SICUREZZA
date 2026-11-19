@@ -66,17 +66,6 @@ export async function submitAccessRequest(user, name, role = "", note = "") {
     status: "pending", createdAt: serverTimestamp()
   });
 }
-export async function loadPrivateData(uid) {
-  const snap = await getDoc(doc(db, "privateData", uid));
-  return snap.exists() ? snap.data() : null;
-}
-export async function savePrivateData(uid, data) {
-  // Un documento per utente: mai condiviso tra collaboratori.
-  await setDoc(doc(db, "privateData", uid), {
-    params: data.params || {}, shifts: Array.isArray(data.shifts) ? data.shifts : [],
-    updatedAt: serverTimestamp()
-  });
-}
 export function watchMyNotifications(uid, callback) {
   return onSnapshot(query(collection(db, "notifications", uid, "items"), orderBy("createdAt", "desc")),
     snap => callback(snap.docs.map(d => ({ id: d.id, ...d.data() }))));
