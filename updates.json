@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.9 – Accesso collaboratori con approvazione",
+    "v": "2.3.9",
+    "d": 1795047000000,
+    "b": "Collegata la registrazione e l’accesso Firebase con email e password, verifica dell’indirizzo e approvazione dell’amministratore con data di inizio e fine. I turni, le buste paga e i documenti continuano a restare sul dispositivo: nessuna sincronizzazione dei dati lavorativi. Aggiornata la cache dell’app senza cancellare gli archivi locali."
+  },
+  {
     "t": "Versione 2.3.8 – Grafica Material 3 Expressive",
     "v": "2.3.8",
     "d": 1795046400000,
