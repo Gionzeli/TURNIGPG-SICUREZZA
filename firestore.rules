@@ -30,7 +30,7 @@ service cloud.firestore {
     }
 
     match /privateData/{uid} {
-      allow read, create, update, delete: if isOwner(uid);
+      allow read, create, update, delete: if false;
     }
 
     match /notifications/{uid}/items/{notificationId} {
