@@ -17,7 +17,7 @@ function rowsFromWords(words){
 }
 async function ocrImages(images,onProgress){
  if(!images?.length)return "";const w=await loadOCR(onProgress),pages=[];
- try{for(let i=0;i<images.length;i++){onProgress?.({phase:"ocr-page",page:i+1,total:images.length});const r=await w.recognize(images[i]),t=rowsFromWords(r?.data?.words)||String(r?.data?.text||"").trim();if(t)pages.push("PAGINA "+(i+1)+":\n"+t)}}finally{try{await w.terminate()}catch(e){}}
+ try{for(let i=0;i<images.length;i++){onProgress?.({phase:"ocr-page",page:i+1,total:images.length});const r=await w.recognize(images[i]),structured=rowsFromWords(r?.data?.words),plain=String(r?.data?.text||"").trim(),t=[structured,plain?"TESTO OCR COMPLETO:\n"+plain:""].filter(Boolean).join("\n");if(t)pages.push("PAGINA "+(i+1)+":\n"+t)}}finally{try{await w.terminate()}catch(e){}}
  return pages.join("\n\n").slice(0,60000);
 }
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
