@@ -1,0 +1,32 @@
+name: Test prototipo AI locale
+
+on:
+  push:
+    branches:
+      - ai-locale-prototype
+    paths:
+      - "local-ai-adapter.js"
+      - "local-ai-adapter.test.cjs"
+      - ".github/workflows/local-ai-prototype-tests.yml"
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "local-ai-adapter.js"
+      - "local-ai-adapter.test.cjs"
+
+permissions:
+  contents: read
+
+jobs:
+  adapter-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica il codice
+        uses: actions/checkout@v4
+      - name: Configura Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Test adattatore locale
+        run: node local-ai-adapter.test.cjs
