@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.10 – Lettura retribuzione ordinaria",
+    "v": "2.3.10",
+    "d": 1795129800000,
+    "b": "Migliorata la lettura delle buste paga: quando la voce LAVORO ORDINARIO riporta quantità, tariffa e totale, l'app riconosce il totale effettivo come paga base, leggendo il valore dal documento inserito (non usa importi fissi). La conferma mostra i valori prima di sostituire i parametri; i dati e i documenti restano sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.9 – Accesso collaboratori con approvazione",
     "v": "2.3.9",
     "d": 1795047000000,
