@@ -489,7 +489,7 @@ const STANDALONE=false,LINK=STANDALONE?location.href.split("#")[0].split("?")[0]
 const okAccess=()=>{if(ADMIN||STANDALONE)return true;const t=today();return !!(MEM&&MEM.active&&(!MEM.start||t>=MEM.start)&&(!MEM.end||t<=MEM.end))};
 function show(p){if((p==="turni"||p==="paga"||p==="adm")&&!okAccess())p="gate";CUR=p;["turni","paga","gate","agg","adm"].forEach(x=>$("pg_"+x).hidden=x!==p);
 const adm=ADMIN&&!STANDALONE;document.querySelectorAll("#nav button").forEach(b=>{b.className=b.dataset.p===p?"pri":"";if(b.dataset.p==="turni"||b.dataset.p==="paga"||b.dataset.p==="adm")b.hidden=!okAccess()});if(window.TURNI_FIREBASE_CONFIG?.enabled){$("nav_adm").hidden=!ADMIN;const gb=document.querySelector('#nav button[data-p="gate"]');if(gb)gb.textContent=ADMIN?"Account / richieste":"Accesso";}
-if(!adm)$("nav_adm").textContent="Condividi";$("admh").textContent=adm?"Collaboratori":"Condividi e supporto";$("invselw").hidden=!adm;
+$("nav_adm").textContent="Condividi";$("admh").textContent=adm?"Condividi e gestisci collaboratori":"Condividi e supporto";$("invselw").hidden=!adm;
 $("aibox").hidden=!okAccess();$("mbar").hidden=!(p==="turni"||p==="paga");
 if(ready&&okAccess()&&STANDALONE){if((!X.name||!X.pin)&&!regOpen)showReg();else if(!X.onb&&!obOpen&&!regOpen)startOnb()}
 if(p!=="adm"&&dnOn){dnOn=false;dnR()}
