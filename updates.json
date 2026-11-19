@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.34 – Paga base e Scatti non si scambiano",
+    "v": "2.3.34",
+    "d": 1795091400000,
+    "b": "📄 CORRETTA L’ASSOCIAZIONE DEGLI IMPORTI\nPaga base e Scatti vengono riconosciuti solo se il valore contiene i centesimi. Una cifra incompleta come “1,2” non viene accettata come importo.\n\n🔎 ETICHETTE SEPARATE\nSe più voci sono sulla stessa riga, il lettore si ferma alla successiva etichetta: l’importo degli Scatti non può essere assegnato alla Paga base e viceversa. Se la Paga base non è riconosciuta con certezza, l’importazione viene bloccata senza modificare i parametri."
+  },
+  {
     "t": "Versione 2.3.33 – Importazione cedolino più prudente",
     "v": "2.3.33",
     "d": 1795089600000,
