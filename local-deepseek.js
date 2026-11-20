@@ -5,7 +5,7 @@ const MODEL_ID="onnx-community/DeepSeek-R1-Distill-Qwen-1.5B-ONNX";
 let pipePromise=null,pipe=null,backend="";
 const say=(cb,msg)=>{try{cb&&cb(msg)}catch(e){}};
 async function createPipeline(progress){
-  const {pipeline,env}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1");
+  const {pipeline,env}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm");
   env.allowRemoteModels=true;
   env.allowLocalModels=false;
   const hasGPU=!!(navigator.gpu&&await navigator.gpu.requestAdapter().catch(()=>null));
