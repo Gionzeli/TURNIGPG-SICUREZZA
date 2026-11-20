@@ -94,10 +94,19 @@ function rowsFromPaddle(items){
    }
    const nextLabel=it.slice(labelEnd+1).find(x=>otherLabelRe.test(x.text));
    const boundary=nextLabel?nextLabel.x0:Infinity;
-   const candidates=it.slice(labelEnd+1).filter(x=>x.x0>=labelX1-2&&x.x0<boundary&&amountRe.test(x.text));
-   if(candidates.length){
-    candidates.sort((x,y)=>(x.x0-labelX1)-(y.x0-labelX1));
-    hints.push(rule.name+": "+candidates[0].text.trim().replace(/€|\s/g,""));
+   const sameRow=it.slice(labelEnd+1).filter(x=>x.x0>=labelX1-2&&x.x0<boundary&&amountRe.test(x.text));
+   if(sameRow.length===1){hints.push(rule.name+": "+sameRow[0].text.trim().replace(/€|\\s/g,""));continue;}
+   if(sameRow.length>1)continue;
+   // Importo nella riga sottostante della stessa tabella: ricerca limitata
+   // alla stessa fascia orizzontale e alle righe immediatamente vicine.
+   const maxGap=Math.max(18,(hs[Math.floor(hs.length/2)]||14)*3.2);
+   for(let ri=rows.indexOf(row)+1;ri<rows.length;ri++){
+    const rr=rows[ri];if(rr.anchor-row.anchor>maxGap)break;
+    const cells=rr.items.slice().sort((a,b)=>a.x0-b.x0);
+    if(cells.some(x=>otherLabelRe.test(x.text)))break;
+    const nums=cells.filter(x=>amountRe.test(x.text)&&(x.x1>=it[i].x0-4&&x.x0<=labelX1+Math.max(24,it[i].x1-it[i].x0)*1.8));
+    if(nums.length===1){hints.push(rule.name+": "+nums[0].text.trim().replace(/€|\\s/g,""));break;}
+    if(nums.length>1)break;
    }
   }
  } const lines=[];
