@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.82",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.82 – Diagnostica locale delle righe OCR del cedolino",
+    "b": "Se Paga base non viene riconosciuta, l’anteprima mostra anche le righe OCR contenenti Paga, base, Scatti, minimo, retribuzione o ordinario. Serve a capire come il lettore sta interpretando il cedolino. Le righe restano sul dispositivo e nessun parametro viene modificato se Paga base manca."
+  },
+  {
     "v": "2.3.81",
     "d": "2026-11-20",
     "t": "Versione 2.3.81 – PDF delle buste paga convertiti in PNG prima dell’OCR",
