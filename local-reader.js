@@ -157,7 +157,7 @@ async function ocrPayslipImages(images,onProgress){
 
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
 function italianNumber(s){let t=String(s||"").replace(/[Oo]/g,"0").replace(/[Il]/g,"1").replace(/\s+/g,"").replace(/[^0-9,.-]/g,"");if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,"");const n=Number(t);return Number.isFinite(n)?n:null}
-function labeledValue(lines,aliases,requireCents=false){
+function labeledValue(lines,aliases,requireCents=false,detail=null){
  const keys=aliases.map(norm).sort((a,b)=>b.length-a.length);
  // Paga base e Scatti devono avere i centesimi: non accettare cifre isolate o "1,2".
  const number=requireCents
@@ -178,14 +178,14 @@ function labeledValue(lines,aliases,requireCents=false){
    let tail=rows[i].slice(hit.index+hit[0].length).replace(/^[\s|:;=€]+/,"");
    const sameRowBoundary=stop.exec(tail);
    if(sameRowBoundary)tail=tail.slice(0,sameRowBoundary.index);
-   let value=valueOf(tail);if(value!==null)return value;
+   let value=valueOf(tail);if(value!==null){if(detail)Object.assign(detail,{matchedAlias:alias,source:lines[i],value});return value;}
    if(sameRowBoundary)continue;
    // Accetta la riga immediatamente successiva solo se contiene esclusivamente
    // un importo: evita di confondere Paga base con Scatti o altre voci.
    const next=rows[i+1]||"";
    if(next&&!/[a-z]/i.test(next)){
     const nextValue=valueOf(next);
-    if(nextValue!==null)return nextValue;
+    if(nextValue!==null){if(detail)Object.assign(detail,{matchedAlias:alias,source:lines[i]+" / "+next,value:nextValue});return nextValue;}
    }
    // Non cercare importi più lontani: potrebbero appartenere a un'altra voce.
   }
@@ -228,7 +228,7 @@ function parsePayslip(text,fields,customAliases){
  const scanLines=lines.slice();
  for(let width=2;width<=4;width++)for(let i=0;i+width<=lines.length;i++)scanLines.push(lines.slice(i,i+width).join(" "));
  const out={};
- for(const [key] of fields){const custom=Array.isArray(customAliases?.[key])?customAliases[key].filter(x=>typeof x==="string"&&x.trim()).slice(0,40):[];const v=labeledValue(scanLines,[...(aliases[key]||[key.replace(/_/g," ")]),...custom],key==="paga_base"||key==="scatti");if(v!==null)out[key]=v}
+ out.details={};for(const [key] of fields){const custom=Array.isArray(customAliases?.[key])?customAliases[key].filter(x=>typeof x==="string"&&x.trim()).slice(0,40):[],detail={};const v=labeledValue(scanLines,[...(aliases[key]||[key.replace(/_/g," ")]),...custom],key==="paga_base"||key==="scatti",detail);if(v!==null){out[key]=v;out.details[key]=detail}}
  // La paga base si legge solo da un'etichetta contrattuale esplicita.
  // Non usare il totale di LAVORO ORDINARIO: può riferirsi a pochi giorni e non alla base mensile.
  out.profile=parseContractProfile(text);
@@ -248,7 +248,7 @@ function parseTurns(text){
  const addRest=(date,type,raw)=>{const x={date,type,post:"",start_time:"",end_time:"",piantonamento:false,notturno:false,ore:0};const key=[date,type,norm(raw)].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}};
  const addShift=(date,segment,start,end,postRaw)=>{
   let post=String(postRaw||"").replace(/\s*\|\s*/g," ").replace(/\bVIGILANZA\s+FISSA\b/ig," ").replace(/\bAOUC\s+POLICLINICO\s+BARI\b/ig," ").replace(/\b(?:lun|mar|mer|gio|ven|sab|dom)(?:ed[iì])?\.?\b/ig," ").replace(/\s+/g," ").replace(/^[\s|,:;.-]+|[\s|,:;.-]+$/g,"").trim();
-  if(!post)return;const n=norm(segment),x={date,type:"turno",post:post.slice(0,120),start_time:start,end_time:end,piantonamento:/piant/i.test(n+" "+norm(post)),notturno:false,ore:0};x.notturno=+end.slice(0,2)<+start.slice(0,2);
+  const n=norm(segment),x={date,type:"turno",post:post.slice(0,120),start_time:start,end_time:end,piantonamento:/piant/i.test(n+" "+norm(post)),notturno:false,ore:0};x.notturno=+end.slice(0,2)<+start.slice(0,2);
   const key=[date,"turno",start,end,norm(post)].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}
  };
  for(const raw of lines){
@@ -260,7 +260,7 @@ function parseTurns(text){
   else{const day=line.match(/^\s*(\d{1,2})\s+(?:lun|mar|mer|gio|ven|sab|dom)\b/i);if(day&&periodStart){const d=+day[1],p=periodStart.split("-").map(Number);let y=p[0],mo=p[1];if(d<p[2]){mo++;if(mo>12){mo=1;y++}}const dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d){currentDate=y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0");segment=line.replace(day[0],"")}}}
   if(!currentDate||!segment.trim())continue;
   const matches=[...segment.matchAll(timeRe)];
-  if(matches.length>=2){for(let i=0;i+1<matches.length;i+=2){const a=matches[i],b=matches[i+1],next=matches[i+2],start=String(a[1]).padStart(2,"0")+":"+a[2],end=String(b[1]).padStart(2,"0")+":"+b[2];addShift(currentDate,segment,start,end,segment.slice(b.index+b[0].length,next?next.index:segment.length))}continue}
+  if(matches.length>=2){const sharedPost=segment.replace(timeRe," ").replace(/\s+/g," ").trim();for(let i=0;i+1<matches.length;i+=2){const a=matches[i],b=matches[i+1],next=matches[i+2],start=String(a[1]).padStart(2,"0")+":"+a[2],end=String(b[1]).padStart(2,"0")+":"+b[2],localPost=segment.slice(b.index+b[0].length,next?next.index:segment.length);addShift(currentDate,segment,start,end,localPost.trim()?localPost:sharedPost)}continue}
   const n=norm(segment.replace(/\s*\|\s*/g," "));
   if(/\briposo\s+compensativo\b/.test(n)){addRest(currentDate,"riposo_compensativo",segment);continue}
   if(/\bferie\b/.test(n)){addRest(currentDate,"ferie",segment);continue}
