@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.56 – Conferma manuale dei parametri cedolino",
+    "v": "2.3.56",
+    "d": 1795153200000,
+    "b": "Se il riconoscimento locale non individua Paga base, ora è possibile inserire manualmente Paga base e Scatti, verificare i valori e confermare il salvataggio sul dispositivo. Vengono aggiornati soltanto questi due parametri; tutti gli altri restano invariati. Nessun documento o dato viene caricato online."
+  },
+  {
     "t": "Versione 2.3.55 – Associazione degli importi nelle colonne del cedolino",
     "v": "2.3.55",
     "d": 1795153200000,
