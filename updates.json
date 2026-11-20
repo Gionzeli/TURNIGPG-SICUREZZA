@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.45 – Paga base associata con le coordinate OCR",
+    "v": "2.3.45",
+    "d": 1795132800000,
+    "b": "Migliorata l’associazione locale tra la voce Paga base e il relativo importo usando anche la posizione dei riquadri riconosciuti da PaddleOCR. Le righe vengono raggruppate con tolleranza verticale più precisa; l’importo viene associato solo se è nella stessa riga e prima di un’altra etichetta. Paga base e Scatti restano separati. Nessun uso di Retribuzione o Lavoro ordinario come sostituti; se l’associazione non è certa, i parametri restano invariati."
+  },
+  {
     "t": "Versione 2.3.44 – PaddleOCR italiano per le buste paga",
     "v": "2.3.44",
     "d": 1795132800000,
