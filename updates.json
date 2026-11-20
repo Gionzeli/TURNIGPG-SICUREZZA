@@ -1,8 +1,8 @@
 [
   {
-    "t": "Versione 2.3.64 – Calcolo ore ordinarie e straordinarie",
-    "v": "2.3.64",
-    "d": 1795157623511,
-    "b": "Impostate 7,25 ore decimali (7 ore e 15 minuti) come soglia ordinaria giornaliera. Oltre 7,25 ore: straordinario; 8 ore = 0,75 straordinarie, 12 ore = 4,75. Nel riposo lavorato tutte le ore sono straordinarie. Corretto anche il valore precedente 7,15 se usato come notazione errata. Restano invariati gli altri parametri, turni e trattenute."
+    "t": "Versione 2.3.65 – Ripartizione ore nella tabella Turni",
+    "v": "2.3.65",
+    "d": 1795180800000,
+    "b": "La tabella mostra per ogni fascia le ore ordinarie e quelle straordinarie in formato decimale, secondo il limite giornaliero impostato (7,25 ore ordinarie): ad esempio 8 ore = 7,25 ordinarie + 0,75 straordinarie; 12 ore = 7,25 + 4,75. Più fasce nella stessa giornata condividono una sola soglia ordinaria. Il riposo lavorato è conteggiato tutto come straordinario. Nessun turno o parametro personale viene cancellato."
   }
 ]
