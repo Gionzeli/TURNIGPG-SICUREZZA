@@ -40,8 +40,14 @@ function labeledValue(lines,aliases,requireCents=false){
    if(sameRowBoundary)tail=tail.slice(0,sameRowBoundary.index);
    let value=valueOf(tail);if(value!==null)return value;
    if(sameRowBoundary)continue;
-   // Non prendere importi da righe successive: potrebbero appartenere a un'altra voce.
-   // Le etichette spezzate sono già ricomposte in scanLines prima della ricerca.
+   // Accetta la riga immediatamente successiva solo se contiene esclusivamente
+   // un importo: evita di confondere Paga base con Scatti o altre voci.
+   const next=rows[i+1]||"";
+   if(next&&!/[a-z]/i.test(next)){
+    const nextValue=valueOf(next);
+    if(nextValue!==null)return nextValue;
+   }
+   // Non cercare importi più lontani: potrebbero appartenere a un'altra voce.
   }
  }
  return null;
