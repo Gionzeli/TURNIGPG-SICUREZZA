@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.84",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.84 – Diagnostica OCR con righe circostanti",
+    "b": "Ampliata la diagnostica locale del cedolino: mostra anche le righe immediatamente precedenti e successive alle intestazioni Paga base e Scatti, per individuare gli importi nelle colonne. Nessun documento viene inviato online e nessun parametro viene salvato se la paga base non è riconosciuta."
+  },
+  {
     "v": "2.3.83",
     "d": "2026-11-20",
     "t": "Versione 2.3.83 – Correzione avvio e diagnostica OCR",
