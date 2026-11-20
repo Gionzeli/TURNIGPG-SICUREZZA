@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.71",
+    "d": 20261120,
+    "t": "Correzione avvio app",
+    "x": "Risolto un carattere di escape errato nel codice della decorrenza facoltativa che impediva l’avvio. Nessun turno, parametro o dato locale viene cancellato o modificato."
+  },
+  {
     "t": "Versione 2.3.70 – Decorrenza facoltativa",
     "v": "2.3.70",
     "d": "2026-11-20",
