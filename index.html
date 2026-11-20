@@ -456,14 +456,14 @@ function render(){
 S.shifts=S.shifts.map(cleanShift).filter(Boolean);FIELDS.forEach(([k])=>{const v=Number(S.params[k]);S.params[k]=Number.isFinite(v)?v:0});
 const[y,m]=S.month.split("-").map(Number);$("mlabel").textContent=new Date(y,m-1,1).toLocaleDateString("it-IT",{month:"long",year:"numeric"});
 const L=monthShifts(),r=calc(L);
-const now=today(),monthStart=S.month+"-01",[cy,cm]=S.month.split("-").map(Number),daysInMonth=new Date(cy,cm,0).getDate(),elapsed=Math.min(daysInMonth,Math.max(0,Number(now.slice(8,10)))),isCurrent=S.month===now.slice(0,7);
+const now=today(),[cy,cm]=S.month.split("-").map(Number),daysInMonth=new Date(cy,cm,0).getDate(),elapsed=Math.min(daysInMonth,Math.max(0,Number(now.slice(8,10)))),isCurrent=S.month===now.slice(0,7);
 if(!isCurrent){$("forecast").innerHTML='<h3>Previsione dello stipendio</h3><p class="hint">Seleziona il mese corrente per visualizzare la previsione progressiva. Il riepilogo sopra continua a mostrare i turni del mese selezionato.</p>'}
 else{
  const past=L.filter(s=>s.date<=now),future=L.filter(s=>s.date>now),fixed=S.params.paga_base+S.params.scatti+S.params.altre_fisse,
    pastCalc=calc(past),futureCalc=calc(future),pastVar=Math.max(0,pastCalc.gross-fixed),futureVar=Math.max(0,futureCalc.gross-fixed),
    plannedDays=new Set(future.filter(s=>WORK.includes(s.type)).map(s=>s.date)).size,
    remaining=Math.max(0,daysInMonth-elapsed),unplanned=Math.max(0,remaining-plannedDays),
-   pace=elapsed>0?pastVar/elapsed:0,canProject=elapsed>0&&past.length>0,
+   pace=elapsed>0?pastVar/elapsed:0,canProject=elapsed>0&&past.some(s=>WORK.includes(s.type)),
    projectedVar=pastVar+futureVar+(canProject?pace*unplanned:0),projectedGross=fixed+projectedVar,
    pin=projectedGross*S.params.inps_rate/100,pir=Math.max(0,projectedGross-pin)*S.params.irpef_rate/100,
    pded=pin+pir+S.params.sindacato+S.params.cessione+S.params.altre_trattenute,
