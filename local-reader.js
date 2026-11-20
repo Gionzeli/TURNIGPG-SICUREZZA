@@ -67,6 +67,17 @@ function rowsFromPaddle(items){
  const hints=[];
  for(const row of rows){
   const it=row.items.sort((a,b)=>a.x0-b.x0);
+  const labelPositions=[];
+  for(let j=0;j<it.length;j++)for(const rule of labelRules){
+   if(rule.re.test(it[j].text))labelPositions.push({index:j,name:rule.name});
+   else if(j+1<it.length&&rule.re.test(it[j].text+" "+it[j+1].text))labelPositions.push({index:j+1,name:rule.name});
+  }
+  const firstAmountIndex=it.findIndex(x=>amountRe.test(x.text));
+  const labelsBefore=firstAmountIndex<0?[]:labelPositions.filter(x=>x.index<firstAmountIndex);
+  const labelTypesBefore=new Set(labelsBefore.map(x=>x.name));
+  // Se entrambe le etichette precedono la prima cifra, la riga non consente
+  // un abbinamento sicuro: non associare nessuno dei due importi per posizione.
+  if(labelTypesBefore.size>1)continue;
   for(const rule of labelRules)for(let i=0;i<it.length;i++){
    let labelEnd=i,labelText=it[i].text,labelX1=it[i].x1;
    if(!rule.re.test(labelText)&&i+1<it.length&&rule.re.test(labelText+" "+it[i+1].text)){
@@ -125,7 +136,7 @@ function labeledValue(lines,aliases,requireCents=false){
    // Quando più etichette precedono tutti gli importi nella stessa riga,
    // il testo lineare non permette di sapere quale cifra appartenga a quale voce.
    // In tal caso si accettano soltanto eventuali associazioni posizionali certe.
-   const pLabel=rows[i].search(/\\bpaga\\s*base\\b/i),sLabel=rows[i].search(/\\bscatti\\b/i),firstAmount=rows[i].search(number);
+   const pLabel=rows[i].search(/\bpaga\s*base\b/i),sLabel=rows[i].search(/\bscatti\b/i),firstAmount=rows[i].search(number);
    if(pLabel>=0&&sLabel>=0&&firstAmount>=0&&Math.max(pLabel,sLabel)<firstAmount)continue;
    let tail=rows[i].slice(hit.index+hit[0].length).replace(/^[\s|:;=€]+/,"");
    const sameRowBoundary=stop.exec(tail);
