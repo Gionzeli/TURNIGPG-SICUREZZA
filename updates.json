@@ -1,9 +1,9 @@
 [
   {
-    "t": "Versione 2.3.47 – Preparazione DeepSeek locale",
-    "v": "2.3.47",
+    "t": "Versione 2.3.48 – DeepSeek locale sperimentale",
+    "v": "2.3.48",
     "d": 1795132800000,
-    "b": "Aggiunta una funzione sperimentale facoltativa per scaricare e verificare DeepSeek-R1-Distill-Qwen-1.5B direttamente nel browser, con WebGPU quando disponibile e modalità CPU/WASM alternativa. Il modello viene scaricato sul singolo dispositivo (circa 1,37 GB WebGPU o 1,97 GB CPU); nessun documento viene inviato a un servizio AI. Questa versione verifica solo l'avvio del modello: l'interpretazione AI delle buste paga e dei turni non è ancora collegata al salvataggio dei dati. Il lettore OCR e i calcoli esistenti restano invariati."
+    "b": "Aggiunta la preparazione facoltativa di DeepSeek-R1-Distill-Qwen-1.5B nel browser, con caricamento del pacchetto Transformers.js in formato ESM e selezione WebGPU o CPU/WASM. Il modello viene scaricato sul singolo dispositivo (circa 1,37 GB WebGPU oppure 1,97 GB CPU); nessun documento viene inviato a un servizio AI. Questa versione verifica solo l'avvio del modello: l'interpretazione AI delle buste paga e dei turni non è ancora collegata al salvataggio dei dati. Il lettore OCR e i calcoli esistenti restano invariati."
   },
   {
     "t": "Versione 2.3.46 – Importi riconosciuti anche nelle righe della tabella",
