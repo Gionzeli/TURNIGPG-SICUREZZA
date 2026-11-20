@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.54 – diagnostica locale importazione cedolino",
+    "v": "2.3.54",
+    "d": 1795132800000,
+    "b": "La lettura del cedolino distingue ora chiaramente il completamento OCR dall’effettivo salvataggio dei parametri. Se Paga base non viene riconosciuta, mostra sul dispositivo le righe OCR pertinenti a Paga base e Scatti per capire cosa è stato letto. Nessun dato del documento viene inviato online."
+  },
+  {
     "t": "Versione 2.3.53 – correzione associazione importi cedolino",
     "v": "2.3.53",
     "d": 1795132800000,
