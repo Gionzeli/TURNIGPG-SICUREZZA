@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.83",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.83 – Correzione avvio e diagnostica OCR",
+    "b": "Corretta una sequenza di escape nella diagnostica locale del cedolino che impediva l’avvio dell’app. La sezione diagnostica ora mostra le righe OCR pertinenti sul dispositivo; nessun documento viene inviato online e i dati esistenti non vengono modificati."
+  },
+  {
     "v": "2.3.82",
     "d": "2026-11-20",
     "t": "Versione 2.3.82 – Diagnostica locale delle righe OCR del cedolino",
