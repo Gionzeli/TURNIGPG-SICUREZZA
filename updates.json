@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.53 – correzione associazione importi cedolino",
+    "v": "2.3.53",
+    "d": 1795132800000,
+    "b": "Migliorata l'associazione tra le voci Paga base/Scatti e gli importi nei cedolini: il lettore OCR considera anche la colonna importi a destra quando l'importo è sulla riga immediatamente sottostante, purché sia l'unico importo presente e non ci siano altre voci tra etichetta e valore. Nessun fallback a Retribuzione o Lavoro ordinario; i dati restano sul dispositivo e vengono mostrati in anteprima prima del salvataggio."
+  },
+  {
     "t": "Versione 2.3.52 – Corretto il caricamento del lettore OCR locale",
     "v": "2.3.52",
     "d": 1795176000000,
