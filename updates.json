@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.44 – PaddleOCR italiano per le buste paga",
+    "v": "2.3.44",
+    "d": 1795132800000,
+    "b": "Integrato PaddleOCR.js ufficiale con modello PP-OCRv6 in italiano per il riconoscimento locale delle buste paga. Il browser scarica i componenti e i modelli OCR, ma i documenti restano sul dispositivo. Se PaddleOCR non si avvia o non riconosce la Paga base, viene tentato l’OCR Tesseract locale. La Paga base viene importata solo se riconosciuta con certezza; anteprima obbligatoria e nessun uso di Retribuzione o Lavoro ordinario come sostituti."
+  },
+  {
     "t": "Versione 2.3.43 – Riconoscimento paga base su riga separata",
     "v": "2.3.43",
     "d": 1795132800000,
