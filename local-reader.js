@@ -20,6 +20,45 @@ async function ocrImages(images,onProgress){
  try{for(let i=0;i<images.length;i++){onProgress?.({phase:"ocr-page",page:i+1,total:images.length});const r=await w.recognize(images[i]),structured=rowsFromWords(r?.data?.words),plain=String(r?.data?.text||"").trim(),t=[structured,plain?"TESTO OCR COMPLETO:\n"+plain:""].filter(Boolean).join("\n");if(t)pages.push("PAGINA "+(i+1)+":\n"+t)}}finally{try{await w.terminate()}catch(e){}}
  return pages.join("\n\n").slice(0,60000);
 }
+
+let _paddleCtor=null,_paddleInstance=null;
+async function loadPaddleOCR(onProgress){
+ if(!_paddleCtor){
+  _paddleCtor=import("https://cdn.jsdelivr.net/npm/@paddleocr/paddleocr-js@0.4.2/+esm")
+   .then(m=>{if(!m.PaddleOCR)throw new Error("SDK PaddleOCR non disponibile");return m.PaddleOCR})
+   .catch(e=>{_paddleCtor=null;throw e});
+ }
+ const PaddleOCR=await _paddleCtor;
+ if(!_paddleInstance){
+  onProgress?.({phase:"paddle",detail:"Caricamento modello PaddleOCR italiano sul dispositivo…"});
+  _paddleInstance=PaddleOCR.create({lang:"it",ocrVersion:"PP-OCRv6",ortOptions:{backend:"wasm"}})
+   .catch(e=>{_paddleInstance=null;throw e});
+ }
+ return await _paddleInstance;
+}
+function rowsFromPaddle(items){
+ const clean=(items||[]).filter(x=>String(x?.text||"").trim()).map((x,i)=>{
+  const pts=(Array.isArray(x.poly)?x.poly:[]).map(p=>Array.isArray(p)?{x:Number(p[0]),y:Number(p[1])}:{x:Number(p?.x),y:Number(p?.y)}).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
+  const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
+  return{text:String(x.text).trim(),x:xs.length?Math.min(...xs):i,y:ys.length?ys.reduce((a,b)=>a+b,0)/ys.length:i,h:ys.length?Math.max(3,Math.max(...ys)-Math.min(...ys)):14};
+ });
+ if(!clean.length)return "";
+ const hs=clean.map(x=>x.h).sort((a,b)=>a-b),tol=Math.max(4,(hs[Math.floor(hs.length/2)]||14)*.55),rows=[];
+ clean.sort((a,b)=>a.y-b.y||a.x-b.x);
+ for(const item of clean){let row=rows.find(r=>Math.abs(r.anchor-item.y)<=tol);if(!row){row={anchor:item.y,items:[]};rows.push(row)}row.items.push(item)}
+ return rows.sort((a,b)=>a.anchor-b.anchor).map((r,i)=>"RIGA "+(i+1)+": "+r.items.sort((a,b)=>a.x-b.x).map(x=>x.text).join(" | ")).join("\n");
+}
+async function ocrPayslipImages(images,onProgress){
+ if(!images?.length)return "";
+ const ocr=await loadPaddleOCR(onProgress),pages=[];
+ for(let i=0;i<images.length;i++){
+  onProgress?.({phase:"paddle-page",page:i+1,total:images.length});
+  const results=await ocr.predict(images[i]),result=results?.[0],text=rowsFromPaddle(result?.items);
+  if(text)pages.push("PAGINA "+(i+1)+":\n"+text);
+ }
+ return pages.join("\n\n").slice(0,60000);
+}
+
 const norm=s=>String(s||"").normalize("NFD").replace(/[\u0300-\u036f]/g,"").toLowerCase().replace(/\s+/g," ").trim();
 function italianNumber(s){let t=String(s||"").replace(/[Oo]/g,"0").replace(/[Il]/g,"1").replace(/\s+/g,"").replace(/[^0-9,.-]/g,"");if(t.includes(","))t=t.replace(/\./g,"").replace(",",".");else if((t.match(/\./g)||[]).length>1)t=t.replace(/\./g,"");const n=Number(t);return Number.isFinite(n)?n:null}
 function labeledValue(lines,aliases,requireCents=false){
@@ -116,4 +155,4 @@ function parseTraining(text){
  const all=lines.join(" "),hm=all.match(/(\d+(?:[,.]\d+)?)\s*(?:ore|h\b)/i);
  return{title:title||(/formazione/.test(norm(all))?"Formazione":""),provider,date,expiry,hours:hm?italianNumber(hm[1]):null};
 }
-window.LocalDocAI={ocrImages,parsePayslip,parseTurns,parseTraining};
+window.LocalDocAI={ocrImages,ocrPayslipImages,parsePayslip,parseTurns,parseTraining};
