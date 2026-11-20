@@ -1,56 +1,62 @@
 [
   {
+    "v": "2.3.75",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.75 – Correzione note aggiornamenti",
+    "b": "Corrette le note aggiornamenti: uniformati i campi di titolo e descrizione e normalizzate tutte le date nel formato leggibile dall’app. Corretto anche il testo storico della versione 2.3.73, distinguendo la proposta di etichette dalla conferma effettiva dell’importazione."
+  },
+  {
     "v": "2.3.74",
-    "d": 20261120,
-    "t": "Anteprima chiara prima dell’importazione del cedolino",
-    "x": "Rimossa la richiesta di associare automaticamente diciture candidate durante la lettura, che poteva mostrare soltanto nomi di parametri senza dati verificati. Il cedolino viene importato solo se è riconosciuto un importo Paga base e solo dopo un’anteprima con i valori numerici rilevati e conferma esplicita. Se il dato non è leggibile, l’importazione si interrompe senza modificare parametri o profilo. Il dizionario personale resta disponibile per associazioni manuali."
+    "d": "2026-11-20",
+    "t": "Versione 2.3.74 – Anteprima e conferma del cedolino",
+    "b": "Corretta la lettura del cedolino: non vengono più proposte associazioni automatiche di etichette candidate durante l’importazione. L’app mostra i soli valori numerici riconosciuti e richiede una conferma esplicita prima di aggiornare i parametri. Se non viene riconosciuto un importo Paga base valido, l’importazione si interrompe senza modificare parametri o profilo. Il dizionario personale resta disponibile per associazioni manuali."
   },
   {
     "v": "2.3.73",
-    "d": 20261120,
-    "t": "Riconoscimento delle diciture aziendali non note",
-    "x": "Durante la lettura locale del cedolino, l’app individua possibili etichette non ancora presenti nel dizionario e permette di associarle a un parametro tramite scelta esplicita. Le associazioni confermate vengono salvate nel profilo locale e riutilizzate nelle letture successive. Nessuna voce viene associata o importata senza conferma; nessun turno o parametro non riconosciuto viene modificato."
+    "d": "2026-11-20",
+    "t": "Versione 2.3.73 – Prima proposta di diciture aziendali",
+    "b": "Introdotta una prima funzione sperimentale che individuava possibili diciture aziendali non presenti nel dizionario e chiedeva di associarle a un parametro. La proposta della dicitura non equivaleva alla conferma dell’importazione dei dati economici. Per evitare ambiguità, questa richiesta automatica è stata rimossa nel flusso di lettura della versione 2.3.74."
   },
   {
     "v": "2.3.72",
-    "d": 20261120,
-    "t": "Dizionario personale delle voci aziendali",
-    "x": "Aggiunto il dizionario locale delle diciture specifiche del cedolino. Puoi associare una dicitura aziendale al parametro corretto; il lettore riutilizza l'associazione nei cedolini successivi. Le associazioni sono salvate nel profilo locale e nei backup. Nessun turno o parametro economico esistente viene modificato automaticamente."
+    "d": "2026-11-20",
+    "t": "Versione 2.3.72 – Dizionario personale delle voci aziendali",
+    "b": "Aggiunto il dizionario personale delle diciture aziendali: puoi associare manualmente una dicitura del cedolino al parametro corretto. Le associazioni sono salvate nel profilo locale e incluse nei backup. Nessun dato viene inviato a Firebase."
   },
   {
     "v": "2.3.71",
-    "d": 20261120,
-    "t": "Correzione avvio app",
-    "x": "Risolto un carattere di escape errato nel codice della decorrenza facoltativa che impediva l’avvio. Nessun turno, parametro o dato locale viene cancellato o modificato."
+    "d": "2026-11-20",
+    "t": "Versione 2.3.71 – Correzione avvio app",
+    "b": "Risolto un carattere di escape errato nel codice della decorrenza facoltativa che impediva l’avvio dell’app. Nessun turno, parametro o dato locale viene cancellato o modificato."
   },
   {
     "t": "Versione 2.3.70 – Decorrenza facoltativa",
     "v": "2.3.70",
     "d": "2026-11-20",
-    "b": "La decorrenza del cedolino o della tabella contrattuale è ora facoltativa. Se non trovi la data puoi lasciarla vuota o usare il comando dedicato per svuotarla; il profilo e gli altri dati restano salvabili. Nessuna modifica ai turni o ai parametri retributivi."
+    "b": "La decorrenza del cedolino o della tabella contrattuale è facoltativa. Se non conosci la data puoi lasciarla vuota o usare il comando per svuotarla; gli altri dati restano salvabili. Nessuna modifica ai turni o ai parametri retributivi."
   },
   {
     "t": "Versione 2.3.69 – Correzione avvio lettore locale",
     "v": "2.3.69",
-    "d": 1795182960000,
-    "b": "Corretta una parentesi mancante nel riconoscimento del profilo contrattuale HV17 che impediva l'avvio del lettore locale. Nessun dato locale, turno o parametro è stato cancellato o modificato."
+    "d": "2026-11-20",
+    "b": "Corretta una parentesi mancante nel riconoscimento del profilo contrattuale HV17 che impediva l’avvio del lettore locale. Nessun dato locale, turno o parametro è stato cancellato o modificato."
   },
   {
     "t": "Versione 2.3.68 – Profilo contrattuale HV17",
     "v": "2.3.68",
-    "d": 1795182960000,
-    "b": "La scheda contrattuale è stata circoscritta al CCNL HV17 – Vigilanza Privata e Servizi di Sicurezza, con le sole sezioni GPG/vigilanza armata, servizi di sicurezza e servizi fiduciari/portierato. Rimossi dalla selezione i contratti Multiservizi K511 e Portieri e Custodi H401. La lettura locale del cedolino riconosce ora soltanto HV17. Nessun turno o parametro retributivo esistente viene modificato."
+    "d": "2026-11-20",
+    "b": "La scheda contrattuale è stata circoscritta al CCNL HV17 – Vigilanza Privata e Servizi di Sicurezza, con le sezioni GPG/vigilanza armata, servizi di sicurezza e servizi fiduciari/portierato. Rimossi dalla selezione Multiservizi K511 e Portieri e Custodi H401. Nessun turno o parametro retributivo esistente viene modificato."
   },
   {
     "t": "Versione 2.3.67 – Scheda contrattuale personale",
     "v": "2.3.67",
-    "d": 1795176000000,
-    "b": "Aggiunta la scheda contrattuale personale con codice CCNL/CNEL, sezione, livello, mansione e decorrenza. La lettura locale della busta paga riconosce in modo prudente HV17, K511 e H401 e propone i dati rilevati in anteprima prima del salvataggio. I dati sono salvati localmente e inclusi nei backup semplici e cifrati. Nessuna tabella retributiva viene applicata se il contratto non è identificato. I turni e i parametri retributivi esistenti restano invariati."
+    "d": "2026-11-20",
+    "b": "Aggiunta la scheda contrattuale personale con codice CCNL/CNEL, sezione, livello, mansione e decorrenza. I dati sono salvati localmente e inclusi nei backup. Nessuna tabella retributiva viene applicata se il contratto non è identificato; i turni e i parametri retributivi esistenti restano invariati."
   },
   {
     "t": "Versione 2.3.66 – Correzione turno notturno da 12 ore",
     "v": "2.3.66",
-    "d": 1795132800000,
-    "b": "Corretto il limite delle ore ordinarie giornaliere: un turno unico 18:00–06:00 viene ripartito in 7,25 ore ordinarie e 4,75 straordinarie. Il calcolo non consente più che la soglia ordinaria superi 7,25 ore; il valore salvato pari a 12 viene riportato a 7,25. I turni registrati non vengono modificati."
+    "d": "2026-11-20",
+    "b": "Corretto il limite delle ore ordinarie giornaliere: un turno di 12 ore viene ripartito in 7,25 ore ordinarie e 4,75 straordinarie. La soglia ordinaria non supera 7,25 ore; il valore salvato pari a 12 viene riportato a 7,25. I turni registrati non vengono modificati."
   }
 ]
