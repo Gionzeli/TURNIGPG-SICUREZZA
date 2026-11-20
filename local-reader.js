@@ -103,7 +103,7 @@ function rowsFromPaddle(items){
  } const lines=[];
  // Le associazioni basate sulle coordinate vengono prima del testo lineare:
  // il parser può così preferirle senza indebolire i controlli sulle etichette.
- for(const h of hints)lines.push("ASSOCIAZIONE OCR POSIZIONALE: "+h);
+ for(const h of new Set(hints))lines.push("ASSOCIAZIONE OCR POSIZIONALE: "+h);
  rows.forEach((r,i)=>lines.push("RIGA "+(i+1)+": "+r.items.map(x=>x.text).join(" | ")));
  return lines.join("\n");
 }
