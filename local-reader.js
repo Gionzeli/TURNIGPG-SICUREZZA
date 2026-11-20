@@ -196,7 +196,7 @@ function parseContractProfile(text){
  const raw=String(text||""),n=norm(raw),profile={};
  // Il codice CNEL o la denominazione contrattuale completa hanno priorità:
  // la sola mansione "portiere" non determina il CCNL applicato.
- if(/\bhv17\b/.test(n)||/vigilanza privata e servizi di sicurezza/.test(n)||/vigilanza privata e servizi fiduciari/.test(n))profile.ccnl="HV17";
+ if(/\bhv17\b/.test(n)||/ccnl\s+vigilanza privata\b/.test(n)||/vigilanza privata e servizi di sicurezza/.test(n)||/vigilanza privata e servizi fiduciari/.test(n))profile.ccnl="HV17";
  else if(/\bk511\b/.test(n)||/ccnl per il personale dipendente da imprese esercenti servizi di pulizia e servizi integrati\s*\/\s*multiservizi/.test(n))profile.ccnl="K511";
  else if(/\bh401\b/.test(n)||/ccnl portieri e custodi/.test(n)||/dipendenti da proprietari di fabbricati/.test(n))profile.ccnl="H401";
  if(profile.ccnl==="HV17"){
