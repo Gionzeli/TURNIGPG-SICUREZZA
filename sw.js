@@ -1,6 +1,6 @@
 /* Turni GPG/sicurezza - service worker. Cambia VERSION a ogni nuova versione dell'app. */
-const VERSION="tg-v3.114";
-const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","local-reader.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
+const VERSION="tg-v3.115";
+const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","local-reader.js","local-deepseek.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
 
 self.addEventListener("install", event => {
   event.waitUntil(
