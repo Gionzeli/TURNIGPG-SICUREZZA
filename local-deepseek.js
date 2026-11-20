@@ -1,32 +1,40 @@
-/* AI locale opzionale per Turni GPG/sicurezza.
-   Il testo dei documenti non viene inviato a un servizio di inferenza.
-   I pesi vengono scaricati dal repository pubblico Hugging Face e memorizzati nella cache del browser. */
+/* Modello AI locale opzionale. I documenti non vengono inviati a servizi di inferenza. */
 const MODEL_ID="onnx-community/Qwen2.5-0.5B-Instruct";
 let pipePromise=null,pipe=null,backend="";
-const say=(cb,msg)=>{try{cb&&cb(msg)}catch(e){}};
+const notify=(cb,detail)=>{try{cb&&cb({detail})}catch(e){}};
 async function createPipeline(progress){
-  const {pipeline,env}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1/+esm");
+  notify(progress,"Caricamento del motore AI locale…");
+  const {pipeline,env}=await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0");
   env.allowRemoteModels=true;
   env.allowLocalModels=false;
+  env.useBrowserCache=true;
   const hasGPU=!!(navigator.gpu&&await navigator.gpu.requestAdapter().catch(()=>null));
-  const choices=hasGPU?[{device:"webgpu",dtype:"q4f16",label:"WebGPU"},{device:"wasm",dtype:"q4",label:"CPU/WASM"}]:[{device:"wasm",dtype:"q4",label:"CPU/WASM"}];
-  let last;
-  for(const choice of choices){
+  const modes=hasGPU?[{device:"webgpu",label:"GPU del dispositivo"},{device:"wasm",label:"CPU del dispositivo"}]:[{device:"wasm",label:"CPU del dispositivo"}];
+  let lastError;
+  for(const mode of modes){
     try{
-      say(progress,{status:"download",detail:"Scaricamento modello Qwen ("+choice.label+")…"});
-      const p=await pipeline("text-generation",MODEL_ID,{
-        device:choice.device,dtype:choice.dtype,
-        progress_callback:x=>{
-          if(x&&x.status==="progress"){
-            const pct=Number.isFinite(x.progress)?Math.round(x.progress):null;
-            say(progress,{status:"download",detail:(x.file||"Modello")+(pct!==null?" · "+pct+"%":"")});
-          }else if(x&&x.status)say(progress,{status:"download",detail:x.file||x.status});
+      notify(progress,"Connessione al repository del modello ("+mode.label+")…");
+      const generator=await pipeline("text-generation",MODEL_ID,{
+        device:mode.device,dtype:"q4",
+        progress_callback:p=>{
+          if(!p)return;
+          if(p.status==="progress"){
+            const pct=Number.isFinite(p.progress)?Math.round(p.progress):null;
+            const loaded=Number.isFinite(p.loaded)?p.loaded:null;
+            const total=Number.isFinite(p.total)?p.total:null;
+            const size=loaded!==null&&total? " · "+(loaded/1048576).toFixed(0)+"/"+(total/1048576).toFixed(0)+" MB":"";
+            notify(progress,(p.file||"File modello")+(pct!==null?" · "+pct+"%":"")+size);
+          }else if(p.status)notify(progress,p.file||"Preparazione: "+p.status);
         }
       });
-      backend=choice.label;return p;
-    }catch(e){last=e;if(choice.device==="webgpu")say(progress,{status:"fallback",detail:"WebGPU non disponibile: provo la modalità CPU locale…"});}
+      backend=mode.label;
+      return generator;
+    }catch(e){
+      lastError=e;
+      if(mode.device==="webgpu")notify(progress,"GPU non compatibile: provo la modalità CPU locale…");
+    }
   }
-  throw last||new Error("Modello non disponibile su questo dispositivo");
+  throw lastError||new Error("Modello non disponibile");
 }
 async function init(progress){
   if(pipe)return {ready:true,backend};
@@ -35,28 +43,34 @@ async function init(progress){
 }
 async function selfTest(progress){
   await init(progress);
-  say(progress,{status:"test",detail:"Verifica del modello in esecuzione sul dispositivo…"});
-  const out=await pipe([{role:"user",content:"Rispondi esclusivamente con queste parole: AI locale attivo."}],{max_new_tokens:24,do_sample:false});
-  const msg=out?.[0]?.generated_text;
-  const answer=Array.isArray(msg)?String(msg[msg.length-1]?.content||""):String(msg||"");
-  if(!answer.trim())throw new Error("Il modello non ha prodotto una risposta");
-  return {ready:true,backend,answer:answer.replace(/<think>[\s\S]*?<\/think>/g,"").trim()};
+  notify(progress,"Modello caricato. Verifico che risponda…");
+  const result=await pipe("Rispondi in italiano con la frase: AI locale attiva.",{max_new_tokens:24,do_sample:false});
+  const answer=String(result?.[0]?.generated_text||"").trim();
+  if(!answer)throw new Error("Il modello è stato caricato ma non ha prodotto una risposta");
+  return {ready:true,backend,answer};
 }
 window.LocalDeepSeek={init,selfTest,get ready(){return !!pipe},get backend(){return backend}};
-document.addEventListener("DOMContentLoaded",()=>{
- const btn=document.getElementById("deepseekInit"),status=document.getElementById("deepseekStatus");
- if(!btn||!status)return;
- const show=m=>{if(m&&m.detail)status.textContent=m.detail};
- btn.addEventListener("click",async()=>{
-  btn.disabled=true;status.textContent="Preparazione AI locale…";
+function bindLocalAI(){
+ const button=document.getElementById("deepseekInit");
+ const status=document.getElementById("deepseekStatus");
+ if(!button||!status||button.dataset.bound==="1")return;
+ button.dataset.bound="1";
+ button.addEventListener("click",async()=>{
+  button.disabled=true;
+  button.textContent="Caricamento…";
+  status.textContent="Avvio del download. Lascia aperta questa pagina…";
   try{
-   const result=await selfTest(show);
-   status.textContent="AI locale pronta ("+result.backend+"). Test locale completato. "+result.answer;
-   btn.textContent="AI locale pronta";
-  }catch(e){
-   console.warn("AI locale non avviato",e);
-   status.textContent="Non è stato possibile avviare l’AI locale su questo dispositivo: "+(e?.message||"errore non specificato")+". La lettura OCR locale esistente resta disponibile.";
-   btn.disabled=false;btn.textContent="Riprova AI locale";
+   const result=await selfTest(m=>{if(m?.detail)status.textContent=m.detail});
+   status.textContent="AI locale pronta ("+result.backend+"). Verifica completata.";
+   button.textContent="AI locale pronta";
+  }catch(error){
+   console.error("Errore AI locale:",error);
+   const reason=error?.message||String(error)||"errore sconosciuto";
+   status.textContent="Download o avvio non riuscito: "+reason+". Il lettore OCR locale continua a funzionare.";
+   button.disabled=false;
+   button.textContent="Riprova download";
   }
  });
-});
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",bindLocalAI,{once:true});
+else bindLocalAI();
