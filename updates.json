@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.58 – Corretto avvio dell’app",
+    "v": "2.3.58",
+    "d": 1795152780000,
+    "b": "Risolto un errore JavaScript che impediva l’avvio: nel modulo di inserimento manuale dei parametri cedolino una variabile era dichiarata due volte. Il modulo mantiene tutti i 17 campi e i dati già salvati sul dispositivo non vengono cancellati."
+  },
+  {
     "t": "Versione 2.3.57 – Inserimento manuale di tutti i parametri cedolino",
     "v": "2.3.57",
     "d": 1795152729625,
