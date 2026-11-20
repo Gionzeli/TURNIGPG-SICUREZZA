@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.76",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.76 – Lettura più completa e verificabile",
+    "b": "Migliorata la lettura dei turni con più intervalli di orario sulla stessa riga: ogni intervallo viene mantenuto e, quando la postazione compare una sola volta alla fine della riga, viene associata a tutti gli intervalli. L’anteprima dei turni mostra ora tutte le voci rilevate. Nell’anteprima del cedolino viene mostrata anche la riga OCR/testo da cui è stato ricavato ciascun importo riconosciuto. I dati restano sul dispositivo e il salvataggio richiede conferma."
+  },
+  {
     "v": "2.3.75",
     "d": "2026-11-20",
     "t": "Versione 2.3.75 – Correzione note aggiornamenti",
