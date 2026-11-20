@@ -104,7 +104,10 @@ function rowsFromPaddle(items){
     const rr=rows[ri];if(rr.anchor-row.anchor>maxGap)break;
     const cells=rr.items.slice().sort((a,b)=>a.x0-b.x0);
     if(cells.some(x=>otherLabelRe.test(x.text)))break;
-    const nums=cells.filter(x=>amountRe.test(x.text)&&(x.x1>=it[i].x0-4&&x.x0<=labelX1+Math.max(24,it[i].x1-it[i].x0)*1.8));
+    // Nei cedolini l'etichetta è spesso nella colonna sinistra e l'importo
+    // nella colonna destra: non limitare l'associazione alla larghezza della label.
+    // Accetta la riga successiva solo se contiene un unico importo e nessun'altra voce.
+    const nums=cells.filter(x=>amountRe.test(x.text));
     if(nums.length===1){hints.push(rule.name+": "+nums[0].text.trim().replace(/€|\\s/g,""));break;}
     if(nums.length>1)break;
    }
