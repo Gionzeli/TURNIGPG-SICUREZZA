@@ -1,4 +1,5 @@
 [
+  {"t":"Versione 2.3.42 – OCR più nitido e importi associati solo alla propria voce","v":"2.3.42","d":1795132800000,"b":"Migliorata la qualità delle pagine PDF inviate all’OCR locale (rendering più definito e senza compressione JPEG). La lettura della busta paga non cerca più importi nelle righe successive all’etichetta, per evitare di assegnare alla voce un importo appartenente a un’altra riga. I valori non trovati con sufficiente vicinanza restano non riconosciuti e non vengono salvati."},
   {
     "t": "Versione 2.3.41 – Lettura buste paga con lo stesso percorso OCR dei turni",
     "v": "2.3.41",
