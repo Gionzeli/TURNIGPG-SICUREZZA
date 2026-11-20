@@ -112,7 +112,32 @@ function rowsFromPaddle(items){
     if(nums.length>1)break;
    }
   }
- } const lines=[];
+ } // Se Paga base e Scatti sono sulla stessa riga come intestazioni di due
+ // colonne, abbina la prima riga numerica sottostante solo se contiene
+ // esattamente due importi e nessun altro testo.
+ const medianHeight=hs[Math.floor(hs.length/2)]||14;
+ for(const row of rows){
+  const labels=[],cells=row.items.slice().sort((a,b)=>a.x0-b.x0);
+  for(let i=0;i<cells.length;i++)for(const rule of labelRules){
+   let txt=cells[i].text,x0=cells[i].x0;
+   if(!rule.re.test(txt)&&i+1<cells.length&&rule.re.test(txt+" "+cells[i+1].text)){txt+=" "+cells[i+1].text;x0=Math.min(x0,cells[i+1].x0)}
+   if(rule.re.test(txt)&&!labels.some(x=>x.name===rule.name))labels.push({name:rule.name,x0});
+  }
+  if(labels.length!==2||new Set(labels.map(x=>x.name)).size!==2)continue;
+  labels.sort((a,b)=>a.x0-b.x0);
+  const rowIndex=rows.indexOf(row),maxGap=Math.max(45,medianHeight*7);
+  for(let ri=rowIndex+1;ri<rows.length;ri++){
+   const candidate=rows[ri];if(candidate.anchor-row.anchor>maxGap)break;
+   const nextCells=candidate.items.slice().sort((a,b)=>a.x0-b.x0);
+   if(nextCells.some(x=>otherLabelRe.test(x.text)))break;
+   const amounts=nextCells.filter(x=>amountRe.test(x.text));
+   if(!amounts.length)continue;
+   if(amounts.length!==2||nextCells.some(x=>!amountRe.test(x.text)))break;
+   labels.forEach((label,index)=>hints.push(label.name+": "+amounts[index].text.trim().replace(/€|\\s/g,"")));
+   break;
+  }
+ }
+ const lines=[];
  // Le associazioni basate sulle coordinate vengono prima del testo lineare:
  // il parser può così preferirle senza indebolire i controlli sulle etichette.
  for(const h of new Set(hints))lines.push("ASSOCIAZIONE OCR POSIZIONALE: "+h);
