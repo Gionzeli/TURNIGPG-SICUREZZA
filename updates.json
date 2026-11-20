@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.81",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.81 – PDF delle buste paga convertiti in PNG prima dell’OCR",
+    "b": "Quando carichi una busta paga in PDF, ogni pagina viene convertita localmente in immagine PNG e letta con OCR sulle immagini, senza usare il testo nativo del PDF. La modifica riguarda soltanto le buste paga; turni e formazione mantengono il loro percorso di lettura. Il PDF originale non viene caricato online e i dati restano sul dispositivo. Anteprima e conferma prima di salvare."
+  },
+  {
     "v": "2.3.80",
     "d": "2026-11-20",
     "t": "Versione 2.3.80 – Ricostruzione più stabile delle righe OCR",
