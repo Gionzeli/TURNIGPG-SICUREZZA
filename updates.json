@@ -1,8 +1,8 @@
 [
   {
-    "t": "Versione 2.3.63 – Correzione avvio",
-    "v": "2.3.63",
-    "d": 1795156725780,
-    "b": "Corretto un carattere di escape JavaScript che impediva l’avvio dell’app. Mantenuto il calcolo giornaliero delle ore ordinarie e straordinarie della versione precedente. Turni e parametri salvati restano invariati."
+    "t": "Versione 2.3.64 – Calcolo ore ordinarie e straordinarie",
+    "v": "2.3.64",
+    "d": 1795157623511,
+    "b": "Impostate 7,25 ore decimali (7 ore e 15 minuti) come soglia ordinaria giornaliera. Oltre 7,25 ore: straordinario; 8 ore = 0,75 straordinarie, 12 ore = 4,75. Nel riposo lavorato tutte le ore sono straordinarie. Corretto anche il valore precedente 7,15 se usato come notazione errata. Restano invariati gli altri parametri, turni e trattenute."
   }
 ]
