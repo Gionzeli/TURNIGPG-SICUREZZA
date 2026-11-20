@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.46 – Importi riconosciuti anche nelle righe della tabella",
+    "v": "2.3.46",
+    "d": 1795132800000,
+    "b": "Migliorata la lettura locale delle buste paga: oltre all’importo sulla stessa riga, il lettore OCR cerca l’importo nelle righe tabellari immediatamente sottostanti, solo nella fascia orizzontale dell’etichetta e fermandosi davanti a un’altra voce retributiva. Paga base e Scatti restano separati. Se l’associazione non è univoca, nessun parametro viene modificato."
+  },
+  {
     "t": "Versione 2.3.45 – Paga base associata con le coordinate OCR",
     "v": "2.3.45",
     "d": 1795132800000,
