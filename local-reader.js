@@ -208,6 +208,17 @@ function parseContractProfile(text){
  if(role)profile.role=role[1].trim().replace(/\s+/g," ").slice(0,90);
  return profile;
 }
+function findPayrollLabelCandidates(text,customAliases){
+ const known=["paga base","minimo tabellare","minimo contrattuale","retribuzione base","retribuzione tabellare","stipendio base","minimo ccnl","scatti","superminimo","elemento distinto","indennita fissa","ore mensili","orario mensile","ore contrattuali","ore turno","durata turno","maggiorazione straordinario","straordinario","indennita notturna","notturno","piantonamento","maggiorazione domenicale","lavoro domenicale","riposo non goduto","buono pasto","ticket restaurant","aliquota inps","inps","aliquota irpef","irpef","sindacato","cessione del quinto","altre trattenute","retribuzione","lavoro ordinario","totale competenze","totale trattenute","imponibile","contributi","irpef lorda","netto in busta","totale netto","ferie godute","permessi","tfr","data assunzione","matricola","codice fiscale","periodo paga","ore lavorate"];
+ Object.values(customAliases||{}).forEach(a=>{if(Array.isArray(a))known.push(...a)});
+ const normLabel=s=>norm(s).replace(/[^a-z0-9 ]/g," ").replace(/\s+/g," ").trim();
+ const isAmount=s=>/^\s*[€]?\s*[-+]?(?:[0-9OIl]{1,3}(?:[.\s][0-9OIl]{3})+|[0-9OIl]+)(?:[,.][0-9OIl]{2,5})\s*[€]?\s*$/.test(s);
+ const raw=String(text||"").split(/\r?\n/).map(x=>x.replace(/^\s*(?:PAGINA|PAG\.)\s*\d+\s*:?\s*/i,"").replace(/^\s*RIGA\s*\d+\s*:?\s*/i,"").replace(/\s*\|\s*/g," ").trim()).filter(Boolean);
+ const out=[],seen=new Set();
+ const add=s=>{const label=String(s||"").replace(/[€£$]/g," ").replace(/[-+]?(?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d+)?/g," ").replace(/[:;=|]+/g," ").replace(/\s+/g," ").trim().replace(/^[^a-zà-ÿ]+|[^a-zà-ÿ]+$/gi,"").slice(0,55);const n=normLabel(label);if(label.length<3||label.length>55||!/[a-zà-ÿ]{3}/i.test(label)||known.some(k=>{const q=normLabel(k);return q&&(" "+n+" ").includes(" "+q+" ")} )||seen.has(n))return;seen.add(n);out.push(label)};
+ for(let i=0;i<raw.length;i++){const line=raw[i],letters=(line.match(/[a-zà-ÿ]/gi)||[]).length;if(letters<3||letters>55)continue;if(isAmount(line)){if(i>0)add(raw[i-1]);continue}if(/\d/.test(line)){const stripped=line.replace(/[-+]?(?:\d{1,3}(?:[. ]\d{3})+|\d+)(?:[,.]\d+)?/g," ");if(stripped!==line)add(stripped);continue}if(i+1<raw.length&&isAmount(raw[i+1]))add(line)}
+ return out.slice(0,12);
+}
 function parsePayslip(text,fields,customAliases){
  const lines=String(text||"").split(/\r?\n/).map(x=>x.replace(/^RIGA \d+:\s*/i,"").replace(/^Riga \d+:\s*/i,"").replace(/\s*\|\s*/g," ").trim()).filter(Boolean),aliases={
  paga_base:["paga base","minimo tabellare","minimo contrattuale","retribuzione base","retribuzione tabellare","stipendio base","minimo ccnl","minimo contrattuale mensile"],scatti:["scatti","scatti anzianita","scatti di anzianita"],altre_fisse:["superminimo","elemento distinto","indennita fissa","altre voci fisse"],ore_mensili:["ore mensili","orario mensile","ore contrattuali"],ore_turno:["ore turno","durata turno","ore giornaliere"],straordinario_perc:["maggiorazione straordinario","straordinario %","maggiorazione straord"],straordinario_ora:["straordinario euro ora","straordinario orario","compenso straordinario"],notturno_turno:["indennita notturna","maggiorazione notturno","notturno turno"],piantonato_turno:["piantonamento","indennita piantonamento"],domenica_ora:["maggiorazione domenicale","lavoro domenicale","domenica ora"],riposo_non_goduto:["riposo non goduto","riposo lavorato","festivita non goduta"],buono_pasto:["buono pasto","ticket restaurant","ticket"],inps_rate:["aliquota inps","inps %","contributi ivs"],irpef_rate:["aliquota irpef","irpef %","ritenuta irpef"],sindacato:["trattenuta sindacale","sindacato"],cessione:["cessione quinto","cessione del quinto"],altre_trattenute:["altre trattenute","totale trattenute"]};
@@ -273,4 +284,4 @@ function parseTraining(text){
  const all=lines.join(" "),hm=all.match(/(\d+(?:[,.]\d+)?)\s*(?:ore|h\b)/i);
  return{title:title||(/formazione/.test(norm(all))?"Formazione":""),provider,date,expiry,hours:hm?italianNumber(hm[1]):null};
 }
-window.LocalDocAI={ocrImages,ocrPayslipImages,parsePayslip,parseTurns,parseTraining};
+window.LocalDocAI={ocrImages,ocrPayslipImages,parsePayslip,findPayrollLabelCandidates,parseTurns,parseTraining};
