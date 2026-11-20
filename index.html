@@ -391,7 +391,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.76",ADMIN_WA="393923801549";
+const APP_VER="2.3.77",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -699,7 +699,13 @@ if(kind==="p"){
  const detected=o.profile&&typeof o.profile==="object"?o.profile:{},profileParsed={};
  ["ccnl","section","level","role"].forEach(k=>{if(typeof detected[k]==="string"&&detected[k].trim())profileParsed[k]=detected[k].trim().slice(0,100)});
  const keys=Object.keys(parsed),profileLabels={ccnl:"CCNL/CNEL",section:"Sezione",level:"Livello",role:"Mansione"};
- if(!Object.prototype.hasOwnProperty.call(parsed,"paga_base")||parsed.paga_base<=0)throw{code:"base_not_found",detail:"Non trovo l’importo accanto a Paga base. Non uso Retribuzione o Lavoro ordinario come sostituti perché possono indicare importi parziali."};
+ if(!Object.prototype.hasOwnProperty.call(parsed,"paga_base")||parsed.paga_base<=0){
+   const detectedLines=FIELDS.filter(([k])=>Object.prototype.hasOwnProperty.call(parsed,k)).map(([k,label])=>{const d=o.details?.[k];return label+": "+Number(parsed[k]).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:5})+(d?.source?" — "+String(d.source).replace(/\\s+/g," ").slice(0,180):"")});
+   showDiag("ANTEPRIMA LETTURA CEDOLINO\\n\\n"+(detectedLines.length?detectedLines.join("\\n")+"\\n\\n":"Nessun importo retributivo associato con certezza.\\n\\n")+"Paga base: non riconosciuta con sufficiente sicurezza.\\nScatti: "+(Object.prototype.hasOwnProperty.call(parsed,"scatti")?"riconosciuti":"non riconosciuti")+".\\n\\nNessun parametro o dato contrattuale è stato modificato. Le date di assunzione non vengono usate come importi.");
+   st.textContent="Anteprima incompleta: Paga base non riconosciuta. Nessun dato salvato.";
+   if(aiBadge){aiBadge.textContent="Verifica necessaria";aiBadge.className="tg w"}
+   return;
+  }
  const fresh={...S.params,...parsed};
  const previewParts=FIELDS.filter(([k])=>Object.prototype.hasOwnProperty.call(parsed,k)).map(([k,label])=>{const d=o.details?.[k],src=d?.source?(" ← "+String(d.source).replace(/\s+/g," ").slice(0,120)):"";return label+": "+String(parsed[k]).replace(".",",")+src});
  Object.entries(profileParsed).forEach(([k,v])=>previewParts.push(profileLabels[k]+": "+(k==="ccnl"?({HV17:"HV17 · Vigilanza Privata e Servizi di Sicurezza"}[v]||v):v)));
@@ -718,29 +724,7 @@ if(!add.length){if(upd){save();render();st.textContent=upd+" giornate completate
   console.error("Importazione documento fallita nella fase: "+fase,x);
   if(aiBadge){aiBadge.textContent="Dati non importati";aiBadge.className="tg w"}
   st.textContent=aiErr(x)+" (fase: "+fase+")";
-  if(kind==="p"&&x&&x.code==="base_not_found"){
-   const lines=String(documentText||"").split(/\r?\n/).map(v=>v.trim()).filter(Boolean),picked=new Set();
-   lines.forEach((line,i)=>{if(/paga\s*base|scatti/i.test(line)){picked.add(i);[i-1,i+1].forEach(j=>{if(j>=0&&j<lines.length&&/^[€£$\s0-9.,'’+-]+$/.test(lines[j])&&/\d/.test(lines[j]))picked.add(j)})}});
-   const excerpt=[...picked].sort((a,b)=>a-b).map(i=>lines[i]).slice(0,8).join("\n").slice(0,600);
-   showDiag("CONTROLLO LOCALE — righe lette vicino a Paga base / Scatti:\n"+(excerpt||"Il testo OCR non contiene righe riconoscibili con le etichette Paga base o Scatti.")+"\n\nQueste righe restano su questo dispositivo e non vengono inviate online.");
-   // Se l'OCR non trova la paga base, consenti l'inserimento manuale e una conferma esplicita.
-   let mf=$("manualPayslip");
-   if(mf)mf.remove();
-   mf=document.createElement("div");mf.id="manualPayslip";
-   mf.style.cssText="margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:12px;background:var(--card)";
-   const makeField=(id,label,placeholder)=>{const wrap=document.createElement("div");wrap.style.cssText="margin:8px 0";const lab=document.createElement("label");lab.htmlFor=id;lab.textContent=label;lab.style.cssText="display:block;font-weight:600;margin-bottom:5px";const inp=document.createElement("input");inp.id=id;inp.type="text";inp.inputMode="decimal";inp.autocomplete="off";inp.placeholder=placeholder;inp.style.cssText="width:100%;box-sizing:border-box;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--bg);color:var(--text)";wrap.append(lab,inp);return{wrap,inp}};
-   const manualFields=[];
-   const heading=document.createElement("b");heading.textContent="Completa manualmente tutti i parametri";
-   const note=document.createElement("p");note.className="hint";note.textContent="Inserisci i valori che leggi nel cedolino. Puoi compilare tutti i 17 campi oppure solo quelli mancanti. I campi vuoti resteranno invariati; scrivi 0 se un parametro è assente. Esempio importo: 1.468,88.";
-   mf.append(heading,note);
-   const parseManual=v=>{let t=String(v||"").trim().replace(/[€\\s]/g,"");if(!t)return null;if(t.includes(","))t=t.replace(/\\./g,"").replace(",",".");else if(/^\\d{1,3}(?:\\.\\d{3})+$/.test(t))t=t.replace(/\\./g,"");const n=Number(t);return Number.isFinite(n)?n:NaN};
-   FIELDS.forEach(([key,label])=>{const field=makeField("manualParam_"+key,label,"Valore dal cedolino");field.inp.inputMode="decimal";field.inp.placeholder="Lascia vuoto per non modificare";manualFields.push({key,label,inp:field.inp});mf.append(field.wrap)});
-   const confirmBtn=document.createElement("button");confirmBtn.type="button";confirmBtn.className="pri";confirmBtn.textContent="Verifica e salva i parametri";
-   confirmBtn.addEventListener("click",()=>{const entered={},invalid=[];manualFields.forEach(({key,label,inp})=>{if(!inp.value.trim())return;const n=parseManual(inp.value);if(n===null)return;if(!Number.isFinite(n)||n<0||(key==="paga_base"&&n===0))invalid.push(label);else entered[key]=n});if(!Object.prototype.hasOwnProperty.call(entered,"paga_base")&&!(S.params.paga_base>0)){st.textContent="Inserisci una Paga base valida e maggiore di zero.";manualFields[0].inp.focus();return}if(invalid.length){st.textContent="Controlla questi valori: "+invalid.join(", ")+". Usa numeri positivi o zero.";return}const keys=Object.keys(entered);if(!keys.length){st.textContent="Inserisci almeno un valore da aggiornare.";return}const preview=FIELDS.filter(([key])=>Object.prototype.hasOwnProperty.call(entered,key)).map(([key,label])=>label+": "+entered[key].toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2})).join("\\n");if(!confirm("CONFERMA I PARAMETRI DEL CEDOLINO\\n\\n"+preview+"\\n\\nSaranno aggiornati soltanto i "+keys.length+" campi compilati. I campi vuoti resteranno invariati. Salvare sul dispositivo?"))return;S.params={...S.params,...entered};save();fillParams();render();if(aiBadge){aiBadge.textContent="Parametri confermati ✓";aiBadge.className="tg ok"}st.textContent=keys.length+" parametri salvati sul dispositivo. Gli altri sono rimasti invariati.";mf.remove();snack(keys.length+" parametri aggiornati")});
-   mf.append(confirmBtn);
-   $("aidiag").insertAdjacentElement("afterend",mf);
-  }
- }
+    }
 }
 function renderTrainingLocal(){
  const box=$("trainingList");if(!box)return;let a=[];
@@ -868,7 +852,7 @@ $("insgo").onclick=()=>{if(DEFI){DEFI.prompt();DEFI=null;insBar()}};$("insno").o
 try{window.addEventListener&&window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFI=e;extra();insBar()});window.addEventListener&&window.addEventListener("appinstalled",()=>{DEFI=null;insBar()})}catch(e){}
 document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-install]")&&DEFI){DEFI.prompt();DEFI=null;extra()}});
 function mergeUpdates(items){const all=[...STATIC_UPD,...(Array.isArray(items)?items:[]).filter(u=>!String(u.id||"").startsWith("s"))],seen=new Set(),ver=u=>String(u.v||"0").split(".").map(n=>parseInt(n,10)||0);UPD=all.filter(u=>{const k=String(u.v||"")+"|"+String(u.t||"");if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>{const a=ver(x),b=ver(y);for(let i=0;i<Math.max(a.length,b.length);i++){const d=(b[i]||0)-(a[i]||0);if(d)return d}return(y.d||0)-(x.d||0)});renderUpd()}
-async function loadUpd(){try{const r=await fetch("updates.json?rev=20261120-2376",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const a=await r.json();if(!Array.isArray(a))throw new Error("Elenco aggiornamenti non valido");STATIC_UPD=a.map((u,i)=>({id:"s"+i,...u}));mergeUpdates(UPD)}catch(e){console.warn("Aggiornamenti locali non caricati",e);mergeUpdates(UPD)}}
+async function loadUpd(){try{const r=await fetch("updates.json?rev=20261120-2377",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const a=await r.json();if(!Array.isArray(a))throw new Error("Elenco aggiornamenti non valido");STATIC_UPD=a.map((u,i)=>({id:"s"+i,...u}));mergeUpdates(UPD)}catch(e){console.warn("Aggiornamenti locali non caricati",e);mergeUpdates(UPD)}}
 const ROLES={gpg:"guardia particolare giurata (GPG)",sicurezza:"addetto alla sicurezza",portierato:"addetto al portierato"};
 const roleTxt=()=>ROLES[X.role]||"lavoratore a turni di vigilanza, sicurezza o portierato";
 function applyRole(){const pi=$("is_piantonato"),pe=pi&&pi.parentElement;if(pe)pe.style.display=X.role==="portierato"?"none":""}
@@ -947,8 +931,8 @@ if(!X.onb&&!X.pin)startOnb();
 </script>
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
-<script type="module" src="local-reader.js?v=2.3.76"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.144").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script type="module" src="local-reader.js?v=2.3.77"></script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.145").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 
 
 </body>
