@@ -1,7 +1,7 @@
-/* DeepSeek locale opzionale per Turni GPG/sicurezza.
+/* AI locale opzionale per Turni GPG/sicurezza.
    Il testo dei documenti non viene inviato a un servizio di inferenza.
    I pesi vengono scaricati dal repository pubblico Hugging Face e memorizzati nella cache del browser. */
-const MODEL_ID="onnx-community/DeepSeek-R1-Distill-Qwen-1.5B-ONNX";
+const MODEL_ID="onnx-community/Qwen2.5-0.5B-Instruct";
 let pipePromise=null,pipe=null,backend="";
 const say=(cb,msg)=>{try{cb&&cb(msg)}catch(e){}};
 async function createPipeline(progress){
@@ -13,7 +13,7 @@ async function createPipeline(progress){
   let last;
   for(const choice of choices){
     try{
-      say(progress,{status:"download",detail:"Scaricamento modello DeepSeek ("+choice.label+")…"});
+      say(progress,{status:"download",detail:"Scaricamento modello Qwen ("+choice.label+")…"});
       const p=await pipeline("text-generation",MODEL_ID,{
         device:choice.device,dtype:choice.dtype,
         progress_callback:x=>{
@@ -36,7 +36,7 @@ async function init(progress){
 async function selfTest(progress){
   await init(progress);
   say(progress,{status:"test",detail:"Verifica del modello in esecuzione sul dispositivo…"});
-  const out=await pipe([{role:"user",content:"Rispondi esclusivamente con queste parole: DeepSeek locale attivo."}],{max_new_tokens:24,do_sample:false});
+  const out=await pipe([{role:"user",content:"Rispondi esclusivamente con queste parole: AI locale attivo."}],{max_new_tokens:24,do_sample:false});
   const msg=out?.[0]?.generated_text;
   const answer=Array.isArray(msg)?String(msg[msg.length-1]?.content||""):String(msg||"");
   if(!answer.trim())throw new Error("Il modello non ha prodotto una risposta");
@@ -48,15 +48,15 @@ document.addEventListener("DOMContentLoaded",()=>{
  if(!btn||!status)return;
  const show=m=>{if(m&&m.detail)status.textContent=m.detail};
  btn.addEventListener("click",async()=>{
-  btn.disabled=true;status.textContent="Preparazione DeepSeek locale…";
+  btn.disabled=true;status.textContent="Preparazione AI locale…";
   try{
    const result=await selfTest(show);
-   status.textContent="DeepSeek pronto ("+result.backend+"). Test locale completato. "+result.answer;
-   btn.textContent="DeepSeek pronto";
+   status.textContent="AI locale pronta ("+result.backend+"). Test locale completato. "+result.answer;
+   btn.textContent="AI locale pronta";
   }catch(e){
-   console.warn("DeepSeek locale non avviato",e);
-   status.textContent="Non è stato possibile avviare DeepSeek su questo dispositivo: "+(e?.message||"errore non specificato")+". La lettura OCR locale esistente resta disponibile.";
-   btn.disabled=false;btn.textContent="Riprova DeepSeek";
+   console.warn("AI locale non avviato",e);
+   status.textContent="Non è stato possibile avviare l’AI locale su questo dispositivo: "+(e?.message||"errore non specificato")+". La lettura OCR locale esistente resta disponibile.";
+   btn.disabled=false;btn.textContent="Riprova AI locale";
   }
  });
 });
