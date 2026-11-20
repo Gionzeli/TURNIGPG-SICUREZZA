@@ -236,6 +236,30 @@ function parsePayslip(text,fields,customAliases){
  const cellRows=String(text||"").split(/\r?\n/).map((line,index)=>({line:line.trim(),index,cells:String(line).replace(/^\s*RIGA\s*\d+\s*:\s*/i,"").split("|").map(x=>x.trim()).filter(Boolean)})).filter(x=>x.line);
  const amountCell=s=>/^\s*[€]?\s*[-+]?(?:[0-9OIl]{1,3}(?:[.\s][0-9OIl]{3})+|[0-9OIl]+)[,.][0-9OIl]{2,5}\s*[€]?\s*$/.test(String(s||""));
  const headerPositions=row=>{const found={},cells=row.cells;for(let i=0;i<cells.length;i++){const one=norm(cells[i]),two=norm(cells[i]+" "+(cells[i+1]||""));if(found.paga_base===undefined&&(/\bpaga\s+base\b/.test(one)||/\bpaga\s+base\b/.test(two)))found.paga_base=i;if(found.scatti===undefined&&/\bscatti(?:\s+(?:di\s+)?anzianita)?\b/.test(one))found.scatti=i}return found};
+ // Prima modalità tabellare: etichetta e importo sono celle adiacenti
+ // sulla stessa riga OCR. Se entrambe le intestazioni precedono tutti gli
+ // importi, si tratta di una riga-intestazione: usa la logica per righe sotto.
+ const tableLabelAt=(cells,i)=>{
+  const one=norm(cells[i]||""),two=norm((cells[i]||"")+" "+(cells[i+1]||""));
+  if(/\bpaga\s+base\b/.test(one))return {key:"paga_base",end:i};
+  if(/\bpaga\s+base\b/.test(two))return {key:"paga_base",end:i+1};
+  if(/\bscatti(?:\s+(?:di\s+)?anzianita)?\b/.test(one))return {key:"scatti",end:i};
+  return null;
+ };
+ for(const row of cellRows){
+  const cells=row.cells,labelPositions=[];
+  for(let i=0;i<cells.length;i++){const label=tableLabelAt(cells,i);if(label)labelPositions.push(label)}
+  const firstAmountIndex=cells.findIndex(amountCell);
+  const headerOnly=labelPositions.some(x=>x.key==="paga_base")&&labelPositions.some(x=>x.key==="scatti")&&firstAmountIndex>=0&&labelPositions.every(x=>x.end<firstAmountIndex);
+  if(headerOnly)continue;
+  for(let i=0;i<cells.length;i++){
+   const label=tableLabelAt(cells,i);if(!label||out[label.key]!==undefined)continue;
+   const valueCell=cells[label.end+1];if(!amountCell(valueCell))continue;
+   const value=italianNumber(valueCell);if(value===null||value<=0)continue;
+   out[label.key]=value;
+   out.details[label.key]={matchedAlias:label.key==="paga_base"?"Paga base":"Scatti",source:row.line,value,method:"celle adiacenti sulla stessa riga"};
+  }
+ }
  for(let i=0;i<cellRows.length;i++){const row=cellRows[i],heads=headerPositions(row);if(heads.paga_base===undefined||heads.scatti===undefined||heads.paga_base===heads.scatti)continue;for(let j=i+1;j<Math.min(cellRows.length,i+5);j++){const candidate=cellRows[j],cells=candidate.cells;if(cells.some(c=>/\b(?:data\s+assunzione|assunzione|matricola|codice\s+fiscale|periodo\s+paga)\b/i.test(norm(c))))break;const amounts=cells.filter(amountCell);if(amounts.length!==2||cells.some(c=>!amountCell(c)))continue;const values=amounts.map(italianNumber);if(values.some(v=>v===null||v<=0))continue;const pairs=heads.paga_base<heads.scatti?{paga_base:values[0],scatti:values[1]}:{paga_base:values[1],scatti:values[0]};Object.entries(pairs).forEach(([key,value])=>{if(out[key]===undefined){out[key]=value;out.details[key]={matchedAlias:key==="paga_base"?"Paga base":"Scatti",source:row.line+" / "+candidate.line,value,method:"associazione per colonne"}}});break}}
  for(const [key] of fields){if(out[key]!==undefined)continue;const custom=Array.isArray(customAliases?.[key])?customAliases[key].filter(x=>typeof x==="string"&&x.trim()).slice(0,40):[],detail={};const v=labeledValue(scanLines,[...(aliases[key]||[key.replace(/_/g," ")]),...custom],key==="paga_base"||key==="scatti",detail);if(v!==null){out[key]=v;out.details[key]=detail}}
  // La paga base si legge solo da un'etichetta contrattuale esplicita.
