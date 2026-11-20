@@ -1,8 +1,8 @@
 [
   {
-    "t": "Versione 2.3.62 – Calcolo giornaliero dello straordinario",
-    "v": "2.3.62",
-    "d": 1795156008977,
-    "b": "Le ore ordinarie si conteggiano una sola volta al giorno usando il parametro Ore per turno. Le ore oltre il limite diventano straordinario; nei giorni di riposo lavorato tutte le ore sono straordinarie. I turni e i parametri già salvati restano invariati."
+    "t": "Versione 2.3.63 – Correzione avvio",
+    "v": "2.3.63",
+    "d": 1795156725780,
+    "b": "Corretto un carattere di escape JavaScript che impediva l’avvio dell’app. Mantenuto il calcolo giornaliero delle ore ordinarie e straordinarie della versione precedente. Turni e parametri salvati restano invariati."
   }
 ]
