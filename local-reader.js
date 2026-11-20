@@ -163,7 +163,7 @@ function labeledValue(lines,aliases,requireCents=false,detail=null){
  const number=requireCents
   ? /[-+]?(?:[0-9OIl]{1,3}(?:(?:\s*\.\s*|\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\s*,\s*[0-9OIl]{2,5}|\s*\.\s*[0-9OIl]{2})(?![0-9OIl])/
   : /[-+]?(?:[0-9OIl]{1,3}(?:(?:\s*\.\s*|\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\s*,\s*[0-9OIl]{2,5}|\s*\.\s*[0-9OIl]{2})?/;
- const stop=/\b(?:paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute)\b/i;
+ const stop=/\b(?:data assunzione|assunzione|matricola|codice fiscale|periodo paga|paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute)\b/i;
  const rows=lines.map(x=>norm(String(x||"").replace(/^\s*(?:PAGINA|PAG\.)\s*\d+\s*:?\s*/i,"").replace(/^\s*RIGA\s*\d+\s*:?\s*/i,"").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ")));
  const valueOf=s=>{const m=String(s||"").match(number);if(!m)return null;const n=italianNumber(m[0]);return n!==null&&n>0?n:null};
  for(const alias of keys){
@@ -228,7 +228,12 @@ function parsePayslip(text,fields,customAliases){
  const scanLines=lines.slice();
  for(let width=2;width<=4;width++)for(let i=0;i+width<=lines.length;i++)scanLines.push(lines.slice(i,i+width).join(" "));
  const out={};
- out.details={};for(const [key] of fields){const custom=Array.isArray(customAliases?.[key])?customAliases[key].filter(x=>typeof x==="string"&&x.trim()).slice(0,40):[],detail={};const v=labeledValue(scanLines,[...(aliases[key]||[key.replace(/_/g," ")]),...custom],key==="paga_base"||key==="scatti",detail);if(v!==null){out[key]=v;out.details[key]=detail}}
+ out.details={};
+ const cellRows=lines.map((line,index)=>({line,index,cells:String(line).split("|").map(x=>x.trim()).filter(Boolean)}));
+ const amountCell=s=>/^\s*[€]?\s*[-+]?(?:[0-9OIl]{1,3}(?:[.\s][0-9OIl]{3})+|[0-9OIl]+)[,.][0-9OIl]{2,5}\s*[€]?\s*$/.test(String(s||""));
+ const headerPositions=row=>{const found={},cells=row.cells;for(let i=0;i<cells.length;i++){const joined=cells.slice(i,i+3).join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"");if(found.paga_base===undefined&&/\bpaga\s+base\b/.test(joined))found.paga_base=i;if(found.scatti===undefined&&/\bscatti(?:\s+(?:di\s+)?anzianita)?\b/.test(joined))found.scatti=i}return found};
+ for(let i=0;i<cellRows.length;i++){const row=cellRows[i],heads=headerPositions(row);if(heads.paga_base===undefined||heads.scatti===undefined||heads.paga_base===heads.scatti)continue;for(let j=i+1;j<Math.min(cellRows.length,i+5);j++){const candidate=cellRows[j],cells=candidate.cells;if(cells.some(c=>/\b(?:data\s+assunzione|assunzione|matricola|codice\s+fiscale|periodo\s+paga)\b/i.test(norm(c))))continue;const amounts=cells.filter(amountCell);if(amounts.length!==2||cells.some(c=>!amountCell(c)))continue;const values=amounts.map(italianNumber);if(values.some(v=>v===null||v<=0))continue;const pairs=heads.paga_base<heads.scatti?{paga_base:values[0],scatti:values[1]}:{paga_base:values[1],scatti:values[0]};Object.entries(pairs).forEach(([key,value])=>{if(out[key]===undefined){out[key]=value;out.details[key]={matchedAlias:key==="paga_base"?"Paga base":"Scatti",source:row.line+" / "+candidate.line,value,method:"associazione per colonne"}}});break}}
+ for(const [key] of fields){if(out[key]!==undefined)continue;const custom=Array.isArray(customAliases?.[key])?customAliases[key].filter(x=>typeof x==="string"&&x.trim()).slice(0,40):[],detail={};const v=labeledValue(scanLines,[...(aliases[key]||[key.replace(/_/g," ")]),...custom],key==="paga_base"||key==="scatti",detail);if(v!==null){out[key]=v;out.details[key]=detail}}
  // La paga base si legge solo da un'etichetta contrattuale esplicita.
  // Non usare il totale di LAVORO ORDINARIO: può riferirsi a pochi giorni e non alla base mensile.
  out.profile=parseContractProfile(text);
