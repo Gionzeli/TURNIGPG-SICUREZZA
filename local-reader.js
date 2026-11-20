@@ -178,7 +178,11 @@ function labeledValue(lines,aliases,requireCents=false,detail=null){
    let tail=rows[i].slice(hit.index+hit[0].length).replace(/^[\s|:;=€]+/,"");
    const sameRowBoundary=stop.exec(tail);
    if(sameRowBoundary)tail=tail.slice(0,sameRowBoundary.index);
-   let value=valueOf(tail);if(value!==null){if(detail)Object.assign(detail,{matchedAlias:alias,source:lines[i],value});return value;}
+   // Accetta solo un importo immediatamente dopo l'etichetta:
+   // se OCR ha inserito parole (Giorni, Residuo AP, INPS, ecc.)
+   // il numero successivo può appartenere a un'altra colonna/voce.
+   const immediate=/^[-+]?(?:[0-9OIl]{1,3}(?:(?:\s*\.\s*|\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\s*,\s*[0-9OIl]{2,5}|\s*\.\s*[0-9OIl]{2})(?![0-9OIl])/.test(tail);
+   let value=immediate?valueOf(tail):null;if(value!==null){if(detail)Object.assign(detail,{matchedAlias:alias,source:lines[i],value});return value;}
    if(sameRowBoundary)continue;
    // Accetta la riga immediatamente successiva solo se contiene esclusivamente
    // un importo: evita di confondere Paga base con Scatti o altre voci.
