@@ -1,8 +1,8 @@
 [
   {
-    "t": "Versione 2.3.61 – Storico aggiornamenti ridotto",
-    "v": "2.3.61",
-    "d": 1795154357779,
-    "b": "La sezione Aggiornamenti mostra soltanto la nota della versione corrente. Rimosse dall’elenco le note delle versioni precedenti, mantenendo invariati turni, parametri, documenti e tutti gli altri dati salvati sul dispositivo."
+    "t": "Versione 2.3.62 – Calcolo giornaliero dello straordinario",
+    "v": "2.3.62",
+    "d": 1795156008977,
+    "b": "Le ore ordinarie si conteggiano una sola volta al giorno usando il parametro Ore per turno. Le ore oltre il limite diventano straordinario; nei giorni di riposo lavorato tutte le ore sono straordinarie. I turni e i parametri già salvati restano invariati."
   }
 ]
