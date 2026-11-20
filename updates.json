@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.78",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.78 – Evita associazioni errate nel cedolino",
+    "b": "Resa più rigorosa l’associazione degli importi alle etichette retributive: il valore deve seguire direttamente la voce oppure trovarsi nella riga successiva composta dal solo importo. Se tra l’etichetta e il numero compaiono altre parole o dati di colonne diverse (ad esempio Giorni, INPS o Residuo AP), il lettore non attribuisce quel numero al parametro. Nessun salvataggio in caso di paga base non riconosciuta. Elaborazione locale e anteprima prima della conferma."
+  },
+  {
     "v": "2.3.77",
     "d": "2026-11-20",
     "t": "Versione 2.3.77 – Lettura cedolino più prudente",
