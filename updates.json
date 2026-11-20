@@ -3,7 +3,7 @@
     "t": "Versione 2.3.67 – Scheda contrattuale personale",
     "v": "2.3.67",
     "d": 1795176000000,
-    "b": "Aggiunta la scheda contrattuale personale con codice CCNL/CNEL, sezione, livello, mansione e decorrenza. I dati sono salvati localmente e inclusi nei backup semplici e cifrati. Nessuna tabella retributiva viene applicata se il contratto non è identificato. I turni e i parametri retributivi esistenti restano invariati."
+    "b": "Aggiunta la scheda contrattuale personale con codice CCNL/CNEL, sezione, livello, mansione e decorrenza. La lettura locale della busta paga riconosce in modo prudente HV17, K511 e H401 e propone i dati rilevati in anteprima prima del salvataggio. I dati sono salvati localmente e inclusi nei backup semplici e cifrati. Nessuna tabella retributiva viene applicata se il contratto non è identificato. I turni e i parametri retributivi esistenti restano invariati."
   },
   {
     "t": "Versione 2.3.66 – Correzione turno notturno da 12 ore",
