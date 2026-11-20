@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.86",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.86 – Dettaglio mensile delle ore per categoria",
+    "b": "Aggiunto nella schermata Turni un prospetto delle ore totali, ordinarie e straordinarie, suddivise in diurne, notturne, domeniche/festivi, piantonamento e riposi lavorati. Le categorie possono sovrapporsi e non vanno sommate tra loro. I calcoli sono locali; turni e parametri esistenti non vengono modificati."
+  },
+  {
     "v": "2.3.85",
     "d": "2026-11-21",
     "t": "Versione 2.3.85 – Associazione colonne paga base e scatti",
