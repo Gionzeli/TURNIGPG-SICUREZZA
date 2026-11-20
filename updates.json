@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.79",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.79 – Lettura tabellare più precisa del cedolino",
+    "b": "Migliorata l’associazione di Paga base e Scatti nelle tabelle OCR: quando etichetta e importo sono celle adiacenti sulla stessa riga vengono collegati direttamente; quando le due etichette formano una riga di intestazione, si mantiene l’associazione controllata con la riga degli importi sottostante. Le associazioni richiedono celle importo isolate e non interpretano numeri lontani in righe miste (ad esempio Residuo AP). Anteprima e conferma restano obbligatorie; nessun dato viene inviato a servizi esterni."
+  },
+  {
     "v": "2.3.78",
     "d": "2026-11-20",
     "t": "Versione 2.3.78 – Evita associazioni errate nel cedolino",
