@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.60 – Storico aggiornamenti riordinato",
+    "v": "2.3.60",
+    "d": 1795153906473,
+    "b": "Riordinato lo storico delle novità dalla versione più recente alla più vecchia. Uniformate le descrizioni, eliminate intestazioni ripetute e mantenuti i dettagli delle modifiche precedenti. Nessun turno, parametro o documento salvato viene modificato."
+  },
+  {
     "t": "Versione 2.3.59 – Guida ai 17 parametri e valori verificati",
     "v": "2.3.59",
     "d": 1795153403864,
@@ -147,121 +153,121 @@
     "t": "Versione 2.3.34 – Paga base e Scatti non si scambiano",
     "v": "2.3.34",
     "d": 1795091400000,
-    "b": "📄 CORRETTA L’ASSOCIAZIONE DEGLI IMPORTI\nPaga base e Scatti vengono riconosciuti solo se il valore contiene i centesimi. Una cifra incompleta come “1,2” non viene accettata come importo.\n\n🔎 ETICHETTE SEPARATE\nSe più voci sono sulla stessa riga, il lettore si ferma alla successiva etichetta: l’importo degli Scatti non può essere assegnato alla Paga base e viceversa. Se la Paga base non è riconosciuta con certezza, l’importazione viene bloccata senza modificare i parametri."
+    "b": "Paga base e Scatti vengono riconosciuti solo se il valore contiene i centesimi. Una cifra incompleta come “1,2” non viene accettata come importo. Se più voci sono sulla stessa riga, il lettore si ferma alla successiva etichetta: l’importo degli Scatti non può essere assegnato alla Paga base e viceversa. Se la Paga base non è riconosciuta con certezza, l’importazione viene bloccata senza modificare i parametri."
   },
   {
     "t": "Versione 2.3.33 – Importazione cedolino più prudente",
     "v": "2.3.33",
     "d": 1795089600000,
-    "b": "📄 RICONOSCIMENTO IMPORTI\nIl lettore richiede ora un importo con cifre decimali: numeri isolati come “1” o “13” non vengono accettati come paga base o scatti.\n\n🔒 PARAMETRI PROTETTI\nQuando importi una busta paga vengono aggiornati soltanto i campi riconosciuti e confermati. I parametri non letti restano invariati: non vengono azzerati.\n\nLa lettura del PDF e l’OCR restano sul dispositivo."
+    "b": "Il lettore richiede ora un importo con cifre decimali: numeri isolati come “1” o “13” non vengono accettati come paga base o scatti. Quando importi una busta paga vengono aggiornati soltanto i campi riconosciuti e confermati. I parametri non letti restano invariati: non vengono azzerati. La lettura del PDF e l’OCR restano sul dispositivo."
   },
   {
     "t": "Versione 2.3.32 – Riconoscimento delle etichette spezzate nei cedolini",
     "v": "2.3.32",
     "d": 1795089600000,
-    "b": "📄 LETTURA BUSTA PAGA\nMigliorata la lettura quando il PDF o l’OCR separa un’etichetta su più righe, per esempio “Paga” e “base” su righe diverse e l’importo su quella successiva.\n\n🔎 VALORI DISTINTI\nPaga base e Scatti continuano a essere cercati separatamente. Il totale e la voce Retribuzione non vengono usati come sostituti della paga base.\n\n🔒 I documenti restano sul dispositivo. I parametri vengono modificati solo dopo l’anteprima e la conferma."
+    "b": "Migliorata la lettura quando il PDF o l’OCR separa un’etichetta su più righe, per esempio “Paga” e “base” su righe diverse e l’importo su quella successiva. Paga base e Scatti continuano a essere cercati separatamente. Il totale e la voce Retribuzione non vengono usati come sostituti della paga base. I documenti restano sul dispositivo. I parametri vengono modificati solo dopo l’anteprima e la conferma."
   },
   {
     "t": "Versione 2.3.31 – Lettura buste paga con percorso condiviso e importi più affidabili",
     "v": "2.3.31",
     "d": 1795120000000,
-    "b": "📄 LETTURA BUSTE PAGA\nTurni e buste paga passano dallo stesso lettore locale: estrazione del PDF e, quando serve, OCR sul dispositivo. Rafforzata l'associazione tra la voce “Paga base” e il suo importo anche quando il PDF separa etichetta e cifra su righe o colonne diverse.\n\n🔎 NIENTE SCAMBI TRA VOCI\nSe prima dell'importo compare un'altra voce (per esempio “Scatti”), il lettore non attraversa quella voce per prendere un numero sbagliato. Paga base e Scatti restano distinti; Retribuzione e Lavoro ordinario non vengono usati come sostituti.\n\n🔒 Il documento resta sul dispositivo. I parametri vengono mostrati in anteprima e modificati solo dopo la tua conferma."
+    "b": "Turni e buste paga passano dallo stesso lettore locale: estrazione del PDF e, quando serve, OCR sul dispositivo. Rafforzata l'associazione tra la voce “Paga base” e il suo importo anche quando il PDF separa etichetta e cifra su righe o colonne diverse. Se prima dell'importo compare un'altra voce (per esempio “Scatti”), il lettore non attraversa quella voce per prendere un numero sbagliato. Paga base e Scatti restano distinti; Retribuzione e Lavoro ordinario non vengono usati come sostituti. Il documento resta sul dispositivo. I parametri vengono mostrati in anteprima e modificati solo dopo la tua conferma."
   },
   {
     "t": "Versione 2.3.30 – Lettura buste paga corretta e condivisa",
     "v": "2.3.30",
     "d": 1795116000000,
-    "b": "📄 LETTURA BUSTE PAGA\nCorretto il riconoscimento di spazi, separatori e importi che impediva di associare le etichette ai valori del cedolino.\n\n🔎 STESSO PERCORSO LOCALE DEI TURNI\nLa busta paga usa il lettore locale condiviso: prima estrae il testo del PDF; se non riconosce con certezza la Paga base, avvia l’OCR sul dispositivo. Paga base e Scatti sono riconosciuti separatamente. Retribuzione e Lavoro ordinario non vengono usati come sostituti della paga base.\n\nI documenti non vengono caricati online. I parametri vengono sostituiti soltanto dopo la tua conferma."
+    "b": "Corretto il riconoscimento di spazi, separatori e importi che impediva di associare le etichette ai valori del cedolino. La busta paga usa il lettore locale condiviso: prima estrae il testo del PDF; se non riconosce con certezza la Paga base, avvia l’OCR sul dispositivo. Paga base e Scatti sono riconosciuti separatamente. Retribuzione e Lavoro ordinario non vengono usati come sostituti della paga base. I documenti non vengono caricati online. I parametri vengono sostituiti soltanto dopo la tua conferma."
   },
   {
     "t": "Versione 2.3.27 – Colori personalizzabili in stile Material 3",
     "v": "2.3.27",
     "d": 1795113000000,
-    "b": "🎨 PERSONALIZZAZIONE DEI COLORI\nAggiunta una tavolozza personalizzabile: scegli il colore principale e l’app adatta pulsanti, menu, schede e dettagli con tinte coordinate. La preferenza resta salvata solo sul dispositivo.\n\nNota: per motivi di sicurezza e per i limiti delle pagine web, l’app non può leggere automaticamente lo sfondo del telefono. Nessun dato dei turni o delle buste paga viene modificato."
+    "b": "Aggiunta una tavolozza personalizzabile: scegli il colore principale e l’app adatta pulsanti, menu, schede e dettagli con tinte coordinate. La preferenza resta salvata solo sul dispositivo. Nota: per motivi di sicurezza e per i limiti delle pagine web, l’app non può leggere automaticamente lo sfondo del telefono. Nessun dato dei turni o delle buste paga viene modificato."
   },
   {
     "t": "Versione 2.3.26 – Corretto l’ordine delle note di aggiornamento",
     "v": "2.3.26",
     "d": 1795129140000,
-    "b": "📰 AGGIORNAMENTI\nCorretto l’ordinamento delle note: ora le versioni vengono mostrate dalla più recente alla più vecchia in base al numero di versione, senza essere spostate da date precedenti non coerenti.\n\n🔒 La modifica riguarda solo la visualizzazione delle novità. Turni, cedolini e documenti salvati sul dispositivo non vengono modificati né cancellati."
+    "b": "Corretto l’ordinamento delle note: ora le versioni vengono mostrate dalla più recente alla più vecchia in base al numero di versione, senza essere spostate da date precedenti non coerenti. La modifica riguarda solo la visualizzazione delle novità. Turni, cedolini e documenti salvati sul dispositivo non vengono modificati né cancellati."
   },
   {
     "t": "Versione 2.3.25 – Lettura cedolino con controllo OCR più preciso",
     "v": "2.3.25",
     "d": 1795086000000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nIl controllo del testo PDF usa ora lo stesso riconoscimento effettivo della voce “Paga base” utilizzato nell’analisi del cedolino. Se il testo estratto sembra contenere un importo ma il lettore non riesce davvero a ricavarlo, viene avviato il riconoscimento OCR locale come alternativa.\n\n🔎 PAGA BASE E SCATTI\nPaga base e scatti restano voci separate. I valori vengono mostrati in anteprima e modificati solo dopo la tua conferma.\n\n🔒 Il PDF viene elaborato sul dispositivo: non viene inviato a Firebase o a servizi AI. I componenti OCR possono essere scaricati da CDN, ma non ricevono il documento."
+    "b": "Il controllo del testo PDF usa ora lo stesso riconoscimento effettivo della voce “Paga base” utilizzato nell’analisi del cedolino. Se il testo estratto sembra contenere un importo ma il lettore non riesce davvero a ricavarlo, viene avviato il riconoscimento OCR locale come alternativa. Paga base e scatti restano voci separate. I valori vengono mostrati in anteprima e modificati solo dopo la tua conferma. Il PDF viene elaborato sul dispositivo: non viene inviato a Firebase o a servizi AI. I componenti OCR possono essere scaricati da CDN, ma non ricevono il documento."
   },
   {
     "t": "Versione 2.3.24 – Migliorato il riconoscimento degli importi OCR",
     "v": "2.3.24",
     "d": 1795106400000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nMigliorato il riconoscimento degli importi quando il PDF o l’OCR confonde alcune cifre (per esempio la lettera O con lo zero) oppure separa le cifre con spazi.\n\n🔎 PAGA BASE E SCATTI\nIl lettore continua a cercare separatamente “Paga base” e “Scatti”: il totale non viene scambiato per la paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma.\n\n🔒 La lettura del documento resta sul dispositivo."
+    "b": "Migliorato il riconoscimento degli importi quando il PDF o l’OCR confonde alcune cifre (per esempio la lettera O con lo zero) oppure separa le cifre con spazi. Il lettore continua a cercare separatamente “Paga base” e “Scatti”: il totale non viene scambiato per la paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma. La lettura del documento resta sul dispositivo."
   },
   {
     "t": "Versione 2.3.23 – Lettura automatica di tutte le pagine PDF",
     "v": "2.3.23",
     "d": 1795102800000,
-    "b": "📄 LETTURA AUTOMATICA DEI PDF\nL’app non richiede più di selezionare o copiare il testo: elabora tutte le pagine del PDF, anche quando sono immagini o documenti di sola lettura. Migliorata la qualità di acquisizione delle pagine e il riconoscimento OCR locale, usando sia il testo ricostruito per righe sia il testo OCR completo.\n\n🗓️ BUSTE PAGA E TURNI\nLa lettura avviene sul dispositivo. I dati riconosciuti vengono mostrati prima della conferma; se la paga base non è certa, i parametri restano invariati."
+    "b": "L’app non richiede più di selezionare o copiare il testo: elabora tutte le pagine del PDF, anche quando sono immagini o documenti di sola lettura. Migliorata la qualità di acquisizione delle pagine e il riconoscimento OCR locale, usando sia il testo ricostruito per righe sia il testo OCR completo. La lettura avviene sul dispositivo. I dati riconosciuti vengono mostrati prima della conferma; se la paga base non è certa, i parametri restano invariati."
   },
   {
     "t": "Versione 2.3.22 – Evitato l’OCR quando il PDF contiene già la paga base",
     "v": "2.3.22",
     "d": 1795109400000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nCorretto il flusso PDF: quando il testo originale contiene già la voce “Paga base” con un importo leggibile, l’app usa il testo nativo e salta davvero l’OCR. In questo caso non mescola più testo PDF e testo OCR, che potevano duplicare o confondere le voci.\n\n🔒 Il riconoscimento resta sul dispositivo. I parametri vengono modificati solo dopo l’anteprima e la conferma."
+    "b": "Corretto il flusso PDF: quando il testo originale contiene già la voce “Paga base” con un importo leggibile, l’app usa il testo nativo e salta davvero l’OCR. In questo caso non mescola più testo PDF e testo OCR, che potevano duplicare o confondere le voci. Il riconoscimento resta sul dispositivo. I parametri vengono modificati solo dopo l’anteprima e la conferma."
   },
   {
     "t": "Versione 2.3.21 – Migliorata la lettura dei cedolini PDF",
     "v": "2.3.21",
     "d": 1795107600000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nQuando il PDF contiene già testo leggibile con la voce Paga base e il relativo importo, l'app usa direttamente quel testo e non avvia un OCR aggiuntivo che può introdurre righe duplicate o confuse. L'OCR locale resta disponibile quando il PDF non contiene un importo riconoscibile. Nessun documento viene inviato online e i parametri vengono sostituiti solo dopo la tua conferma."
+    "b": "Quando il PDF contiene già testo leggibile con la voce Paga base e il relativo importo, l'app usa direttamente quel testo e non avvia un OCR aggiuntivo che può introdurre righe duplicate o confuse. L'OCR locale resta disponibile quando il PDF non contiene un importo riconoscibile. Nessun documento viene inviato online e i parametri vengono sostituiti solo dopo la tua conferma."
   },
   {
     "t": "Versione 2.3.20 – Corretta la ricerca della paga base nel PDF",
     "v": "2.3.20",
     "d": 1795097760000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nIl lettore controlla tutte le occorrenze della voce “Paga base” nel testo estratto dal PDF e nel testo ricostruito dall’OCR locale. Se una prima occorrenza è incompleta, può usare quella successiva che contiene l’importo.\n\n🔎 Paga base e Scatti restano distinti: il totale non viene scambiato per la paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma.\n\n🔒 La lettura resta sul dispositivo."
+    "b": "Il lettore controlla tutte le occorrenze della voce “Paga base” nel testo estratto dal PDF e nel testo ricostruito dall’OCR locale. Se una prima occorrenza è incompleta, può usare quella successiva che contiene l’importo. Paga base e Scatti restano distinti: il totale non viene scambiato per la paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma. La lettura resta sul dispositivo."
   },
   {
     "t": "Versione 2.3.19 – Corretto il riconoscimento degli importi separati dall’OCR",
     "v": "2.3.19",
     "d": 1795092960000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nIl lettore gestisce meglio gli importi che l’OCR divide con spazi o separatori, ad esempio tra migliaia e decimali. La ricerca della voce “Paga base” è stata resa più robusta anche quando etichetta e importo sono su righe diverse.\n\n🔎 VALORI DISTINTI\n“Paga base” e “Scatti” restano separati: il totale non viene scambiato per la paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma.\n\n🔒 La lettura resta sul dispositivo."
+    "b": "Il lettore gestisce meglio gli importi che l’OCR divide con spazi o separatori, ad esempio tra migliaia e decimali. La ricerca della voce “Paga base” è stata resa più robusta anche quando etichetta e importo sono su righe diverse. “Paga base” e “Scatti” restano separati: il totale non viene scambiato per la paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma. La lettura resta sul dispositivo."
   },
   {
     "t": "Versione 2.3.18 – Riconoscimento più robusto della paga base",
     "v": "2.3.18",
     "d": 1795089300000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nRafforzato il riconoscimento delle etichette quando il PDF spezza le parole su righe diverse o usa spazi particolari. Il lettore cerca ora anche nel testo completo ricomposto la voce “Paga base” e il relativo importo.\n\n🔎 VALORI SEPARATI\nLa voce “Scatti” continua a essere riconosciuta separatamente. Il totale paga base più scatti non viene usato come paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma.\n\n🔒 La lettura resta sul dispositivo."
+    "b": "Rafforzato il riconoscimento delle etichette quando il PDF spezza le parole su righe diverse o usa spazi particolari. Il lettore cerca ora anche nel testo completo ricomposto la voce “Paga base” e il relativo importo. La voce “Scatti” continua a essere riconosciuta separatamente. Il totale paga base più scatti non viene usato come paga base. I valori vengono mostrati in anteprima e salvati solo dopo conferma. La lettura resta sul dispositivo."
   },
   {
     "t": "Versione 2.3.17 – Corretta la lettura di paga base e scatti",
     "v": "2.3.17",
     "d": 1795084500000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nIl lettore riconosce la voce esplicita “Paga base” anche quando l’importo è sulla riga successiva e contiene più decimali. Riconosce inoltre la voce “Scatti” separatamente.\n\n🔎 VALORI DAL CEDOLINO\nLa paga base viene letta dalla voce indicata nel documento: non viene confusa con la retribuzione dei singoli giorni lavorati. I valori vengono mostrati in anteprima e salvati solo dopo la conferma.\n\n🔒 La lettura resta sul dispositivo; nessun importo viene preimpostato."
+    "b": "Il lettore riconosce la voce esplicita “Paga base” anche quando l’importo è sulla riga successiva e contiene più decimali. Riconosce inoltre la voce “Scatti” separatamente. La paga base viene letta dalla voce indicata nel documento: non viene confusa con la retribuzione dei singoli giorni lavorati. I valori vengono mostrati in anteprima e salvati solo dopo la conferma. La lettura resta sul dispositivo; nessun importo viene preimpostato."
   },
   {
     "t": "Versione 2.3.16 – Migliorata la lettura delle colonne del cedolino",
     "v": "2.3.16",
     "d": 1795080000000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nMigliorato il riconoscimento delle voci quando il PDF o l’OCR separa le parole e gli importi in colonne o righe diverse. La voce LAVORO ORDINARIO viene cercata anche quando è spezzata e il totale viene ricavato dal cedolino inserito, senza importi preimpostati.\n\n🔎 CONFERMA PRIMA DEL SALVATAGGIO\nI parametri vengono sostituiti solo dopo aver mostrato l’anteprima e aver ricevuto la conferma. Se la paga base non è riconosciuta, i valori già presenti restano invariati.\n\n🔒 I documenti e i parametri restano sul dispositivo."
+    "b": "Migliorato il riconoscimento delle voci quando il PDF o l’OCR separa le parole e gli importi in colonne o righe diverse. La voce LAVORO ORDINARIO viene cercata anche quando è spezzata e il totale viene ricavato dal cedolino inserito, senza importi preimpostati. I parametri vengono sostituiti solo dopo aver mostrato l’anteprima e aver ricevuto la conferma. Se la paga base non è riconosciuta, i valori già presenti restano invariati. I documenti e i parametri restano sul dispositivo."
   },
   {
     "t": "Versione 2.3.15 – Corretta la lettura dei cedolini PDF",
     "v": "2.3.15",
     "d": 1795079460000,
-    "b": "📄 LETTURA DELLA BUSTA PAGA\nCorretto il passaggio che poteva saltare l’OCR quando il PDF conteneva solo una parte del testo. Ora le pagine del cedolino vengono sottoposte al riconoscimento OCR locale quando serve, anche se è già stato estratto del testo.\n\n🔎 ERRORI PIÙ CHIARI\nSe la paga base non viene individuata, l’app lo segnala chiaramente invece di mostrare un errore generico.\n\n🔒 I TUOI DOCUMENTI\nIl riconoscimento avviene sul dispositivo. Il PDF non viene caricato su servizi esterni e i parametri esistenti restano invariati finché non confermi l’anteprima."
+    "b": "Corretto il passaggio che poteva saltare l’OCR quando il PDF conteneva solo una parte del testo. Ora le pagine del cedolino vengono sottoposte al riconoscimento OCR locale quando serve, anche se è già stato estratto del testo. Se la paga base non viene individuata, l’app lo segnala chiaramente invece di mostrare un errore generico. Il riconoscimento avviene sul dispositivo. Il PDF non viene caricato su servizi esterni e i parametri esistenti restano invariati finché non confermi l’anteprima."
   },
   {
     "t": "Versione 2.3.14 – Aggiornamenti completi e lettura con errori più chiari",
     "v": "2.3.14",
     "d": 1795075860000,
-    "b": "📰 AGGIORNAMENTI\nCorretto il problema che poteva sostituire le novità dell’app con il solo elenco ricevuto da Firebase. Le note locali e quelle online vengono ora unite, ordinate e mostrate insieme.\n\n📄 LETTURA DEI DOCUMENTI\nMigliorata la segnalazione degli errori durante il riconoscimento locale: quando la lettura si interrompe, l’app mostra anche il dettaglio tecnico disponibile, così è possibile individuare il punto da correggere. I documenti restano sul dispositivo e non vengono inviati a servizi esterni.\n\n🔒 I TUOI DATI\nLa modifica non cancella né modifica turni, cedolini o documenti già salvati."
+    "b": "Corretto il problema che poteva sostituire le novità dell’app con il solo elenco ricevuto da Firebase. Le note locali e quelle online vengono ora unite, ordinate e mostrate insieme. Migliorata la segnalazione degli errori durante il riconoscimento locale: quando la lettura si interrompe, l’app mostra anche il dettaglio tecnico disponibile, così è possibile individuare il punto da correggere. I documenti restano sul dispositivo e non vengono inviati a servizi esterni. La modifica non cancella né modifica turni, cedolini o documenti già salvati."
   },
   {
     "t": "Versione 2.3.13 – Aggiornamenti più chiari e illustrati",
     "v": "2.3.13",
     "d": 1795067100000,
-    "b": "🆕 COSA CAMBIA\nLa sezione Aggiornamenti ora presenta le novità in schede più visibili, con un simbolo, il numero della versione, la data e una spiegazione leggibile.\n\n📅 ORDINE CORRETTO\nLe versioni vengono mostrate dalla più recente alla più vecchia: la novità attuale resta in cima all’elenco.\n\n🔒 I TUOI DATI\nQuesta modifica riguarda solo la visualizzazione degli aggiornamenti. Turni, cedolini e documenti salvati sul dispositivo non vengono modificati né cancellati."
+    "b": "La sezione Aggiornamenti ora presenta le novità in schede più visibili, con un simbolo, il numero della versione, la data e una spiegazione leggibile. Le versioni vengono mostrate dalla più recente alla più vecchia: la novità attuale resta in cima all’elenco. Questa modifica riguarda solo la visualizzazione degli aggiornamenti. Turni, cedolini e documenti salvati sul dispositivo non vengono modificati né cancellati."
   },
   {
     "t": "Versione 2.3.11 – Lettura PDF più rapida e stabile",
