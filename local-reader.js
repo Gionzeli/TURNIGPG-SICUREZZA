@@ -201,6 +201,7 @@ function parseContractProfile(text){
   if(/guardia particolare giurata|\bgpg\b|vigilanza privata armata|servizi di vigilanza armata/.test(n))profile.section="vigilanza_armata";
   else if(/servizi fiduciari|portierato|vigilanza non armata/.test(n))profile.section="servizi_fiduciari";
   else if(/servizi di sicurezza/.test(n))profile.section="servizi_sicurezza";
+ }
  const level=raw.match(/\b(?:livello|inquadramento)\s*(?:contrattuale)?\s*[:\-]?\s*(Q|[1-6]|[A-E])\b/i);
  if(level)profile.level=level[1].toUpperCase();
  const role=raw.match(/^\s*(?:mansione|qualifica|profilo professionale)\s*[:\-]\s*([^\r\n|]{2,90})/im);
