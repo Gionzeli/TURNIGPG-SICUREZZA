@@ -40,12 +40,8 @@ function labeledValue(lines,aliases,requireCents=false){
    if(sameRowBoundary)tail=tail.slice(0,sameRowBoundary.index);
    let value=valueOf(tail);if(value!==null)return value;
    if(sameRowBoundary)continue;
-   for(let j=i+1;j<Math.min(rows.length,i+7);j++){
-    const boundary=stop.exec(rows[j]);
-    const candidate=boundary?rows[j].slice(0,boundary.index):rows[j];
-    value=valueOf(candidate);if(value!==null)return value;
-    if(boundary)break;
-   }
+   // Non prendere importi da righe successive: potrebbero appartenere a un'altra voce.
+   // Le etichette spezzate sono già ricomposte in scanLines prima della ricerca.
   }
  }
  return null;
