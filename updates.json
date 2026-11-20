@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.77",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.77 – Lettura cedolino più prudente",
+    "b": "Migliorata l’associazione per colonne di Paga base e Scatti quando le due intestazioni sono nella stessa riga e la riga vicina contiene esattamente i due importi. Le diciture Data assunzione, matricola e periodo paga non vengono interpretate come voci retributive. L’anteprima mostra i valori e le righe sorgenti; se Paga base non è riconosciuta, non propone più la compilazione forzata di tutti i parametri e non salva nulla. Lettura e dati restano sul dispositivo."
+  },
+  {
     "v": "2.3.76",
     "d": "2026-11-20",
     "t": "Versione 2.3.76 – Lettura più completa e verificabile",
