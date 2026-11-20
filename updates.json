@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.80",
+    "d": "2026-11-20",
+    "t": "Versione 2.3.80 – Ricostruzione più stabile delle righe OCR",
+    "b": "Rivista la ricostruzione delle righe del riconoscimento OCR: ogni parola viene associata usando l’ancora e il riquadro originale della riga, evitando che riquadri parzialmente sovrapposti trascinino insieme voci contigue. Migliora la separazione tra intestazioni retributive, righe di importi e altre voci del cedolino. Paga base e Scatti restano riconosciuti soltanto con un collegamento verificabile; i valori incerti non vengono salvati. Elaborazione locale e anteprima prima della conferma."
+  },
+  {
     "v": "2.3.79",
     "d": "2026-11-20",
     "t": "Versione 2.3.79 – Lettura tabellare più precisa del cedolino",
