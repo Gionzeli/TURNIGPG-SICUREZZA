@@ -192,6 +192,25 @@ function labeledValue(lines,aliases,requireCents=false){
  }
  return null;
 }
+function parseContractProfile(text){
+ const raw=String(text||""),n=norm(raw),profile={};
+ // Il codice CNEL o la denominazione contrattuale completa hanno priorità:
+ // la sola mansione "portiere" non determina il CCNL applicato.
+ if(/\bhv17\b/.test(n)||/vigilanza privata e servizi di sicurezza/.test(n)||/vigilanza privata e servizi fiduciari/.test(n))profile.ccnl="HV17";
+ else if(/\bk511\b/.test(n)||/ccnl per il personale dipendente da imprese esercenti servizi di pulizia e servizi integrati\s*\/\s*multiservizi/.test(n))profile.ccnl="K511";
+ else if(/\bh401\b/.test(n)||/ccnl portieri e custodi/.test(n)||/dipendenti da proprietari di fabbricati/.test(n))profile.ccnl="H401";
+ if(profile.ccnl==="HV17"){
+  if(/guardia particolare giurata|\bgpg\b|vigilanza privata armata|servizi di vigilanza armata/.test(n))profile.section="vigilanza_armata";
+  else if(/servizi fiduciari|portierato|vigilanza non armata/.test(n))profile.section="servizi_fiduciari";
+  else if(/servizi di sicurezza/.test(n))profile.section="servizi_sicurezza";
+ }else if(profile.ccnl==="K511"&&/portierato|portiere|reception|custodia/.test(n))profile.section="multiservizi_portierato";
+ else if(profile.ccnl==="H401")profile.section="portieri_custodi";
+ const level=raw.match(/\b(?:livello|inquadramento)\s*(?:contrattuale)?\s*[:\-]?\s*(Q|[1-6]|[A-E])\b/i);
+ if(level)profile.level=level[1].toUpperCase();
+ const role=raw.match(/^\s*(?:mansione|qualifica|profilo professionale)\s*[:\-]\s*([^\r\n|]{2,90})/im);
+ if(role)profile.role=role[1].trim().replace(/\s+/g," ").slice(0,90);
+ return profile;
+}
 function parsePayslip(text,fields){
  const lines=String(text||"").split(/\r?\n/).map(x=>x.replace(/^RIGA \d+:\s*/i,"").replace(/^Riga \d+:\s*/i,"").replace(/\s*\|\s*/g," ").trim()).filter(Boolean),aliases={
  paga_base:["paga base","minimo tabellare","minimo contrattuale","retribuzione base","retribuzione tabellare","stipendio base","minimo ccnl","minimo contrattuale mensile"],scatti:["scatti","scatti anzianita","scatti di anzianita"],altre_fisse:["superminimo","elemento distinto","indennita fissa","altre voci fisse"],ore_mensili:["ore mensili","orario mensile","ore contrattuali"],ore_turno:["ore turno","durata turno","ore giornaliere"],straordinario_perc:["maggiorazione straordinario","straordinario %","maggiorazione straord"],straordinario_ora:["straordinario euro ora","straordinario orario","compenso straordinario"],notturno_turno:["indennita notturna","maggiorazione notturno","notturno turno"],piantonato_turno:["piantonamento","indennita piantonamento"],domenica_ora:["maggiorazione domenicale","lavoro domenicale","domenica ora"],riposo_non_goduto:["riposo non goduto","riposo lavorato","festivita non goduta"],buono_pasto:["buono pasto","ticket restaurant","ticket"],inps_rate:["aliquota inps","inps %","contributi ivs"],irpef_rate:["aliquota irpef","irpef %","ritenuta irpef"],sindacato:["trattenuta sindacale","sindacato"],cessione:["cessione quinto","cessione del quinto"],altre_trattenute:["altre trattenute","totale trattenute"]};
@@ -204,6 +223,7 @@ function parsePayslip(text,fields){
  for(const [key] of fields){const v=labeledValue(scanLines,aliases[key]||[key.replace(/_/g," ")],key==="paga_base"||key==="scatti");if(v!==null)out[key]=v}
  // La paga base si legge solo da un'etichetta contrattuale esplicita.
  // Non usare il totale di LAVORO ORDINARIO: può riferirsi a pochi giorni e non alla base mensile.
+ out.profile=parseContractProfile(text);
  return out;
 }
 function fullDate(line){
