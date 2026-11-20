@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.41 – Lettura buste paga con lo stesso percorso OCR dei turni",
+    "v": "2.3.41",
+    "d": 1795219200000,
+    "b": "La lettura delle buste paga usa lo stesso percorso locale dei turni: estrae il testo del PDF e aggiunge l’OCR delle pagine, senza saltare l’OCR quando trova soltanto la paga base. L’anteprima resta obbligatoria e i parametri non riconosciuti non vengono modificati."
+  },
+  {
     "t": "Versione 2.3.40 – Rimossa la personalizzazione dei colori",
     "v": "2.3.40",
     "d": 1795219200000,
