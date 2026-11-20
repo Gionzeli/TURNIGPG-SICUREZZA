@@ -45,16 +45,24 @@ function rowsFromPaddle(items){
   return{text:String(x.text).trim(),x0,x1,y0,y1,y:(y0+y1)/2,h:Math.max(3,y1-y0)};
  });
  if(!clean.length)return "";
- const hs=clean.map(x=>x.h).sort((a,b)=>a-b),tol=Math.max(2,(hs[Math.floor(hs.length/2)]||14)*.28),rows=[];
+ const hs=clean.map(x=>x.h).sort((a,b)=>a-b),medH=hs[Math.floor(hs.length/2)]||14,tol=Math.max(2,medH*.42),rows=[];
  clean.sort((a,b)=>a.y-b.y||a.x0-b.x0);
- // Le righe sono raggruppate con sovrapposizione verticale delle caselle,
- // non con una tolleranza ampia che può fondere due voci contigue.
+ // Ricostruzione stabile delle righe: ogni parola viene confrontata con
+ // l'ancora e il riquadro ORIGINALE della riga, mai con il riquadro allargato
+ // dalle parole già aggiunte. In questo modo una sequenza di box parzialmente
+ // sovrapposti non trascina più righe contigue dentro un'unica riga.
  for(const item of clean){
-  let row=rows.find(r=>{
-   const overlap=Math.max(0,Math.min(r.y1,item.y1)-Math.max(r.y0,item.y0));
-   return overlap>=Math.min(r.y1-r.y0,item.h)*.32||Math.abs(r.anchor-item.y)<=tol;
-  });
-  if(!row){row={anchor:item.y,y0:item.y0,y1:item.y1,items:[]};rows.push(row)}
+  let best=null,bestDistance=Infinity;
+  for(const candidate of rows){
+   const overlap=Math.max(0,Math.min(candidate.anchorY1,item.y1)-Math.max(candidate.anchorY0,item.y0));
+   const minHeight=Math.min(candidate.anchorY1-candidate.anchorY0,item.h);
+   const distance=Math.abs(candidate.anchor-item.y);
+   if(distance<=tol||(minHeight>0&&overlap>=minHeight*.5)){
+    if(distance<bestDistance){best=candidate;bestDistance=distance}
+   }
+  }
+  let row=best;
+  if(!row){row={anchor:item.y,anchorY0:item.y0,anchorY1:item.y1,y0:item.y0,y1:item.y1,items:[]};rows.push(row)}
   row.items.push(item);row.y0=Math.min(row.y0,item.y0);row.y1=Math.max(row.y1,item.y1);
  }
  rows.sort((a,b)=>a.anchor-b.anchor);
