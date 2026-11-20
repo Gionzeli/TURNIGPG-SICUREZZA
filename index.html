@@ -391,7 +391,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.41",ADMIN_WA="393923801549";
+const APP_VER="2.3.42",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -617,11 +617,11 @@ for(let i=1;i<=count;i++){
  // Se il PDF contiene già la paga base leggibile, usa il testo nativo dell’intero documento: niente OCR misto.
  if(forceOCR&&readableChars>=20&&window.LocalDocAI&&Number(window.LocalDocAI.parsePayslip(pageText,FIELDS).paga_base)>0){hasPayslipText=true;continue;}
  if(forceOCR&&hasPayslipText)continue;
- const vp=pg.getViewport({scale:2}),c=document.createElement("canvas"),ctx=c.getContext("2d");
+ const vp=pg.getViewport({scale:3}),c=document.createElement("canvas"),ctx=c.getContext("2d");
  if(!ctx)throw{code:"pdf_canvas"};
  c.width=Math.ceil(vp.width);c.height=Math.ceil(vp.height);
  await pg.render({canvasContext:ctx,viewport:vp}).promise;
- const blob=await new Promise((resolve,reject)=>{try{c.toBlob(v=>v?resolve(v):reject({code:"pdf_canvas"}),"image/jpeg",.85)}catch(e){reject({code:"pdf_canvas"})}});
+ const blob=await new Promise((resolve,reject)=>{try{c.toBlob(v=>v?resolve(v):reject({code:"pdf_canvas"}),"image/png")}catch(e){reject({code:"pdf_canvas"})}});
  if(!blob||!blob.size)throw{code:"pdf_canvas"};
  out.push(blob);c.width=1;c.height=1;
 }
@@ -881,8 +881,8 @@ if(!X.onb&&!X.pin)startOnb();
 </script>
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
-<script type="module" src="local-reader.js?v=2.3.41"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.109").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script type="module" src="local-reader.js?v=2.3.42"></script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.110").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 
 
 </body>
