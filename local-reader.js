@@ -58,38 +58,38 @@ function rowsFromPaddle(items){
   row.items.push(item);row.y0=Math.min(row.y0,item.y0);row.y1=Math.max(row.y1,item.y1);
  }
  rows.sort((a,b)=>a.anchor-b.anchor);
- const labelRe=/\b(?:paga\s*base|minimo\s*tabellare|minimo\s*contrattuale|retribuzione\s*base|retribuzione\s*tabellare|stipendio\s*base|minimo\s*ccnl)\b/i;
- const otherLabelRe=/\b(?:scatti|superminimo|elemento\s+distinto|indennita|ore\s+mensili|ore\s+contrattuali|straordinario|notturno|piantonamento|domenicale|buono\s+pasto|aliquota|trattenute)\b/i;
+ const labelRules=[
+  {re:/\b(?:paga\s*base|minimo\s*tabellare|minimo\s*contrattuale|retribuzione\s*base|retribuzione\s*tabellare|stipendio\s*base|minimo\s*ccnl)\b/i,name:"Paga base"},
+  {re:/\bscatti(?:\s+(?:di\s+)?anzianita)?\b/i,name:"Scatti"}
+ ];
+ const otherLabelRe=/\b(?:paga\s*base|minimo\s*tabellare|minimo\s*contrattuale|retribuzione\s*base|retribuzione\s*tabellare|stipendio\s*base|minimo\s*ccnl|scatti|superminimo|elemento\s+distinto|indennita|ore\s+mensili|ore\s+contrattuali|straordinario|notturno|piantonamento|domenicale|buono\s+pasto|aliquota|trattenute)\b/i;
  const amountRe=/^\s*[€]?\s*[-+]?(?:[0-9OIl]{1,3}(?:[.\s][0-9OIl]{3})+|[0-9OIl]+)[,.][0-9OIl]{2,5}\s*[€]?\s*$/;
  const hints=[];
  for(const row of rows){
   const it=row.items.sort((a,b)=>a.x0-b.x0);
-  for(let i=0;i<it.length;i++){
+  for(const rule of labelRules)for(let i=0;i<it.length;i++){
    let labelEnd=i,labelText=it[i].text,labelX1=it[i].x1;
-   if(!labelRe.test(labelText)&&i+1<it.length&&labelRe.test(labelText+" "+it[i+1].text)){
+   if(!rule.re.test(labelText)&&i+1<it.length&&rule.re.test(labelText+" "+it[i+1].text)){
     labelEnd=i+1;labelText+=" "+it[i+1].text;labelX1=it[i+1].x1;
    }
-   if(!labelRe.test(labelText))continue;
-   // Se etichetta e importo sono nello stesso riquadro, conserva solo il testo
-   // che precede la prossima voce e cerca un importo con centesimi.
-   const inline=labelText.match(labelRe);
+   if(!rule.re.test(labelText))continue;
+   const inline=labelText.match(rule.re);
    if(inline){
     const tail=labelText.slice(inline.index+inline[0].length);
     const stop=otherLabelRe.exec(tail);
     const part=stop?tail.slice(0,stop.index):tail;
     const m=part.match(/[-+]?(?:[0-9OIl]{1,3}(?:[.\s][0-9OIl]{3})+|[0-9OIl]+)[,.][0-9OIl]{2,5}/);
-    if(m){hints.push("Paga base: "+m[0]);continue}
+    if(m){hints.push(rule.name+": "+m[0]);continue}
    }
-   const nextLabel=it.slice(labelEnd+1).find(x=>otherLabelRe.test(x.text)||labelRe.test(x.text));
+   const nextLabel=it.slice(labelEnd+1).find(x=>otherLabelRe.test(x.text));
    const boundary=nextLabel?nextLabel.x0:Infinity;
    const candidates=it.slice(labelEnd+1).filter(x=>x.x0>=labelX1-2&&x.x0<boundary&&amountRe.test(x.text));
    if(candidates.length){
     candidates.sort((x,y)=>(x.x0-labelX1)-(y.x0-labelX1));
-    hints.push("Paga base: "+candidates[0].text.trim().replace(/€|\s/g,""));
+    hints.push(rule.name+": "+candidates[0].text.trim().replace(/€|\s/g,""));
    }
   }
- }
- const lines=[];
+ } const lines=[];
  // Le associazioni basate sulle coordinate vengono prima del testo lineare:
  // il parser può così preferirle senza indebolire i controlli sulle etichette.
  for(const h of hints)lines.push("ASSOCIAZIONE OCR POSIZIONALE: "+h);
@@ -122,6 +122,11 @@ function labeledValue(lines,aliases,requireCents=false){
   const label=new RegExp("(^|[^a-z])"+alias.split(/\s+/).join("\\s+")+"(?=$|[^a-z])","i");
   for(let i=0;i<rows.length;i++){
    const hit=label.exec(rows[i]);if(!hit)continue;
+   // Quando più etichette precedono tutti gli importi nella stessa riga,
+   // il testo lineare non permette di sapere quale cifra appartenga a quale voce.
+   // In tal caso si accettano soltanto eventuali associazioni posizionali certe.
+   const pLabel=rows[i].search(/\\bpaga\\s*base\\b/i),sLabel=rows[i].search(/\\bscatti\\b/i),firstAmount=rows[i].search(number);
+   if(pLabel>=0&&sLabel>=0&&firstAmount>=0&&Math.max(pLabel,sLabel)<firstAmount)continue;
    let tail=rows[i].slice(hit.index+hit[0].length).replace(/^[\s|:;=€]+/,"");
    const sameRowBoundary=stop.exec(tail);
    if(sameRowBoundary)tail=tail.slice(0,sameRowBoundary.index);
