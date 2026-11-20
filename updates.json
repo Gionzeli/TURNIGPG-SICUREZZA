@@ -1,8 +1,8 @@
 [
   {
-    "t": "Versione 2.3.65 – Ripartizione ore nella tabella Turni",
-    "v": "2.3.65",
-    "d": 1795180800000,
-    "b": "La tabella mostra per ogni fascia le ore ordinarie e quelle straordinarie in formato decimale, secondo il limite giornaliero impostato (7,25 ore ordinarie): ad esempio 8 ore = 7,25 ordinarie + 0,75 straordinarie; 12 ore = 7,25 + 4,75. Più fasce nella stessa giornata condividono una sola soglia ordinaria. Il riposo lavorato è conteggiato tutto come straordinario. Nessun turno o parametro personale viene cancellato."
+    "t": "Versione 2.3.66 – Correzione turno notturno da 12 ore",
+    "v": "2.3.66",
+    "d": 1795132800000,
+    "b": "Corretto il limite delle ore ordinarie giornaliere: un turno unico 18:00–06:00 viene ripartito in 7,25 ore ordinarie e 4,75 straordinarie. Il calcolo non consente più che la soglia ordinaria superi 7,25 ore; il valore salvato pari a 12 viene riportato a 7,25. I turni registrati non vengono modificati."
   }
 ]
