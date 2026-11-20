@@ -636,12 +636,24 @@ async function readDocumentText(f,st,kind){
  // Un solo percorso locale per tutti i documenti: testo PDF prima, OCR condiviso se serve.
  const src=await srcOf(f,6,false);let documentText=String(src.text||"");
  if(src.imgs&&src.imgs.length){
-  st.textContent="Lettura OCR sul dispositivo…";
-  const ocr=await window.LocalDocAI.ocrImages(src.imgs,p=>{
-   if(p.phase==="ocr-page")st.textContent="Lettura pagina "+p.page+" di "+p.total+"…";
-   else if(p.phase==="ocr")st.textContent=p.progress!=null?"Preparazione OCR: "+p.progress+"%…":(p.detail||"Preparazione OCR…");
-  });
-  if(ocr)documentText+=(documentText?"\n\n":"")+"TESTO OCR LOCALE:\n"+ocr;
+  let ocr="";
+  const progress=p=>{
+   if(p.phase==="paddle-page"||p.phase==="ocr-page")st.textContent="Lettura pagina "+p.page+" di "+p.total+"…";
+   else if(p.phase==="paddle")st.textContent=p.detail||"Preparazione PaddleOCR locale…";
+   else if(p.phase==="ocr")st.textContent=p.progress!=null?"Preparazione OCR alternativo: "+p.progress+"%…":(p.detail||"Preparazione OCR…");
+  };
+  if(kind==="p"){
+   try{ocr=await window.LocalDocAI.ocrPayslipImages(src.imgs,progress)}catch(e){console.warn("PaddleOCR locale non disponibile; uso Tesseract",e)}
+   if(ocr)documentText+=(documentText?"\n\n":"")+"TESTO PADDLEOCR LOCALE:\n"+ocr;
+   // Se il nuovo OCR non individua una paga base esplicita, prova anche il lettore precedente.
+   if(!Number(window.LocalDocAI.parsePayslip(documentText,FIELDS).paga_base)){
+    const alt=await window.LocalDocAI.ocrImages(src.imgs,progress);
+    if(alt)documentText+=(documentText?"\n\n":"")+"TESTO OCR ALTERNATIVO LOCALE:\n"+alt;
+   }
+  }else{
+   ocr=await window.LocalDocAI.ocrImages(src.imgs,progress);
+   if(ocr)documentText+=(documentText?"\n\n":"")+"TESTO OCR LOCALE:\n"+ocr;
+  }
   src.imgs.length=0;
  }
  if(!documentText.trim())throw{code:"empty"};
