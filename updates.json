@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.85",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.85 – Associazione colonne paga base e scatti",
+    "b": "Corretto il riconoscimento della tabella retributiva quando l’OCR rileva le intestazioni Paga base e Scatti e gli importi sulla riga sottostante insieme a parole di disturbo. L’associazione richiede esattamente due importi e non attraversa altre voci retributive. I dati restano sul dispositivo."
+  },
+  {
     "v": "2.3.84",
     "d": "2026-11-20",
     "t": "Versione 2.3.84 – Diagnostica OCR con righe circostanti",
