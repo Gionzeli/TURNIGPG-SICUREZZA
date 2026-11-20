@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.49 – Modello AI locale più leggero",
+    "v": "2.3.49",
+    "d": 1795132800000,
+    "b": "Sostituito il modello locale DeepSeek da 1,5 miliardi di parametri con Qwen2.5-0.5B-Instruct, più leggero e multilingue, in formato ONNX compatibile con Transformers.js. Download indicativo circa 483 MB per la variante q4f16 WebGPU e circa 786 MB per q4 CPU, oltre ai componenti di runtime. Il modello viene eseguito nel browser; nessun documento viene inviato a servizi AI. Questa funzione verifica l'avvio del modello e non modifica il parser paghe o i calcoli deterministici."
+  },
+  {
     "t": "Versione 2.3.48 – DeepSeek locale sperimentale",
     "v": "2.3.48",
     "d": 1795132800000,
