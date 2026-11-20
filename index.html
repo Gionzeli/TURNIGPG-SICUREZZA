@@ -391,7 +391,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.72",ADMIN_WA="393923801549";
+const APP_VER="2.3.74",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -691,22 +691,10 @@ async function aiImport(kind,f,st){
   }
   const o=kind==="p"?window.LocalDocAI.parsePayslip(documentText,FIELDS,S.profile?.payroll_aliases):window.LocalDocAI.parseTurns(documentText);
 if(kind==="p"){
- const proposedAliases={...(S.profile?.payroll_aliases||{})};
- const candidates=window.LocalDocAI.findPayrollLabelCandidates?.(documentText,proposedAliases)||[];
- let addedAliases=0;
- if(candidates.length){
-  const choices=FIELDS.map(([k,label],n)=>(n+1)+". "+label+" ["+k+"]").join("\n");
-  for(const candidate of candidates.slice(0,6)){
-   const answer=prompt("DICITURA AZIENDALE NON RICONOSCIUTA\n\nHo trovato questa possibile voce del cedolino:\n“"+candidate+"”\n\nSeleziona il parametro scrivendo il numero corrispondente. Scrivi 0 per saltare.\n\n"+choices,"0");
-   if(answer===null)break;
-   const n=Number(String(answer).trim());
-   if(!Number.isInteger(n)||n<1||n>FIELDS.length)continue;
-   const key=FIELDS[n-1][0],list=Array.isArray(proposedAliases[key])?proposedAliases[key].slice():[];
-   if(!list.some(v=>String(v).toLowerCase()===candidate.toLowerCase())){list.push(candidate);proposedAliases[key]=list.slice(-40);addedAliases++}
-  }
- }
- const parsedResult=addedAliases?window.LocalDocAI.parsePayslip(documentText,FIELDS,proposedAliases):o;
- const parsed={};
+  // Nessuna associazione automatica di etichette candidate: prima si mostrano
+  // soltanto i valori numerici effettivamente riconosciuti dal cedolino.
+  const parsedResult=o;
+  const parsed={};
  FIELDS.forEach(([k])=>{const v=parsedResult[k];if(v!==null&&v!==undefined&&v!==""&&Number.isFinite(Number(v)))parsed[k]=Number(v)});
  const detected=o.profile&&typeof o.profile==="object"?o.profile:{},profileParsed={};
  ["ccnl","section","level","role"].forEach(k=>{if(typeof detected[k]==="string"&&detected[k].trim())profileParsed[k]=detected[k].trim().slice(0,100)});
@@ -717,8 +705,8 @@ if(kind==="p"){
  Object.entries(profileParsed).forEach(([k,v])=>previewParts.push(profileLabels[k]+": "+(k==="ccnl"?({HV17:"HV17 · Vigilanza Privata e Servizi di Sicurezza"}[v]||v):v)));
  const preview=previewParts.join("\n");
  if(!confirm("ANTEPRIMA BUSTA PAGA — controlla i valori riconosciuti:\n\n"+preview+"\n\nSaranno aggiornati soltanto i "+keys.length+" parametri numerici riconosciuti e i "+Object.keys(profileParsed).length+" dati contrattuali rilevati. Tutti gli altri resteranno invariati. Vuoi confermare?")){st.textContent="Importazione annullata: nessun parametro o dato contrattuale modificato.";return}
- S.params=fresh;S.profile={...S.profile,...profileParsed,...(addedAliases?{payroll_aliases:proposedAliases}:{})};save();fillParams();fillProfile();render();
- st.textContent=keys.length+" parametri e "+Object.keys(profileParsed).length+" dati contrattuali aggiornati"+(addedAliases?"; "+addedAliases+" diciture aziendali memorizzate":"")+"; gli altri sono rimasti invariati.";
+ S.params=fresh;S.profile={...S.profile,...profileParsed};save();fillParams();fillProfile();render();
+ st.textContent=keys.length+" parametri e "+Object.keys(profileParsed).length+" dati contrattuali aggiornati"+"; gli altri sono rimasti invariati.";
  if(aiBadge){aiBadge.textContent="Dati importati ✓";aiBadge.className="tg ok"}snack("Dati riconosciuti aggiornati")
 }
 else{if(!Array.isArray(o))throw{code:"bad"};const invalid=[];let add=[];o.forEach((x,i)=>{const dateOk=typeof x?.date==="string"&&/^\d{4}-\d{2}-\d{2}$/.test(x.date)&&(()=>{const d=new Date(x.date+"T12:00:00");return !isNaN(d)&&d.toISOString().slice(0,10)===x.date})(),typeOk=!!(x&&TYPES[x.type]),timeOk=v=>!v||(/^\d{2}:\d{2}$/.test(v)&&Number(v.slice(0,2))<24&&Number(v.slice(3))<60),timesOk=timeOk(x?.start_time||"")&&timeOk(x?.end_time||"");if(!dateOk||!typeOk||!timesOk||(WORK.includes(x?.type)&&x?.type!=="turno_riposo"&&(!(x.start_time||"")||!(x.end_time||"")||x.start_time===x.end_time))){invalid.push(i+1);return}const w=WORK.includes(x.type),st2=x.start_time||"",en=x.end_time||"",a=w&&st2&&en?auto(x.date,st2,en):auto(x.date);add.push({id:uid(),date:x.date,type:x.type,post:cleanPost(x.post),start_time:st2,end_time:en,is_night:!!(w&&st2&&en&&(a.is_night||x.notturno===true)),is_sunday:!!(w&&a.is_sunday),is_piantonato:!!(w&&(x.piantonamento===true||PIANT.test(x.post||""))),is_rest_not_enjoyed:x.type==="turno_riposo",has_meal_voucher:!!(w&&st2&&en),hours:st2&&en&&st2!==en?hours(st2,en):(x.type==="permesso"?Math.max(0,Math.min(24,Number(x.ore)||0)):0)})});if(!add.length)throw{code:"no_turns"};const dayCounts={};add.forEach(x=>dayCounts[x.date]=(dayCounts[x.date]||0)+1);const duplicates=Object.keys(dayCounts).filter(d=>dayCounts[d]>1);const preview=add.slice(0,24).map(x=>x.date+" · "+x.type+(x.start_time?" · "+x.start_time+"-"+x.end_time:"")+(x.post?" · "+x.post:"")).join("\n");const warnings=(invalid.length?"\n\n"+invalid.length+" riga/e scartate per dati incompleti o non validi.":"")+(duplicates.length?"\n\nAttenzione: più voci nelle stesse date: "+duplicates.join(", ")+".":"")+(add.length>24?"\n\nAnteprima limitata ai primi 24 elementi.":"");if(!confirm("ANTEPRIMA TURNI — controlla prima di salvare:\n\n"+preview+warnings+"\n\nVuoi importare "+add.length+" turni? Se qualcosa non torna, premi Annulla: non verranno modificati i turni.")){st.textContent="Importazione annullata: nessun turno modificato.";return}const tot=add.length;if(!tot)throw{code:"bad"};let upd=0;const idx=new Map(S.shifts.map(e=>[dkey(e),e])),fresh=[];
@@ -960,7 +948,7 @@ if(!X.onb&&!X.pin)startOnb();
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
 <script type="module" src="local-reader.js?v=2.3.73"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.141").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.142").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 
 
 </body>
