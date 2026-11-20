@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.59 – Guida ai 17 parametri e valori verificati",
+    "v": "2.3.59",
+    "d": 1795153403864,
+    "b": "Aggiunte spiegazioni accanto a tutti i 17 parametri e un pulsante per inserire i due valori già verificati sul cedolino di settembre 2026: Paga base 1.468,88 € e Scatti 84,52 €. Gli altri valori non vengono inventati e vanno verificati sul proprio cedolino o contratto. I dati restano sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.58 – Corretto avvio dell’app",
     "v": "2.3.58",
     "d": 1795152780000,
