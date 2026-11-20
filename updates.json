@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.70 – Decorrenza facoltativa",
+    "v": "2.3.70",
+    "d": "2026-11-20",
+    "b": "La decorrenza del cedolino o della tabella contrattuale è ora facoltativa. Se non trovi la data puoi lasciarla vuota o usare il comando dedicato per svuotarla; il profilo e gli altri dati restano salvabili. Nessuna modifica ai turni o ai parametri retributivi."
+  },
+  {
     "t": "Versione 2.3.69 – Correzione avvio lettore locale",
     "v": "2.3.69",
     "d": 1795182960000,
