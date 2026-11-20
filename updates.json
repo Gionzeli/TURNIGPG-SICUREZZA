@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.72",
+    "d": 20261120,
+    "t": "Dizionario personale delle voci aziendali",
+    "x": "Aggiunto il dizionario locale delle diciture specifiche del cedolino. Puoi associare una dicitura aziendale al parametro corretto; il lettore riutilizza l'associazione nei cedolini successivi. Le associazioni sono salvate nel profilo locale e nei backup. Nessun turno o parametro economico esistente viene modificato automaticamente."
+  },
+  {
     "v": "2.3.71",
     "d": 20261120,
     "t": "Correzione avvio app",
