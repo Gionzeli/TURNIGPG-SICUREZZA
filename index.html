@@ -691,10 +691,10 @@ if(!add.length){if(upd){save();render();st.textContent=upd+" giornate completate
   if(aiBadge){aiBadge.textContent="Dati non importati";aiBadge.className="tg w"}
   st.textContent=aiErr(x)+" (fase: "+fase+")";
   if(kind==="p"&&x&&x.code==="base_not_found"){
-   const lines=String(documentText||"").split(/\\r?\\n/).map(v=>v.trim()).filter(Boolean),picked=new Set();
-   lines.forEach((line,i)=>{if(/paga\\s*base|scatti/i.test(line)){picked.add(i);[i-1,i+1].forEach(j=>{if(j>=0&&j<lines.length&&/^[€£$\\s0-9.,'’+-]+$/.test(lines[j])&&/\\d/.test(lines[j]))picked.add(j)})}});
-   const excerpt=[...picked].sort((a,b)=>a-b).map(i=>lines[i]).slice(0,8).join("\\n").slice(0,600);
-   showDiag("CONTROLLO LOCALE — righe lette vicino a Paga base / Scatti:\\n"+(excerpt||"Il testo OCR non contiene righe riconoscibili con le etichette Paga base o Scatti.")+"\\n\\nQueste righe restano su questo dispositivo e non vengono inviate online.");
+   const lines=String(documentText||"").split(/\r?\n/).map(v=>v.trim()).filter(Boolean),picked=new Set();
+   lines.forEach((line,i)=>{if(/paga\s*base|scatti/i.test(line)){picked.add(i);[i-1,i+1].forEach(j=>{if(j>=0&&j<lines.length&&/^[€£$\s0-9.,'’+-]+$/.test(lines[j])&&/\d/.test(lines[j]))picked.add(j)})}});
+   const excerpt=[...picked].sort((a,b)=>a-b).map(i=>lines[i]).slice(0,8).join("\n").slice(0,600);
+   showDiag("CONTROLLO LOCALE — righe lette vicino a Paga base / Scatti:\n"+(excerpt||"Il testo OCR non contiene righe riconoscibili con le etichette Paga base o Scatti.")+"\n\nQueste righe restano su questo dispositivo e non vengono inviate online.");
   }
  }
 }
