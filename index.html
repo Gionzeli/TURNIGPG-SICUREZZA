@@ -391,7 +391,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.83",ADMIN_WA="393923801549";
+const APP_VER="2.3.84",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -698,7 +698,7 @@ if(kind==="p"){
  const keys=Object.keys(parsed),profileLabels={ccnl:"CCNL/CNEL",section:"Sezione",level:"Livello",role:"Mansione"};
  if(!Object.prototype.hasOwnProperty.call(parsed,"paga_base")||parsed.paga_base<=0){
    const detectedLines=FIELDS.filter(([k])=>Object.prototype.hasOwnProperty.call(parsed,k)).map(([k,label])=>{const d=o.details?.[k];return label+": "+Number(parsed[k]).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:5})+(d?.source?" — "+String(d.source).replace(/\\s+/g," ").slice(0,180):"")});
-   const ocrRelevant=documentText.split(/\r?\n/).filter(line=>/paga|base|scatt|minimo|retribuz|ordinario/i.test(line)).slice(0,14).map(line=>line.trim().slice(0,280));
+   const ocrLines=documentText.split(/\r?\n/),ocrIndexes=[];ocrLines.forEach((line,i)=>{if(/paga|base|scatt|minimo/i.test(line))for(let j=Math.max(0,i-4);j<=Math.min(ocrLines.length-1,i+6);j++)ocrIndexes.push(j)});const ocrRelevant=[...new Set(ocrIndexes)].sort((a,b)=>a-b).slice(0,32).map(i=>ocrLines[i].trim().slice(0,280));
    const ocrDiag=ocrRelevant.length?ocrRelevant.join("\n"):"Nessuna riga OCR contiene le parole Paga, base, Scatti, minimo, retribuzione o ordinario.";
    showDiag("ANTEPRIMA LETTURA CEDOLINO\n\n"+(detectedLines.length?detectedLines.join("\n")+"\n\n":"Nessun importo retributivo associato con certezza.\n\n")+"Paga base: non riconosciuta con sufficiente sicurezza.\nScatti: "+(Object.prototype.hasOwnProperty.call(parsed,"scatti")?"riconosciuti":"non riconosciuti")+".\n\nRIGHE OCR DA CONTROLLARE (solo sul dispositivo):\n"+ocrDiag+"\n\nNessun parametro o dato contrattuale è stato modificato. Le date di assunzione non vengono usate come importi.");
    st.textContent="Anteprima incompleta: Paga base non riconosciuta. Nessun dato salvato.";
@@ -851,7 +851,7 @@ $("insgo").onclick=()=>{if(DEFI){DEFI.prompt();DEFI=null;insBar()}};$("insno").o
 try{window.addEventListener&&window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFI=e;extra();insBar()});window.addEventListener&&window.addEventListener("appinstalled",()=>{DEFI=null;insBar()})}catch(e){}
 document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-install]")&&DEFI){DEFI.prompt();DEFI=null;extra()}});
 function mergeUpdates(items){const all=[...STATIC_UPD,...(Array.isArray(items)?items:[]).filter(u=>!String(u.id||"").startsWith("s"))],seen=new Set(),ver=u=>String(u.v||"0").split(".").map(n=>parseInt(n,10)||0);UPD=all.filter(u=>{const k=String(u.v||"")+"|"+String(u.t||"");if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>{const a=ver(x),b=ver(y);for(let i=0;i<Math.max(a.length,b.length);i++){const d=(b[i]||0)-(a[i]||0);if(d)return d}return(y.d||0)-(x.d||0)});renderUpd()}
-async function loadUpd(){try{const r=await fetch("updates.json?rev=20261120-2383",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const a=await r.json();if(!Array.isArray(a))throw new Error("Elenco aggiornamenti non valido");STATIC_UPD=a.map((u,i)=>({id:"s"+i,...u}));mergeUpdates(UPD)}catch(e){console.warn("Aggiornamenti locali non caricati",e);mergeUpdates(UPD)}}
+async function loadUpd(){try{const r=await fetch("updates.json?rev=20261120-2384",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const a=await r.json();if(!Array.isArray(a))throw new Error("Elenco aggiornamenti non valido");STATIC_UPD=a.map((u,i)=>({id:"s"+i,...u}));mergeUpdates(UPD)}catch(e){console.warn("Aggiornamenti locali non caricati",e);mergeUpdates(UPD)}}
 const ROLES={gpg:"guardia particolare giurata (GPG)",sicurezza:"addetto alla sicurezza",portierato:"addetto al portierato"};
 const roleTxt=()=>ROLES[X.role]||"lavoratore a turni di vigilanza, sicurezza o portierato";
 function applyRole(){const pi=$("is_piantonato"),pe=pi&&pi.parentElement;if(pe)pe.style.display=X.role==="portierato"?"none":""}
@@ -931,7 +931,7 @@ if(!X.onb&&!X.pin)startOnb();
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
 <script type="module" src="local-reader.js?v=2.3.80"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.151").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.152").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 
 
 </body>
