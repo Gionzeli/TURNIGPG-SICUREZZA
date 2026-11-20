@@ -40,13 +40,61 @@ function rowsFromPaddle(items){
  const clean=(items||[]).filter(x=>String(x?.text||"").trim()).map((x,i)=>{
   const pts=(Array.isArray(x.poly)?x.poly:[]).map(p=>Array.isArray(p)?{x:Number(p[0]),y:Number(p[1])}:{x:Number(p?.x),y:Number(p?.y)}).filter(p=>Number.isFinite(p.x)&&Number.isFinite(p.y));
   const xs=pts.map(p=>p.x),ys=pts.map(p=>p.y);
-  return{text:String(x.text).trim(),x:xs.length?Math.min(...xs):i,y:ys.length?ys.reduce((a,b)=>a+b,0)/ys.length:i,h:ys.length?Math.max(3,Math.max(...ys)-Math.min(...ys)):14};
+  const x0=xs.length?Math.min(...xs):i,x1=xs.length?Math.max(...xs):i+String(x.text).length;
+  const y0=ys.length?Math.min(...ys):i,y1=ys.length?Math.max(...ys):i+14;
+  return{text:String(x.text).trim(),x0,x1,y0,y1,y:(y0+y1)/2,h:Math.max(3,y1-y0)};
  });
  if(!clean.length)return "";
- const hs=clean.map(x=>x.h).sort((a,b)=>a-b),tol=Math.max(4,(hs[Math.floor(hs.length/2)]||14)*.55),rows=[];
- clean.sort((a,b)=>a.y-b.y||a.x-b.x);
- for(const item of clean){let row=rows.find(r=>Math.abs(r.anchor-item.y)<=tol);if(!row){row={anchor:item.y,items:[]};rows.push(row)}row.items.push(item)}
- return rows.sort((a,b)=>a.anchor-b.anchor).map((r,i)=>"RIGA "+(i+1)+": "+r.items.sort((a,b)=>a.x-b.x).map(x=>x.text).join(" | ")).join("\n");
+ const hs=clean.map(x=>x.h).sort((a,b)=>a-b),tol=Math.max(2,(hs[Math.floor(hs.length/2)]||14)*.28),rows=[];
+ clean.sort((a,b)=>a.y-b.y||a.x0-b.x0);
+ // Le righe sono raggruppate con sovrapposizione verticale delle caselle,
+ // non con una tolleranza ampia che può fondere due voci contigue.
+ for(const item of clean){
+  let row=rows.find(r=>{
+   const overlap=Math.max(0,Math.min(r.y1,item.y1)-Math.max(r.y0,item.y0));
+   return overlap>=Math.min(r.y1-r.y0,item.h)*.32||Math.abs(r.anchor-item.y)<=tol;
+  });
+  if(!row){row={anchor:item.y,y0:item.y0,y1:item.y1,items:[]};rows.push(row)}
+  row.items.push(item);row.y0=Math.min(row.y0,item.y0);row.y1=Math.max(row.y1,item.y1);
+ }
+ rows.sort((a,b)=>a.anchor-b.anchor);
+ const labelRe=/\b(?:paga\s*base|minimo\s*tabellare|minimo\s*contrattuale|retribuzione\s*base|retribuzione\s*tabellare|stipendio\s*base|minimo\s*ccnl)\b/i;
+ const otherLabelRe=/\b(?:scatti|superminimo|elemento\s+distinto|indennita|ore\s+mensili|ore\s+contrattuali|straordinario|notturno|piantonamento|domenicale|buono\s+pasto|aliquota|trattenute)\b/i;
+ const amountRe=/^\s*[€]?\s*[-+]?(?:[0-9OIl]{1,3}(?:[.\s][0-9OIl]{3})+|[0-9OIl]+)[,.][0-9OIl]{2,5}\s*[€]?\s*$/;
+ const hints=[];
+ for(const row of rows){
+  const it=row.items.sort((a,b)=>a.x0-b.x0);
+  for(let i=0;i<it.length;i++){
+   let labelEnd=i,labelText=it[i].text,labelX1=it[i].x1;
+   if(!labelRe.test(labelText)&&i+1<it.length&&labelRe.test(labelText+" "+it[i+1].text)){
+    labelEnd=i+1;labelText+=" "+it[i+1].text;labelX1=it[i+1].x1;
+   }
+   if(!labelRe.test(labelText))continue;
+   // Se etichetta e importo sono nello stesso riquadro, conserva solo il testo
+   // che precede la prossima voce e cerca un importo con centesimi.
+   const inline=labelText.match(labelRe);
+   if(inline){
+    const tail=labelText.slice(inline.index+inline[0].length);
+    const stop=otherLabelRe.exec(tail);
+    const part=stop?tail.slice(0,stop.index):tail;
+    const m=part.match(/[-+]?(?:[0-9OIl]{1,3}(?:[.\s][0-9OIl]{3})+|[0-9OIl]+)[,.][0-9OIl]{2,5}/);
+    if(m){hints.push("Paga base: "+m[0]);continue}
+   }
+   const nextLabel=it.slice(labelEnd+1).find(x=>otherLabelRe.test(x.text)||labelRe.test(x.text));
+   const boundary=nextLabel?nextLabel.x0:Infinity;
+   const candidates=it.slice(labelEnd+1).filter(x=>x.x0>=labelX1-2&&x.x0<boundary&&amountRe.test(x.text));
+   if(candidates.length){
+    candidates.sort((x,y)=>(x.x0-labelX1)-(y.x0-labelX1));
+    hints.push("Paga base: "+candidates[0].text.trim().replace(/€|\s/g,""));
+   }
+  }
+ }
+ const lines=[];
+ // Le associazioni basate sulle coordinate vengono prima del testo lineare:
+ // il parser può così preferirle senza indebolire i controlli sulle etichette.
+ for(const h of hints)lines.push("ASSOCIAZIONE OCR POSIZIONALE: "+h);
+ rows.forEach((r,i)=>lines.push("RIGA "+(i+1)+": "+r.items.map(x=>x.text).join(" | ")));
+ return lines.join("\n");
 }
 async function ocrPayslipImages(images,onProgress){
  if(!images?.length)return "";
