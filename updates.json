@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.57 – Inserimento manuale di tutti i parametri cedolino",
+    "v": "2.3.57",
+    "d": 1795152729625,
+    "b": "Se la lettura automatica non riconosce la Paga base, il modulo manuale permette ora di compilare tutti e 17 i parametri della busta paga. Puoi inserire tutti i valori o soltanto quelli mancanti: i campi vuoti restano invariati, mentre i valori inseriti vengono mostrati in anteprima e salvati solo dopo conferma. I dati restano sul dispositivo."
+  },
+  {
     "t": "Versione 2.3.56 – Conferma manuale dei parametri cedolino",
     "v": "2.3.56",
     "d": 1795153200000,
