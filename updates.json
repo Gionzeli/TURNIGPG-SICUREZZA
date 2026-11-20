@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.88",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.88 – Correzione avvio previsione stipendio",
+    "b": "Risolto un riferimento anticipato alla funzione di formattazione data che poteva impedire l'avvio dell'app. Nessun dato locale modificato."
+  },
+  {
     "v": "2.3.87",
     "d": "2026-11-21",
     "t": "Versione 2.3.87 – Previsione progressiva dello stipendio",
