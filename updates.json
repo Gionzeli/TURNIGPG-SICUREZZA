@@ -1,5 +1,11 @@
 [
   {
+    "t": "Versione 2.3.50 – Correzione download AI locale",
+    "v": "2.3.50",
+    "d": 1795132800000,
+    "b": "Corretto l'avvio del modulo AI locale: inizializzazione compatibile anche se la pagina è già pronta, aggiornato il motore Transformers.js, selezione GPU con ripiego CPU e messaggi di avanzamento/errore più chiari. Modello Qwen2.5-0.5B-Instruct in quantizzazione q4: file del modello circa 483 MB con GPU o 786 MB con CPU, oltre ai componenti runtime. Nessun documento viene inviato online. L'AI è facoltativa; OCR locale e calcoli deterministici restano invariati."
+  },
+  {
     "t": "Versione 2.3.49 – Modello AI locale più leggero",
     "v": "2.3.49",
     "d": 1795132800000,
