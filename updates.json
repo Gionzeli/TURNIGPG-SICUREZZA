@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.87",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.87 – Previsione progressiva dello stipendio",
+    "b": "Aggiunta nella schermata Busta paga una previsione di fine mese: separa il variabile maturato fino a oggi dai turni futuri già registrati e proietta i giorni restanti in base alla media maturata. Mostra lordo, trattenute e netto previsti, con avvisi sui parametri mancanti. È una stima indicativa, non un cedolino. Turni e parametri esistenti non vengono modificati."
+  },
+  {
     "v": "2.3.86",
     "d": "2026-11-21",
     "t": "Versione 2.3.86 – Dettaglio mensile delle ore per categoria",
