@@ -197,14 +197,10 @@ function parseContractProfile(text){
  // Il codice CNEL o la denominazione contrattuale completa hanno priorità:
  // la sola mansione "portiere" non determina il CCNL applicato.
  if(/\bhv17\b/.test(n)||/ccnl\s+vigilanza privata\b/.test(n)||/vigilanza privata e servizi di sicurezza/.test(n)||/vigilanza privata e servizi fiduciari/.test(n))profile.ccnl="HV17";
- else if(/\bk511\b/.test(n)||/ccnl per il personale dipendente da imprese esercenti servizi di pulizia e servizi integrati\s*\/\s*multiservizi/.test(n))profile.ccnl="K511";
- else if(/\bh401\b/.test(n)||/ccnl portieri e custodi/.test(n)||/dipendenti da proprietari di fabbricati/.test(n))profile.ccnl="H401";
  if(profile.ccnl==="HV17"){
   if(/guardia particolare giurata|\bgpg\b|vigilanza privata armata|servizi di vigilanza armata/.test(n))profile.section="vigilanza_armata";
   else if(/servizi fiduciari|portierato|vigilanza non armata/.test(n))profile.section="servizi_fiduciari";
   else if(/servizi di sicurezza/.test(n))profile.section="servizi_sicurezza";
- }else if(profile.ccnl==="K511"&&/portierato|portiere|reception|custodia/.test(n))profile.section="multiservizi_portierato";
- else if(profile.ccnl==="H401")profile.section="portieri_custodi";
  const level=raw.match(/\b(?:livello|inquadramento)\s*(?:contrattuale)?\s*[:\-]?\s*(Q|[1-6]|[A-E])\b/i);
  if(level)profile.level=level[1].toUpperCase();
  const role=raw.match(/^\s*(?:mansione|qualifica|profilo professionale)\s*[:\-]\s*([^\r\n|]{2,90})/im);
