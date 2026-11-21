@@ -760,10 +760,7 @@ async function aiImport(kind,f,st){
    if(!rec.title&&!rec.date&&!rec.expiry&&rec.hours===null)throw{code:"training_unclear"};
    const preview=["Corso: "+(rec.title||"non riconosciuto"),"Ente: "+(rec.provider||"non riconosciuto"),"Data: "+(rec.date||"non riconosciuta"),"Scadenza: "+(rec.expiry||"non indicata"),"Durata: "+(rec.hours!==null?rec.hours+" ore":"non indicata")].join("\n");
    if(!confirm("ANTEPRIMA FORMAZIONE — verifica i dati:\n\n"+preview+"\n\nSalvare questa registrazione solo su questo dispositivo?")){st.textContent="Importazione annullata: nessun dato modificato.";return}
-   const key="tg_training_local_v1";let list=[];try{list=JSON.parse(localStorage.getItem(key)||"[]");if(!Array.isArray(list))list=[]}catch(e){}
-   list.push({id:Date.now().toString(36)+Math.random().toString(36).slice(2,7),...rec,added:new Date().toISOString()});
-   try{localStorage.setItem(key,JSON.stringify(list.slice(-100)))}catch(e){throw{code:"local_storage_full"}}
-   renderTrainingLocal();st.textContent="Documento di formazione salvato solo su questo dispositivo.";if(aiBadge){aiBadge.textContent="Documento salvato ✓";aiBadge.className="tg ok"}snack("Formazione registrata");return;
+   X.skills.push({id:uid(),type:"Corso",title:String(rec.title||"Corso").slice(0,100),issuer:String(rec.provider||"").slice(0,100),date:rec.date||"",expiry:rec.expiry||"",hours:rec.hours,notes:"Importato da lettura locale",added:new Date().toISOString()});X.skills=X.skills.slice(-200);xsave();renderTrainingLocal();renderSkills();st.textContent="Documento di formazione salvato solo su questo dispositivo.";if(aiBadge){aiBadge.textContent="Documento salvato ✓";aiBadge.className="tg ok"}snack("Formazione registrata");return;
   }
   const o=kind==="p"?window.LocalDocAI.parsePayslip(documentText,FIELDS,S.profile?.payroll_aliases):window.LocalDocAI.parseTurns(documentText);
 if(kind==="p"){
