@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.90",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.90 – Buoni pasto nel riepilogo mensile",
+    "b": "Aggiunto al dettaglio mensile delle ore il conteggio dei buoni pasto, calcolato una sola volta per giornata anche in presenza di più segmenti. Mostra anche il valore indicativo se la tariffa è impostata. Nessun turno o parametro viene modificato."
+  },
+  {
     "v": "2.3.89",
     "d": "2026-11-21",
     "t": "Versione 2.3.89 – Correzione previsione progressiva",
