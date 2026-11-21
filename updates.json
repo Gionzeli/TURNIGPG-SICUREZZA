@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.4.01",
+    "d": "2026-11-21",
+    "t": "Versione 2.4.01 – Turni del mese espandibile",
+    "b": "La sezione Turni del mese è ora raccolta in un pannello Espandi/Riduci, inizialmente chiuso. I turni registrati, gli indicatori e i calcoli restano invariati."
+  },
+  {
     "v": "2.4.00",
     "d": "2026-11-21",
     "t": "Versione 2.4.00 – Turni semplificati e dettaglio ore espandibile",
