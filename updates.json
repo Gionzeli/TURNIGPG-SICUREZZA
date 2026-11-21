@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.4.00",
+    "d": "2026-11-21",
+    "t": "Versione 2.4.00 – Turni semplificati e dettaglio ore espandibile",
+    "b": "Rimosse dalla schermata Turni le sezioni Controllo turni e Storico modifiche. Il Dettaglio ore per categoria è ora raccolto in un pannello Espandi/Riduci. I turni registrati e i calcoli restano invariati."
+  },
+  {
     "v": "2.3.99",
     "d": "2026-11-21",
     "t": "Versione 2.3.99 – Invita un collaboratore espandibile",
