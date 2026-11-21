@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.4.02",
+    "d": "2026-11-21",
+    "t": "Versione 2.4.02 – Nuova pagina Skill",
+    "b": "Aggiunta una pagina separata per registrare attestati, corsi, qualifiche e abilitazioni, con ente, date di rilascio e scadenza, durata e note. Le scadenze entro 30 giorni e quelle già superate sono evidenziate. I dati restano sul dispositivo e sono inclusi nei backup; le notifiche automatiche non sono ancora attive."
+  },
+  {
     "v": "2.4.01",
     "d": "2026-11-21",
     "t": "Versione 2.4.01 – Turni del mese espandibile",
