@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.99",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.99 – Invita un collaboratore espandibile",
+    "b": "La sezione Invita un collaboratore nella schermata Collaboratori ora può essere aperta o chiusa con Espandi/Riduci. Le funzioni di condivisione e invito restano invariate."
+  },
+  {
     "v": "2.3.98",
     "d": "2026-11-21",
     "t": "Versione 2.3.98 – Sezioni espandibili",
