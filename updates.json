@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.98",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.98 – Sezioni espandibili",
+    "b": "Aggiunti i controlli Espandi/Comprimi a Lettura automatica documenti, Backup e ripristino e Buoni pasto. Le sezioni possono restare chiuse e aprirsi su richiesta; funzioni e dati restano invariati."
+  },
+  {
     "v": "2.3.97",
     "d": "2026-11-21",
     "t": "Versione 2.3.97 – Saldi ferie e permessi dal cedolino",
