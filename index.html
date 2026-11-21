@@ -327,8 +327,8 @@ details summary{padding:3px 0;font-weight:650}
       <div class="card" id="days"></div>
       <div class="card" id="hourBreakdown"></div>
       <div class="card" id="shiftChecks"></div>
-      <div class="card noprint" id="changeHistory"></div>
       <div class="card"><div class="row sp"><h3>Turni del mese</h3><span class="row"><button class="ic noprint" id="reflag" type="button">Aggiorna indicatori</button><span class="tg" id="cnt"></span></span></div><div id="list"></div></div>
+      <div class="card noprint" id="changeHistory"></div>
     </div>
   </div>
 </main>
@@ -396,7 +396,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.93",ADMIN_WA="393923801549";
+const APP_VER="2.3.94",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -543,7 +543,7 @@ const HM=mergeTurni(L).filter(s=>WORK.includes(s.type)),HOM=dailyOvertimeMap(HM)
  const voucherDays=new Set(HM.filter(s=>s.has_meal_voucher).map(s=>s.date)).size;
  $("hourBreakdown").insertAdjacentHTML("beforeend",'<div class="line" style="margin-top:10px"><span>Buoni pasto · 1 al giorno</span><span><b>'+voucherDays+'</b> · '+(S.params.buono_pasto>0?eur(voucherDays*S.params.buono_pasto):'valore non impostato')+'</span></div>');
  const checks=analyzeShiftChecks(L);
- $("shiftChecks").innerHTML='<div class="row sp"><h3>Controllo turni · sola verifica</h3><span class="tg">'+(checks.length?checks.length+' da verificare':'Nessuna anomalia rilevata')+'</span></div>'+(checks.length?'<p class="hint">Questi sono avvisi, non correzioni automatiche. I turni originali restano invariati.</p><div>'+checks.slice(0,20).map(x=>'<div class="line"><span><b>'+esc(x.date.split("-").reverse().join("/"))+'</b> · '+esc(x.text)+'</span></div>').join("")+'</div>'+(checks.length>20?'<p class="hint">Altri '+(checks.length-20)+' avvisi non mostrati.</p>':''):'<p class="hint">Nessuna sovrapposizione, doppione o anomalia rilevata nei turni del mese. Le coppie consecutive non vengono considerate sovrapposizioni.</p>');
+ $("shiftChecks").innerHTML='<div class="row sp"><h3>Controllo turni · verifica soltanto</h3><span class="tg">'+(checks.length?checks.length+' da verificare':'Nessuna anomalia rilevata')+'</span></div>'+(checks.length?'<p class="hint">Questi sono avvisi, non correzioni automatiche. I turni originali restano invariati.</p><div>'+checks.slice(0,20).map(x=>'<div class="line"><span><b>'+esc(x.date.split("-").reverse().join("/"))+'</b> · '+esc(x.text)+'</span></div>').join("")+'</div>'+(checks.length>20?'<p class="hint">Altri '+(checks.length-20)+' avvisi non mostrati.</p>':''):'<p class="hint">Nessuna sovrapposizione, doppione o anomalia rilevata nei turni del mese. Le coppie consecutive non vengono considerate sovrapposizioni.</p>');
 const gp={};L.forEach(s=>(gp[s.date]=gp[s.date]||[]).push(s));
 const seg=(s,sd)=>{const hc=s.is_piantonato?"#D81B60":s.is_night?"#5E35B1":s.is_sunday?"#F29900":(TCI[s.type]||["","#1A73E8"])[1],t=TYPES[s.type]||TYPES.turno,wk=WORK.includes(s.type),ot=wk?(dailyOvertimeMap(S.shifts).get(s.id)||0):0,ordinary=wk?Math.max(0,s.hours-ot):0,fmtH=n=>Number(n||0).toFixed(2).replace(".",","),
 tg=[[wk&&!s.post,"⚠️ Postazione mancante","#D93025"],[wk&&!s.start_time,"⚠️ Orari mancanti","#D93025"],[wk&&!s.is_night,"🕘 Diurno","#1A73E8"],[s.is_night,"🌙 Notturno","#5E35B1"],[wk&&!s.is_sunday,"📅 Feriale","#607D8B"],[s.is_sunday,sd?"☀️ Domenica":"🎉 Festivo","#F29900"],[s.is_piantonato,s.is_night?"🌃 Piantonamento notturno":"📍 Piantonamento diurno","#D81B60"],[s.is_piantonato&&s.is_sunday,sd?"📍 Piantonamento domenica":"📍 Piantonamento festivo","#AD1457"],[s.is_rest_not_enjoyed,"⏳ Riposo lavorato","#8E24AA"]].filter(x=>x[0]).map(x=>`<span class="tg fl" style="--h:${x[2]}">${x[1]}</span>`).join("");
@@ -929,8 +929,8 @@ $("insmsg").textContent=DEFI?"Aggiungila alla schermata Home: si apre a schermo 
 $("insgo").onclick=()=>{if(DEFI){DEFI.prompt();DEFI=null;insBar()}};$("insno").onclick=()=>{try{localStorage.setItem("tg_ins_off","1")}catch(e){}insBar()};
 try{window.addEventListener&&window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();DEFI=e;extra();insBar()});window.addEventListener&&window.addEventListener("appinstalled",()=>{DEFI=null;insBar()})}catch(e){}
 document.addEventListener("click",e=>{if(e.target.closest&&e.target.closest("[data-install]")&&DEFI){DEFI.prompt();DEFI=null;extra()}});
-function mergeUpdates(items){const all=[...STATIC_UPD,...(Array.isArray(items)?items:[]).filter(u=>!String(u.id||"").startsWith("s"))],seen=new Set(),ver=u=>String(u.v||"0").split(".").map(n=>parseInt(n,10)||0);UPD=all.filter(u=>{const k=String(u.v||"")+"|"+String(u.t||"");if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>{const a=ver(x),b=ver(y);for(let i=0;i<Math.max(a.length,b.length);i++){const d=(b[i]||0)-(a[i]||0);if(d)return d}return(y.d||0)-(x.d||0)});renderUpd()}
-async function loadUpd(){try{const r=await fetch("updates.json?rev=20261120-2384",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const a=await r.json();if(!Array.isArray(a))throw new Error("Elenco aggiornamenti non valido");STATIC_UPD=a.map((u,i)=>({id:"s"+i,...u}));mergeUpdates(UPD)}catch(e){console.warn("Aggiornamenti locali non caricati",e);mergeUpdates(UPD)}}
+function mergeUpdates(items){const all=[...STATIC_UPD,...(Array.isArray(items)?items:[]).filter(u=>!String(u.id||"").startsWith("s"))],seen=new Set(),ver=u=>String(u.v||"0").split(".").map(n=>parseInt(n,10)||0);UPD=all.filter(u=>{const k=String(u.v||"")+"|"+String(u.t||"");if(seen.has(k))return false;seen.add(k);return true}).sort((x,y)=>{const a=ver(x),b=ver(y);for(let i=0;i<Math.max(a.length,b.length);i++){const d=(b[i]||0)-(a[i]||0);if(d)return d}return(y.d||0)-(x.d||0)}).slice(0,1);renderUpd()}
+async function loadUpd(){try{const r=await fetch("updates.json?rev=20261121-2394",{cache:"no-store"});if(!r.ok)throw new Error("HTTP "+r.status);const a=await r.json();if(!Array.isArray(a))throw new Error("Elenco aggiornamenti non valido");STATIC_UPD=a.map((u,i)=>({id:"s"+i,...u}));mergeUpdates(UPD)}catch(e){console.warn("Aggiornamenti locali non caricati",e);mergeUpdates(UPD)}}
 const ROLES={gpg:"guardia particolare giurata (GPG)",sicurezza:"addetto alla sicurezza",portierato:"addetto al portierato"};
 const roleTxt=()=>ROLES[X.role]||"lavoratore a turni di vigilanza, sicurezza o portierato";
 function applyRole(){const pi=$("is_piantonato"),pe=pi&&pi.parentElement;if(pe)pe.style.display=X.role==="portierato"?"none":""}
@@ -1010,7 +1010,7 @@ if(!X.onb&&!X.pin)startOnb();
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
 <script type="module" src="local-reader.js?v=2.3.85"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.161").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.162").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 
 
 </body>
