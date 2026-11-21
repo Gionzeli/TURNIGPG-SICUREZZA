@@ -1,8 +1,8 @@
 [
   {
-    "v": "2.3.94",
+    "v": "2.3.95",
     "d": "2026-11-21",
-    "t": "Versione 2.3.94 – Verifica turni e storico in fondo",
-    "b": "Il controllo turni resta esclusivamente una verifica in sola lettura: segnala possibili anomalie senza modificare i dati. Lo storico modifiche è stato spostato in fondo alla pagina Turni. La sezione Aggiornamenti riparte dalla versione attuale e mostra soltanto l’ultima nota; le note precedenti non vengono più visualizzate."
+    "t": "Versione 2.3.95 – Storico in alto e controllo espandibile",
+    "b": "Lo Storico modifiche torna nella parte alta della schermata Turni, subito dopo il riepilogo e il controllo. Il Controllo turni · verifica soltanto ora è richiudibile con Espandi/Riduci; continua a segnalare possibili anomalie senza modificare turni o parametri."
   }
 ]
