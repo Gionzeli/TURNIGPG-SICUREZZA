@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.92",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.92 – Controllo turni senza modifiche automatiche",
+    "b": "Aggiunto un controllo locale e in sola lettura per segnalare possibili doppioni, sovrapposizioni orarie, orari incompleti/non validi, durate anomale e postazioni mancanti. Le coppie consecutive non sono considerate sovrapposizioni. Nessun turno o parametro viene modificato."
+  },
+  {
     "v": "2.3.91",
     "d": "2026-11-21",
     "t": "Versione 2.3.91 – Dettaglio della previsione stipendio",
