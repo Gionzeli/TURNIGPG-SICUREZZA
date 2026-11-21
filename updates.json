@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.4.03",
+    "d": "2026-11-21",
+    "t": "Versione 2.4.03 – Promemoria scadenze Skill",
+    "b": "Aggiunta l’attivazione facoltativa delle notifiche locali per attestati e qualifiche: avviso a 30 giorni, 7 giorni, il giorno della scadenza e quando il titolo risulta scaduto. Il controllo avviene quando l’app viene aperta o riportata in primo piano; il browser non garantisce notifiche se l’app resta chiusa."
+  },
+  {
     "v": "2.4.02",
     "d": "2026-11-21",
     "t": "Versione 2.4.02 – Nuova pagina Skill",
