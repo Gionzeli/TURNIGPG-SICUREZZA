@@ -326,6 +326,7 @@ details summary{padding:3px 0;font-weight:650}
     <div style="display:grid;gap:14px">
       <div class="card" id="days"></div>
       <div class="card" id="hourBreakdown"></div>
+      <div class="card" id="shiftChecks"></div>
       <div class="card"><div class="row sp"><h3>Turni del mese</h3><span class="row"><button class="ic noprint" id="reflag" type="button">Aggiorna indicatori</button><span class="tg" id="cnt"></span></span></div><div id="list"></div></div>
     </div>
   </div>
@@ -394,7 +395,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.91",ADMIN_WA="393923801549";
+const APP_VER="2.3.92",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -452,6 +453,38 @@ if(s.is_night)al+=p.notturno_turno;if(s.is_piantonato)al+=p.piantonato_turno;if(
 const otp=ot*rate,gross=fixed+otp+al,inps=gross*p.inps_rate/100,irpef=Math.max(0,gross-inps)*p.irpef_rate/100,ded=inps+irpef+p.sindacato+p.cessione+p.altre_trattenute;
 return{fixed,rate,h,ot,otp,al,gross,inps,irpef,ded,net:Math.max(0,gross-ded),meals,mv:meals*p.buono_pasto,c}}
 function monthShifts(){return S.shifts.filter(s=>s.date.startsWith(S.month)).sort((a,b)=>a.date.localeCompare(b.date)||a.start_time.localeCompare(b.start_time))}
+function analyzeShiftChecks(L){
+ const findings=[],month=S.month,first=month+"-01",[yy,mm]=month.split("-").map(Number),last=new Date(yy,mm,0).getDate(),lastDate=month+"-"+String(last).padStart(2,"0");
+ const dateNum=d=>{const a=d.split("-").map(Number),t=Date.UTC(a[0],a[1]-1,a[2]);return Number.isFinite(t)&&new Date(t).toISOString().slice(0,10)===d?t/60000:NaN};
+ const relevant=S.shifts.filter(s=>s.date>=first&&s.date<=lastDate);
+ const dup=new Map();
+ relevant.forEach(s=>{const k=[s.date,s.type,s.start_time||"",s.end_time||""].join("|");if(!dup.has(k))dup.set(k,[]);dup.get(k).push(s)});
+ dup.forEach(a=>{if(a.length>1)findings.push({date:a[0].date,text:"Possibile doppione: "+TYPES[a[0].type][0]+" "+(a[0].start_time||"orario assente")+"–"+(a[0].end_time||"orario assente")+" ("+a.length+" registrazioni)"})});
+ const from=dateNum(first)-1440,to=dateNum(lastDate)+1440,fromDate=new Date(from*60000).toISOString().slice(0,10),toDate=new Date(to*60000).toISOString().slice(0,10);
+ const work=S.shifts.filter(s=>WORK.includes(s.type)&&s.date>=fromDate&&s.date<=toDate);
+ const intervals=[];
+ work.forEach(s=>{
+  const day=dateNum(s.date),validTime=v=>/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(v||"");
+  if(!Number.isFinite(day)){if(s.date.startsWith(month))findings.push({date:s.date,text:"Data non valida nel turno"});return}
+  if(!validTime(s.start_time)||!validTime(s.end_time)){if(s.date.startsWith(month))findings.push({date:s.date,text:"Orario incompleto o non valido"+(s.post?" · "+s.post:"")});return}
+  const parts=s.start_time.split(":").map(Number),ends=s.end_time.split(":").map(Number),start=day+parts[0]*60+parts[1];let end=day+ends[0]*60+ends[1];if(end<=start)end+=1440;
+  if(end-start>=1440){if(s.date.startsWith(month))findings.push({date:s.date,text:"Durata pari o superiore a 24 ore · verificare orari"});return}
+  intervals.push({s,start,end});
+  if(!s.post&&s.date.startsWith(month))findings.push({date:s.date,text:"Postazione mancante"});
+ });
+ intervals.sort((a,b)=>a.start-b.start);
+ for(let i=0;i<intervals.length;i++)for(let j=i+1;j<intervals.length&&intervals[j].start<intervals[i].end;j++){
+  const a=intervals[i],b=intervals[j];if(a.s.id===b.s.id)continue;
+  const same=a.s.date===b.s.date&&a.s.type===b.s.type&&a.s.start_time===b.s.start_time&&a.s.end_time===b.s.end_time;
+  if(same)continue;
+  if(a.start<b.end&&b.start<a.end&&(a.s.date.startsWith(month)||b.s.date.startsWith(month))){
+   const d=a.s.date===b.s.date?a.s.date:a.s.date+" / "+b.s.date;
+   findings.push({date:d,text:"Sovrapposizione oraria: "+a.s.start_time+"–"+a.s.end_time+" e "+b.s.start_time+"–"+b.s.end_time});
+  }
+ }
+ findings.sort((a,b)=>a.date.localeCompare(b.date)||a.text.localeCompare(b.text));
+ return findings;
+}
 function render(){
 S.shifts=S.shifts.map(cleanShift).filter(Boolean);FIELDS.forEach(([k])=>{const v=Number(S.params[k]);S.params[k]=Number.isFinite(v)?v:0});
 const[y,m]=S.month.split("-").map(Number);$("mlabel").textContent=new Date(y,m-1,1).toLocaleDateString("it-IT",{month:"long",year:"numeric"});
@@ -499,6 +532,8 @@ const HM=mergeTurni(L).filter(s=>WORK.includes(s.type)),HOM=dailyOvertimeMap(HM)
  $("hourBreakdown").innerHTML='<div class="row sp"><h3>Dettaglio ore per categoria</h3><span class="hint">Mese selezionato</span></div><p class="hint">Ore totali, ordinarie e straordinarie. Le categorie possono sovrapporsi (per esempio un turno può essere notturno e festivo): non sommarle tra loro.</p><div class="hourgrid"><span></span><span class="head">Totali</span><span class="head">Ord.</span><span class="head">Str.</span>'+hrows.map(([n,f],i)=>{const[o,t,z]=hagg(f);return '<span class="name'+(i===0?' total':'')+'">'+n+'</span><span class="hh'+(i===0?' total':'')+'">'+hfmt(z)+' h</span><span class="hh'+(i===0?' total':'')+'">'+hfmt(o)+'</span><span class="hh'+(i===0?' total':'')+'">'+hfmt(t)+'</span>'}).join("")+'</div>'+(!HM.length?'<p class="hint">Nessuna ora di lavoro registrata in questo mese.</p>':'');
  const voucherDays=new Set(HM.filter(s=>s.has_meal_voucher).map(s=>s.date)).size;
  $("hourBreakdown").insertAdjacentHTML("beforeend",'<div class="line" style="margin-top:10px"><span>Buoni pasto · 1 al giorno</span><span><b>'+voucherDays+'</b> · '+(S.params.buono_pasto>0?eur(voucherDays*S.params.buono_pasto):'valore non impostato')+'</span></div>');
+ const checks=analyzeShiftChecks(L);
+ $("shiftChecks").innerHTML='<div class="row sp"><h3>Controllo turni · sola verifica</h3><span class="tg">'+(checks.length?checks.length+' da verificare':'Nessuna anomalia rilevata')+'</span></div>'+(checks.length?'<p class="hint">Questi sono avvisi, non correzioni automatiche. I turni originali restano invariati.</p><div>'+checks.slice(0,20).map(x=>'<div class="line"><span><b>'+esc(x.date.split("-").reverse().join("/"))+'</b> · '+esc(x.text)+'</span></div>').join("")+'</div>'+(checks.length>20?'<p class="hint">Altri '+(checks.length-20)+' avvisi non mostrati.</p>':''):'<p class="hint">Nessuna sovrapposizione, doppione o anomalia rilevata nei turni del mese. Le coppie consecutive non vengono considerate sovrapposizioni.</p>');
 const gp={};L.forEach(s=>(gp[s.date]=gp[s.date]||[]).push(s));
 const seg=(s,sd)=>{const hc=s.is_piantonato?"#D81B60":s.is_night?"#5E35B1":s.is_sunday?"#F29900":(TCI[s.type]||["","#1A73E8"])[1],t=TYPES[s.type]||TYPES.turno,wk=WORK.includes(s.type),ot=wk?(dailyOvertimeMap(S.shifts).get(s.id)||0):0,ordinary=wk?Math.max(0,s.hours-ot):0,fmtH=n=>Number(n||0).toFixed(2).replace(".",","),
 tg=[[wk&&!s.post,"⚠️ Postazione mancante","#D93025"],[wk&&!s.start_time,"⚠️ Orari mancanti","#D93025"],[wk&&!s.is_night,"🕘 Diurno","#1A73E8"],[s.is_night,"🌙 Notturno","#5E35B1"],[wk&&!s.is_sunday,"📅 Feriale","#607D8B"],[s.is_sunday,sd?"☀️ Domenica":"🎉 Festivo","#F29900"],[s.is_piantonato,s.is_night?"🌃 Piantonamento notturno":"📍 Piantonamento diurno","#D81B60"],[s.is_piantonato&&s.is_sunday,sd?"📍 Piantonamento domenica":"📍 Piantonamento festivo","#AD1457"],[s.is_rest_not_enjoyed,"⏳ Riposo lavorato","#8E24AA"]].filter(x=>x[0]).map(x=>`<span class="tg fl" style="--h:${x[2]}">${x[1]}</span>`).join("");
@@ -966,7 +1001,7 @@ if(!X.onb&&!X.pin)startOnb();
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
 <script type="module" src="local-reader.js?v=2.3.85"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.159").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.160").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 
 
 </body>
