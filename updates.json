@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.89",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.89 – Correzione previsione progressiva",
+    "b": "La previsione distingue i giorni completati da oggi in poi: i turni registrati per la giornata corrente non vengono anticipati nel maturato, ma conteggiati nella parte prevista. La media di proiezione usa i giorni di calendario già conclusi. Nessun turno o parametro salvato viene modificato."
+  },
+  {
     "v": "2.3.88",
     "d": "2026-11-21",
     "t": "Versione 2.3.88 – Correzione avvio previsione stipendio",
