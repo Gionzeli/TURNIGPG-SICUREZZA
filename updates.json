@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.91",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.91 – Dettaglio della previsione stipendio",
+    "b": "La previsione progressiva distingue variabile maturato fino a ieri, variabile dei turni già registrati, proiezione dei giorni senza turni registrati e fisso mensile conteggiato una sola volta. Chiarite le etichette degli importi stimati per distinguerli dal cedolino effettivo. Nessuna modifica a turni o parametri."
+  },
+  {
     "v": "2.3.90",
     "d": "2026-11-21",
     "t": "Versione 2.3.90 – Buoni pasto nel riepilogo mensile",
