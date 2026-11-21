@@ -394,7 +394,7 @@ details summary{padding:3px 0;font-weight:650}
 (()=>{let shown=false;const report=(kind,detail)=>{if(shown)return;shown=true;try{let box=document.getElementById("tg-startup-error");if(!box){box=document.createElement("section");box.id="tg-startup-error";box.setAttribute("role","alert");box.style.cssText="position:fixed;inset:12px;z-index:10000;background:#fff;color:#202124;border:2px solid #b3261e;border-radius:16px;padding:20px;overflow:auto;font:16px/1.5 system-ui;box-shadow:0 8px 32px #0005";document.body.appendChild(box)}const h=document.createElement("h2");h.textContent="Problema nell’avvio di Turni GPG";const p=document.createElement("p");p.textContent="È stato rilevato un errore tecnico. I dati non sono stati cancellati. Comunica questo messaggio all’assistenza:";const pre=document.createElement("pre");pre.style.cssText="white-space:pre-wrap;overflow-wrap:anywhere;font-size:13px";pre.textContent=kind+": "+String(detail||"errore non specificato");const n=document.createElement("p");n.textContent="Non disinstallare l’app e non cancellare i dati.";box.append(h,p,pre,n)}catch(_){}};window.addEventListener("error",e=>report("JavaScript",e.message+(e.filename?" · "+e.filename.split("/").pop():"")+(e.lineno?":"+e.lineno:"")));window.addEventListener("unhandledrejection",e=>report("Operazione non completata",e.reason?.message||e.reason||"errore asincrono"))})();
 </script>
 <script>
-const APP_VER="2.3.90",ADMIN_WA="393923801549";
+const APP_VER="2.3.91",ADMIN_WA="393923801549";
 let SUMALL=false;
 const TYPES={turno:["Turno","tg"],turno_riposo:["Riposo lavorato","tg w"],riposo:["Riposo","tg"],riposo_compensativo:["Riposo compensativo","tg ok"],ferie:["Ferie","tg ok"],permesso:["Permesso","tg w"],malattia:["Malattia","tg b"]};
 const WORK=["turno","turno_riposo"];
@@ -464,22 +464,25 @@ else{
    plannedDays=new Set(future.filter(s=>WORK.includes(s.type)).map(s=>s.date)).size,
    remaining=Math.max(0,daysInMonth-elapsed),unplanned=Math.max(0,remaining-plannedDays),
    pace=elapsed>0?pastVar/elapsed:0,canProject=elapsed>0&&past.some(s=>WORK.includes(s.type)),
-   projectedVar=pastVar+futureVar+(canProject?pace*unplanned:0),projectedGross=fixed+projectedVar,
+   unplannedEstimate=canProject?pace*unplanned:0,
+   projectedVar=pastVar+futureVar+unplannedEstimate,projectedGross=fixed+projectedVar,
    pin=projectedGross*S.params.inps_rate/100,pir=Math.max(0,projectedGross-pin)*S.params.irpef_rate/100,
    pded=pin+pir+S.params.sindacato+S.params.cessione+S.params.altre_trattenute,
    projectedNet=Math.max(0,projectedGross-pded),
    complete=fixed>0&&S.params.inps_rate>0&&S.params.irpef_rate>0;
- $("forecast").innerHTML='<div class="row sp"><h3>Previsione stipendio a fine mese</h3><span class="tg">Al '+now.split("-").reverse().join("/")+'</span></div>'+
+ $("forecast").innerHTML='<div class="row sp"><h3>Previsione stipendio a fine mese · stima, non cedolino effettivo</h3><span class="tg">Al '+now.split("-").reverse().join("/")+'</span></div>'+
  '<div class="kpis" style="margin:10px 0"><div class="kpi"><small>Variabile maturato</small><b>'+eur(pastVar)+'</b><small>Turni fino a ieri</small></div><div class="kpi"><small>Variabile previsto</small><b>'+eur(projectedVar)+'</b><small>Include i turni da oggi in poi già registrati</small></div><div class="kpi net"><small>Netto previsto</small><b>'+eur(projectedNet)+'</b><small>Stima a fine mese</small></div></div>'+
- '<div class="line"><span>Fisso mensile (paga base + scatti + altre voci fisse)</span><span>'+eur(fixed)+'</span></div>'+
- '<div class="line"><span>Variabile previsto (straordinari e indennità)</span><span>'+eur(projectedVar)+'</span></div>'+
- '<div class="line t"><span>Lordo previsto</span><span>'+eur(projectedGross)+'</span></div>'+
+ '<div class="line"><span>Variabile maturato fino a ieri</span><span>'+eur(pastVar)+'</span></div>'+
+ '<div class="line"><span>Variabile da turni già registrati da oggi in poi</span><span>'+eur(futureVar)+'</span></div>'+
+ '<div class="line"><span>Proiezione giorni senza turni registrati ('+unplanned+' gg)</span><span>'+eur(unplannedEstimate)+'</span></div>'+
+ '<div class="line"><span>Fisso mensile, conteggiato una sola volta</span><span>'+eur(fixed)+'</span></div>'+
+ '<div class="line t"><span>Lordo previsto a fine mese</span><span>'+eur(projectedGross)+'</span></div>'+
  '<div class="line neg"><span>Trattenute stimate</span><span>−'+eur(pded)+'</span></div>'+
  '<div class="line t"><span>NETTO PREVISTO</span><span>'+eur(projectedNet)+'</span></div>'+
  '<p class="hint" style="margin-top:10px">'+(canProject?'La proiezione usa la media del variabile maturato nei giorni precedenti; i turni registrati da oggi in poi sono conteggiati a parte.':'Non ci sono ancora giornate sufficienti per calcolare un ritmo: la previsione considera il fisso e gli eventuali turni futuri già registrati.')+'</p>'+
  '<p class="hint">'+(complete?'Calcolo indicativo con le aliquote e le trattenute presenti nei tuoi parametri.':'Per rendere più completa la stima, verifica nei Parametri personali paga fissa, aliquote INPS/IRPEF e trattenute: i valori mancanti restano a zero.')+' I buoni pasto sono mostrati separatamente e non sommati al netto. Non è un cedolino né un calcolo fiscale certificato.</p>';
 }
-$("kpis").innerHTML=`<div class="kpi"><small>Ore</small><b>${r.h.toFixed(1)}h</b><small>${(r.h-r.ot).toFixed(2)}h ordinarie · ${r.ot.toFixed(2)}h straordinario</small></div><div class="kpi"><small>Lordo</small><b>${eur(r.gross)}</b></div><div class="kpi"><small>Trattenute</small><b class="neg">${eur(r.ded)}</b></div><div class="kpi net"><small>Netto stimato</small><b>${eur(r.net)}</b></div>`;
+$("kpis").innerHTML=`<div class="kpi"><small>Ore</small><b>${r.h.toFixed(1)}h</b><small>${(r.h-r.ot).toFixed(2)}h ordinarie · ${r.ot.toFixed(2)}h straordinario</small></div><div class="kpi"><small>Lordo stimato sui turni inseriti</small><b>${eur(r.gross)}</b></div><div class="kpi"><small>Trattenute</small><b class="neg">${eur(r.ded)}</b></div><div class="kpi net"><small>Netto stimato sui turni inseriti</small><b>${eur(r.net)}</b></div>`;
 const ln=(a,b,n)=>`<div class="line${n?" neg":""}"><span>${a}</span><span>${n?"−":""}${eur(b)}</span></div>`;
 $("brk").innerHTML=`<h3>Dettaglio busta paga stimata</h3>${ln("Paga base, scatti e voci fisse",r.fixed)}${ln(`Straordinario ${r.ot.toFixed(1)}h × ${eur(r.rate)}`,r.otp)}${ln("Indennità (notturno, domenica, piantonato, riposi)",r.al)}<div class="line t"><span>Totale lordo</span><span>${eur(r.gross)}</span></div>${ln(`INPS (${S.params.inps_rate}%)`,r.inps,1)}${ln(`IRPEF stimata (${S.params.irpef_rate}%)`,r.irpef,1)}${ln("Sindacato",S.params.sindacato,1)}${ln("Cessione quinto",S.params.cessione,1)}${S.params.altre_trattenute>0?ln("Altre trattenute",S.params.altre_trattenute,1):""}<div class="line t"><span>NETTO STIMATO</span><span>${eur(r.net)}</span></div>`;
 $("meal").innerHTML=`<div class="row sp"><div><b>Buoni pasto</b><div class="hint">Uno al giorno, anche con due fasce consecutive. Non sommati al netto.</div></div><div style="text-align:right"><b>${eur(r.mv)}</b><div class="hint">${r.meals} buoni · 1 al giorno</div></div></div>`;
@@ -963,7 +966,7 @@ if(!X.onb&&!X.pin)startOnb();
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
 <script type="module" src="local-reader.js?v=2.3.85"></script>
-<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.158").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
+<script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.159").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 
 
 </body>
