@@ -171,7 +171,7 @@ function labeledValue(lines,aliases,requireCents=false,detail=null){
  const number=requireCents
   ? /[-+]?(?:[0-9OIl]{1,3}(?:(?:\s*\.\s*|\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\s*,\s*[0-9OIl]{2,5}|\s*\.\s*[0-9OIl]{2})(?![0-9OIl])/
   : /[-+]?(?:[0-9OIl]{1,3}(?:(?:\s*\.\s*|\s+)[0-9OIl]{3})+|[0-9OIl]+)(?:\s*,\s*[0-9OIl]{2,5}|\s*\.\s*[0-9OIl]{2})?/;
- const stop=/\b(?:data assunzione|assunzione|matricola|codice fiscale|periodo paga|paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute)\b/i;
+ const stop=/\b(?:data assunzione|assunzione|matricola|codice fiscale|periodo paga|paga base|minimo tabellare|minimo contrattuale|retribuzione base|retribuzione tabellare|stipendio base|minimo ccnl|scatti|superminimo|elemento distinto|indennita fissa|ore mensili|orario mensile|ore contrattuali|ore turno|durata turno|maggiorazione straordinario|straordinario|indennita notturna|piantonamento|maggiorazione domenicale|riposo non goduto|buono pasto|aliquota inps|aliquota irpef|sindacato|cessione del quinto|altre trattenute|ferie maturate|ferie godute|ferie residue|residuo ferie|permessi maturati|permessi goduti|permessi usufruiti|permessi utilizzati|permessi residui|residuo permessi)\b/i;
  const rows=lines.map(x=>norm(String(x||"").replace(/^\s*(?:PAGINA|PAG\.)\s*\d+\s*:?\s*/i,"").replace(/^\s*RIGA\s*\d+\s*:?\s*/i,"").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ")));
  const valueOf=s=>{const m=String(s||"").match(number);if(!m)return null;const n=italianNumber(m[0]);return n!==null&&n>0?n:null};
  for(const alias of keys){
@@ -241,6 +241,9 @@ function parsePayslip(text,fields,customAliases){
  for(let width=2;width<=4;width++)for(let i=0;i+width<=lines.length;i++)scanLines.push(lines.slice(i,i+width).join(" "));
  const out={};
  out.details={};
+ out.leave={ferie:{maturate:null,godute:null,residue:null},permessi:{maturate:null,godute:null,residue:null}};
+ const leaveLabels={ferie:{maturate:['ferie maturate','maturazione ferie','maturato ferie'],godute:['ferie godute','godimento ferie','goduto ferie'],residue:['ferie residue','residuo ferie','saldo ferie']},permessi:{maturate:['permessi maturati','maturazione permessi','maturato permessi'],godute:['permessi goduti','godimento permessi','permessi usufruiti','permessi utilizzati'],residue:['permessi residui','residuo permessi','saldo permessi']}};
+ for(const [group,items] of Object.entries(leaveLabels))for(const [kind,names] of Object.entries(items)){const detail={};const value=labeledValue(scanLines,names,false,detail);if(value!==null){out.leave[group][kind]=value;out.details['leave_'+group+'_'+kind]=detail}}
  const cellRows=String(text||"").split(/\r?\n/).map((line,index)=>({line:line.trim(),index,cells:String(line).replace(/^\s*RIGA\s*\d+\s*:\s*/i,"").split("|").map(x=>x.trim()).filter(Boolean)})).filter(x=>x.line);
  const amountCell=s=>/^\s*[€]?\s*[-+]?(?:[0-9OIl]{1,3}(?:[.\s][0-9OIl]{3})+|[0-9OIl]+)[,.][0-9OIl]{2,5}\s*[€]?\s*$/.test(String(s||""));
  const headerPositions=row=>{const found={},cells=row.cells;for(let i=0;i<cells.length;i++){const one=norm(cells[i]),two=norm(cells[i]+" "+(cells[i+1]||""));if(found.paga_base===undefined&&(/\bpaga\s+base\b/.test(one)||/\bpaga\s+base\b/.test(two)))found.paga_base=i;if(found.scatti===undefined&&/\bscatti(?:\s+(?:di\s+)?anzianita)?\b/.test(one))found.scatti=i}return found};
