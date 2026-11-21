@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.96",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.96 – Storico modifiche espandibile",
+    "b": "Aggiunto il tasto Espandi/Riduci allo Storico modifiche nella schermata Turni. Lo storico può restare chiuso e mostrare il numero di operazioni registrate; i dati e la funzione di annullamento restano invariati."
+  },
+  {
     "v": "2.3.95",
     "d": "2026-11-21",
     "t": "Versione 2.3.95 – Storico in alto e controllo espandibile",
