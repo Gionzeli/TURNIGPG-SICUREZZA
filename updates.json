@@ -1,5 +1,11 @@
 [
   {
+    "v": "2.3.97",
+    "d": "2026-11-21",
+    "t": "Versione 2.3.97 – Saldi ferie e permessi dal cedolino",
+    "b": "La lettura locale del cedolino riconosce, quando etichetta e valore sono associati con certezza, ferie e permessi maturati, goduti e residui. I dati vengono mostrati nell’anteprima e salvati separatamente sul dispositivo; non sostituiscono i conteggi dei turni registrati né le quote annuali manuali."
+  },
+  {
     "v": "2.3.96",
     "d": "2026-11-21",
     "t": "Versione 2.3.96 – Storico modifiche espandibile",
