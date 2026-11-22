@@ -11,7 +11,7 @@ function normalizeShift(input) {
   validateDate(source.date, "Data turno");
   const post = source.post ?? "";
   if (typeof post !== "string" || post.length > 80) validationError("La sede/nota del turno deve contenere al massimo 80 caratteri.");
-  const timePattern = /^(?:[01]\\d|2[0-3]):[0-5]\\d$/;
+  const timePattern = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
   const startTime = source.start_time ?? "";
   const endTime = source.end_time ?? "";
   if ((startTime !== "" && (typeof startTime !== "string" || !timePattern.test(startTime))) ||
