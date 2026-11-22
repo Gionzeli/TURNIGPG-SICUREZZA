@@ -213,6 +213,29 @@ async function run() {
     assert((await service.getById(record.id)).data.hours === 8, "Scrittura obsoleta ha alterato il turno.");
   });
 
+  await test("SVC-007 — isolamento account applicato anche ai servizi", async () => {
+    const service = new ProfileService({ repository: profiles });
+    const record = await service.create({ profile: { role: "Privato A" } });
+    context.activate({ accountId: "browser-test-account-B", identitySource: "local" });
+    assert(await service.getById(record.id) === null, "Il servizio ha esposto il profilo di A all'account B.");
+    assert((await service.getAll()).length === 0, "Il servizio ha restituito profili di un altro account.");
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+    assert((await service.getById(record.id))?.data.profile.role === "Privato A", "Account A non ritrova il proprio profilo.");
+  });
+
+  await test("SVC-008 — delete servizio richiede revisione corrente", async () => {
+    const service = new ShiftService({ repository: shifts });
+    const record = await service.create({ date: "2026-11-22", type: "turno", hours: 7 });
+    const updated = await service.update(record.id, { hours: 7.5 }, { expectedRevision: 1 });
+    let conflict, missingRevision;
+    try { await service.delete(record.id, { expectedRevision: 1 }); } catch (error) { conflict = error; }
+    try { await service.delete(record.id); } catch (error) { missingRevision = error; }
+    assert(conflict?.code === DB_ERROR_CODES.REVISION_CONFLICT, "Delete con revisione obsoleta non bloccato dal servizio.");
+    assert(missingRevision?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Delete senza revisione attesa accettato.");
+    assert((await service.getById(record.id))?.revision === updated.revision, "Il servizio ha cancellato il record nonostante il conflitto.");
+    assert(await service.delete(record.id, { expectedRevision: updated.revision }), "Delete con revisione corrente non riuscito.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
