@@ -66,3 +66,4 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 
 - `LEGACY-017`: esclude dalla cronologia turni con date/orari non validi, segnala gli elementi non validi e ignora le assenze.
 - `LEGACY-018`: rileva tutte le sovrapposizioni anche quando un intervallo è interamente contenuto in un altro.
+- `LEGACY-019`: segnala duplicati con dati turno uguali all'interno della stessa fonte, mantenendo i riferimenti a fonte/indice e senza fusione automatica.
