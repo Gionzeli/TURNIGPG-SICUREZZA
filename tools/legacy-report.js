@@ -32,6 +32,12 @@ const table = (headers, rows) => {
   return wrapper;
 };
 const clear = node => { node.replaceChildren(); };
+const safeReason = reason => String(reason ?? "Elemento da verificare.")
+  .replace(/^Campi aggiuntivi da mappare esplicitamente:.*$/, "Campi aggiuntivi da verificare.");
+const safeWarning = warning => String(warning ?? "Avviso da verificare.")
+  .replace(/^(Campo profilo non riconosciuto|Parametro non riconosciuto):.*$/, "$1: campo non specificato.")
+  .replace(/^Valore mensile extra da verificare:.*$/, "Valore mensile extra da verificare.")
+  .replace(/^Campo extra non riconosciuto:.*$/, "Campo extra non riconosciuto.");
 
 fileInput.addEventListener("change", () => {
   const files = [...fileInput.files];
@@ -49,7 +55,11 @@ fileInput.addEventListener("change", () => {
 
 analyzeButton.addEventListener("click", async () => {
   const files = [...fileInput.files];
-  if (files.length < 1 || files.length > 100) return;
+  if (files.length < 1 || files.length > 100 || files.some(file => file.size > 10 * 1024 * 1024)) {
+    analyzeButton.disabled = files.length < 1 || files.length > 100 || files.some(file => file.size > 10 * 1024 * 1024);
+    text(statusNode, files.length > 100 ? "Limite superato: massimo 100 file." : "Un file supera il limite di 10 MB.");
+    return;
+  }
   analyzeButton.disabled = true;
   errorNode.textContent = "";
   text(statusNode, "Analisi locale in corso…");
@@ -57,9 +67,13 @@ analyzeButton.addEventListener("click", async () => {
     const used = new Map();
     const candidates = await Promise.all(files.map(async (file, index) => {
       let label = file.name.slice(0, 80) || `export-${index + 1}`;
-      const count = used.get(label) ?? 0;
-      used.set(label, count + 1);
-      if (count) label = `${label.slice(0, 70)}-${count + 1}`;
+      const base = label;
+      let suffix = 1;
+      while (used.has(label)) {
+        suffix += 1;
+        label = `${base.slice(0, 70)}-${suffix}`;
+      }
+      used.set(label, true);
       return { source: label, rawJson: await file.text() };
     }));
     let result;
@@ -96,9 +110,9 @@ analyzeButton.addEventListener("click", async () => {
         warnings: exportPreview.warnings.length,
         importable: snapshot.importable && (!extras || (extras.warnings.length === 0 && extras.templatesQuarantined.length === 0 && extras.skillsQuarantined.length === 0))
       };
-      const quarantinedShifts = snapshot.shifts.quarantined.map(item => ({ source: candidate.source, index: item.index, reason: item.reason }));
-      const quarantinedTemplates = (extras?.templatesQuarantined ?? []).map(item => ({ source: candidate.source, index: item.index, reason: item.reason }));
-      const quarantinedSkills = (extras?.skillsQuarantined ?? []).map(item => ({ source: candidate.source, index: item.index, reason: item.reason }));
+      const quarantinedShifts = snapshot.shifts.quarantined.map(item => ({ source: candidate.source, index: item.index, reason: safeReason(item.reason) }));
+      const quarantinedTemplates = (extras?.templatesQuarantined ?? []).map(item => ({ source: candidate.source, index: item.index, reason: safeReason(item.reason) }));
+      const quarantinedSkills = (extras?.skillsQuarantined ?? []).map(item => ({ source: candidate.source, index: item.index, reason: safeReason(item.reason) }));
       const reviewRequired = !sourceSummary.importable || exportPreview.warnings.length > 0;
       result = {
         mode: "read-only-single-export-preview", sourceCount: 1,
@@ -108,7 +122,7 @@ analyzeButton.addEventListener("click", async () => {
         profileConflicts: [], extraConflicts: [], identicalGroups: 0, idConflictGroups: 0, possibleDuplicateGroups: [],
         quarantine: { shifts: quarantinedShifts.length, templates: quarantinedTemplates.length, skills: quarantinedSkills.length },
         quarantinedShifts, quarantinedTemplates, quarantinedSkills,
-        warnings: exportPreview.warnings.map(message => candidate.source + ": " + message),
+        warnings: exportPreview.warnings.map(message => candidate.source + ": " + safeWarning(message)),
         writesPerformed: false, automaticMergePerformed: false
       };
     }
@@ -119,7 +133,7 @@ analyzeButton.addEventListener("click", async () => {
   } catch (error) {
     reportNode.hidden = true;
     safeReport = null;
-    text(errorNode, error instanceof Error ? error.message : "Errore durante l'analisi.");
+    text(errorNode, "Analisi non riuscita: JSON non valido o struttura non conforme. Verifica i file selezionati; nessun contenuto è stato modificato.");
     text(statusNode, "Analisi non completata.");
   } finally {
     analyzeButton.disabled = false;
@@ -160,9 +174,9 @@ function render(report) {
   const quarantineHost = document.querySelector("#quarantine");
   clear(quarantineHost);
   const quarantineRows = [
-    ...report.quarantinedShifts.map(item => ["Turno", item.source, item.index, item.reason]),
-    ...report.quarantinedTemplates.map(item => ["Modello", item.source, item.index, item.reason]),
-    ...report.quarantinedSkills.map(item => ["Formazione", item.source, item.index, item.reason])
+    ...report.quarantinedShifts.map(item => ["Turno", item.source, item.index, safeReason(item.reason)]),
+    ...report.quarantinedTemplates.map(item => ["Modello", item.source, item.index, safeReason(item.reason)]),
+    ...report.quarantinedSkills.map(item => ["Formazione", item.source, item.index, safeReason(item.reason)])
   ];
   quarantineHost.append(quarantineRows.length
     ? table(["Tipo", "Fonte", "Indice", "Motivo"], quarantineRows)
@@ -171,7 +185,7 @@ function render(report) {
   const warningsHost = document.querySelector("#warnings");
   clear(warningsHost);
   if (!report.warnings.length) warningsHost.append(element("li", "Nessun avviso."));
-  else for (const warning of report.warnings) warningsHost.append(element("li", warning));
+  else for (const warning of report.warnings) warningsHost.append(element("li", safeWarning(warning)));
 }
 
 downloadButton.addEventListener("click", () => {
