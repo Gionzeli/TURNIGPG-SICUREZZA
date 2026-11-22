@@ -81,6 +81,12 @@ try {
   }]);
   await reportPage.locator("#analyze").click();
   await reportPage.locator("#report").waitFor({ state: "visible" });
+  assert.equal(await reportPage.locator("#private-preview").isVisible(), true,
+    "L'anteprima privata non è visibile.");
+  assert.equal(await reportPage.locator("#profile-preview").isVisible(), true,
+    "L'anteprima del profilo non è visibile.");
+  assert.equal(await reportPage.locator("#params-preview").isVisible(), true,
+    "L'anteprima dei parametri non è visibile.");
   assert.match(await reportPage.locator("#totals").textContent(), /Turni validi esaminati: 1/);
   assert.match(await reportPage.locator("#readiness").textContent(), /Nessun conflitto rilevato/);
   assert.equal(reportErrors.length, 0, reportErrors.join("; "));
