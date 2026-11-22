@@ -435,6 +435,19 @@ async function run() {
     assert(report.adjacentSegments[0].gapMinutes === 0, "Intervallo tra turni consecutivi errato.");
   });
 
+  await test("LEGACY-017 — cronologia esclude turni non validi e ignora assenze", async () => {
+    const report = inspectLegacyShiftChronology([
+      { id: "valid", date: "2026-11-04", type: "turno", start_time: "08:00", end_time: "16:00" },
+      { id: "bad-date", date: "2026-02-30", type: "turno", start_time: "16:00", end_time: "20:00" },
+      { id: "bad-time", date: "2026-11-05", type: "turno", start_time: "25:00", end_time: "06:00" },
+      { id: "leave", date: "2026-11-05", type: "ferie", start_time: "", end_time: "" }
+    ]);
+    assert(report.shiftsAnalyzed === 1, "Sono stati inclusi turni non validi o assenze.");
+    assert(report.warnings.length === 2, "I turni non validi non sono stati segnalati entrambi.");
+    assert(report.overlaps.length === 0 && report.transitions.length === 0, "La cronologia ha creato intervalli inattesi.");
+    assert(report.writesPerformed === false, "L'analisi cronologica ha eseguito scritture.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
