@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -150,6 +150,67 @@ async function run() {
     assert((await profiles.getById(record.id))?.revision === 2, "Il record è stato cancellato da una richiesta obsoleta.");
     assert(await profiles.delete(record.id, { expectedRevision: 2 }), "Delete con revisione corrente non riuscito.");
     assert(await profiles.getById(record.id) === null, "Record ancora presente dopo delete valido.");
+  });
+
+  await test("SVC-001 — profilo normalizzato con valori predefiniti", async () => {
+    const service = new ProfileService({ repository: profiles });
+    const record = await service.create({ params: { paga_base: 1250 }, profile: { ccnl: "Servizi" } });
+    assert(record.data.params.paga_base === 1250 && record.data.params.ore_turno === 7.25, "Parametri profilo non normalizzati.");
+    assert(record.data.profile.ccnl === "Servizi" && record.data.profile.role === "", "Dati profilo non normalizzati.");
+  });
+
+  await test("SVC-002 — profilo rifiuta percentuali e campi non validi", async () => {
+    const service = new ProfileService({ repository: profiles });
+    let badPercent, badField, badPatch;
+    try { await service.create({ params: { irpef_rate: 101 } }); } catch (error) { badPercent = error; }
+    try { await service.create({ profile: { admin: true } }); } catch (error) { badField = error; }
+    try {
+      const record = await service.create({});
+      await service.update(record.id, { unexpected: true }, { expectedRevision: 1 });
+    } catch (error) { badPatch = error; }
+    assert(badPercent?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Percentuale oltre 100 accettata.");
+    assert(badField?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Campo profilo sconosciuto accettato.");
+    assert(badPatch?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Patch profilo sconosciuta accettata.");
+  });
+
+  await test("SVC-003 — aggiornamento profilo richiede revisione e conserva sezioni", async () => {
+    const service = new ProfileService({ repository: profiles });
+    const record = await service.create({ params: { paga_base: 1000 }, profile: { ccnl: "A" } });
+    let missingRevision;
+    try { await service.update(record.id, { profile: { role: "Operatore" } }); } catch (error) { missingRevision = error; }
+    assert(missingRevision?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Aggiornamento senza revisione attesa accettato.");
+    const updated = await service.update(record.id, { profile: { role: "Operatore" } }, { expectedRevision: 1 });
+    assert(updated.revision === 2 && updated.data.params.paga_base === 1000, "Aggiornamento non ha conservato i parametri.");
+    assert(updated.data.profile.ccnl === "A" && updated.data.profile.role === "Operatore", "Merge dei dati profilo errato.");
+  });
+
+  await test("SVC-004 — turno valido normalizzato e orari verificati", async () => {
+    const service = new ShiftService({ repository: shifts });
+    const record = await service.create({ date: "2026-11-22", type: "turno", start_time: "08:30", end_time: "16:00", hours: 7.5 });
+    assert(record.data.date === "2026-11-22" && record.data.start_time === "08:30", "Data o orario valido rifiutato.");
+    assert(record.data.is_night === false && record.data.post === "", "Valori predefiniti turno errati.");
+  });
+
+  await test("SVC-005 — turno rifiuta data, orario e flag non validi", async () => {
+    const service = new ShiftService({ repository: shifts });
+    let badDate, badTime, badFlag;
+    try { await service.create({ date: "2026-02-30", type: "turno" }); } catch (error) { badDate = error; }
+    try { await service.create({ date: "2026-11-22", type: "turno", start_time: "25:90" }); } catch (error) { badTime = error; }
+    try { await service.create({ date: "2026-11-22", type: "turno", is_night: "yes" }); } catch (error) { badFlag = error; }
+    assert(badDate?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Data inesistente accettata.");
+    assert(badTime?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Orario impossibile accettato.");
+    assert(badFlag?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Flag non booleano accettato.");
+  });
+
+  await test("SVC-006 — aggiornamento turno con conflitto revisione", async () => {
+    const service = new ShiftService({ repository: shifts });
+    const record = await service.create({ date: "2026-11-22", type: "turno", hours: 7 });
+    const updated = await service.update(record.id, { hours: 8 }, { expectedRevision: 1 });
+    assert(updated.revision === 2 && updated.data.hours === 8, "Aggiornamento turno non riuscito.");
+    let conflict;
+    try { await service.update(record.id, { hours: 9 }, { expectedRevision: 1 }); } catch (error) { conflict = error; }
+    assert(conflict?.code === DB_ERROR_CODES.REVISION_CONFLICT, "Conflitto turno non rilevato.");
+    assert((await service.getById(record.id)).data.hours === 8, "Scrittura obsoleta ha alterato il turno.");
   });
 
   await test("DB-009 — campi riservati rifiutati", async () => {
