@@ -75,13 +75,11 @@ export function openDSMDatabase(options = {}) {
 export async function closeDSMDatabase() {
   const db = activeDatabase;
   if (db) {
-    const closed = new Promise(resolve => db.addEventListener("close", resolve, { once: true }));
     db.close();
     activeDatabase = null;
     openPromise = null;
     pendingDatabaseName = null;
     activeDatabaseName = DSM_DB_NAME;
-    await closed;
     return;
   }
   activeDatabase = null;
