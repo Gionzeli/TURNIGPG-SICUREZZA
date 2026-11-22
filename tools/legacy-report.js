@@ -32,12 +32,12 @@ const table = (headers, rows) => {
   return wrapper;
 };
 const clear = node => { node.replaceChildren(); };
-const safeReason = reason => String(reason ?? "Elemento da verificare.")
-  .replace(/^Campi aggiuntivi da mappare esplicitamente:.*$/, "Campi aggiuntivi da verificare.");
-const safeWarning = warning => String(warning ?? "Avviso da verificare.")
-  .replace(/^(Campo profilo non riconosciuto|Parametro non riconosciuto|Campo export non riconosciuto|Sezione legacy non riconosciuta|Campo extra non riconosciuto):.*$/, "$1: elemento non specificato.")
-  .replace(/^(Valore profilo non valido|Parametro non numerico o negativo|Percentuale fuori intervallo):.*$/, "$1.")
-  .replace(/^Valore mensile extra da verificare:.*$/, "Valore mensile extra da verificare.");
+// Reasons and warnings can contain arbitrary legacy field names or values.
+// Keep only generic labels in both the visible report and its downloadable form.
+const safeReason = () => "Elemento da verificare localmente.";
+const safeWarning = () => "Avviso da verificare localmente.";
+const safeField = () => "campo da verificare";
+const safeSection = () => "sezione da verificare";
 
 fileInput.addEventListener("change", () => {
   const files = [...fileInput.files];
@@ -83,10 +83,10 @@ analyzeButton.addEventListener("click", async () => {
         mode: reconciled.mode, sourceCount: reconciled.sourceCount,
         migrationReadiness: reconciled.migrationReadiness, sources: reconciled.sources,
         totals: reconciled.totals,
-        profileConflicts: reconciled.profileConflicts.map(item => ({ section: item.section, field: item.field, sources: item.values.map(value => value.source) })),
-        extraConflicts: reconciled.extraConflicts.map(item => ({ field: item.field, sources: item.values.map(value => value.source) })),
+        profileConflicts: reconciled.profileConflicts.map(item => ({ section: safeSection(item.section), field: safeField(item.field), sources: item.values.map(value => value.source) })),
+        extraConflicts: reconciled.extraConflicts.map(item => ({ field: safeField(item.field), sources: item.values.map(value => value.source) })),
         identicalGroups: reconciled.identicalRecords.length, idConflictGroups: reconciled.idConflicts.length,
-        possibleDuplicateGroups: reconciled.possibleDuplicates.map(item => ({ reason: item.reason, copies: item.copies.map(copy => ({ source: copy.source, index: copy.index })) })),
+        possibleDuplicateGroups: reconciled.possibleDuplicates.map(item => ({ reason: safeReason(item.reason), copies: item.copies.map(copy => ({ source: copy.source, index: copy.index })) })),
         quarantine: reconciled.quarantine,
         quarantinedShifts: reconciled.quarantinedShifts.map(item => ({ ...item, reason: safeReason(item.reason) })),
         quarantinedTemplates: reconciled.quarantinedTemplates.map(item => ({ ...item, reason: safeReason(item.reason) })),
