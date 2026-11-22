@@ -42,3 +42,10 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 - Il workflow GitHub Actions `DSM Core browser tests` esegue gli stessi controlli con Chromium/Playwright su push al branch e tramite avvio manuale (`workflow_dispatch`).
 - L'esito CI va verificato nella scheda Actions del repository; la sola presenza del workflow non equivale a test superati.
 - Non testano Firebase, cifratura, backup, sync, migrazione legacy, service worker o dispositivi multipli.
+
+
+## Inventario archivio legacy
+
+- `LEGACY-009`: inventario read-only di backup precedenti, chiavi per-utente, storico e formazione; verifica che suffissi identificativi e contenuti dello storico non vengano restituiti.
+- `LEGACY-010`: riconoscimento dei contenitori cifrati v3 senza decifrazione.
+- Nessun test usa dati reali del browser: i campioni sono sintetici e non attivano importazioni.
