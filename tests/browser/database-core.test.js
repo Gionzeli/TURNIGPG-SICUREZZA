@@ -496,6 +496,43 @@ async function run() {
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
   });
 
+  await test("LEGACY-021 — stesso ID con dati discordanti resta in conflitto", async () => {
+    const make = shift => JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts: [shift]
+    });
+    const base = {
+      id: "shared-legacy-id", date: "2026-11-09", type: "turno",
+      start_time: "08:00", end_time: "16:00", hours: 8, post: "Sede A"
+    };
+    const report = inspectLegacyReconciliation([
+      { source: "export-precedente", rawJson: make(base) },
+      { source: "export-recente", rawJson: make({ ...base, post: "Sede B" }) }
+    ]);
+    assert(report.idConflicts.length === 1, "Conflitto sullo stesso ID non rilevato.");
+    assert(report.idConflicts[0].variants.length === 2, "Le due varianti non sono state conservate.");
+    assert(report.idConflicts[0].variants[0].data.post === "Sede A", "Prima variante alterata.");
+    assert(report.idConflicts[0].variants[1].data.post === "Sede B", "Seconda variante alterata.");
+    assert(report.identicalRecords.length === 0, "Conflitto classificato come copia identica.");
+    assert(report.writesPerformed === false && report.automaticMergePerformed === false, "Il conflitto ha prodotto modifiche.");
+  });
+
+  await test("LEGACY-022 — stesso ID e stessi dati tra fonti classificati come copie", async () => {
+    const make = () => JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params: {}, profile: {},
+      shifts: [{ id: "shared-identical-id", date: "2026-11-10", type: "turno",
+        start_time: "08:00", end_time: "16:00", hours: 8, post: "Sede A" }]
+    });
+    const report = inspectLegacyReconciliation([
+      { source: "export-A", rawJson: make() },
+      { source: "export-B", rawJson: make() }
+    ]);
+    assert(report.identicalRecords.length === 1, "Copia identica con stesso ID non riconosciuta.");
+    assert(report.identicalRecords[0].copies.length === 2, "Riferimenti alle fonti incompleti.");
+    assert(report.idConflicts.length === 0, "Copia identica classificata come conflitto.");
+    assert(report.possibleDuplicates.length === 0, "Copia con stesso ID segnalata anche come possibile duplicato.");
+    assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
