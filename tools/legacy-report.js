@@ -64,21 +64,12 @@ analyzeButton.addEventListener("click", async () => {
   errorNode.textContent = "";
   text(statusNode, "Analisi locale in corso…");
   try {
-    const used = new Map();
-    const candidates = await Promise.all(files.map(async (file, index) => {
-      let label = file.name.slice(0, 80) || `export-${index + 1}`;
-      const base = label;
-      const extensionIndex = base.lastIndexOf(".");
-      const stem = extensionIndex > 0 ? base.slice(0, extensionIndex) : base;
-      const extension = extensionIndex > 0 ? base.slice(extensionIndex) : "";
-      let suffix = 1;
-      while (used.has(label)) {
-        suffix += 1;
-        label = `${stem.slice(0, 70)}-${suffix}${extension}`;
-      }
-      used.set(label, true);
-      return { source: label, rawJson: await file.text() };
-    }));
+    // Never copy user-controlled filenames into the visible or downloadable report.
+    // Stable generic labels preserve source traceability without leaking personal filenames.
+    const candidates = await Promise.all(files.map(async (file, index) => ({
+      source: `Export ${index + 1}`,
+      rawJson: await file.text()
+    })));
     let result;
     if (candidates.length > 1) {
       const reconciled = inspectLegacyReconciliation(candidates);
