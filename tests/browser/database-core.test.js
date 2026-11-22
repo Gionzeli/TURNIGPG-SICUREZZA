@@ -317,11 +317,13 @@ async function run() {
 
   await test("LEGACY-008 — modelli e formazione non validi isolati", async () => {
     const preview = inspectLegacyExtras(JSON.stringify({
+      quota: { ferie: -4 },
       tpl: [{ type: "UNKNOWN" }],
       skills: [{ title: "" }, { title: "Corso valido" }]
     }));
     assert(preview.templatesQuarantined.length === 1, "Modello non valido non isolato.");
     assert(preview.skillsQuarantined.length === 1 && preview.data.skills.length === 1, "Voce formazione non valida non isolata.");
+    assert(preview.warnings.some(item => item.includes("Quota ferie non valida")), "Quota non valida non segnalata.");
   });
 
   await test("DB-009 — campi riservati rifiutati", async () => {
