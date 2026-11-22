@@ -180,7 +180,7 @@ export function inspectLegacyExtras(rawJson) {
         templatesQuarantined.push({ index, reason: "Modello turno non valido." });
         return;
       }
-      const time = value => value === "" || (typeof value === "string" && /^\d{2}:\d{2}$/.test(value));
+      const time = value => validTime(value);
       if (!time(item.st ?? "") || !time(item.en ?? "")) {
         templatesQuarantined.push({ index, reason: "Orario modello non valido." });
         return;
