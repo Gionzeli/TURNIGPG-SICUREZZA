@@ -529,7 +529,7 @@ export function inspectLegacyReconciliation(candidates) {
       const values = extraSources.map(item => ({
         source: item.source,
         value: read(item.extrasPreview.data, parts)
-      })).filter(item => item.value !== undefined);
+      }));
       if (new Set(values.map(item => JSON.stringify(item.value))).size > 1) {
         extraConflicts.push({ field: path, values });
       }
