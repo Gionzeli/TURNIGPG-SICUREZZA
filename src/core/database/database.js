@@ -6,13 +6,18 @@ let activeDatabase = null;
 let activeDatabaseName = DSM_DB_NAME;
 
 export function openDSMDatabase(options = {}) {
-  if (activeDatabase) return Promise.resolve(activeDatabase);
-  if (openPromise) return openPromise;
-
   const databaseName = options.name || DSM_DB_NAME;
   if (typeof databaseName !== "string" || !databaseName.trim()) {
     return Promise.reject(new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Il nome del database deve essere una stringa non vuota."));
   }
+  if (activeDatabase) {
+    if (activeDatabase.name !== databaseName) {
+      return Promise.reject(new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "È già aperto un database DSM con un nome diverso."));
+    }
+    return Promise.resolve(activeDatabase);
+  }
+  if (openPromise) return openPromise;
+
   if (!globalThis.indexedDB) {
     return Promise.reject(new DatabaseError(DB_ERROR_CODES.UNAVAILABLE, "IndexedDB non è disponibile in questo ambiente."));
   }
