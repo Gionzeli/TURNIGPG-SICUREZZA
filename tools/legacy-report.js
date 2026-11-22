@@ -87,9 +87,11 @@ analyzeButton.addEventListener("click", async () => {
         extraConflicts: reconciled.extraConflicts.map(item => ({ field: item.field, sources: item.values.map(value => value.source) })),
         identicalGroups: reconciled.identicalRecords.length, idConflictGroups: reconciled.idConflicts.length,
         possibleDuplicateGroups: reconciled.possibleDuplicates.map(item => ({ reason: item.reason, copies: item.copies.map(copy => ({ source: copy.source, index: copy.index })) })),
-        quarantine: reconciled.quarantine, quarantinedShifts: reconciled.quarantinedShifts,
-        quarantinedTemplates: reconciled.quarantinedTemplates, quarantinedSkills: reconciled.quarantinedSkills,
-        warnings: reconciled.warnings, writesPerformed: reconciled.writesPerformed,
+        quarantine: reconciled.quarantine,
+        quarantinedShifts: reconciled.quarantinedShifts.map(item => ({ ...item, reason: safeReason(item.reason) })),
+        quarantinedTemplates: reconciled.quarantinedTemplates.map(item => ({ ...item, reason: safeReason(item.reason) })),
+        quarantinedSkills: reconciled.quarantinedSkills.map(item => ({ ...item, reason: safeReason(item.reason) })),
+        warnings: reconciled.warnings.map(safeWarning), writesPerformed: reconciled.writesPerformed,
         automaticMergePerformed: reconciled.automaticMergePerformed
       };
     } else {
