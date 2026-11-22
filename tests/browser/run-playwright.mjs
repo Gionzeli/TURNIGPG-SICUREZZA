@@ -64,7 +64,19 @@ try {
   assert.ok(downloadedReport.includes('"automaticImportAllowed": false'));
   assert.ok(!downloadedReport.includes("POSTO-PRIVATO-TEST"), "Il rapporto scaricato espone dati dei turni.");
   assert.ok(!downloadedReport.includes("shift-private-test"), "Il rapporto scaricato espone ID legacy.");
-  console.log("PASS — local legacy report page: privacy, quarantine, and sanitized download");
+  await reportPage.locator("#files").setInputFiles([{
+    name: "export-singolo.json", mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params: {}, profile: {},
+      shifts: [{ date: "2026-11-10", type: "turno", hours: 8 }], extra: {}
+    }))
+  }]);
+  await reportPage.locator("#analyze").click();
+  await reportPage.locator("#report").waitFor({ state: "visible" });
+  assert.match(await reportPage.locator("#totals").textContent(), /Turni validi esaminati: 1/);
+  assert.match(await reportPage.locator("#readiness").textContent(), /Nessun conflitto rilevato/);
+  assert.equal(reportErrors.length, 0, reportErrors.join("; "));
+  console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, and single export preview");
   await reportPage.close();
 } finally {
   await browser.close();
