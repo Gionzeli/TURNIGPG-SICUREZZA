@@ -32,10 +32,10 @@ try {
   const exportOne = {
     app: "Turni Gpg/sicurezza online", params: {}, profile: {},
     shifts: [
-      { id: "shift-private-test", date: "2026-11-10", type: "turno", post: "POSTO-PRIVATO-TEST", start_time: "08:00", end_time: "16:00", hours: 8 },
+      { id: "shift-private-test", date: "2026-11-10", type: "turno", post: "POSTO-PRIVATO-TEST", start_time: "08:00", end_time: "16:00", hours: 8, "PRIVATE-FIELD-NAME-DO-NOT-LEAK": "private-value" },
       { id: "bad-date", date: "2026-02-30", type: "turno", hours: 8 }
     ],
-    extra: { tpl: [{ type: "turno", st: "99:99", en: "16:00" }], skills: [{}] }
+    extra: { tpl: [{ type: "turno", st: "99:99", en: "16:00" }], skills: [{}], "PRIVATE-EXTRA-KEY-DO-NOT-LEAK": "private-value" }
   };
   const exportTwo = {
     app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts: [], extra: {}
@@ -64,6 +64,9 @@ try {
   assert.ok(downloadedReport.includes('"automaticImportAllowed": false'));
   assert.ok(!downloadedReport.includes("POSTO-PRIVATO-TEST"), "Il rapporto scaricato espone dati dei turni.");
   assert.ok(!downloadedReport.includes("shift-private-test"), "Il rapporto scaricato espone ID legacy.");
+  assert.ok(!downloadedReport.includes("PRIVATE-FIELD-NAME-DO-NOT-LEAK"), "Il rapporto scaricato espone nomi di campi non mappati.");
+  assert.ok(!downloadedReport.includes("PRIVATE-EXTRA-KEY-DO-NOT-LEAK"), "Il rapporto scaricato espone chiavi extra non mappate.");
+  assert.ok(!downloadedReport.includes("private-value"), "Il rapporto scaricato espone valori privati.");
   await reportPage.locator("#files").setInputFiles([{
     name: "export-singolo.json", mimeType: "application/json",
     buffer: Buffer.from(JSON.stringify({
