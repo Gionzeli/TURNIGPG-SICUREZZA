@@ -582,12 +582,16 @@ export function inspectLegacyReconciliation(candidates) {
     const sourceCounts = new Map();
     for (const item of group) sourceCounts.set(item.source, (sourceCounts.get(item.source) ?? 0) + 1);
     const duplicateWithinSource = [...sourceCounts.values()].some(count => count > 1);
-    const duplicateAcrossSources = sourceCounts.size > 1 && distinctIds.size > 1;
+    const hasMissingId = group.some(item => item.legacyId === null);
+    const duplicateAcrossSources = sourceCounts.size > 1 &&
+      (distinctIds.size > 1 || hasMissingId);
     if (!duplicateWithinSource && !duplicateAcrossSources) continue;
     possibleDuplicates.push({
       reason: duplicateWithinSource
         ? "Dati turno ripetuti nella stessa fonte."
-        : "Dati turno uguali ma identificativi legacy diversi tra fonti.",
+        : distinctIds.size > 1
+          ? "Dati turno uguali ma identificativi legacy diversi tra fonti."
+          : "Dati turno uguali tra fonti senza identificativi confrontabili.",
       copies: group.map(({ source, index, legacyId }) => ({ source, index, legacyId }))
     });
   }
