@@ -78,8 +78,9 @@ await shifts.create({
 - Non è presente sincronizzazione remota.
 - Il pacchetto non importa né cancella dati LocalStorage.
 - La UI legacy non è ancora collegata a questi moduli.
-- Non sono inclusi ancora test automatici né una pipeline di build.
+- È presente un harness manuale di test browser in `tests/browser/`, con nove controlli automatici eseguiti nel browser su IndexedDB nativo.
+- Non è ancora configurata una pipeline CI e i test non sono stati eseguiti in questa fase.
 
 ## Stato della verifica
 
-I file sono stati inseriti nel branch dedicato. Non è stata eseguita una build browser, una suite di test o una prova su dispositivi. Prima di collegare il codice alla PWA occorre aggiungere test IndexedDB in browser, verificare la compatibilità dei browser target e rivedere la gestione delle transazioni.
+I moduli e l'harness sono stati inseriti nel branch dedicato. È stata eseguita una revisione statica del codice, ma non una prova in browser reale. Prima di collegare il codice alla PWA occorre eseguire l'harness su browser target, ampliare i test sulle transazioni e verificare l'autenticazione del contesto account.
