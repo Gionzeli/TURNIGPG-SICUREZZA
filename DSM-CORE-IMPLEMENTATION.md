@@ -114,7 +114,7 @@ Questa fase resta solo inventario/anteprima: nessuna scrittura, nessuna selezion
 - Il pacchetto non importa né cancella dati LocalStorage.
 - La UI legacy non è ancora collegata a questi moduli.
 - È presente un harness browser in `tests/browser/`, eseguito automaticamente con Chromium/Playwright tramite GitHub Actions.
-- L'ultima esecuzione CI verificata (run `45018247184`, commit `e7b0facb`) ha superato 38 test funzionali e la pulizia del database test: 38 superati, 0 falliti. Sono inclusi Service Layer, adapter legacy, inventario backup/storico/per-utente/formazione, riconoscimento dei backup cifrati, riconciliazione read-only e analisi cronologica dei turni con rilevamento delle sovrapposizioni attraverso la mezzanotte. Gli adapter non leggono LocalStorage, non scrivono IndexedDB e non avviano importazioni. Il workflow si attiva su push al branch `dsm-enterprise/core-v1` e può essere avviato manualmente.
+- L'ultima esecuzione CI verificata (run `45020194335`, commit `91a017f9`) ha superato 41 test funzionali e la pulizia del database test: 41 superati, 0 falliti. Sono inclusi Service Layer, adapter legacy, inventario backup/storico/per-utente/formazione, riconoscimento dei backup cifrati, riconciliazione read-only e analisi cronologica dei turni: sovrapposizioni attraverso la mezzanotte, turni consecutivi, esclusione di date/orari non validi e rilevamento di sovrapposizioni multiple anche con intervalli contenuti. Gli adapter non leggono LocalStorage, non scrivono IndexedDB e non avviano importazioni. Il workflow si attiva su push al branch `dsm-enterprise/core-v1` e può essere avviato manualmente.
 
 ## Stato della verifica
 
