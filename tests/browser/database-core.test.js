@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -287,6 +287,41 @@ async function run() {
     let caught;
     try { inspectLegacySnapshot("{non-json"); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "JSON corrotto non rifiutato con errore di validazione.");
+  });
+
+  await test("LEGACY-006 — anteprima extra quota, mensili, modelli e formazione", async () => {
+    const preview = inspectLegacyExtras(JSON.stringify({
+      quota: { ferie: 12, perm: 4.5 },
+      real: { "2026-10": 1450, invalid: -2 },
+      tpl: [{ type: "turno", post: "Sede A", st: "08:00", en: "16:00", n: false }],
+      skills: [{ id: "skill-1", title: "Primo soccorso", issuer: "Ente", hours: 8 }],
+      leavePayslip: { importedAt: "2026-11-01", ferie: { maturate: 10, godute: 2, residue: 8 } },
+      role: "gpg", name: "Profilo locale"
+    }));
+    assert(preview.mode === "read-only-preview" && preview.writesPerformed === false, "Anteprima extra non read-only.");
+    assert(preview.data.quota.ferie === 12 && preview.data.quota.perm === 4.5, "Quote ferie/permessi errate.");
+    assert(preview.data.real["2026-10"] === 1450, "Valore mensile non letto.");
+    assert(preview.data.templates.length === 1 && preview.data.skills.length === 1, "Modelli o formazione non analizzati.");
+    assert(preview.data.leavePayslip.ferie.residue === 8, "Residuo busta paga non analizzato.");
+  });
+
+  await test("LEGACY-007 — credenziali PIN/salt mai esposte dall'adapter", async () => {
+    const preview = inspectLegacyExtras(JSON.stringify({
+      pin: "a".repeat(64), salt: "b".repeat(32), it: 150000, name: "Locale"
+    }));
+    assert(preview.credentials.present === true, "Materiale credenziale non rilevato.");
+    assert(preview.credentials.valuesExposed === false && preview.credentials.imported === false, "Hash o salt dichiarati esposti/importati.");
+    assert(!Object.hasOwn(preview.data, "pin") && !Object.hasOwn(preview.data, "salt"), "PIN o salt presenti nei dati restituiti.");
+    assert(preview.warnings.some(item => item.includes("transizione autenticazione")), "Avviso transizione credenziali mancante.");
+  });
+
+  await test("LEGACY-008 — modelli e formazione non validi isolati", async () => {
+    const preview = inspectLegacyExtras(JSON.stringify({
+      tpl: [{ type: "UNKNOWN" }],
+      skills: [{ title: "" }, { title: "Corso valido" }]
+    }));
+    assert(preview.templatesQuarantined.length === 1, "Modello non valido non isolato.");
+    assert(preview.skillsQuarantined.length === 1 && preview.data.skills.length === 1, "Voce formazione non valida non isolata.");
   });
 
   await test("DB-009 — campi riservati rifiutati", async () => {
