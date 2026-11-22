@@ -1,4 +1,5 @@
 import { chromium } from "playwright";
+import assert from "node:assert/strict";
 
 const browser = await chromium.launch({ headless: true });
 let pageErrors = [];
@@ -21,6 +22,50 @@ try {
     process.exitCode = 1;
   }
   if (status !== "pass") process.exitCode = 1;
+
+  const reportPage = await browser.newPage();
+  const reportErrors = [];
+  const requestedUrls = [];
+  reportPage.on("pageerror", error => reportErrors.push(error.message));
+  reportPage.on("request", request => requestedUrls.push(request.url()));
+  await reportPage.goto("http://127.0.0.1:8000/tools/legacy-report.html", { waitUntil: "load" });
+  const exportOne = {
+    app: "Turni Gpg/sicurezza online", params: {}, profile: {},
+    shifts: [
+      { id: "shift-private-test", date: "2026-11-10", type: "turno", post: "POSTO-PRIVATO-TEST", start_time: "08:00", end_time: "16:00", hours: 8 },
+      { id: "bad-date", date: "2026-02-30", type: "turno", hours: 8 }
+    ],
+    extra: { tpl: [{ type: "turno", st: "99:99", en: "16:00" }], skills: [{}] }
+  };
+  const exportTwo = {
+    app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts: [], extra: {}
+  };
+  await reportPage.locator("#files").setInputFiles([
+    { name: "export-principale.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(exportOne)) },
+    { name: "export-secondario.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify(exportTwo)) }
+  ]);
+  await reportPage.locator("#analyze").click();
+  await reportPage.locator("#report").waitFor({ state: "visible" });
+  assert.match(await reportPage.locator("#readiness").textContent(), /Revisione necessaria/);
+  assert.doesNotMatch(await reportPage.locator("#quarantine").textContent(), /POSTO-PRIVATO-TEST/);
+  assert.match(await reportPage.locator("#quarantine").textContent(), /Turno/);
+  assert.match(await reportPage.locator("#quarantine").textContent(), /Modello/);
+  assert.match(await reportPage.locator("#quarantine").textContent(), /Formazione/);
+  assert.equal(reportErrors.length, 0, reportErrors.join("; "));
+  assert.ok(requestedUrls.every(url => url.startsWith("http://127.0.0.1:8000/")), "Lo strumento ha effettuato richieste esterne.");
+
+  const downloadPromise = reportPage.waitForEvent("download");
+  await reportPage.locator("#download").click();
+  const download = await downloadPromise;
+  const stream = await download.createReadStream();
+  const chunks = [];
+  for await (const chunk of stream) chunks.push(chunk);
+  const downloadedReport = Buffer.concat(chunks).toString("utf8");
+  assert.ok(downloadedReport.includes('"automaticImportAllowed": false'));
+  assert.ok(!downloadedReport.includes("POSTO-PRIVATO-TEST"), "Il rapporto scaricato espone dati dei turni.");
+  assert.ok(!downloadedReport.includes("shift-private-test"), "Il rapporto scaricato espone ID legacy.");
+  console.log("PASS — local legacy report page: privacy, quarantine, and sanitized download");
+  await reportPage.close();
 } finally {
   await browser.close();
 }
