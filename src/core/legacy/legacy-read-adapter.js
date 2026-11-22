@@ -505,9 +505,10 @@ export function inspectLegacyReconciliation(candidates) {
   for (const section of ["params", "profile"]) {
     const keys = new Set(snapshots.flatMap(item => Object.keys(item.preview.profile[section] ?? {})));
     for (const key of [...keys].sort()) {
-      const values = snapshots
-        .filter(item => Object.hasOwn(item.preview.profile[section] ?? {}, key))
-        .map(item => ({ source: item.source, value: item.preview.profile[section][key] }));
+      const values = snapshots.map(item => ({
+        source: item.source,
+        value: item.preview.profile[section]?.[key]
+      }));
       const distinct = new Set(values.map(item => JSON.stringify(item.value)));
       if (distinct.size > 1) profileConflicts.push({ section, field: key, values });
     }
