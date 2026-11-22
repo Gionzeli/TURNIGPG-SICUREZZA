@@ -68,10 +68,13 @@ analyzeButton.addEventListener("click", async () => {
     const candidates = await Promise.all(files.map(async (file, index) => {
       let label = file.name.slice(0, 80) || `export-${index + 1}`;
       const base = label;
+      const extensionIndex = base.lastIndexOf(".");
+      const stem = extensionIndex > 0 ? base.slice(0, extensionIndex) : base;
+      const extension = extensionIndex > 0 ? base.slice(extensionIndex) : "";
       let suffix = 1;
       while (used.has(label)) {
         suffix += 1;
-        label = `${base.slice(0, 70)}-${suffix}`;
+        label = `${stem.slice(0, 70)}-${suffix}${extension}`;
       }
       used.set(label, true);
       return { source: label, rawJson: await file.text() };
