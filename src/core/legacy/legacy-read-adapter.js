@@ -523,7 +523,7 @@ export function inspectLegacyReconciliation(candidates) {
         for (const [key, child] of Object.entries(value)) collect(child, prefix ? `${prefix}.${key}` : key);
       } else paths.add(prefix);
     };
-    for (const item of extraSources) collect(item.extrasPreview.data);
+    for (const item of extraSources) if (item.extrasPreview) collect(item.extrasPreview.data);
     for (const path of [...paths].sort()) {
       const read = (value, pathParts) => pathParts.reduce((current, key) => current?.[key], value);
       const parts = path.split(".");
