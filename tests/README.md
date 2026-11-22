@@ -57,3 +57,7 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 - `LEGACY-012`: conflitti sullo stesso ID e divergenze dei parametri profilo.
 - `LEGACY-013`: conteggio separato dei record in quarantena.
 - La funzione `inspectLegacyReconciliation(candidates)` non fonde né modifica i record.
+
+
+- `LEGACY-014`: riconoscimento dell'export ufficiale senza password con report minimizzato.
+- `LEGACY-015`: confronto dei dati extra tra export ufficiali.
