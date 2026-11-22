@@ -326,6 +326,33 @@ async function run() {
     assert(preview.warnings.some(item => item.includes("Quota ferie non valida")), "Quota non valida non segnalata.");
   });
 
+
+  await test("LEGACY-009 — inventario backup, storico, per-utente e formazione read-only", async () => {
+    const archive = inspectLegacyArchive({
+      tg_online_v1_pre_local_backup: JSON.stringify({ params: {}, profile: {}, shifts: [] }),
+      tg_extra_v1_pre_local_backup: JSON.stringify({ quota: { ferie: 8 }, skills: [] }),
+      tg_online_v1_user_privateSuffix: JSON.stringify({ params: {}, profile: {}, shifts: [{ date: "2026-11-22", type: "turno", hours: 8 }] }),
+      tg_extra_v1_user_privateSuffix: JSON.stringify({ quota: { perm: 3 }, pin: "a".repeat(64), salt: "b".repeat(32) }),
+      tg_change_history_v1: JSON.stringify([{ kind: "turn_add", before: null, after: { secret: "not returned" } }]),
+      tg_training_local_v1: JSON.stringify([{ id: "x", title: "Primo soccorso", provider: "Ente", date: "2026-01-01", hours: 8 }, { title: "" }])
+    });
+    assert(archive.mode === "read-only-inventory" && archive.writesPerformed === false, "Inventario non read-only.");
+    assert(archive.perUser.online === 1 && archive.perUser.extras === 1, "Conteggio chiavi per-utente errato.");
+    assert(!JSON.stringify(archive).includes("privateSuffix") && !JSON.stringify(archive).includes("secret"), "Inventario espone suffissi o contenuti dello storico.");
+    assert(archive.history.count === 1 && archive.history.kinds[0] === "turn_add", "Storico non inventariato.");
+    assert(archive.training.ready.length === 1 && archive.training.quarantined.length === 1, "Formazione non inventariata/quarantinata.");
+    assert(archive.snapshots.tg_online_v1_pre_local_backup.shifts.total === 0, "Backup precedente non analizzato.");
+    assert(archive.snapshots.tg_extra_v1_pre_local_backup.counts.skills === 0, "Extra backup precedente non analizzato.");
+  });
+
+  await test("LEGACY-010 — backup cifrati riconosciuti senza decifrazione", async () => {
+    const archive = inspectLegacyArchive({
+      "backup-cifrato": JSON.stringify({ app: "Turni Gpg/sicurezza online", v: 3, enc: { alg: "AES-256-GCM" }, data: "ciphertext" })
+    });
+    assert(archive.encryptedBackups.length === 1 && archive.encryptedBackups[0].version === 3, "Backup cifrato v3 non riconosciuto.");
+    assert(archive.encryptedBackups[0].decryptableHere === false && archive.writesPerformed === false, "Inventario ha dichiarato decifratura o scritture.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
