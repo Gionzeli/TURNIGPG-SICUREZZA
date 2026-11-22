@@ -75,3 +75,9 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 - `LEGACY-025`: conserva provenienza, indice e motivo dei turni messi in quarantena.
 - `LEGACY-026`: rileva una sezione extra completamente assente in una fonte.
 - `LEGACY-027`: verifica il rapporto read-only di migrazione, la quarantena di modelli/formazione e il blocco dell'importazione automatica.
+
+## Strumento locale di rapporto legacy
+
+- `tools/legacy-report.html` permette anteprima singola o riconciliazione di più export JSON direttamente nel browser.
+- Il test Playwright verifica file sintetici, quarantena turni/modelli/formazione, assenza di richieste esterne e minimizzazione del rapporto scaricato.
+- Lo strumento non usa LocalStorage/IndexedDB, non invia file in rete e non importa né modifica dati.
