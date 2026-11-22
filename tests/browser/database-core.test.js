@@ -40,6 +40,13 @@ async function run() {
   }
   const context = createAccountContext();
 
+  await test("DB-000 — nome database vuoto rifiutato senza fallback", async () => {
+    let caught;
+    try { await openDSMDatabase({ name: "" }); } catch (error) { caught = error; }
+    assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Nome vuoto non rifiutato.");
+    assert(!getDSMDatabaseStatus().isOpen, "Un database è stato aperto durante la validazione.");
+  });
+
   await test("DB-001 — apertura database di test isolato", async () => {
     db = await openDSMDatabase({ name: TEST_DB_NAME });
     assert(db.name === TEST_DB_NAME, "Database diverso da quello test.");
