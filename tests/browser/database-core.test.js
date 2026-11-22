@@ -461,6 +461,24 @@ async function run() {
     assert(report.writesPerformed === false, "L'analisi cronologica ha eseguito scritture.");
   });
 
+  await test("LEGACY-019 — duplicati interni alla stessa fonte segnalati", async () => {
+    const make = shifts => JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts
+    });
+    const shift = id => ({
+      id, date: "2026-11-07", type: "turno", start_time: "08:00",
+      end_time: "16:00", hours: 8, post: "Sede A"
+    });
+    const report = inspectLegacyReconciliation([
+      { source: "export-1", rawJson: make([shift("duplicate-a"), shift("duplicate-b")]) },
+      { source: "export-2", rawJson: make([shift("different")]) }
+    ]);
+    assert(report.possibleDuplicates.length === 1, "Duplicato interno alla fonte non rilevato.");
+    assert(report.possibleDuplicates[0].copies.length === 2, "Riferimenti dei duplicati incompleti.");
+    assert(report.possibleDuplicates[0].reason.includes("stessa fonte"), "Motivazione del duplicato errata.");
+    assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
