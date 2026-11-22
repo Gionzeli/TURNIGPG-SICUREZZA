@@ -142,6 +142,7 @@ async function run() {
       itemType: "template", sourceIndex: 0, reason: "manual-review"
     });
     closeDSMDatabase();
+    await new Promise(resolve => setTimeout(resolve, 0));
     db = await openDSMDatabase({ name: TEST_DB_NAME });
     const jobsAfter = new MigrationJobRepository({ db, accountContext: context });
     const quarantineAfter = new QuarantineRepository({ db, accountContext: context });
