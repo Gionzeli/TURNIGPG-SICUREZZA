@@ -15,7 +15,7 @@ Questo pacchetto introduce un primo nucleo IndexedDB isolato dal runtime legacy.
 - `src/core/database/index.js`: export pubblici.
 - `src/core/account/account-context.js`: contesto account locale in memoria.
 - `src/core/account/account-guard.js`: controlli preliminari di contesto e ownership.
-- `src/core/repositories/base-repository.js`: operazioni CRUD con scope account.
+- `src/core/repositories/base-repository.js`: operazioni CRUD con scope account e controllo concorrenza ottimistico su update/delete.
 - `src/core/repositories/profile-repository.js`: repository profili.
 - `src/core/repositories/shift-repository.js`: repository turni.
 
@@ -78,9 +78,9 @@ await shifts.create({
 - Non è presente sincronizzazione remota.
 - Il pacchetto non importa né cancella dati LocalStorage.
 - La UI legacy non è ancora collegata a questi moduli.
-- È presente un harness manuale di test browser in `tests/browser/`, con nove controlli automatici eseguiti nel browser su IndexedDB nativo.
-- Non è ancora configurata una pipeline CI e i test non sono stati eseguiti in questa fase.
+- È presente un harness browser in `tests/browser/`, eseguito automaticamente con Chromium/Playwright tramite GitHub Actions.
+- L'ultima esecuzione verificata ha superato 14 controlli funzionali più la pulizia del database test (15 esiti PASS complessivi). Il workflow si attiva su push al branch `dsm-enterprise/core-v1` e può essere avviato manualmente.
 
 ## Stato della verifica
 
-I moduli e l'harness sono stati inseriti nel branch dedicato. È stata eseguita una revisione statica del codice, ma non una prova in browser reale. Prima di collegare il codice alla PWA occorre eseguire l'harness su browser target, ampliare i test sulle transazioni e verificare l'autenticazione del contesto account.
+I moduli e l'harness sono stati inseriti nel branch dedicato. È stata completata una prova automatizzata in Chromium su IndexedDB reale. Prima di collegare il codice alla PWA occorre ampliare i test sulle transazioni e verificare l'autenticazione del contesto account. Il risultato CI non certifica l'integrazione con la UI, Firebase, cifratura, migrazione o dispositivi mobili.
