@@ -597,16 +597,35 @@ export function inspectLegacyReconciliation(candidates) {
     });
   }
 
-  const sourceSummary = snapshots.map(({ source, preview }) => ({
-    source, shiftsTotal: preview.shifts.total,
+  const sourceSummary = snapshots.map(({ source, preview, extrasPreview }) => ({
+    source,
+    shiftsTotal: preview.shifts.total,
     shiftsReady: preview.shifts.ready.length,
     shiftsQuarantined: preview.shifts.quarantined.length,
     profileValid: preview.profile.valid,
-    importable: preview.importable,
-    extrasPresent: Boolean(snapshots.find(item => item.source === source)?.extrasPreview),
-    extraSkills: snapshots.find(item => item.source === source)?.extrasPreview?.data.skills.length ?? null,
-    extraTemplates: snapshots.find(item => item.source === source)?.extrasPreview?.data.templates.length ?? null
+    profileErrors: preview.profile.errors.length,
+    extrasPresent: Boolean(extrasPreview),
+    extraSkills: extrasPreview?.data.skills.length ?? null,
+    extraSkillsQuarantined: extrasPreview?.skillsQuarantined.length ?? null,
+    extraTemplates: extrasPreview?.data.templates.length ?? null,
+    extraTemplatesQuarantined: extrasPreview?.templatesQuarantined.length ?? null,
+    extraMonthlyValues: extrasPreview ? Object.keys(extrasPreview.data.real).length : null,
+    warnings: preview.warnings.length + (extrasPreview?.warnings.length ?? 0),
+    importable: preview.importable && Boolean(extrasPreview || !extrasPreview)
   }));
+  const quarantinedShifts = snapshots.flatMap(item => item.preview.shifts.quarantined.map(shift => ({
+    source: item.source, index: shift.index, reason: shift.reason
+  })));
+  const quarantinedTemplates = snapshots.flatMap(item => (item.extrasPreview?.templatesQuarantined ?? []).map(item => ({
+    source: item.source, index: item.index, reason: item.reason
+  })));
+  const quarantinedSkills = snapshots.flatMap(item => (item.extrasPreview?.skillsQuarantined ?? []).map(item => ({
+    source: item.source, index: item.index, reason: item.reason
+  })));
+  const migrationReviewRequired = profileConflicts.length > 0 || extraConflicts.length > 0 ||
+    idConflicts.length > 0 || possibleDuplicates.length > 0 || quarantinedShifts.length > 0 ||
+    quarantinedTemplates.length > 0 || quarantinedSkills.length > 0 || warnings.length > 0 ||
+    sourceSummary.some(item => !item.profileValid);
 
   return Object.freeze({
     mode: "read-only-reconciliation",
@@ -616,16 +635,26 @@ export function inspectLegacyReconciliation(candidates) {
     sources: sourceSummary,
     profileConflicts,
     extraConflicts,
-    quarantinedShifts: snapshots.flatMap(item => item.preview.shifts.quarantined.map(shift => ({ source: item.source, index: shift.index, reason: shift.reason }))),
+    quarantinedShifts,
+    quarantinedTemplates,
+    quarantinedSkills,
     identicalRecords,
     idConflicts,
     possibleDuplicates,
-    quarantine: { shifts: quarantinedTotal },
+    quarantine: { shifts: quarantinedTotal, templates: quarantinedTemplates.length, skills: quarantinedSkills.length },
+    migrationReadiness: {
+      status: migrationReviewRequired ? "review-required" : "no-conflicts-detected",
+      reviewRequired: migrationReviewRequired,
+      automaticImportAllowed: false
+    },
     totals: {
       shiftsReady: records.length,
       identicalGroups: identicalRecords.length,
       idConflictGroups: idConflicts.length,
-      possibleDuplicateGroups: possibleDuplicates.length
+      possibleDuplicateGroups: possibleDuplicates.length,
+      profileConflictFields: profileConflicts.length,
+      extraConflictFields: extraConflicts.length,
+      sourcesWithWarnings: sourceSummary.filter(item => item.warnings > 0).length
     },
     warnings
   });
