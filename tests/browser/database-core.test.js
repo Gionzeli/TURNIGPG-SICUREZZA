@@ -140,6 +140,18 @@ async function run() {
     assert(["scrittura A", "scrittura B"].includes(persisted.data.value), "Valore finale inatteso.");
   });
 
+  await test("DB-014 — delete protetto da revisione attesa", async () => {
+    const record = await profiles.create({ value: "da proteggere" });
+    const updated = await profiles.update(record.id, { value: "modificato" }, { expectedRevision: 1 });
+    assert(updated.revision === 2, "Revisione non incrementata prima del delete.");
+    let caught;
+    try { await profiles.delete(record.id, { expectedRevision: 1 }); } catch (error) { caught = error; }
+    assert(caught?.code === DB_ERROR_CODES.REVISION_CONFLICT, "Delete con revisione obsoleta non bloccato.");
+    assert((await profiles.getById(record.id))?.revision === 2, "Il record è stato cancellato da una richiesta obsoleta.");
+    assert(await profiles.delete(record.id, { expectedRevision: 2 }), "Delete con revisione corrente non riuscito.");
+    assert(await profiles.getById(record.id) === null, "Record ancora presente dopo delete valido.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
