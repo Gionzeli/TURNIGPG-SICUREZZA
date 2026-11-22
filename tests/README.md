@@ -49,3 +49,11 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 - `LEGACY-009`: inventario read-only di backup precedenti, chiavi per-utente, storico e formazione; verifica che suffissi identificativi e contenuti dello storico non vengano restituiti.
 - `LEGACY-010`: riconoscimento dei contenitori cifrati v3 senza decifrazione.
 - Nessun test usa dati reali del browser: i campioni sono sintetici e non attivano importazioni.
+
+
+## Riconciliazione read-only
+
+- `LEGACY-011`: copie identiche e possibili duplicati con ID differenti.
+- `LEGACY-012`: conflitti sullo stesso ID e divergenze dei parametri profilo.
+- `LEGACY-013`: conteggio separato dei record in quarantena.
+- La funzione `inspectLegacyReconciliation(candidates)` non fonde né modifica i record.
