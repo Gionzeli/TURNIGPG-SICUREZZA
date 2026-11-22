@@ -448,6 +448,19 @@ async function run() {
     assert(report.writesPerformed === false, "L'analisi cronologica ha eseguito scritture.");
   });
 
+  await test("LEGACY-018 — rileva più sovrapposizioni anche con intervalli contenuti", async () => {
+    const report = inspectLegacyShiftChronology([
+      { id: "long", date: "2026-11-06", type: "turno", start_time: "06:00", end_time: "18:00" },
+      { id: "inside", date: "2026-11-06", type: "turno", start_time: "08:00", end_time: "10:00" },
+      { id: "late", date: "2026-11-06", type: "turno", start_time: "17:00", end_time: "20:00" }
+    ]);
+    assert(report.shiftsAnalyzed === 3, "Numero turni analizzati errato.");
+    assert(report.overlaps.length === 2, "Non sono state rilevate entrambe le sovrapposizioni.");
+    assert(report.overlaps[0].overlapMinutes === 120, "Durata sovrapposizione contenuta errata.");
+    assert(report.overlaps[1].overlapMinutes === 60, "Durata seconda sovrapposizione errata.");
+    assert(report.writesPerformed === false, "L'analisi cronologica ha eseguito scritture.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
