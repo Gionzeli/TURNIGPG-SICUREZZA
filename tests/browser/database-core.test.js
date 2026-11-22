@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -351,6 +351,47 @@ async function run() {
     });
     assert(archive.encryptedBackups.length === 1 && archive.encryptedBackups[0].version === 3, "Backup cifrato v3 non riconosciuto.");
     assert(archive.encryptedBackups[0].decryptableHere === false && archive.writesPerformed === false, "Inventario ha dichiarato decifratura o scritture.");
+  });
+
+
+  await test("LEGACY-011 — riconciliazione distingue copie identiche, conflitti e possibili duplicati", async () => {
+    const make = (id, hours = 8) => JSON.stringify({
+      params: { paga_base: 1250 }, profile: { role: "Operatore" },
+      shifts: [{ id, date: "2026-11-22", type: "turno", post: "Sede A", start_time: "08:00", end_time: "16:00", hours }]
+    });
+    const result = inspectLegacyReconciliation([
+      { source: "backup-A", rawJson: make("turno-1") },
+      { source: "backup-B", rawJson: make("turno-1") },
+      { source: "profilo-utente", rawJson: make("turno-diverso", 8.5) }
+    ]);
+    assert(result.mode === "read-only-reconciliation" && result.writesPerformed === false, "Riconciliazione non read-only.");
+    assert(result.automaticMergePerformed === false, "La riconciliazione ha dichiarato merge automatici.");
+    assert(result.identicalRecords.length === 1, "Copie identiche non riconosciute.");
+    assert(result.possibleDuplicates.length === 1, "Possibile duplicato con ID diversi non segnalato.");
+    assert(result.idConflicts.length === 0, "Creato conflitto ID inatteso.");
+  });
+
+  await test("LEGACY-012 — stesso ID con dati diversi e profilo divergente sono conflitti", async () => {
+    const make = (hours, salary) => JSON.stringify({
+      params: { paga_base: salary }, profile: { role: "Operatore" },
+      shifts: [{ id: "same-id", date: "2026-11-22", type: "turno", hours }]
+    });
+    const result = inspectLegacyReconciliation([
+      { source: "copia-1", rawJson: make(8, 1200) },
+      { source: "copia-2", rawJson: make(9, 1300) }
+    ]);
+    assert(result.idConflicts.length === 1, "Conflitto sullo stesso ID non rilevato.");
+    assert(result.profileConflicts.some(item => item.section === "params" && item.field === "paga_base"), "Differenza parametro profilo non segnalata.");
+    assert(result.totals.shiftsReady === 2, "I record delle due fonti non sono stati preservati nel report.");
+  });
+
+  await test("LEGACY-013 — record non validi restano conteggiati in quarantena", async () => {
+    const result = inspectLegacyReconciliation([
+      { source: "copia-a", rawJson: JSON.stringify({ shifts: [{ id: "ok", date: "2026-11-22", type: "turno" }, { date: "2026-02-30", type: "turno" }] }) },
+      { source: "copia-b", rawJson: JSON.stringify({ shifts: [{ id: "ok", date: "2026-11-22", type: "turno" }] }) }
+    ]);
+    assert(result.quarantine.shifts === 1, "Turno non valido non conteggiato in quarantena.");
+    assert(result.identicalRecords.length === 1, "Copia valida non riconosciuta.");
   });
 
   await test("DB-009 — campi riservati rifiutati", async () => {
