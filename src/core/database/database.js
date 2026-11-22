@@ -4,6 +4,7 @@ import { DSM_DB_NAME, DSM_DB_VERSION, upgradeDatabase } from "./database-schema.
 let openPromise = null;
 let activeDatabase = null;
 let activeDatabaseName = DSM_DB_NAME;
+let pendingDatabaseName = null;
 
 export function openDSMDatabase(options = {}) {
   const databaseName = options.name || DSM_DB_NAME;
@@ -16,12 +17,16 @@ export function openDSMDatabase(options = {}) {
     }
     return Promise.resolve(activeDatabase);
   }
-  if (openPromise) return openPromise;
+  if (openPromise) {
+    if (pendingDatabaseName !== databaseName) return Promise.reject(new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "An open request for a different DSM database is already pending."));
+    return openPromise;
+  }
 
   if (!globalThis.indexedDB) {
     return Promise.reject(new DatabaseError(DB_ERROR_CODES.UNAVAILABLE, "IndexedDB non è disponibile in questo ambiente."));
   }
 
+  pendingDatabaseName = databaseName;
   openPromise = new Promise((resolve, reject) => {
     let request;
     try {
@@ -46,6 +51,7 @@ export function openDSMDatabase(options = {}) {
         db.close();
         if (activeDatabase === db) activeDatabase = null;
         openPromise = null;
+        pendingDatabaseName = null;
         activeDatabaseName = DSM_DB_NAME;
       };
       db.onclose = () => {
@@ -59,6 +65,7 @@ export function openDSMDatabase(options = {}) {
     };
   }).catch(error => {
     openPromise = null;
+    pendingDatabaseName = null;
     throw error;
   });
   return openPromise;
@@ -68,6 +75,7 @@ export function closeDSMDatabase() {
   if (activeDatabase) activeDatabase.close();
   activeDatabase = null;
   openPromise = null;
+  pendingDatabaseName = null;
   activeDatabaseName = DSM_DB_NAME;
 }
 
