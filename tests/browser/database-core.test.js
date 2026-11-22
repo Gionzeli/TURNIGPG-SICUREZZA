@@ -11,7 +11,7 @@ let passed = 0, failed = 0, db, profiles, shifts, createdProfileId, createdShift
 function assert(condition, message) { if (!condition) throw new Error(message); }
 
 async function deleteTestDatabase() {
-  closeDSMDatabase();
+  await closeDSMDatabase();
   await new Promise((resolve, reject) => {
     const request = indexedDB.deleteDatabase(TEST_DB_NAME);
     request.onsuccess = () => resolve();
@@ -87,7 +87,7 @@ async function run() {
   await test("DB-007 — turno e persistenza dopo riapertura", async () => {
     shifts = new ShiftRepository({ db, accountContext: context });
     createdShiftId = (await shifts.create({ date: "2099-01-01", type: "TEST" })).id;
-    closeDSMDatabase();
+    await closeDSMDatabase();
     db = await openDSMDatabase({ name: TEST_DB_NAME });
     profiles = new ProfileRepository({ db, accountContext: context });
     shifts = new ShiftRepository({ db, accountContext: context });
@@ -141,8 +141,7 @@ async function run() {
     const item = await quarantineBefore.createItem({
       itemType: "template", sourceIndex: 0, reason: "manual-review"
     });
-    closeDSMDatabase();
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await closeDSMDatabase();
     db = await openDSMDatabase({ name: TEST_DB_NAME });
     profiles = new ProfileRepository({ db, accountContext: context });
     shifts = new ShiftRepository({ db, accountContext: context });
