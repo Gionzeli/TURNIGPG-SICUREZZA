@@ -30,12 +30,12 @@ try {
   reportPage.on("request", request => requestedUrls.push(request.url()));
   await reportPage.goto("http://127.0.0.1:8000/tools/legacy-report.html", { waitUntil: "load" });
   const exportOne = {
-    app: "Turni Gpg/sicurezza online", params: {}, profile: {},
+    app: "Turni Gpg/sicurezza online", params: { "PRIVATE-PARAMETER-NAME-DO-NOT-LEAK": 42 }, profile: {},
     shifts: [
       { id: "shift-private-test", date: "2026-11-10", type: "turno", post: "POSTO-PRIVATO-TEST", start_time: "08:00", end_time: "16:00", hours: 8, "PRIVATE-FIELD-NAME-DO-NOT-LEAK": "private-value" },
       { id: "bad-date", date: "2026-02-30", type: "turno", hours: 8 }
     ],
-    extra: { tpl: [{ type: "turno", st: "99:99", en: "16:00" }], skills: [{}], "PRIVATE-EXTRA-KEY-DO-NOT-LEAK": "private-value" }
+    extra: { tpl: [{ type: "turno", st: "99:99", en: "16:00" }], skills: [{}], "PRIVATE-EXTRA-KEY-DO-NOT-LEAK": "private-value", real: { "PRIVATE-MONTH-NAME-DO-NOT-LEAK": "invalid" } }
   };
   const exportTwo = {
     app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts: [], extra: {}
@@ -49,7 +49,8 @@ try {
   assert.match(await reportPage.locator("#readiness").textContent(), /Revisione necessaria/);
   assert.doesNotMatch(await reportPage.locator("#quarantine").textContent(), /POSTO-PRIVATO-TEST/);
   assert.doesNotMatch(await reportPage.locator("#conflicts").textContent(), /PRIVATE-EXTRA-KEY-DO-NOT-LEAK/);
-  assert.doesNotMatch(await reportPage.locator("#warnings").textContent(), /PRIVATE-EXTRA-KEY-DO-NOT-LEAK/);
+  assert.doesNotMatch(await reportPage.locator("#warnings").textContent(), /PRIVATE-EXTRA-KEY-DO-NOT-LEAK|PRIVATE-PARAMETER-NAME-DO-NOT-LEAK|PRIVATE-MONTH-NAME-DO-NOT-LEAK/);
+  assert.doesNotMatch(await reportPage.locator("#conflicts").textContent(), /PRIVATE-PARAMETER-NAME-DO-NOT-LEAK/);
   assert.match(await reportPage.locator("#quarantine").textContent(), /Turno/);
   assert.match(await reportPage.locator("#quarantine").textContent(), /Modello/);
   assert.match(await reportPage.locator("#quarantine").textContent(), /Formazione/);
@@ -68,6 +69,8 @@ try {
   assert.ok(!downloadedReport.includes("shift-private-test"), "Il rapporto scaricato espone ID legacy.");
   assert.ok(!downloadedReport.includes("PRIVATE-FIELD-NAME-DO-NOT-LEAK"), "Il rapporto scaricato espone nomi di campi non mappati.");
   assert.ok(!downloadedReport.includes("PRIVATE-EXTRA-KEY-DO-NOT-LEAK"), "Il rapporto scaricato espone chiavi extra non mappate.");
+  assert.ok(!downloadedReport.includes("PRIVATE-PARAMETER-NAME-DO-NOT-LEAK"), "Il rapporto scaricato espone parametri non mappati.");
+  assert.ok(!downloadedReport.includes("PRIVATE-MONTH-NAME-DO-NOT-LEAK"), "Il rapporto scaricato espone nomi di valori mensili non validi.");
   assert.ok(!downloadedReport.includes("private-value"), "Il rapporto scaricato espone valori privati.");
   await reportPage.locator("#files").setInputFiles([{
     name: "export-singolo.json", mimeType: "application/json",
