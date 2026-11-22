@@ -616,11 +616,11 @@ export function inspectLegacyReconciliation(candidates) {
   const quarantinedShifts = snapshots.flatMap(item => item.preview.shifts.quarantined.map(shift => ({
     source: item.source, index: shift.index, reason: shift.reason
   })));
-  const quarantinedTemplates = snapshots.flatMap(item => (item.extrasPreview?.templatesQuarantined ?? []).map(item => ({
-    source: item.source, index: item.index, reason: item.reason
+  const quarantinedTemplates = snapshots.flatMap(snapshot => (snapshot.extrasPreview?.templatesQuarantined ?? []).map(entry => ({
+    source: snapshot.source, index: entry.index, reason: entry.reason
   })));
-  const quarantinedSkills = snapshots.flatMap(item => (item.extrasPreview?.skillsQuarantined ?? []).map(item => ({
-    source: item.source, index: item.index, reason: item.reason
+  const quarantinedSkills = snapshots.flatMap(snapshot => (snapshot.extrasPreview?.skillsQuarantined ?? []).map(entry => ({
+    source: snapshot.source, index: entry.index, reason: entry.reason
   })));
   const migrationReviewRequired = profileConflicts.length > 0 || extraConflicts.length > 0 ||
     idConflicts.length > 0 || possibleDuplicates.length > 0 || quarantinedShifts.length > 0 ||
