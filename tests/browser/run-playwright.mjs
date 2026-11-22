@@ -94,16 +94,24 @@ try {
   assert.match(await reportPage.locator("#error").textContent(), /JSON non valido o struttura non conforme/);
   assert.doesNotMatch(await reportPage.locator("#error").textContent(), /DO-NOT-LEAK/);
 
-  // Duplicate names receive distinct stable labels in the exported summary.
+  // User filenames (which may contain personal data) never enter the report.
   await reportPage.locator("#files").setInputFiles([
-    { name: "duplicato.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ params: {}, profile: {}, shifts: [] })) },
-    { name: "duplicato.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ params: {}, profile: {}, shifts: [] })) }
+    { name: "PERSONAL-FILENAME-DO-NOT-LEAK.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ params: {}, profile: {}, shifts: [] })) },
+    { name: "PERSONAL-FILENAME-DO-NOT-LEAK.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ params: {}, profile: {}, shifts: [] })) }
   ]);
   await reportPage.locator("#analyze").click();
   await reportPage.locator("#report").waitFor({ state: "visible" });
-  const duplicateLabels = await reportPage.locator("#sources").textContent();
-  assert.match(duplicateLabels, /duplicato\.json/);
-  assert.match(duplicateLabels, /duplicato-2\.json/);
+  const genericLabels = await reportPage.locator("#sources").textContent();
+  assert.match(genericLabels, /Export 1/);
+  assert.match(genericLabels, /Export 2/);
+  assert.doesNotMatch(genericLabels, /PERSONAL-FILENAME-DO-NOT-LEAK/);
+  const genericDownloadPromise = reportPage.waitForEvent("download");
+  await reportPage.locator("#download").click();
+  const genericDownload = await genericDownloadPromise;
+  const genericStream = await genericDownload.createReadStream();
+  const genericChunks = [];
+  for await (const chunk of genericStream) genericChunks.push(chunk);
+  assert.doesNotMatch(Buffer.concat(genericChunks).toString("utf8"), /PERSONAL-FILENAME-DO-NOT-LEAK/);
 
   // The UI blocks more than 100 files and files larger than 10 MiB before analysis.
   await reportPage.locator("#files").setInputFiles(Array.from({ length: 101 }, (_, index) => ({
