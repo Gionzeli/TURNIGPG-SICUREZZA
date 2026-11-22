@@ -491,6 +491,26 @@ async function run() {
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "Il confronto ha modificato dati.");
   });
 
+  await test("LEGACY-027 — rapporto migrazione riepiloga quarantena e blocca importazione automatica", async () => {
+    const make = extra => JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts: [], extra
+    });
+    const report = inspectLegacyReconciliation([
+      { source: "export-dati", rawJson: make({
+        tpl: [{ type: "turno", st: "99:99", en: "16:00" }],
+        skills: [{}]
+      }) },
+      { source: "export-vuoto", rawJson: make({}) }
+    ]);
+    assert(report.quarantine.templates === 1 && report.quarantine.skills === 1, "Conteggi quarantena extra errati.");
+    assert(report.quarantinedTemplates[0].source === "export-dati" && report.quarantinedTemplates[0].index === 0, "Provenienza modello in quarantena non preservata.");
+    assert(report.quarantinedSkills[0].source === "export-dati" && report.quarantinedSkills[0].index === 0, "Provenienza formazione in quarantena non preservata.");
+    assert(report.sources.find(item => item.source === "export-dati").extraTemplatesQuarantined === 1, "Riepilogo per fonte incompleto.");
+    assert(report.migrationReadiness.reviewRequired === true && report.migrationReadiness.automaticImportAllowed === false, "Il report non blocca la migrazione automatica.");
+    assert(report.migrationReadiness.status === "review-required", "Stato di revisione errato.");
+    assert(report.writesPerformed === false && report.automaticMergePerformed === false, "Il report ha modificato dati.");
+  });
+
   await test("LEGACY-016 — cronologia distingue sovrapposizioni e turni consecutivi", async () => {
     const report = inspectLegacyShiftChronology([
       { id: "night", date: "2026-11-01", type: "turno", start_time: "18:00", end_time: "06:00" },
