@@ -440,6 +440,24 @@ async function run() {
       "Il controllo ha modificato dati.");
   });
 
+  await test("LEGACY-024 — parametri e campi profilo assenti restano conflitti", async () => {
+    const make = params => JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params, profile: {}, shifts: []
+    });
+    const report = inspectLegacyReconciliation([
+      { source: "export-con-parametro", rawJson: make({ paga_base: 1000 }) },
+      { source: "export-senza-parametro", rawJson: make({}) }
+    ]);
+    const conflict = report.profileConflicts.find(item =>
+      item.section === "params" && item.field === "paga_base");
+    assert(conflict, "Parametro presente in una sola fonte non segnalato.");
+    assert(conflict.values.length === 2, "Il confronto non conserva entrambe le fonti.");
+    assert(conflict.values.some(item => item.source === "export-senza-parametro" && item.value === undefined),
+      "L'assenza del parametro non è rappresentata.");
+    assert(report.writesPerformed === false && report.automaticMergePerformed === false,
+      "Il controllo ha modificato dati.");
+  });
+
   await test("LEGACY-016 — cronologia distingue sovrapposizioni e turni consecutivi", async () => {
     const report = inspectLegacyShiftChronology([
       { id: "night", date: "2026-11-01", type: "turno", start_time: "18:00", end_time: "06:00" },
