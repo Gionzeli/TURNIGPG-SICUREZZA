@@ -422,6 +422,24 @@ async function run() {
     assert(result.identicalRecords.length === 1, "Turni uguali tra export non riconosciuti.");
   });
 
+  await test("LEGACY-023 — campi extra presenti in una sola fonte restano conflitti", async () => {
+    const make = real => JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts: [],
+      extra: { real }
+    });
+    const report = inspectLegacyReconciliation([
+      { source: "export-con-mese", rawJson: make({ "2026-10": 1450 }) },
+      { source: "export-senza-mese", rawJson: make({ "2026-11": 1520 }) }
+    ]);
+    const conflict = report.extraConflicts.find(item => item.field === "real.2026-10");
+    assert(conflict, "Campo mensile presente in una sola fonte non segnalato.");
+    assert(conflict.values.length === 2, "Il confronto non conserva anche la fonte priva del campo.");
+    assert(conflict.values.some(item => item.source === "export-senza-mese" && item.value === undefined),
+      "L'assenza del campo nella seconda fonte non è rappresentata.");
+    assert(report.writesPerformed === false && report.automaticMergePerformed === false,
+      "Il controllo ha modificato dati.");
+  });
+
   await test("LEGACY-016 — cronologia distingue sovrapposizioni e turni consecutivi", async () => {
     const report = inspectLegacyShiftChronology([
       { id: "night", date: "2026-11-01", type: "turno", start_time: "18:00", end_time: "06:00" },
