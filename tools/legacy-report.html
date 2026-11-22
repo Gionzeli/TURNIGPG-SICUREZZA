@@ -34,9 +34,9 @@
   </section>
 
   <section class="panel">
-    <label for="files"><strong>Seleziona almeno due file JSON</strong></label>
+    <label for="files"><strong>Seleziona uno o più file JSON</strong></label>
     <input id="files" type="file" accept=".json,application/json" multiple>
-    <p class="muted">Massimo 100 file, 10 MB ciascuno. I nomi dei file sono usati solo come etichette nel rapporto.</p>
+    <p class="muted">Da 1 a 100 file, 10 MB ciascuno. Con un file viene eseguita l'anteprima singola; con più file anche la riconciliazione. I nomi dei file sono usati solo come etichette nel rapporto.</p>
     <button id="analyze" type="button" disabled>Analizza in locale</button>
     <p id="status" role="status" aria-live="polite" class="muted">In attesa dei file.</p>
     <p id="error" class="error" role="alert"></p>
