@@ -33,5 +33,6 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 - Il harness cancella il DB test all'avvio e tenta di cancellarlo nuovamente a fine sessione.
 - Se la cancellazione è bloccata da altre schede, il harness mostra un errore di cleanup: chiudere le schede che usano il DB test e ripetere.
 - La cancellazione del database di test non tocca `DSM_ENTERPRISE_DB` né i dati legacy.
-- I test sono manuali; non sono CI e non sono stati eseguiti automaticamente.
+- Il workflow GitHub Actions `DSM Core browser tests` esegue gli stessi controlli con Chromium/Playwright su push al branch e tramite avvio manuale (`workflow_dispatch`).
+- L'esito CI va verificato nella scheda Actions del repository; la sola presenza del workflow non equivale a test superati.
 - Non testano Firebase, cifratura, backup, sync, migrazione legacy, service worker o dispositivi multipli.
