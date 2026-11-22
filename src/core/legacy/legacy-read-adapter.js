@@ -399,6 +399,55 @@ export function inspectLegacyArchive(entries) {
 }
 
 
+
+/**
+ * Analizza il backup JSON non cifrato generato dal pulsante legacy
+ * "Senza password". Restituisce solo conteggi e stato, non i dati personali.
+ */
+export function inspectLegacyExport(rawJson) {
+  if (typeof rawJson !== "string" || !rawJson.trim()) invalid("Export legacy vuoto o non testuale.");
+  let source;
+  try { source = JSON.parse(rawJson); }
+  catch { invalid("Export legacy non è JSON valido."); }
+  if (!isObject(source)) invalid("Export legacy deve contenere un oggetto JSON.");
+  if (source.app !== "Turni Gpg/sicurezza online") invalid("Formato export non riconosciuto: verificare che provenga dal backup legacy senza password.");
+  const allowed = new Set(["app", "params", "profile", "shifts", "extra"]);
+  const unknown = Object.keys(source).filter(key => !allowed.has(key));
+  const snapshot = inspectLegacySnapshot(JSON.stringify({
+    params: source.params, profile: source.profile, shifts: source.shifts
+  }));
+  let extras = null;
+  if (source.extra !== undefined) {
+    if (!isObject(source.extra)) invalid("La sezione extra dell'export non è un oggetto.");
+    extras = inspectLegacyExtras(JSON.stringify(source.extra));
+  }
+  return Object.freeze({
+    source: "legacy-unencrypted-export",
+    mode: "read-only-preview",
+    snapshot: {
+      profileValid: snapshot.profile.valid,
+      shiftsTotal: snapshot.shifts.total,
+      shiftsReady: snapshot.shifts.ready.length,
+      shiftsQuarantined: snapshot.shifts.quarantined.length,
+      importable: snapshot.importable
+    },
+    extras: extras ? {
+      templates: extras.data.templates.length,
+      templatesQuarantined: extras.templatesQuarantined.length,
+      skills: extras.data.skills.length,
+      skillsQuarantined: extras.skillsQuarantined.length,
+      monthlyValues: Object.keys(extras.data.real).length,
+      credentialsDetected: extras.credentials.present
+    } : null,
+    warnings: [
+      ...snapshot.warnings,
+      ...(extras?.warnings ?? []),
+      ...unknown.map(key => `Campo export non riconosciuto: ${key}.`)
+    ],
+    writesPerformed: false
+  });
+}
+
 function stableShiftValue(data) {
   return JSON.stringify([
     data.date, data.type, data.post, data.start_time, data.end_time,
@@ -431,10 +480,25 @@ export function inspectLegacyReconciliation(candidates) {
     if (labels.has(label)) invalid("Le etichette delle fonti devono essere univoche.");
     labels.add(label);
 
-    const preview = inspectLegacySnapshot(candidate.rawJson);
+    let parsedCandidate;
+    try { parsedCandidate = JSON.parse(candidate.rawJson); }
+    catch { invalid(`JSON non valido nello snapshot ${label}.`); }
+    let preview, extrasPreview = null;
+    if (isObject(parsedCandidate) && parsedCandidate.app === "Turni Gpg/sicurezza online") {
+      preview = inspectLegacySnapshot(JSON.stringify({
+        params: parsedCandidate.params, profile: parsedCandidate.profile, shifts: parsedCandidate.shifts
+      }));
+      if (parsedCandidate.extra !== undefined) {
+        if (!isObject(parsedCandidate.extra)) invalid(`Sezione extra non valida nello snapshot ${label}.`);
+        extrasPreview = inspectLegacyExtras(JSON.stringify(parsedCandidate.extra));
+      }
+    } else {
+      preview = inspectLegacySnapshot(candidate.rawJson);
+    }
     quarantinedTotal += preview.shifts.quarantined.length;
     if (preview.warnings.length) warnings.push(...preview.warnings.map(message => `${label}: ${message}`));
-    snapshots.push({ source: label, preview });
+    if (extrasPreview?.warnings.length) warnings.push(...extrasPreview.warnings.map(message => `${label}: ${message}`));
+    snapshots.push({ source: label, preview, extrasPreview });
   }
 
   const profileConflicts = [];
@@ -446,6 +510,29 @@ export function inspectLegacyReconciliation(candidates) {
         .map(item => ({ source: item.source, value: item.preview.profile[section][key] }));
       const distinct = new Set(values.map(item => JSON.stringify(item.value)));
       if (distinct.size > 1) profileConflicts.push({ section, field: key, values });
+    }
+  }
+
+  const extraConflicts = [];
+  const extraSources = snapshots.filter(item => item.extrasPreview);
+  if (extraSources.length > 0) {
+    const paths = new Set();
+    const collect = (value, prefix = "") => {
+      if (isObject(value)) {
+        for (const [key, child] of Object.entries(value)) collect(child, prefix ? `${prefix}.${key}` : key);
+      } else paths.add(prefix);
+    };
+    for (const item of extraSources) collect(item.extrasPreview.data);
+    for (const path of [...paths].sort()) {
+      const read = (value, pathParts) => pathParts.reduce((current, key) => current?.[key], value);
+      const parts = path.split(".");
+      const values = extraSources.map(item => ({
+        source: item.source,
+        value: read(item.extrasPreview.data, parts)
+      })).filter(item => item.value !== undefined);
+      if (new Set(values.map(item => JSON.stringify(item.value))).size > 1) {
+        extraConflicts.push({ field: path, values });
+      }
     }
   }
 
@@ -504,7 +591,10 @@ export function inspectLegacyReconciliation(candidates) {
     shiftsReady: preview.shifts.ready.length,
     shiftsQuarantined: preview.shifts.quarantined.length,
     profileValid: preview.profile.valid,
-    importable: preview.importable
+    importable: preview.importable,
+    extrasPresent: Boolean(snapshots.find(item => item.source === source)?.extrasPreview),
+    extraSkills: snapshots.find(item => item.source === source)?.extrasPreview?.data.skills.length ?? null,
+    extraTemplates: snapshots.find(item => item.source === source)?.extrasPreview?.data.templates.length ?? null
   }));
 
   return Object.freeze({
@@ -514,6 +604,7 @@ export function inspectLegacyReconciliation(candidates) {
     sourceCount: snapshots.length,
     sources: sourceSummary,
     profileConflicts,
+    extraConflicts,
     identicalRecords,
     idConflicts,
     possibleDuplicates,
