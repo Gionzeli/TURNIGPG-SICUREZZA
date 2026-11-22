@@ -35,9 +35,9 @@ const clear = node => { node.replaceChildren(); };
 const safeReason = reason => String(reason ?? "Elemento da verificare.")
   .replace(/^Campi aggiuntivi da mappare esplicitamente:.*$/, "Campi aggiuntivi da verificare.");
 const safeWarning = warning => String(warning ?? "Avviso da verificare.")
-  .replace(/^(Campo profilo non riconosciuto|Parametro non riconosciuto):.*$/, "$1: campo non specificato.")
-  .replace(/^Valore mensile extra da verificare:.*$/, "Valore mensile extra da verificare.")
-  .replace(/^Campo extra non riconosciuto:.*$/, "Campo extra non riconosciuto.");
+  .replace(/^(Campo profilo non riconosciuto|Parametro non riconosciuto|Campo export non riconosciuto|Sezione legacy non riconosciuta|Campo extra non riconosciuto):.*$/, "$1: elemento non specificato.")
+  .replace(/^(Valore profilo non valido|Parametro non numerico o negativo|Percentuale fuori intervallo):.*$/, "$1.")
+  .replace(/^Valore mensile extra da verificare:.*$/, "Valore mensile extra da verificare.");
 
 fileInput.addEventListener("change", () => {
   const files = [...fileInput.files];
