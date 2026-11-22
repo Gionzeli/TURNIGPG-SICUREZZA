@@ -465,13 +465,13 @@ async function run() {
     const make = shifts => JSON.stringify({
       app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts
     });
-    const shift = id => ({
-      id, date: "2026-11-07", type: "turno", start_time: "08:00",
-      end_time: "16:00", hours: 8, post: "Sede A"
+    const shift = (id, start = "08:00", end = "16:00") => ({
+      id, date: "2026-11-07", type: "turno", start_time: start,
+      end_time: end, hours: 8, post: "Sede A"
     });
     const report = inspectLegacyReconciliation([
       { source: "export-1", rawJson: make([shift("duplicate-a"), shift("duplicate-b")]) },
-      { source: "export-2", rawJson: make([shift("different")]) }
+      { source: "export-2", rawJson: make([shift("different", "16:00", "20:00")]) }
     ]);
     assert(report.possibleDuplicates.length === 1, "Duplicato interno alla fonte non rilevato.");
     assert(report.possibleDuplicates[0].copies.length === 2, "Riferimenti dei duplicati incompleti.");
