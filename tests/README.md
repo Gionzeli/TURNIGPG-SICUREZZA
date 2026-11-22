@@ -61,3 +61,5 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 
 - `LEGACY-014`: riconoscimento dell'export ufficiale senza password con report minimizzato.
 - `LEGACY-015`: confronto dei dati extra tra export ufficiali.
+
+- `LEGACY-016`: analisi cronologica read-only; rileva sovrapposizioni tra turni notturni e turni del giorno successivo e distingue i cambi turno consecutivi dai periodi di riposo.
