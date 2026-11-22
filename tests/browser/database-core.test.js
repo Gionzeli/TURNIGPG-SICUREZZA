@@ -64,7 +64,7 @@ async function run() {
     assert((await profiles.getById(record.id))?.data.displayName === "Profilo test browser", "Lettura errata.");
   });
   await test("DB-005 — update, revision e delete", async () => {
-    const updated = await profiles.update(createdProfileId, { displayName: "Profilo aggiornato" });
+    const updated = await profiles.update(createdProfileId, { displayName: "Profilo aggiornato" }, { expectedRevision: 1 });
     assert(updated?.revision === 2 && updated.data.displayName === "Profilo aggiornato", "Update/revision errati.");
     assert(await profiles.delete(createdProfileId), "Delete non true.");
     assert(await profiles.getById(createdProfileId) === null, "Record cancellato ancora presente.");
@@ -94,6 +94,29 @@ async function run() {
     assert(Boolean(caught), "ID duplicato non ha prodotto errore.");
     assert((await profiles.getById(id))?.data.marker === "first", "Record originale alterato.");
   });
+
+  await test("DB-010 — conflitto revisione obsoleta", async () => {
+    const record = await profiles.create({ value: "iniziale" });
+    const first = await profiles.update(record.id, { value: "prima modifica" }, { expectedRevision: 1 });
+    assert(first.revision === 2, "Prima modifica non ha incrementato la revisione.");
+    let caught;
+    try { await profiles.update(record.id, { value: "modifica obsoleta" }, { expectedRevision: 1 }); } catch (error) { caught = error; }
+    assert(caught?.code === DB_ERROR_CODES.REVISION_CONFLICT, "Conflitto di revisione non rilevato.");
+    const persisted = await profiles.getById(record.id);
+    assert(persisted.revision === 2 && persisted.data.value === "prima modifica", "Il dato originale è stato sovrascritto.");
+  });
+  await test("DB-011 — ID vuoti e revisione attesa invalida", async () => {
+    let badId, badRevision;
+    try { await profiles.getById(""); } catch (error) { badId = error; }
+    try { await profiles.update(createdProfileId, { safe: true }, { expectedRevision: 0 }); } catch (error) { badRevision = error; }
+    assert(badId?.code === DB_ERROR_CODES.VALIDATION_FAILED, "ID vuoto accettato.");
+    assert(badRevision?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Revisione attesa non valida accettata.");
+  });
+  await test("DB-012 — aggiornamento record inesistente", async () => {
+    const missing = await profiles.update("missing-test-record", { value: "x" }, { expectedRevision: 1 });
+    assert(missing === null, "Update inesistente non restituisce null.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
