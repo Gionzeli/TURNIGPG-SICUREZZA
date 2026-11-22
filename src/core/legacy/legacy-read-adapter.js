@@ -618,3 +618,66 @@ export function inspectLegacyReconciliation(candidates) {
     warnings
   });
 }
+
+
+/**
+ * Analizza la cronologia dei turni già estratti da uno snapshot legacy.
+ * Rileva sovrapposizioni reali anche tra turni che attraversano la mezzanotte
+ * e distingue i cambi turno consecutivi (gap zero) dai periodi di riposo.
+ * Non legge storage e non esegue scritture.
+ */
+export function inspectLegacyShiftChronology(shifts) {
+  if (!Array.isArray(shifts)) invalid("La cronologia legacy deve essere un array di turni.");
+  const warnings = [];
+  const intervals = [];
+
+  shifts.forEach((item, index) => {
+    if (!isObject(item) || item.type !== "turno") return;
+    if (!isRealDate(item.date) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(item.start_time ?? "") ||
+        !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(item.end_time ?? "")) {
+      warnings.push({ index, reason: "Turno escluso dalla cronologia: data o orario non valido." });
+      return;
+    }
+    const start = new Date(`${item.date}T${item.start_time}:00Z`);
+    let end = new Date(`${item.date}T${item.end_time}:00Z`);
+    if (end <= start) end = new Date(end.getTime() + 24 * 60 * 60 * 1000);
+    intervals.push({ index, legacyId: item.id ?? null, date: item.date,
+      startTime: item.start_time, endTime: item.end_time, start, end });
+  });
+
+  intervals.sort((a, b) => a.start - b.start || a.end - b.end);
+  const overlaps = [];
+  for (let left = 0; left < intervals.length; left++) {
+    for (let right = left + 1; right < intervals.length; right++) {
+      const a = intervals[left], b = intervals[right];
+      if (b.start >= a.end) break;
+      overlaps.push({
+        first: { index: a.index, legacyId: a.legacyId, date: a.date, startTime: a.startTime, endTime: a.endTime },
+        second: { index: b.index, legacyId: b.legacyId, date: b.date, startTime: b.startTime, endTime: b.endTime },
+        overlapMinutes: Math.round((Math.min(a.end, b.end) - b.start) / 60000)
+      });
+    }
+  }
+
+  const transitions = [];
+  for (let index = 1; index < intervals.length; index++) {
+    const previous = intervals[index - 1], next = intervals[index];
+    const gapMinutes = Math.round((next.start - previous.end) / 60000);
+    transitions.push({
+      from: { index: previous.index, date: previous.date, startTime: previous.startTime, endTime: previous.endTime },
+      to: { index: next.index, date: next.date, startTime: next.startTime, endTime: next.endTime },
+      gapMinutes,
+      kind: gapMinutes < 0 ? "overlap" : gapMinutes === 0 ? "adjacent" : "rest"
+    });
+  }
+
+  return Object.freeze({
+    mode: "read-only-chronology",
+    shiftsAnalyzed: intervals.length,
+    overlaps,
+    adjacentSegments: transitions.filter(item => item.kind === "adjacent"),
+    transitions,
+    warnings,
+    writesPerformed: false
+  });
+}
