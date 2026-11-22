@@ -18,6 +18,9 @@ Questo pacchetto introduce un primo nucleo IndexedDB isolato dal runtime legacy.
 - `src/core/repositories/base-repository.js`: operazioni CRUD con scope account e controllo concorrenza ottimistico su update/delete.
 - `src/core/repositories/profile-repository.js`: repository profili.
 - `src/core/repositories/shift-repository.js`: repository turni.
+- `src/core/services/service-validation.js`: validazione condivisa di oggetti, date e revisioni.
+- `src/core/services/profile-service.js`: normalizzazione e validazione di parametri retributivi e dati profilo.
+- `src/core/services/shift-service.js`: validazione di date, tipi turno, orari, flag e ore.
 
 ## Schema v1
 
@@ -44,7 +47,9 @@ import {
   openDSMDatabase,
   createAccountContext,
   ProfileRepository,
-  ShiftRepository
+  ShiftRepository,
+  ProfileService,
+  ShiftService
 } from "./src/core/database/index.js";
 
 const db = await openDSMDatabase();
@@ -57,16 +62,25 @@ accountContext.activate({
   identitySource: "local"
 });
 
-const profiles = new ProfileRepository({ db, accountContext });
-const shifts = new ShiftRepository({ db, accountContext });
+const profileRepository = new ProfileRepository({ db, accountContext });
+const shiftRepository = new ShiftRepository({ db, accountContext });
+const profiles = new ProfileService({ repository: profileRepository });
+const shifts = new ShiftService({ repository: shiftRepository });
 
-await profiles.create({ displayName: "Profilo locale" });
-await shifts.create({
-  date: "2026-11-22",
-  startTime: "06:00",
-  endTime: "14:00",
-  type: "DAY"
+const profile = await profiles.create({
+  params: { paga_base: 1250, ore_turno: 7.25 },
+  profile: { ccnl: "Servizi", section: "Operativo", level: "Da definire", role: "Operatore" }
 });
+const shift = await shifts.create({
+  date: "2026-11-22",
+  start_time: "06:00",
+  end_time: "14:00",
+  type: "turno",
+  hours: 8
+});
+
+// Update e delete richiedono la revisione letta dal record.
+await shifts.update(shift.id, { hours: 7.5 }, { expectedRevision: shift.revision });
 ```
 
 ## Limiti noti e sicurezza
@@ -79,8 +93,8 @@ await shifts.create({
 - Il pacchetto non importa né cancella dati LocalStorage.
 - La UI legacy non è ancora collegata a questi moduli.
 - È presente un harness browser in `tests/browser/`, eseguito automaticamente con Chromium/Playwright tramite GitHub Actions.
-- L'ultima esecuzione verificata ha superato 15 controlli funzionali più la pulizia del database test (16 esiti PASS complessivi). Il workflow si attiva su push al branch `dsm-enterprise/core-v1` e può essere avviato manualmente.
+- L'ultima esecuzione verificata prima dell'estensione Service Layer ha superato 15 controlli funzionali più la pulizia del database test (16 esiti PASS complessivi). I nuovi test del Service Layer sono in verifica CI. Il workflow si attiva su push al branch `dsm-enterprise/core-v1` e può essere avviato manualmente.
 
 ## Stato della verifica
 
-I moduli e l'harness sono stati inseriti nel branch dedicato. È stata completata una prova automatizzata in Chromium su IndexedDB reale. Prima di collegare il codice alla PWA occorre ampliare i test sulle transazioni e verificare l'autenticazione del contesto account. Il risultato CI non certifica l'integrazione con la UI, Firebase, cifratura, migrazione o dispositivi mobili.
+I moduli e l'harness sono stati inseriti nel branch dedicato. È stata completata una prova automatizzata in Chromium su IndexedDB reale. Prima di collegare il codice alla PWA occorre completare la verifica CI dei servizi, ampliare i test sulle transazioni e verificare l'autenticazione del contesto account. Il risultato CI non certifica l'integrazione con la UI, Firebase, cifratura, migrazione o dispositivi mobili.
