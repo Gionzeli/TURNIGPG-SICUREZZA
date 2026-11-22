@@ -164,7 +164,7 @@ export function inspectLegacyExtras(rawJson) {
   const real = {};
   if (isObject(source.real)) {
     for (const [month, value] of Object.entries(source.real)) {
-      if (/^\\d{4}-\\d{2}$/.test(month) && finiteNonNegative(value) !== null) real[month] = Number(value);
+      if (/^\d{4}-\d{2}$/.test(month) && finiteNonNegative(value) !== null) real[month] = Number(value);
       else warnings.push(`Valore mensile extra da verificare: ${month}.`);
     }
   } else if (source.real !== undefined) warnings.push("La sezione real non è un oggetto.");
@@ -177,7 +177,7 @@ export function inspectLegacyExtras(rawJson) {
         templatesQuarantined.push({ index, reason: "Modello turno non valido." });
         return;
       }
-      const time = value => value === "" || (typeof value === "string" && /^\\d{2}:\\d{2}$/.test(value));
+      const time = value => value === "" || (typeof value === "string" && /^\d{2}:\d{2}$/.test(value));
       if (!time(item.st ?? "") || !time(item.en ?? "")) {
         templatesQuarantined.push({ index, reason: "Orario modello non valido." });
         return;
@@ -199,7 +199,7 @@ export function inspectLegacyExtras(rawJson) {
         skillsQuarantined.push({ index, reason: "Voce formazione senza titolo valido." });
         return;
       }
-      const date = value => typeof value === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(value) ? value : "";
+      const date = value => typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : "";
       skills.push({
         id: String(item.id ?? `legacy-skill-${index}`).slice(0, 60),
         type: String(item.type ?? "Altro").slice(0, 30),
