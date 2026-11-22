@@ -50,10 +50,6 @@ export class BaseRepository {
     const { accountId } = requireAccountContext(this.accountContext);
     validateData(data);
 
-    if (data.accountId && data.accountId !== accountId) {
-      throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Account del record non corrispondente.");
-    }
-
     const now = this.clock();
     const record = {
       id: options.id || createId(),
