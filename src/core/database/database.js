@@ -57,6 +57,7 @@ export function openDSMDatabase(options = {}) {
       db.onclose = () => {
         if (activeDatabase === db) activeDatabase = null;
         openPromise = null;
+        pendingDatabaseName = null;
         activeDatabaseName = DSM_DB_NAME;
       };
       activeDatabase = db;
