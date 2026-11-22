@@ -248,3 +248,152 @@ export function inspectLegacyExtras(rawJson) {
     writesPerformed: false
   });
 }
+
+
+const ARCHIVE_KEYS = new Set([
+  "tg_online_v1", "tg_extra_v1",
+  "tg_online_v1_pre_local_backup", "tg_extra_v1_pre_local_backup",
+  "tg_change_history_v1", "tg_training_local_v1"
+]);
+
+function parseArchiveJson(raw, label) {
+  if (typeof raw !== "string" || !raw.trim()) return { error: `${label}: contenuto vuoto o non testuale.` };
+  try { return { value: JSON.parse(raw) }; }
+  catch { return { error: `${label}: JSON non valido.` }; }
+}
+
+function summarizeSnapshot(raw, label) {
+  const parsed = parseArchiveJson(raw, label);
+  if (parsed.error) return { valid: false, error: parsed.error };
+  const source = parsed.value;
+  if (!isObject(source)) return { valid: false, error: `${label}: il contenuto non è un oggetto.` };
+  const preview = inspectLegacySnapshot(JSON.stringify({ params: source.params, profile: source.profile, shifts: source.shifts }));
+  return {
+    valid: true, importable: preview.importable,
+    shifts: { total: preview.shifts.total, ready: preview.shifts.ready.length, quarantined: preview.shifts.quarantined.length },
+    profileValid: preview.profile.valid, warnings: preview.warnings
+  };
+}
+
+function summarizeExtras(raw, label) {
+  const parsed = parseArchiveJson(raw, label);
+  if (parsed.error) return { valid: false, error: parsed.error };
+  const preview = inspectLegacyExtras(raw);
+  return {
+    valid: true,
+    counts: { templates: preview.data.templates.length, templatesQuarantined: preview.templatesQuarantined.length,
+      skills: preview.data.skills.length, skillsQuarantined: preview.skillsQuarantined.length,
+      monthlyValues: Object.keys(preview.data.real).length },
+    credentialsPresent: preview.credentials.present, warnings: preview.warnings
+  };
+}
+
+/**
+ * Inventario read-only di un export manuale delle chiavi LocalStorage legacy.
+ * L'oggetto in ingresso mappa i nomi delle chiavi ai rispettivi valori JSON
+ * testuali. I suffissi per-utente, i contenuti dello storico e i segreti
+ * non vengono restituiti. I backup cifrati sono riconosciuti ma non decifrati.
+ */
+export function inspectLegacyArchive(entries) {
+  if (!isObject(entries)) invalid("L'archivio legacy deve essere un oggetto semplice chiave/valore.");
+  const inventory = {
+    mode: "read-only-inventory", recognizedKeys: [], snapshots: {},
+    perUser: { online: 0, extras: 0, onlineValid: 0, extrasValid: 0 },
+    history: { present: false, valid: false, count: 0, kinds: [] },
+    training: { present: false, valid: false, ready: [], quarantined: [] },
+    encryptedBackups: [], unknownKeys: [], warnings: [], writesPerformed: false
+  };
+
+  for (const [key, raw] of Object.entries(entries)) {
+    if (ARCHIVE_KEYS.has(key)) {
+      inventory.recognizedKeys.push(key);
+      if (key === "tg_online_v1" || key === "tg_online_v1_pre_local_backup") {
+        inventory.snapshots[key] = summarizeSnapshot(raw, key);
+      } else if (key === "tg_extra_v1" || key === "tg_extra_v1_pre_local_backup") {
+        inventory.snapshots[key] = summarizeExtras(raw, key);
+      } else if (key === "tg_change_history_v1") {
+        inventory.history.present = true;
+        const parsed = parseArchiveJson(raw, key);
+        if (parsed.error) inventory.warnings.push(parsed.error);
+        else if (Array.isArray(parsed.value)) {
+          inventory.history.valid = true;
+          inventory.history.count = parsed.value.length;
+          inventory.history.kinds = [...new Set(parsed.value
+            .filter(item => isObject(item) && typeof item.kind === "string" && item.kind.length <= 40)
+            .map(item => item.kind))].sort();
+          if (parsed.value.some(item => !isObject(item))) inventory.warnings.push("Lo storico contiene voci non strutturate da verificare.");
+        } else inventory.warnings.push("Lo storico legacy non è un array.");
+      } else if (key === "tg_training_local_v1") {
+        inventory.training.present = true;
+        const parsed = parseArchiveJson(raw, key);
+        if (parsed.error) inventory.warnings.push(parsed.error);
+        else if (Array.isArray(parsed.value)) {
+          inventory.training.valid = true;
+          parsed.value.slice(0, 200).forEach((item, index) => {
+            if (!isObject(item) || typeof item.title !== "string" || !item.title.trim()) {
+              inventory.training.quarantined.push({ index, reason: "Voce formazione senza titolo valido." });
+              return;
+            }
+            const validDate = value => typeof value === "string" && isRealDate(value) ? value : "";
+            const hours = item.hours == null ? null : finiteNonNegative(item.hours);
+            inventory.training.ready.push({
+              id: `legacy-training-${index}`, title: item.title.slice(0, 100),
+              issuer: String(item.provider ?? "").slice(0, 100),
+              date: validDate(item.date), expiry: validDate(item.expiry), hours,
+              added: typeof item.added === "string" ? item.added.slice(0, 40) : ""
+            });
+            if (item.hours != null && hours === null) inventory.warnings.push(`Durata formazione non valida alla voce ${index}.`);
+          });
+          if (parsed.value.length > 200) inventory.warnings.push("Formazione oltre il limite di 200 voci: le eccedenti richiedono inventario separato.");
+        } else inventory.warnings.push("La formazione legacy non è un array.");
+      }
+      continue;
+    }
+
+    const userMatch = key.match(/^tg_(online|extra)_v1_user_(.+)$/);
+    if (userMatch) {
+      const kind = userMatch[1], parsed = parseArchiveJson(raw, `chiave per-utente ${kind}`);
+      if (kind === "online") {
+        inventory.perUser.online++;
+        if (!parsed.error && isObject(parsed.value)) {
+          const summary = summarizeSnapshot(raw, "snapshot per-utente");
+          if (summary.valid) inventory.perUser.onlineValid++;
+          else inventory.warnings.push(summary.error);
+        } else inventory.warnings.push(parsed.error ?? "Snapshot per-utente online non strutturato.");
+      } else {
+        inventory.perUser.extras++;
+        if (!parsed.error && isObject(parsed.value)) {
+          const summary = summarizeExtras(raw, "extra per-utente");
+          if (summary.valid) inventory.perUser.extrasValid++;
+          else inventory.warnings.push(summary.error);
+        } else inventory.warnings.push(parsed.error ?? "Snapshot extra per-utente non strutturato.");
+      }
+      continue;
+    }
+
+    if (/^backup(?:[-_].*)?$/i.test(key)) {
+      const parsed = parseArchiveJson(raw, key);
+      if (parsed.error) { inventory.warnings.push(parsed.error); continue; }
+      const value = parsed.value;
+      if (isObject(value) && isObject(value.enc) && typeof value.data === "string" && [2, 3].includes(value.v)) {
+        inventory.encryptedBackups.push({ key, version: value.v,
+          algorithm: value.enc.alg === "AES-256-GCM" ? value.enc.alg : "non riconosciuto", decryptableHere: false });
+      } else if (isObject(value) && Array.isArray(value.shifts)) {
+        const snapshot = summarizeSnapshot(JSON.stringify({ params: value.params, profile: value.profile, shifts: value.shifts }), key);
+        const extras = isObject(value.extra) ? summarizeExtras(JSON.stringify(value.extra), key + ".extra") : null;
+        inventory.snapshots[key] = { ...snapshot, backup: true, extras };
+      } else inventory.warnings.push(`${key}: formato backup non riconosciuto.`);
+      continue;
+    }
+
+    inventory.unknownKeys.push(key.slice(0, 80));
+  }
+
+  if (inventory.perUser.online || inventory.perUser.extras) {
+    inventory.warnings.push("Le chiavi per-utente sono conteggiate senza esporre i suffissi identificativi; non viene scelta automaticamente una copia da ripristinare.");
+  }
+  if (inventory.encryptedBackups.length) inventory.warnings.push("I backup cifrati v2/v3 sono riconosciuti solo come contenitori: senza password/codice non vengono decifrati né ispezionati.");
+  if (inventory.unknownKeys.length) inventory.warnings.push("Sono presenti chiavi non mappate: richiedono analisi separata.");
+  inventory.recognizedKeys.sort(); inventory.unknownKeys.sort();
+  return Object.freeze(inventory);
+}
