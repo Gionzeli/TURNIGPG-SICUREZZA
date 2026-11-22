@@ -633,8 +633,8 @@ export function inspectLegacyShiftChronology(shifts) {
 
   shifts.forEach((item, index) => {
     if (!isObject(item) || item.type !== "turno") return;
-    if (!isRealDate(item.date) || !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(item.start_time ?? "") ||
-        !/^([01]\\d|2[0-3]):[0-5]\\d$/.test(item.end_time ?? "")) {
+    if (!isRealDate(item.date) || !/^([01]\d|2[0-3]):[0-5]\d$/.test(item.start_time ?? "") ||
+        !/^([01]\d|2[0-3]):[0-5]\d$/.test(item.end_time ?? "")) {
       warnings.push({ index, reason: "Turno escluso dalla cronologia: data o orario non valido." });
       return;
     }
