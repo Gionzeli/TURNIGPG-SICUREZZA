@@ -21,3 +21,5 @@ export { ShiftRepository } from "../repositories/shift-repository.js";
 
 export { ProfileService } from "../services/profile-service.js";
 export { ShiftService } from "../services/shift-service.js";
+
+export { inspectLegacySnapshot } from "../legacy/legacy-read-adapter.js";
