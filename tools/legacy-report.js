@@ -66,6 +66,8 @@ fileInput.addEventListener("change", () => {
 
 analyzeButton.addEventListener("click", async () => {
   const files = [...fileInput.files];
+  privatePreview = null;
+  renderPrivatePreview(null);
   if (files.length < 1 || files.length > 100 || files.some(file => file.size > 10 * 1024 * 1024)) {
     analyzeButton.disabled = files.length < 1 || files.length > 100 || files.some(file => file.size > 10 * 1024 * 1024);
     text(statusNode, files.length > 100 ? "Limite superato: massimo 100 file." : "Un file supera il limite di 10 MB.");
@@ -102,6 +104,7 @@ analyzeButton.addEventListener("click", async () => {
     } else {
       const candidate = candidates[0];
       const parsed = JSON.parse(candidate.rawJson);
+      privatePreview = { profile: parsed.profile, params: parsed.params };
       const exportPreview = inspectLegacyExport(candidate.rawJson);
       const snapshot = inspectLegacySnapshot(JSON.stringify({ params: parsed.params, profile: parsed.profile, shifts: parsed.shifts }));
       const extras = parsed.extra === undefined ? null : inspectLegacyExtras(JSON.stringify(parsed.extra));
@@ -135,6 +138,7 @@ analyzeButton.addEventListener("click", async () => {
     }
     safeReport = { generatedAt: new Date().toISOString(), ...result };
     render(safeReport);
+    renderPrivatePreview(privatePreview);
     reportNode.hidden = false;
     text(statusNode, "Analisi completata. I file originali non sono stati modificati.");
   } catch (error) {
