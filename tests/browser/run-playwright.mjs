@@ -86,6 +86,9 @@ try {
   }]);
   await reportPage.locator("#analyze").click();
   assert.equal(await reportPage.locator("#report").isVisible(), false);
+  await reportPage.waitForFunction(() =>
+    document.querySelector("#error")?.textContent.includes("JSON non valido o struttura non conforme")
+  );
   assert.match(await reportPage.locator("#error").textContent(), /JSON non valido o struttura non conforme/);
   assert.doesNotMatch(await reportPage.locator("#error").textContent(), /DO-NOT-LEAK/);
 
