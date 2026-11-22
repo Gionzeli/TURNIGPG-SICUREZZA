@@ -362,7 +362,7 @@ async function run() {
     const result = inspectLegacyReconciliation([
       { source: "backup-A", rawJson: make("turno-1") },
       { source: "backup-B", rawJson: make("turno-1") },
-      { source: "profilo-utente", rawJson: make("turno-diverso", 8.5) }
+      { source: "profilo-utente", rawJson: make("turno-diverso", 8) }
     ]);
     assert(result.mode === "read-only-reconciliation" && result.writesPerformed === false, "Riconciliazione non read-only.");
     assert(result.automaticMergePerformed === false, "La riconciliazione ha dichiarato merge automatici.");
