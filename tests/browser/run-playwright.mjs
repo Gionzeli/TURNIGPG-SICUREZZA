@@ -76,7 +76,41 @@ try {
   assert.match(await reportPage.locator("#totals").textContent(), /Turni validi esaminati: 1/);
   assert.match(await reportPage.locator("#readiness").textContent(), /Nessun conflitto rilevato/);
   assert.equal(reportErrors.length, 0, reportErrors.join("; "));
-  console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, and single export preview");
+  
+  // Invalid JSON must fail closed without rendering parser details or raw payload.
+  await reportPage.locator("#files").setInputFiles([{
+    name: "invalid.json", mimeType: "application/json", buffer: Buffer.from('{"private-marker":"DO-NOT-LEAK",')
+  }]);
+  await reportPage.locator("#analyze").click();
+  assert.equal(await reportPage.locator("#report").isVisible(), false);
+  assert.match(await reportPage.locator("#error").textContent(), /JSON non valido o struttura non conforme/);
+  assert.doesNotMatch(await reportPage.locator("#error").textContent(), /DO-NOT-LEAK/);
+
+  // Duplicate names receive distinct stable labels in the exported summary.
+  await reportPage.locator("#files").setInputFiles([
+    { name: "duplicato.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ params: {}, profile: {}, shifts: [] })) },
+    { name: "duplicato.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({ params: {}, profile: {}, shifts: [] })) }
+  ]);
+  await reportPage.locator("#analyze").click();
+  await reportPage.locator("#report").waitFor({ state: "visible" });
+  const duplicateLabels = await reportPage.locator("#sources").textContent();
+  assert.match(duplicateLabels, /duplicato\.json/);
+  assert.match(duplicateLabels, /duplicato-2\.json/);
+
+  // The UI blocks more than 100 files and files larger than 10 MiB before analysis.
+  await reportPage.locator("#files").setInputFiles(Array.from({ length: 101 }, (_, index) => ({
+    name: `limite-${index}.json`, mimeType: "application/json", buffer: Buffer.from("{}")
+  })));
+  assert.equal(await reportPage.locator("#analyze").isDisabled(), true);
+  assert.match(await reportPage.locator("#status").textContent(), /massimo 100 file/);
+  await reportPage.locator("#files").setInputFiles([{
+    name: "troppo-grande.json", mimeType: "application/json",
+    buffer: Buffer.alloc(10 * 1024 * 1024 + 1, 32)
+  }]);
+  assert.equal(await reportPage.locator("#analyze").isDisabled(), true);
+  assert.match(await reportPage.locator("#status").textContent(), /supera il limite di 10 MB/);
+
+  console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
   await reportPage.close();
 } finally {
   await browser.close();
