@@ -144,6 +144,8 @@ async function run() {
     closeDSMDatabase();
     await new Promise(resolve => setTimeout(resolve, 0));
     db = await openDSMDatabase({ name: TEST_DB_NAME });
+    profiles = new ProfileRepository({ db, accountContext: context });
+    shifts = new ShiftRepository({ db, accountContext: context });
     const jobsAfter = new MigrationJobRepository({ db, accountContext: context });
     const quarantineAfter = new QuarantineRepository({ db, accountContext: context });
     assert((await jobsAfter.getJob(job.id))?.data.sourceCount === 1, "Job non persistito.");
