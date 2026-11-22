@@ -1,4 +1,4 @@
-import { inspectLegacyReconciliation } from "../src/core/legacy/legacy-read-adapter.js";
+import { inspectLegacyReconciliation, inspectLegacyExport, inspectLegacySnapshot, inspectLegacyExtras } from "../src/core/legacy/legacy-read-adapter.js";
 
 const fileInput = document.querySelector("#files");
 const analyzeButton = document.querySelector("#analyze");
@@ -35,13 +35,13 @@ const clear = node => { node.replaceChildren(); };
 
 fileInput.addEventListener("change", () => {
   const files = [...fileInput.files];
-  analyzeButton.disabled = files.length < 2 || files.length > 100 ||
+  analyzeButton.disabled = files.length < 1 || files.length > 100 ||
     files.some(file => file.size > 10 * 1024 * 1024);
   errorNode.textContent = "";
   reportNode.hidden = true;
   safeReport = null;
   if (!files.length) text(statusNode, "In attesa dei file.");
-  else if (files.length < 2) text(statusNode, "Seleziona almeno due export per confrontare le fonti.");
+  else if (files.length < 1) text(statusNode, "Seleziona almeno un export JSON.");
   else if (files.length > 100) text(statusNode, "Limite superato: massimo 100 file.");
   else if (files.some(file => file.size > 10 * 1024 * 1024)) text(statusNode, "Un file supera il limite di 10 MB.");
   else text(statusNode, files.length + " file selezionati. Nessun file è stato ancora letto.");
@@ -49,7 +49,7 @@ fileInput.addEventListener("change", () => {
 
 analyzeButton.addEventListener("click", async () => {
   const files = [...fileInput.files];
-  if (files.length < 2 || files.length > 100) return;
+  if (files.length < 1 || files.length > 100) return;
   analyzeButton.disabled = true;
   errorNode.textContent = "";
   text(statusNode, "Analisi locale in corso…");
@@ -62,33 +62,57 @@ analyzeButton.addEventListener("click", async () => {
       if (count) label = `${label.slice(0, 70)}-${count + 1}`;
       return { source: label, rawJson: await file.text() };
     }));
-    const result = inspectLegacyReconciliation(candidates);
-    safeReport = {
-      generatedAt: new Date().toISOString(),
-      mode: result.mode,
-      sourceCount: result.sourceCount,
-      migrationReadiness: result.migrationReadiness,
-      sources: result.sources,
-      totals: result.totals,
-      profileConflicts: result.profileConflicts.map(item => ({
-        section: item.section, field: item.field, sources: item.values.map(value => value.source)
-      })),
-      extraConflicts: result.extraConflicts.map(item => ({
-        field: item.field, sources: item.values.map(value => value.source)
-      })),
-      identicalGroups: result.identicalRecords.length,
-      idConflictGroups: result.idConflicts.length,
-      possibleDuplicateGroups: result.possibleDuplicates.map(item => ({
-        reason: item.reason, copies: item.copies.map(copy => ({ source: copy.source, index: copy.index }))
-      })),
-      quarantine: result.quarantine,
-      quarantinedShifts: result.quarantinedShifts,
-      quarantinedTemplates: result.quarantinedTemplates,
-      quarantinedSkills: result.quarantinedSkills,
-      warnings: result.warnings,
-      writesPerformed: result.writesPerformed,
-      automaticMergePerformed: result.automaticMergePerformed
-    };
+    let result;
+    if (candidates.length > 1) {
+      const reconciled = inspectLegacyReconciliation(candidates);
+      result = {
+        mode: reconciled.mode, sourceCount: reconciled.sourceCount,
+        migrationReadiness: reconciled.migrationReadiness, sources: reconciled.sources,
+        totals: reconciled.totals,
+        profileConflicts: reconciled.profileConflicts.map(item => ({ section: item.section, field: item.field, sources: item.values.map(value => value.source) })),
+        extraConflicts: reconciled.extraConflicts.map(item => ({ field: item.field, sources: item.values.map(value => value.source) })),
+        identicalGroups: reconciled.identicalRecords.length, idConflictGroups: reconciled.idConflicts.length,
+        possibleDuplicateGroups: reconciled.possibleDuplicates.map(item => ({ reason: item.reason, copies: item.copies.map(copy => ({ source: copy.source, index: copy.index })) })),
+        quarantine: reconciled.quarantine, quarantinedShifts: reconciled.quarantinedShifts,
+        quarantinedTemplates: reconciled.quarantinedTemplates, quarantinedSkills: reconciled.quarantinedSkills,
+        warnings: reconciled.warnings, writesPerformed: reconciled.writesPerformed,
+        automaticMergePerformed: reconciled.automaticMergePerformed
+      };
+    } else {
+      const candidate = candidates[0];
+      const parsed = JSON.parse(candidate.rawJson);
+      const exportPreview = inspectLegacyExport(candidate.rawJson);
+      const snapshot = inspectLegacySnapshot(JSON.stringify({ params: parsed.params, profile: parsed.profile, shifts: parsed.shifts }));
+      const extras = parsed.extra === undefined ? null : inspectLegacyExtras(JSON.stringify(parsed.extra));
+      const sourceSummary = {
+        source: candidate.source, shiftsTotal: snapshot.shifts.total,
+        shiftsReady: snapshot.shifts.ready.length, shiftsQuarantined: snapshot.shifts.quarantined.length,
+        profileValid: snapshot.profile.valid, profileErrors: snapshot.profile.errors.length,
+        extrasPresent: Boolean(extras), extraSkills: extras?.data.skills.length ?? null,
+        extraSkillsQuarantined: extras?.skillsQuarantined.length ?? null,
+        extraTemplates: extras?.data.templates.length ?? null,
+        extraTemplatesQuarantined: extras?.templatesQuarantined.length ?? null,
+        extraMonthlyValues: extras ? Object.keys(extras.data.real).length : null,
+        warnings: exportPreview.warnings.length,
+        importable: snapshot.importable && (!extras || (extras.warnings.length === 0 && extras.templatesQuarantined.length === 0 && extras.skillsQuarantined.length === 0))
+      };
+      const quarantinedShifts = snapshot.shifts.quarantined.map(item => ({ source: candidate.source, index: item.index, reason: item.reason }));
+      const quarantinedTemplates = (extras?.templatesQuarantined ?? []).map(item => ({ source: candidate.source, index: item.index, reason: item.reason }));
+      const quarantinedSkills = (extras?.skillsQuarantined ?? []).map(item => ({ source: candidate.source, index: item.index, reason: item.reason }));
+      const reviewRequired = !sourceSummary.importable || exportPreview.warnings.length > 0;
+      result = {
+        mode: "read-only-single-export-preview", sourceCount: 1,
+        migrationReadiness: { status: reviewRequired ? "review-required" : "no-conflicts-detected", reviewRequired, automaticImportAllowed: false },
+        sources: [sourceSummary],
+        totals: { shiftsReady: sourceSummary.shiftsReady, identicalGroups: 0, idConflictGroups: 0, possibleDuplicateGroups: 0, profileConflictFields: 0, extraConflictFields: 0, sourcesWithWarnings: sourceSummary.warnings > 0 ? 1 : 0 },
+        profileConflicts: [], extraConflicts: [], identicalGroups: 0, idConflictGroups: 0, possibleDuplicateGroups: [],
+        quarantine: { shifts: quarantinedShifts.length, templates: quarantinedTemplates.length, skills: quarantinedSkills.length },
+        quarantinedShifts, quarantinedTemplates, quarantinedSkills,
+        warnings: exportPreview.warnings.map(message => candidate.source + ": " + message),
+        writesPerformed: false, automaticMergePerformed: false
+      };
+    }
+    safeReport = { generatedAt: new Date().toISOString(), ...result };
     render(safeReport);
     reportNode.hidden = false;
     text(statusNode, "Analisi completata. I file originali non sono stati modificati.");
