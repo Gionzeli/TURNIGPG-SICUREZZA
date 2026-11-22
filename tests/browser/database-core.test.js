@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -420,6 +420,19 @@ async function run() {
     assert(result.extraConflicts.some(item => item.field === "quota.ferie"), "Differenza quota ferie non rilevata.");
     assert(result.extraConflicts.some(item => item.field === "skills"), "Differenza formazione non rilevata.");
     assert(result.identicalRecords.length === 1, "Turni uguali tra export non riconosciuti.");
+  });
+
+  await test("LEGACY-016 — cronologia distingue sovrapposizioni e turni consecutivi", async () => {
+    const report = inspectLegacyShiftChronology([
+      { id: "night", date: "2026-11-01", type: "turno", start_time: "18:00", end_time: "06:00" },
+      { id: "overlap", date: "2026-11-02", type: "turno", start_time: "05:00", end_time: "09:00" },
+      { id: "morning", date: "2026-11-03", type: "turno", start_time: "06:00", end_time: "14:00" },
+      { id: "afternoon", date: "2026-11-03", type: "turno", start_time: "14:00", end_time: "18:00" }
+    ]);
+    assert(report.mode === "read-only-chronology" && report.writesPerformed === false, "Cronologia non read-only.");
+    assert(report.overlaps.length === 1 && report.overlaps[0].overlapMinutes === 60, "Sovrapposizione tra date non rilevata.");
+    assert(report.adjacentSegments.length === 1, "Turni consecutivi non distinti dai riposi.");
+    assert(report.adjacentSegments[0].gapMinutes === 0, "Intervallo tra turni consecutivi errato.");
   });
 
   await test("DB-009 — campi riservati rifiutati", async () => {
