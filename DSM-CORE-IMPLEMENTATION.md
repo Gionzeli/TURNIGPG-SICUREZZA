@@ -79,7 +79,7 @@ await shifts.create({
 - Il pacchetto non importa né cancella dati LocalStorage.
 - La UI legacy non è ancora collegata a questi moduli.
 - È presente un harness browser in `tests/browser/`, eseguito automaticamente con Chromium/Playwright tramite GitHub Actions.
-- L'ultima esecuzione verificata ha superato 14 controlli funzionali più la pulizia del database test (15 esiti PASS complessivi). Il workflow si attiva su push al branch `dsm-enterprise/core-v1` e può essere avviato manualmente.
+- L'ultima esecuzione verificata ha superato 15 controlli funzionali più la pulizia del database test (16 esiti PASS complessivi). Il workflow si attiva su push al branch `dsm-enterprise/core-v1` e può essere avviato manualmente.
 
 ## Stato della verifica
 
