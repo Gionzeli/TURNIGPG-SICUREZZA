@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -234,6 +234,59 @@ async function run() {
     assert(missingRevision?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Delete senza revisione attesa accettato.");
     assert((await service.getById(record.id))?.revision === updated.revision, "Il servizio ha cancellato il record nonostante il conflitto.");
     assert(await service.delete(record.id, { expectedRevision: updated.revision }), "Delete con revisione corrente non riuscito.");
+  });
+
+  await test("LEGACY-001 — anteprima snapshot valido senza scritture", async () => {
+    const snapshot = JSON.stringify({
+      params: { paga_base: 1250, ore_turno: 7.25 },
+      profile: { ccnl: "Servizi", role: "Operatore" },
+      shifts: [{ id: "turno-1", date: "2026-11-22", type: "turno", start_time: "08:00", end_time: "16:00", hours: 8 }]
+    });
+    const preview = inspectLegacySnapshot(snapshot);
+    assert(preview.mode === "read-only-preview" && preview.writesPerformed === false, "L'anteprima non è dichiarata read-only.");
+    assert(preview.importable && preview.profile.valid, "Snapshot valido segnalato come non importabile.");
+    assert(preview.shifts.ready.length === 1 && preview.shifts.quarantined.length === 0, "Turno valido non riconosciuto.");
+    assert(preview.shifts.ready[0].legacyId === "turno-1", "ID legacy non mantenuto nell'anteprima.");
+  });
+
+  await test("LEGACY-002 — turni non validi messi in quarantena individualmente", async () => {
+    const preview = inspectLegacySnapshot(JSON.stringify({
+      params: {}, profile: {},
+      shifts: [
+        { id: "ok", date: "2026-11-22", type: "turno", hours: 8 },
+        { id: "bad-date", date: "2026-02-30", type: "turno", hours: 8 },
+        { id: "bad-time", date: "2026-11-22", type: "turno", start_time: "25:00", hours: 8 },
+        { id: "bad-flag", date: "2026-11-22", type: "turno", is_night: "true", hours: 8 }
+      ]
+    }));
+    assert(preview.shifts.ready.length === 1, "Conteggio turni pronti errato.");
+    assert(preview.shifts.quarantined.length === 3, "Turni non validi non isolati in quarantena.");
+    assert(!preview.importable, "Snapshot con record in quarantena segnalato importabile.");
+  });
+
+  await test("LEGACY-003 — duplicati ID e campi non mappati segnalati", async () => {
+    const preview = inspectLegacySnapshot(JSON.stringify({
+      shifts: [
+        { id: "a!b", date: "2026-11-22", type: "turno", hours: 8 },
+        { id: "ab", date: "2026-11-23", type: "turno", hours: 8 },
+        { id: "extra", date: "2026-11-24", type: "turno", hours: 8, custom: "dato" }
+      ]
+    }));
+    assert(preview.shifts.ready.length === 1, "ID normalizzato duplicato non rilevato.");
+    assert(preview.shifts.quarantined.length === 2, "Duplicato/campo extra non messi in quarantena.");
+  });
+
+  await test("LEGACY-004 — correzioni automatiche legacy solo come avviso", async () => {
+    const preview = inspectLegacySnapshot(JSON.stringify({ params: { ore_turno: 7.15 }, profile: {}, shifts: [] }));
+    assert(preview.profile.params.ore_turno === 7.15, "Il valore originale è stato modificato.");
+    assert(preview.warnings.some(item => item.includes("7,25")), "Avviso sulla correzione legacy mancante.");
+    assert(preview.writesPerformed === false, "L'analisi ha dichiarato scritture.");
+  });
+
+  await test("LEGACY-005 — JSON non valido rifiutato", async () => {
+    let caught;
+    try { inspectLegacySnapshot("{non-json"); } catch (error) { caught = error; }
+    assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "JSON corrotto non rifiutato con errore di validazione.");
   });
 
   await test("DB-009 — campi riservati rifiutati", async () => {
