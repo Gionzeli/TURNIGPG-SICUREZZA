@@ -577,11 +577,17 @@ export function inspectLegacyReconciliation(candidates) {
     bySignature.set(record.signature, group);
   }
   for (const group of bySignature.values()) {
+    if (group.length < 2) continue;
     const distinctIds = new Set(group.map(item => item.legacyId).filter(id => id !== null));
-    const distinctSources = new Set(group.map(item => item.source));
-    if (group.length < 2 || distinctSources.size < 2 || distinctIds.size < 2) continue;
+    const sourceCounts = new Map();
+    for (const item of group) sourceCounts.set(item.source, (sourceCounts.get(item.source) ?? 0) + 1);
+    const duplicateWithinSource = [...sourceCounts.values()].some(count => count > 1);
+    const duplicateAcrossSources = sourceCounts.size > 1 && distinctIds.size > 1;
+    if (!duplicateWithinSource && !duplicateAcrossSources) continue;
     possibleDuplicates.push({
-      reason: "Dati turno uguali ma identificativi legacy diversi.",
+      reason: duplicateWithinSource
+        ? "Dati turno ripetuti nella stessa fonte."
+        : "Dati turno uguali ma identificativi legacy diversi tra fonti.",
       copies: group.map(({ source, index, legacyId }) => ({ source, index, legacyId }))
     });
   }
