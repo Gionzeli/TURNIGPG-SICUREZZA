@@ -458,6 +458,39 @@ async function run() {
       "Il controllo ha modificato dati.");
   });
 
+  await test("LEGACY-025 — fonte e indice dei turni in quarantena preservati", async () => {
+    const make = shifts => JSON.stringify({ app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts });
+    const report = inspectLegacyReconciliation([
+      { source: "export-precedente", rawJson: make([
+        { id: "ok", date: "2026-11-11", type: "turno", hours: 8 },
+        { id: "bad", date: "2026-02-30", type: "turno", hours: 8 }
+      ]) },
+      { source: "export-recente", rawJson: make([]) }
+    ]);
+    assert(report.quarantine.shifts === 1, "Conteggio quarantena errato.");
+    assert(report.quarantinedShifts.length === 1, "Riferimento del turno in quarantena assente.");
+    assert(report.quarantinedShifts[0].source === "export-precedente" && report.quarantinedShifts[0].index === 1, "Fonte o indice originale non preservati.");
+    assert(report.quarantinedShifts[0].reason.includes("Data turno"), "Motivo della quarantena non preservato.");
+    assert(!Object.hasOwn(report.quarantinedShifts[0], "raw"), "Il report espone il record grezzo.");
+    assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
+  });
+
+  await test("LEGACY-026 — fonte senza sezione extra rilevata nel confronto", async () => {
+    const make = withExtra => JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts: [],
+      ...(withExtra ? { extra: { quota: { ferie: 12 } } } : {})
+    });
+    const report = inspectLegacyReconciliation([
+      { source: "export-con-extra", rawJson: make(true) },
+      { source: "export-senza-extra", rawJson: make(false) }
+    ]);
+    const conflict = report.extraConflicts.find(item => item.field === "quota.ferie");
+    assert(conflict, "Sezione extra mancante non segnalata come differenza.");
+    assert(conflict.values.length === 2, "Il confronto non include entrambe le fonti.");
+    assert(conflict.values.some(item => item.source === "export-senza-extra" && item.value === undefined), "L assenza dell intera sezione extra non è rappresentata.");
+    assert(report.writesPerformed === false && report.automaticMergePerformed === false, "Il confronto ha modificato dati.");
+  });
+
   await test("LEGACY-016 — cronologia distingue sovrapposizioni e turni consecutivi", async () => {
     const report = inspectLegacyShiftChronology([
       { id: "night", date: "2026-11-01", type: "turno", start_time: "18:00", end_time: "06:00" },
