@@ -48,6 +48,8 @@ try {
   await reportPage.locator("#report").waitFor({ state: "visible" });
   assert.match(await reportPage.locator("#readiness").textContent(), /Revisione necessaria/);
   assert.doesNotMatch(await reportPage.locator("#quarantine").textContent(), /POSTO-PRIVATO-TEST/);
+  assert.doesNotMatch(await reportPage.locator("#conflicts").textContent(), /PRIVATE-EXTRA-KEY-DO-NOT-LEAK/);
+  assert.doesNotMatch(await reportPage.locator("#warnings").textContent(), /PRIVATE-EXTRA-KEY-DO-NOT-LEAK/);
   assert.match(await reportPage.locator("#quarantine").textContent(), /Turno/);
   assert.match(await reportPage.locator("#quarantine").textContent(), /Modello/);
   assert.match(await reportPage.locator("#quarantine").textContent(), /Formazione/);
