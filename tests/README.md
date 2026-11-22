@@ -13,6 +13,7 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 
 ## Copertura
 
+- rifiuto del nome DB vuoto senza fallback al DB operativo;
 - apertura DB test isolato e stato DB coerente;
 - object store;
 - blocco operazioni senza account;
