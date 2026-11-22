@@ -70,3 +70,8 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 - `LEGACY-020`: segnala possibili duplicati tra fonti quando mancano gli ID legacy, senza considerarli copie certe.
 - `LEGACY-021`: mantiene entrambe le varianti quando lo stesso ID legacy ha dati discordanti tra fonti.
 - `LEGACY-022`: riconosce come copie identiche i record con stesso ID e stessi dati tra fonti.
+- `LEGACY-023`: rileva campi extra presenti in una sola fonte, conservando anche il riferimento alla fonte priva del campo.
+- `LEGACY-024`: rileva parametri profilo assenti in una delle fonti.
+- `LEGACY-025`: conserva provenienza, indice e motivo dei turni messi in quarantena.
+- `LEGACY-026`: rileva una sezione extra completamente assente in una fonte.
+- `LEGACY-027`: verifica il rapporto read-only di migrazione, la quarantena di modelli/formazione e il blocco dell'importazione automatica.
