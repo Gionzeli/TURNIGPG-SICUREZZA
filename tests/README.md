@@ -26,7 +26,8 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 - conflitto su revisione obsoleta;
 - validazione ID e revisione attesa;
 - update di record inesistente;
-- due aggiornamenti concorrenti sulla stessa revisione.
+- due aggiornamenti concorrenti sulla stessa revisione;
+- blocco della cancellazione con revisione obsoleta e cancellazione con revisione corrente.
 
 ## Pulizia e limiti
 
