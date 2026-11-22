@@ -131,25 +131,38 @@ export class BaseRepository {
     }
   }
 
-  async delete(id) {
+  async delete(id, options = {}) {
     const { accountId } = requireAccountContext(this.accountContext);
     validateId(id);
+    const expectedRevision = options.expectedRevision;
+    if (expectedRevision !== undefined && (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)) {
+      throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "expectedRevision deve essere un intero positivo.");
+    }
+
     const transaction = this.db.transaction([this.storeName], "readwrite");
     const done = transactionToPromise(transaction);
     const store = transaction.objectStore(this.storeName);
     const request = store.index("accountId_id").get([accountId, id]);
     let deleted = false;
+    let operationError = null;
     request.onsuccess = () => {
-      if (request.result) {
-        store.delete(id);
-        deleted = true;
+      const current = request.result;
+      if (!current) return;
+      if (expectedRevision !== undefined && current.revision !== expectedRevision) {
+        operationError = new DatabaseError(DB_ERROR_CODES.REVISION_CONFLICT, "Il record è stato modificato da un'altra operazione. Ricaricare i dati prima di riprovare.");
+        abortTransaction(transaction);
+        return;
       }
+      store.delete(id);
+      deleted = true;
     };
     try {
       await done;
       return deleted;
     } catch (error) {
       abortTransaction(transaction);
+      await done.catch(() => {});
+      if (operationError) throw operationError;
       throw toDatabaseError(error);
     }
   }
