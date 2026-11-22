@@ -397,3 +397,133 @@ export function inspectLegacyArchive(entries) {
   inventory.recognizedKeys.sort(); inventory.unknownKeys.sort();
   return Object.freeze(inventory);
 }
+
+
+function stableShiftValue(data) {
+  return JSON.stringify([
+    data.date, data.type, data.post, data.start_time, data.end_time,
+    data.is_night, data.is_sunday, data.is_piantonato,
+    data.is_rest_not_enjoyed, data.has_meal_voucher, data.hours
+  ]);
+}
+
+/**
+ * Confronta più snapshot esportati manualmente senza scegliere una fonte
+ * vincente e senza produrre un piano di scrittura/importazione.
+ * candidates: [{ source: "etichetta", rawJson: "{...}" }]
+ */
+export function inspectLegacyReconciliation(candidates) {
+  if (!Array.isArray(candidates) || candidates.length < 2 || candidates.length > 100) {
+    invalid("La riconciliazione richiede da 2 a 100 snapshot.");
+  }
+  const labels = new Set();
+  const snapshots = [];
+  const warnings = [];
+  let quarantinedTotal = 0;
+
+  for (let index = 0; index < candidates.length; index++) {
+    const candidate = candidates[index];
+    if (!isObject(candidate) || typeof candidate.rawJson !== "string") {
+      invalid(`Snapshot candidato ${index} non valido.`);
+    }
+    const label = typeof candidate.source === "string" && candidate.source.trim()
+      ? candidate.source.trim().slice(0, 80) : `snapshot-${index + 1}`;
+    if (labels.has(label)) invalid("Le etichette delle fonti devono essere univoche.");
+    labels.add(label);
+
+    const preview = inspectLegacySnapshot(candidate.rawJson);
+    quarantinedTotal += preview.shifts.quarantined.length;
+    if (preview.warnings.length) warnings.push(...preview.warnings.map(message => `${label}: ${message}`));
+    snapshots.push({ source: label, preview });
+  }
+
+  const profileConflicts = [];
+  for (const section of ["params", "profile"]) {
+    const keys = new Set(snapshots.flatMap(item => Object.keys(item.preview.profile[section] ?? {})));
+    for (const key of [...keys].sort()) {
+      const values = snapshots
+        .filter(item => Object.hasOwn(item.preview.profile[section] ?? {}, key))
+        .map(item => ({ source: item.source, value: item.preview.profile[section][key] }));
+      const distinct = new Set(values.map(item => JSON.stringify(item.value)));
+      if (distinct.size > 1) profileConflicts.push({ section, field: key, values });
+    }
+  }
+
+  const records = [];
+  for (const snapshot of snapshots) {
+    for (const shift of snapshot.preview.shifts.ready) {
+      records.push({
+        source: snapshot.source, index: shift.index,
+        legacyId: shift.legacyId, data: shift.normalized,
+        signature: stableShiftValue(shift.normalized)
+      });
+    }
+  }
+
+  const byId = new Map();
+  for (const record of records) {
+    if (record.legacyId === null) continue;
+    const group = byId.get(record.legacyId) ?? [];
+    group.push(record);
+    byId.set(record.legacyId, group);
+  }
+
+  const identicalRecords = [];
+  const idConflicts = [];
+  for (const [legacyId, group] of byId) {
+    const sources = new Set(group.map(item => item.source));
+    if (sources.size < 2) continue;
+    const signatures = new Set(group.map(item => item.signature));
+    const refs = group.map(({ source, index }) => ({ source, index }));
+    if (signatures.size === 1) identicalRecords.push({ legacyId, copies: refs });
+    else idConflicts.push({
+      legacyId,
+      variants: group.map(({ source, index, data }) => ({ source, index, data }))
+    });
+  }
+
+  const possibleDuplicates = [];
+  const bySignature = new Map();
+  for (const record of records) {
+    const group = bySignature.get(record.signature) ?? [];
+    group.push(record);
+    bySignature.set(record.signature, group);
+  }
+  for (const group of bySignature.values()) {
+    const distinctIds = new Set(group.map(item => item.legacyId).filter(id => id !== null));
+    const distinctSources = new Set(group.map(item => item.source));
+    if (group.length < 2 || distinctSources.size < 2 || distinctIds.size < 2) continue;
+    possibleDuplicates.push({
+      reason: "Dati turno uguali ma identificativi legacy diversi.",
+      copies: group.map(({ source, index, legacyId }) => ({ source, index, legacyId }))
+    });
+  }
+
+  const sourceSummary = snapshots.map(({ source, preview }) => ({
+    source, shiftsTotal: preview.shifts.total,
+    shiftsReady: preview.shifts.ready.length,
+    shiftsQuarantined: preview.shifts.quarantined.length,
+    profileValid: preview.profile.valid,
+    importable: preview.importable
+  }));
+
+  return Object.freeze({
+    mode: "read-only-reconciliation",
+    writesPerformed: false,
+    automaticMergePerformed: false,
+    sourceCount: snapshots.length,
+    sources: sourceSummary,
+    profileConflicts,
+    identicalRecords,
+    idConflicts,
+    possibleDuplicates,
+    quarantine: { shifts: quarantinedTotal },
+    totals: {
+      shiftsReady: records.length,
+      identicalGroups: identicalRecords.length,
+      idConflictGroups: idConflicts.length,
+      possibleDuplicateGroups: possibleDuplicates.length
+    },
+    warnings
+  });
+}
