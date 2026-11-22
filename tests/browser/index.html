@@ -3,19 +3,18 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DSM Enterprise — Browser tests</title>
+  <title>DSM Enterprise — browser tests isolati</title>
   <style>
     body { font: 16px/1.5 system-ui, sans-serif; max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
     h1 { font-size: 1.5rem; }
     #summary { padding: .75rem 1rem; border: 1px solid #888; border-radius: .5rem; }
     #results { padding-left: 1.5rem; }
     .pass { color: #18743a; } .fail { color: #b42318; }
-    code { overflow-wrap: anywhere; }
   </style>
 </head>
 <body>
-  <h1>DSM Enterprise — test IndexedDB nel browser</h1>
-  <p>Questa pagina esercita il database IndexedDB reale del browser. Non usa dati della PWA legacy.</p>
+  <h1>DSM Enterprise — test IndexedDB isolato</h1>
+  <p>Usa esclusivamente <code>DSM_ENTERPRISE_TEST_DB</code>, database temporaneo. Dati operativi e LocalStorage legacy non vengono aperti.</p>
   <p id="summary" role="status">Test in esecuzione…</p>
   <ol id="results"></ol>
   <script type="module" src="./database-core.test.js"></script>
