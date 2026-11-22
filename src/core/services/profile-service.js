@@ -59,11 +59,17 @@ export class ProfileService {
 
   async update(id, changes, options = {}) {
     const expectedRevision = validateExpectedRevision(options);
+    const patch = requirePlainObject(changes, "Modifiche profilo");
+    for (const key of Object.keys(patch)) {
+      if (!["params", "profile"].includes(key)) validationError(`Sezione profilo non riconosciuta: ${key}.`);
+    }
+    const paramsPatch = requirePlainObject(patch.params ?? {}, "params");
+    const profilePatch = requirePlainObject(patch.profile ?? {}, "profile");
     const current = await this.repository.getById(id);
     if (!current) return null;
     const merged = {
-      params: { ...current.data.params, ...(changes?.params ?? {}) },
-      profile: { ...current.data.profile, ...(changes?.profile ?? {}) }
+      params: { ...current.data.params, ...paramsPatch },
+      profile: { ...current.data.profile, ...profilePatch }
     };
     return this.repository.update(id, normalizeProfileData(merged), { expectedRevision });
   }
