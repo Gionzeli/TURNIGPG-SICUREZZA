@@ -18,6 +18,8 @@ export {
 export { createAccountContext } from "../account/account-context.js";
 export { ProfileRepository } from "../repositories/profile-repository.js";
 export { ShiftRepository } from "../repositories/shift-repository.js";
+export { MigrationJobRepository } from "../repositories/migration-job-repository.js";
+export { QuarantineRepository } from "../repositories/quarantine-repository.js";
 
 export { ProfileService } from "../services/profile-service.js";
 export { ShiftService } from "../services/shift-service.js";

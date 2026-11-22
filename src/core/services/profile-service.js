@@ -65,6 +65,20 @@ export class ProfileService {
     }
     const paramsPatch = requirePlainObject(patch.params ?? {}, "params");
     const profilePatch = requirePlainObject(patch.profile ?? {}, "profile");
+    for (const [key, value] of Object.entries(paramsPatch)) {
+      if (!PARAMETER_KEYS.includes(key) || typeof value !== "number" || !Number.isFinite(value) || value < 0) {
+        validationError(`Parametro retributivo non valido: ${key}.`);
+      }
+      if (["straordinario_perc", "inps_rate", "irpef_rate"].includes(key) && value > 100) {
+        validationError(`Percentuale fuori intervallo: ${key}.`);
+      }
+    }
+    for (const [key, value] of Object.entries(profilePatch)) {
+      if (!PROFILE_KEYS.includes(key) || typeof value !== "string" || value.length > 120) {
+        validationError(`Campo o valore profilo non valido: ${key}.`);
+      }
+    }
+    if (profilePatch.effective_date) validateDate(profilePatch.effective_date, "Data di decorrenza");
     const current = await this.repository.getById(id);
     if (!current) return null;
     const merged = {
