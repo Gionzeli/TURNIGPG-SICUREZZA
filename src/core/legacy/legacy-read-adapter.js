@@ -157,10 +157,13 @@ export function inspectLegacyExtras(rawJson) {
 
   const warnings = Object.keys(source).filter(key => !EXTRA_TOP_KEYS.has(key)).map(key => `Campo extra non riconosciuto: ${key}.`);
   const quotaSource = isObject(source.quota) ? source.quota : {};
-  const quota = {
-    ferie: finiteNonNegative(quotaSource.ferie) ?? 0,
-    perm: finiteNonNegative(quotaSource.perm) ?? 0
-  };
+  if (source.quota !== undefined && !isObject(source.quota)) warnings.push("La sezione quota non è un oggetto.");
+  const quota = {};
+  for (const field of ["ferie", "perm"]) {
+    const parsed = finiteNonNegative(quotaSource[field]);
+    quota[field] = parsed ?? 0;
+    if (quotaSource[field] !== undefined && parsed === null) warnings.push(`Quota ${field} non valida: il valore non viene considerato attendibile.`);
+  }
   const real = {};
   if (isObject(source.real)) {
     for (const [month, value] of Object.entries(source.real)) {
