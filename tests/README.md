@@ -27,7 +27,9 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 - validazione ID e revisione attesa;
 - update di record inesistente;
 - due aggiornamenti concorrenti sulla stessa revisione;
-- blocco della cancellazione con revisione obsoleta e cancellazione con revisione corrente.
+- blocco della cancellazione con revisione obsoleta e cancellazione con revisione corrente;
+- Service Layer profili: default, validazione percentuali/campi e merge con revisione;
+- Service Layer turni: date reali, orari, flag booleani, normalizzazione e conflitti di revisione.
 
 ## Pulizia e limiti
 
