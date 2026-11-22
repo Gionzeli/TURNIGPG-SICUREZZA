@@ -117,6 +117,22 @@ async function run() {
     assert(missing === null, "Update inesistente non restituisce null.");
   });
 
+
+  await test("DB-013 — due aggiornamenti concorrenti sulla stessa revisione", async () => {
+    const record = await profiles.create({ value: "base concorrente" });
+    const outcomes = await Promise.allSettled([
+      profiles.update(record.id, { value: "scrittura A" }, { expectedRevision: 1 }),
+      profiles.update(record.id, { value: "scrittura B" }, { expectedRevision: 1 })
+    ]);
+    const fulfilled = outcomes.filter(item => item.status === "fulfilled");
+    const rejected = outcomes.filter(item => item.status === "rejected");
+    assert(fulfilled.length === 1 && rejected.length === 1, "Non è stata accettata esattamente una scrittura.");
+    assert(rejected[0].reason?.code === DB_ERROR_CODES.REVISION_CONFLICT, "La seconda scrittura non ha ricevuto conflitto.");
+    const persisted = await profiles.getById(record.id);
+    assert(persisted.revision === 2, "Revisione finale non coerente.");
+    assert(["scrittura A", "scrittura B"].includes(persisted.data.value), "Valore finale inatteso.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
