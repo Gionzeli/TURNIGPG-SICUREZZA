@@ -7,6 +7,17 @@ const statusNode = document.querySelector("#status");
 const errorNode = document.querySelector("#error");
 const reportNode = document.querySelector("#report");
 let safeReport = null;
+let privatePreview = null;
+const PROFILE_LABELS = { ccnl: "CCNL", section: "Sezione", level: "Livello", role: "Ruolo", effective_date: "Decorrenza" };
+const PARAM_LABELS = {
+  paga_base: "Paga base", scatti: "Scatti", altre_fisse: "Altre voci fisse",
+  ore_mensili: "Ore mensili", ore_turno: "Ore turno",
+  straordinario_perc: "Percentuale straordinario", straordinario_ora: "Straordinario orario",
+  notturno_turno: "Indennità notturna per turno", piantonato_turno: "Piantonato per turno",
+  domenica_ora: "Indennità domenicale oraria", riposo_non_goduto: "Riposo non goduto",
+  buono_pasto: "Buono pasto", inps_rate: "Aliquota INPS", irpef_rate: "Aliquota IRPEF",
+  sindacato: "Sindacato", cessione: "Cessione", altre_trattenute: "Altre trattenute"
+};
 
 const text = (node, value) => { node.textContent = String(value); };
 const element = (tag, value) => {
@@ -136,6 +147,18 @@ analyzeButton.addEventListener("click", async () => {
   }
 });
 
+function renderPrivatePreview(preview) {
+  const panel = document.querySelector("#private-preview");
+  panel.hidden = !preview;
+  if (!preview) return;
+  const profileHost = document.querySelector("#profile-preview");
+  const paramsHost = document.querySelector("#params-preview");
+  clear(profileHost); clear(paramsHost);
+  const makeRows = (data, labels) => Object.entries(labels).map(([key, label]) =>
+    [label, data?.[key] === undefined || data[key] === "" ? "Non presente" : String(data[key])]);
+  profileHost.append(table(["Voce", "Valore"], makeRows(preview.profile, PROFILE_LABELS)));
+  paramsHost.append(table(["Parametro", "Valore"], makeRows(preview.params, PARAM_LABELS)));
+}
 function render(report) {
   const ready = report.migrationReadiness;
   text(document.querySelector("#readiness"),
