@@ -136,3 +136,112 @@ export function inspectLegacySnapshot(rawJson) {
     writesPerformed: false
   });
 }
+
+const EXTRA_TOP_KEYS = new Set(["quota", "real", "tpl", "leavePayslip", "skills", "pin", "salt", "name", "role", "mig", "onb", "it"]);
+
+function finiteNonNegative(value) {
+  const number = Number(value);
+  return value !== null && value !== undefined && Number.isFinite(number) && number >= 0 ? number : null;
+}
+
+/**
+ * Analizza la chiave tg_extra_v1 senza restituire PIN hash o salt.
+ * Nessun accesso a LocalStorage/IndexedDB e nessuna scrittura.
+ */
+export function inspectLegacyExtras(rawJson) {
+  if (typeof rawJson !== "string" || !rawJson.trim()) invalid("Snapshot extra legacy vuoto o non testuale.");
+  let source;
+  try { source = JSON.parse(rawJson); }
+  catch { invalid("Snapshot extra legacy non è JSON valido."); }
+  if (!isObject(source)) invalid("Snapshot extra legacy deve contenere un oggetto JSON.");
+
+  const warnings = Object.keys(source).filter(key => !EXTRA_TOP_KEYS.has(key)).map(key => `Campo extra non riconosciuto: ${key}.`);
+  const quotaSource = isObject(source.quota) ? source.quota : {};
+  const quota = {
+    ferie: finiteNonNegative(quotaSource.ferie) ?? 0,
+    perm: finiteNonNegative(quotaSource.perm) ?? 0
+  };
+  const real = {};
+  if (isObject(source.real)) {
+    for (const [month, value] of Object.entries(source.real)) {
+      if (/^\\d{4}-\\d{2}$/.test(month) && finiteNonNegative(value) !== null) real[month] = Number(value);
+      else warnings.push(`Valore mensile extra da verificare: ${month}.`);
+    }
+  } else if (source.real !== undefined) warnings.push("La sezione real non è un oggetto.");
+
+  const templates = [];
+  const templatesQuarantined = [];
+  if (Array.isArray(source.tpl)) {
+    source.tpl.slice(0, 12).forEach((item, index) => {
+      if (!isObject(item) || !SHIFT_TYPES.has(item.type)) {
+        templatesQuarantined.push({ index, reason: "Modello turno non valido." });
+        return;
+      }
+      const time = value => value === "" || (typeof value === "string" && /^\\d{2}:\\d{2}$/.test(value));
+      if (!time(item.st ?? "") || !time(item.en ?? "")) {
+        templatesQuarantined.push({ index, reason: "Orario modello non valido." });
+        return;
+      }
+      templates.push({
+        type: item.type, post: String(item.post ?? "").slice(0, 80),
+        st: item.st ?? "", en: item.en ?? "",
+        n: Boolean(item.n), sun: Boolean(item.sun), p: Boolean(item.p),
+        rs: Boolean(item.rs), mv: Boolean(item.mv)
+      });
+    });
+  } else if (source.tpl !== undefined) warnings.push("La sezione tpl non è un array.");
+
+  const skills = [];
+  const skillsQuarantined = [];
+  if (Array.isArray(source.skills)) {
+    source.skills.slice(0, 200).forEach((item, index) => {
+      if (!isObject(item) || typeof item.title !== "string" || !item.title.trim()) {
+        skillsQuarantined.push({ index, reason: "Voce formazione senza titolo valido." });
+        return;
+      }
+      const date = value => typeof value === "string" && /^\\d{4}-\\d{2}-\\d{2}$/.test(value) ? value : "";
+      skills.push({
+        id: String(item.id ?? `legacy-skill-${index}`).slice(0, 60),
+        type: String(item.type ?? "Altro").slice(0, 30),
+        title: item.title.slice(0, 100),
+        issuer: String(item.issuer ?? "").slice(0, 100),
+        date: date(item.date), expiry: date(item.expiry),
+        hours: item.hours == null ? null : Math.max(0, Math.min(10000, Number(item.hours) || 0)),
+        notes: String(item.notes ?? "").slice(0, 500),
+        added: String(item.added ?? "")
+      });
+    });
+  } else if (source.skills !== undefined) warnings.push("La sezione skills non è un array.");
+
+  const payslip = isObject(source.leavePayslip) ? source.leavePayslip : null;
+  const leavePayslip = payslip ? { importedAt: typeof payslip.importedAt === "string" ? payslip.importedAt : "", ferie: {}, permessi: {} } : null;
+  if (leavePayslip) {
+    for (const group of ["ferie", "permessi"]) for (const field of ["maturate", "godute", "residue"]) {
+      leavePayslip[group][field] = finiteNonNegative(payslip[group]?.[field]);
+    }
+  }
+
+  const credentialMaterialPresent = typeof source.pin === "string" && /^[0-9a-f]{64}$/.test(source.pin) &&
+    typeof source.salt === "string" && /^[0-9a-f]{32}$/.test(source.salt);
+  if (source.pin !== undefined || source.salt !== undefined) {
+    warnings.push("Sono presenti dati PIN/hash/salt legacy: non vengono restituiti né importati da questo adapter.");
+  }
+  if (credentialMaterialPresent) warnings.push("Credenziali locali rilevate; serve un flusso di transizione autenticazione dedicato.");
+  if (source.role !== undefined && !["gpg", "sicurezza", "portierato"].includes(source.role)) warnings.push("Ruolo legacy non riconosciuto.");
+  if (source.name !== undefined && typeof source.name !== "string") warnings.push("Nome legacy non testuale.");
+
+  return Object.freeze({
+    source: "tg_extra_v1",
+    mode: "read-only-preview",
+    data: {
+      quota, real, templates, skills, leavePayslip,
+      role: ["gpg", "sicurezza", "portierato"].includes(source.role) ? source.role : "",
+      name: typeof source.name === "string" ? source.name.slice(0, 60) : "",
+      migratedFlag: source.mig === 1,
+      onboardingFlag: source.onb === 1
+    },
+    credentials: { present: credentialMaterialPresent, valuesExposed: false, imported: false },
+    templatesQuarantined, skillsQuarantined, warnings,
+    writesPerformed: false
+  });
+}
