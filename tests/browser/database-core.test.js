@@ -479,6 +479,23 @@ async function run() {
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
   });
 
+  await test("LEGACY-020 — possibili duplicati tra fonti senza ID legacy", async () => {
+    const make = () => JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params: {}, profile: {},
+      shifts: [{ date: "2026-11-08", type: "turno", post: "Sede A",
+        start_time: "08:00", end_time: "16:00", hours: 8 }]
+    });
+    const report = inspectLegacyReconciliation([
+      { source: "export-senza-id-A", rawJson: make() },
+      { source: "export-senza-id-B", rawJson: make() }
+    ]);
+    assert(report.possibleDuplicates.length === 1, "Possibile duplicato senza ID non segnalato.");
+    assert(report.possibleDuplicates[0].copies.length === 2, "Riferimenti alle due fonti incompleti.");
+    assert(report.possibleDuplicates[0].reason.includes("senza identificativi"), "Motivazione non distingue gli ID mancanti.");
+    assert(report.identicalRecords.length === 0, "Record senza ID classificati come copie certe.");
+    assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
+  });
+
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
