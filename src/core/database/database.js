@@ -7,7 +7,7 @@ let activeDatabaseName = DSM_DB_NAME;
 let pendingDatabaseName = null;
 
 export function openDSMDatabase(options = {}) {
-  const databaseName = options.name || DSM_DB_NAME;
+  const databaseName = options.name ?? DSM_DB_NAME;
   if (typeof databaseName !== "string" || !databaseName.trim()) {
     return Promise.reject(new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Il nome del database deve essere una stringa non vuota."));
   }
