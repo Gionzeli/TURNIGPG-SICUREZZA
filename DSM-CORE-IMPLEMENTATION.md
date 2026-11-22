@@ -84,6 +84,16 @@ const shift = await shifts.create({
 await shifts.update(shift.id, { hours: 7.5 }, { expectedRevision: shift.revision });
 ```
 
+## Anteprima dati legacy (sola lettura)
+
+L'adapter `inspectLegacySnapshot(rawJson)` analizza una stringa JSON esportata manualmente dalla chiave `tg_online_v1`. Non legge direttamente LocalStorage, non apre il database operativo, non crea record e non modifica dati. Restituisce:
+- validità delle sezioni `params` e `profile`;
+- turni compatibili e turni da verificare in quarantena, con motivo e contenuto originale;
+- avvisi sulle correzioni automatiche presenti nel runtime legacy (ad esempio `ore_turno` 7,15/12), senza applicarle;
+- un indicatore `importable` che resta falso se esistono errori o turni in quarantena.
+
+La chiave separata `tg_extra_v1`, le copie `*_pre_local_backup`, lo storico e le chiavi legacy per utente non sono ancora mappati dall'adapter. Non vanno ignorati né cancellati: richiedono una fase di inventario e riconciliazione separata. Questa anteprima non è ancora una procedura d'importazione.
+
 ## Limiti noti e sicurezza
 
 - Il contesto account è un controllo di isolamento applicativo, non un confine di sicurezza contro XSS o codice malevolo nella stessa origine.
