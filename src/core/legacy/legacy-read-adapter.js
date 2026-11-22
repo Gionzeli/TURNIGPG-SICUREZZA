@@ -515,8 +515,8 @@ export function inspectLegacyReconciliation(candidates) {
   }
 
   const extraConflicts = [];
-  const extraSources = snapshots.filter(item => item.extrasPreview);
-  if (extraSources.length > 0) {
+  const extraSources = snapshots;
+  if (extraSources.some(item => item.extrasPreview)) {
     const paths = new Set();
     const collect = (value, prefix = "") => {
       if (isObject(value)) {
@@ -529,7 +529,7 @@ export function inspectLegacyReconciliation(candidates) {
       const parts = path.split(".");
       const values = extraSources.map(item => ({
         source: item.source,
-        value: read(item.extrasPreview.data, parts)
+        value: item.extrasPreview ? read(item.extrasPreview.data, parts) : undefined
       }));
       if (new Set(values.map(item => JSON.stringify(item.value))).size > 1) {
         extraConflicts.push({ field: path, values });
@@ -616,6 +616,7 @@ export function inspectLegacyReconciliation(candidates) {
     sources: sourceSummary,
     profileConflicts,
     extraConflicts,
+    quarantinedShifts: snapshots.flatMap(item => item.preview.shifts.quarantined.map(shift => ({ source: item.source, index: shift.index, reason: shift.reason }))),
     identicalRecords,
     idConflicts,
     possibleDuplicates,
