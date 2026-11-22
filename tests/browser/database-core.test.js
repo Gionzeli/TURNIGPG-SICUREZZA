@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -392,6 +392,34 @@ async function run() {
     ]);
     assert(result.quarantine.shifts === 1, "Turno non valido non conteggiato in quarantena.");
     assert(result.identicalRecords.length === 1, "Copia valida non riconosciuta.");
+  });
+
+
+  await test("LEGACY-014 — export senza password riconosciuto senza esporre dati", async () => {
+    const report = inspectLegacyExport(JSON.stringify({
+      app: "Turni Gpg/sicurezza online",
+      params: { paga_base: 1250 }, profile: { role: "Operatore" },
+      shifts: [{ id: "x", date: "2026-11-22", type: "turno", hours: 8 }],
+      extra: { quota: { ferie: 12 }, skills: [{ title: "Primo soccorso" }], tpl: [] }
+    }));
+    assert(report.mode === "read-only-preview" && report.writesPerformed === false, "Export non read-only.");
+    assert(report.snapshot.shiftsReady === 1 && report.extras.skills === 1, "Dati export non riconosciuti.");
+    assert(!Object.hasOwn(report, "params") && !Object.hasOwn(report, "profile"), "Report espone dati personali grezzi.");
+  });
+
+  await test("LEGACY-015 — export ufficiali confrontano anche quote e formazione", async () => {
+    const make = (ferie, skillTitle) => JSON.stringify({
+      app: "Turni Gpg/sicurezza online", params: {}, profile: {},
+      shifts: [{ id: "shared", date: "2026-11-22", type: "turno", hours: 8 }],
+      extra: { quota: { ferie }, skills: [{ title: skillTitle }] }
+    });
+    const result = inspectLegacyReconciliation([
+      { source: "export-1", rawJson: make(10, "Corso A") },
+      { source: "export-2", rawJson: make(12, "Corso B") }
+    ]);
+    assert(result.extraConflicts.some(item => item.field === "quota.ferie"), "Differenza quota ferie non rilevata.");
+    assert(result.extraConflicts.some(item => item.field === "skills"), "Differenza formazione non rilevata.");
+    assert(result.identicalRecords.length === 1, "Turni uguali tra export non riconosciuti.");
   });
 
   await test("DB-009 — campi riservati rifiutati", async () => {
