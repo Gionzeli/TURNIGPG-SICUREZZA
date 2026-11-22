@@ -21,6 +21,7 @@ Questo pacchetto introduce un primo nucleo IndexedDB isolato dal runtime legacy.
 - `src/core/services/service-validation.js`: validazione condivisa di oggetti, date e revisioni.
 - `src/core/services/profile-service.js`: normalizzazione e validazione di parametri retributivi e dati profilo.
 - `src/core/services/shift-service.js`: validazione di date, tipi turno, orari, flag e ore.
+- `src/core/legacy/legacy-read-adapter.js`: analisi read-only degli snapshot `tg_online_v1`, con quarantena per record non validi e avvisi sulle correzioni legacy.
 
 ## Schema v1
 
@@ -93,7 +94,7 @@ await shifts.update(shift.id, { hours: 7.5 }, { expectedRevision: shift.revision
 - Il pacchetto non importa né cancella dati LocalStorage.
 - La UI legacy non è ancora collegata a questi moduli.
 - È presente un harness browser in `tests/browser/`, eseguito automaticamente con Chromium/Playwright tramite GitHub Actions.
-- L'ultima esecuzione verificata prima dell'estensione Service Layer ha superato 15 controlli funzionali più la pulizia del database test (16 esiti PASS complessivi). I test del Service Layer sono in verifica CI; includono anche isolamento account e cancellazione protetta da revisione. Il workflow si attiva su push al branch `dsm-enterprise/core-v1` e può essere avviato manualmente.
+- L'ultima esecuzione verificata prima dell'estensione Service Layer ha superato 15 controlli funzionali più la pulizia del database test (16 esiti PASS complessivi). I test del Service Layer e dell'adapter legacy read-only sono in verifica CI. L'adapter non legge LocalStorage, non scrive IndexedDB e non avvia importazioni. Il workflow si attiva su push al branch `dsm-enterprise/core-v1` e può essere avviato manualmente.
 
 ## Stato della verifica
 
