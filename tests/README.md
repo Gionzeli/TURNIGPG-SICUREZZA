@@ -31,7 +31,8 @@ Non usare `file://`, perché i moduli ES richiedono HTTP.
 - Service Layer profili: default, validazione percentuali/campi e merge con revisione;
 - Service Layer turni: date reali, orari, flag booleani, normalizzazione e conflitti di revisione;
 - isolamento account verificato anche attraverso i servizi e cancellazione con revisione attesa;
-- anteprima adapter legacy in sola lettura: snapshot valido, quarantena turni non validi, ID duplicati, campi extra, avvisi di correzioni legacy e JSON corrotto.
+- anteprima adapter legacy in sola lettura per `tg_online_v1`: snapshot valido, quarantena turni non validi, ID duplicati, campi extra, avvisi di correzioni legacy e JSON corrotto;
+- anteprima `tg_extra_v1`: quote, mensili, modelli, formazione, residui ferie/permessi e gestione prudente dei metadati PIN/salt.
 
 ## Pulizia e limiti
 
