@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, MigrationJobRepository, QuarantineRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -100,6 +100,53 @@ async function run() {
     let caught; try { await profiles.create({ marker: "second" }, { id }); } catch (error) { caught = error; }
     assert(Boolean(caught), "ID duplicato non ha prodotto errore.");
     assert((await profiles.getById(id))?.data.marker === "first", "Record originale alterato.");
+  });
+
+  await test("DB-009A — repository migrazione e quarantena isolati per account", async () => {
+    const jobs = new MigrationJobRepository({ db, accountContext: context });
+    const quarantine = new QuarantineRepository({ db, accountContext: context });
+    const job = await jobs.createJob({ sourceCount: 3 });
+    const item = await quarantine.createItem({
+      itemType: "shift", sourceIndex: 2, reason: "invalid-data"
+    });
+    assert(job.data.mode === "read-only" && job.data.status === "analysis", "Il job non nasce in sola lettura.");
+    assert(item.data.resolutionStatus === "pending", "L'elemento non nasce in attesa di revisione.");
+    context.activate({ accountId: "browser-test-account-B", identitySource: "local" });
+    assert(await jobs.getJob(job.id) === null, "Account B legge un job di A.");
+    assert((await jobs.getJobs()).length === 0, "Account B vede job di A.");
+    assert(await quarantine.getItem(item.id) === null, "Account B legge quarantena di A.");
+    assert((await quarantine.getItems()).length === 0, "Account B vede quarantena di A.");
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+    assert((await jobs.getJob(job.id))?.id === job.id, "Account A non ritrova il proprio job.");
+    assert((await quarantine.getItem(item.id))?.id === item.id, "Account A non ritrova l'elemento.");
+  });
+
+  await test("DB-009B — repository rifiutano payload grezzi e accountId contraffatto", async () => {
+    const jobs = new MigrationJobRepository({ db, accountContext: context });
+    const quarantine = new QuarantineRepository({ db, accountContext: context });
+    let rawJob, rawItem, forgedAccount, invalidStatus;
+    try { await jobs.createJob({ raw: { privateValue: "never-store" } }); } catch (error) { rawJob = error; }
+    try { await quarantine.createItem({ itemType: "shift", sourceIndex: 0, reason: "invalid-data", raw: { privateValue: "never-store" } }); } catch (error) { rawItem = error; }
+    try { await jobs.createJob({ accountId: "browser-test-account-B" }); } catch (error) { forgedAccount = error; }
+    try { await jobs.createJob({ status: "executing" }); } catch (error) { invalidStatus = error; }
+    for (const error of [rawJob, rawItem, forgedAccount, invalidStatus]) {
+      assert(error?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Campo o stato non consentito accettato.");
+    }
+  });
+
+  await test("DB-009C — job e quarantena persistono dopo riapertura", async () => {
+    const jobsBefore = new MigrationJobRepository({ db, accountContext: context });
+    const quarantineBefore = new QuarantineRepository({ db, accountContext: context });
+    const job = await jobsBefore.createJob({ sourceCount: 1 });
+    const item = await quarantineBefore.createItem({
+      itemType: "template", sourceIndex: 0, reason: "manual-review"
+    });
+    closeDSMDatabase();
+    db = await openDSMDatabase({ name: TEST_DB_NAME });
+    const jobsAfter = new MigrationJobRepository({ db, accountContext: context });
+    const quarantineAfter = new QuarantineRepository({ db, accountContext: context });
+    assert((await jobsAfter.getJob(job.id))?.data.sourceCount === 1, "Job non persistito.");
+    assert((await quarantineAfter.getItem(item.id))?.data.reason === "manual-review", "Quarantena non persistita.");
   });
 
   await test("DB-010 — conflitto revisione obsoleta", async () => {
