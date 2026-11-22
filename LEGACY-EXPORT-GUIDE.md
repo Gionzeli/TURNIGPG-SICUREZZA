@@ -28,3 +28,17 @@ L'analisi riconosce il formato dell'export dell'app, controlla la validità dei 
 ## Limite attuale
 
 Il file prodotto dal pulsante **Senza password** è un export puntuale: non comprende necessariamente lo storico modifiche, tutte le copie per-utente o i backup precedenti conservati nel browser. Per una riconciliazione completa quelle fonti richiedono un inventario separato.
+
+## Analisi locale con lo strumento DSM
+
+È disponibile la pagina `tools/legacy-report.html`, che usa il modulo locale `tools/legacy-report.js` e l'adapter read-only del progetto.
+
+1. Scaricare/clonare una copia del repository sul computer fidato, mantenendo insieme le cartelle `tools` e `src`.
+2. Aprire un terminale nella cartella principale del progetto e avviare un server statico locale: `python -m http.server 8000`.
+3. Aprire `http://localhost:8000/tools/legacy-report.html`.
+4. Selezionare almeno due export JSON non cifrati e avviare l'analisi.
+5. Esaminare il riepilogo per fonte, i conflitti e gli elementi in quarantena. Se serve, salvare il rapporto riepilogativo.
+
+La pagina applica un limite di 100 file e 10 MB per file. I file selezionati vengono letti in memoria dal browser: non sono caricati su GitHub o su altri servizi, non vengono salvati in LocalStorage/IndexedDB e non sono modificati. Il rapporto scaricabile omette contenuti dei turni, identificativi legacy e valori dei campi in conflitto; contiene comunque nomi file, conteggi, nomi dei campi, indici e motivi di quarantena, quindi va trattato con riservatezza.
+
+Per una singola fonte è necessario usare l'anteprima singola già esposta dall'adapter; la pagina di confronto richiede almeno due export. Nessun risultato abilita o esegue l'importazione: `automaticImportAllowed` rimane sempre `false`.
