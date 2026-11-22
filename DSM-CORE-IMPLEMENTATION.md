@@ -98,6 +98,8 @@ L’inventario `inspectLegacyArchive(entries)` accetta un oggetto costruito da u
 
 L’inventario riconosce anche file backup JSON in chiavi alias `backup...`: i backup in chiaro vengono analizzati come snapshot più sezione extra; i contenitori cifrati v2/v3 AES-256-GCM sono solo classificati per versione/algoritmo, senza decifratura. Password, codici di recupero, PIN hash e salt non sono richiesti né restituiti. Le chiavi sconosciute vengono segnalate per analisi separata.
 
+La funzione `inspectLegacyExport(rawJson)` riconosce anche il file JSON creato dal pulsante legacy **Backup e ripristino → Senza password**. Il report restituisce conteggi e validità, non i valori grezzi del profilo o dei parametri. La riconciliazione accetta direttamente questi export e confronta anche i campi extra (quote, mensilità, modelli, formazione e dati da cedolino) segnalando le divergenze senza fonderli.
+
 La funzione `inspectLegacyReconciliation(candidates)` confronta da 2 a 100 snapshot esportati manualmente. Per i profili segnala divergenze campo per campo; per i turni distingue copie identiche con stesso ID, conflitti sullo stesso ID e possibili duplicati con ID diversi ma dati turno uguali. I record non validi restano conteggiati in quarantena e non partecipano al confronto. Il rapporto non sceglie una fonte vincente, non fonde record e non produce scritture.
 
 Questa fase resta solo inventario/anteprima: nessuna scrittura, nessuna selezione automatica tra copie concorrenti, nessuna importazione o cancellazione. Prima di una futura migrazione occorre confrontare le copie e definire esplicitamente provenienza, priorità, duplicati e gestione credenziali.
