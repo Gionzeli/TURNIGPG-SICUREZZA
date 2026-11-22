@@ -611,7 +611,7 @@ export function inspectLegacyReconciliation(candidates) {
     extraTemplatesQuarantined: extrasPreview?.templatesQuarantined.length ?? null,
     extraMonthlyValues: extrasPreview ? Object.keys(extrasPreview.data.real).length : null,
     warnings: preview.warnings.length + (extrasPreview?.warnings.length ?? 0),
-    importable: preview.importable && Boolean(extrasPreview || !extrasPreview)
+    importable: preview.importable && (!extrasPreview || (extrasPreview.warnings.length === 0 && extrasPreview.templatesQuarantined.length === 0 && extrasPreview.skillsQuarantined.length === 0))
   }));
   const quarantinedShifts = snapshots.flatMap(item => item.preview.shifts.quarantined.map(shift => ({
     source: item.source, index: shift.index, reason: shift.reason
