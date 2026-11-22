@@ -21,14 +21,14 @@ function isObject(value) {
 }
 
 function isRealDate(value) {
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
 }
 
 function validTime(value) {
-  return value === "" || (typeof value === "string" && /^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value));
+  return value === "" || (typeof value === "string" && /^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value));
 }
 
 function validateProfileSection(value) {
@@ -73,7 +73,7 @@ function inspectShift(item, index, seenIds) {
   if (unknown.length) return quarantine(`Campi aggiuntivi da mappare esplicitamente: ${unknown.join(", ")}.`);
   let id = null;
   if (item.id !== undefined && item.id !== null && String(item.id)) {
-    id = String(item.id).replace(/[^\\w-]/g, "");
+    id = String(item.id).replace(/[^\w-]/g, "");
     if (!id || id.length > 200) return quarantine("Identificativo turno non valido dopo la normalizzazione legacy.");
     if (seenIds.has(id)) return quarantine("Identificativo turno duplicato dopo la normalizzazione legacy.");
     seenIds.add(id);
