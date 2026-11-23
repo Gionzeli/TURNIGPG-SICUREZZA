@@ -63,3 +63,15 @@ La decisione iniziale di non modificare il codice applicativo è superata dall'i
 **Collegamento ancora esplicito, non automatico:** il chiamante deve passare la stessa istanza di lifecycleCoordinator a ogni repository (inclusi Profile, Shift, Absence, Settings, History, MigrationJob e Quarantine). I servizi usano i repository ricevuti e quindi ereditano la protezione. Non è ancora collegato il DOM dell'app operativa né esiste un composition root dell'app che istanzi e distribuisca il coordinatore. Le viste devono sottoscrivere gli eventi e cancellare cache/DOM; questo non va dichiarato completato.
 
 La coordinazione è per singola istanza/scheda. Non risolve conflitti cross-tab, autenticazione, cifratura IndexedDB o protezione contro script same-origin. Non costituisce autorizzazione di sicurezza e non rende il core pronto per produzione.
+
+
+## Sessione DSM condivisa
+
+È disponibile `createDSMCoreSession({ db, accountId? })` da `src/core/database/index.js`. La factory crea un solo accountContext e un solo lifecycleCoordinator e li inietta in Profile, Shift, Absence, Settings, History, MigrationJob e Quarantine repository. Espone inoltre i servizi Profile, Shift, Absence e History che usano quegli stessi repository.
+
+- Se `accountId` è fornito, l'account locale viene attivato dopo la fase iniziale di cleanup.
+- `switchLocalAccount(nextAccountId)` esegue la transizione coordinata e attiva il nuovo account solo dopo cleanup.
+- `logout()` esegue la transizione e lascia la sessione in stato `cleared`.
+- `lifecycle.subscribe()` resta il punto d'integrazione per le viste: i listener dell'app devono svuotare cache e DOM e annullare richieste UI. La factory non modifica automaticamente l'interfaccia operativa né collega Firebase.
+
+Il test AUTH-006 verifica con dati sintetici che servizio e repository condividano lo stesso coordinatore, che lo switch isoli i record dell'account precedente e che logout azzeri la sessione. La factory non trasforma account locali in identità autenticate e non modifica i limiti di sicurezza descritti sopra.
