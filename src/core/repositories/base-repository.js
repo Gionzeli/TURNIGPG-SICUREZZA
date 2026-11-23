@@ -18,6 +18,7 @@ function historyEntityType(storeName) {
   if (storeName === "shifts") return "shift";
   if (storeName === "profiles") return "profile";
   if (storeName === "settings") return "setting";
+  if (storeName === "absences") return "absence";
   return null;
 }
 
