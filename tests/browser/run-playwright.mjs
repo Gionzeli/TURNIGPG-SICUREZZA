@@ -159,9 +159,16 @@ try {
   }]);
   assert.equal(await reportPage.locator("#analyze").isDisabled(), true);
   assert.match(await reportPage.locator("#status").textContent(), /supera il limite di 10 MB/);
-  await reportPage.locator("#files").setInputFiles(Array.from({ length: 6 }, (_, index) => ({
-    name: `totale-${index}.json`, mimeType: "application/json", buffer: Buffer.alloc(9 * 1024 * 1024, 32)
-  })));
+  await reportPage.locator("#files").evaluate(input => {
+    const transfer = new DataTransfer();
+    for (let index = 0; index < 6; index++) {
+      transfer.items.add(new File([new Uint8Array(9 * 1024 * 1024)], `totale-${index}.json`, {
+        type: "application/json"
+      }));
+    }
+    input.files = transfer.files;
+    input.dispatchEvent(new Event("change", { bubbles: true }));
+  });
   assert.equal(await reportPage.locator("#analyze").isDisabled(), true);
   assert.match(await reportPage.locator("#status").textContent(), /massimo 50 MB per tutti i file/);
 
