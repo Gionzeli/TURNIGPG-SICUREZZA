@@ -33,3 +33,17 @@ Il contesto client-side e gli indici IndexedDB forniscono separazione logica per
 ## Stato di verifica
 
 L'ultimo workflow `DSM Core browser tests` esaminato (run 45250320994, commit `4d3a74aa19beedf4e9fe767a06494e4d2b4b6f6d`) ha conclusione `success`. Questo risultato si riferisce ai test del commit e non certifica i prerequisiti futuri sopra elencati.
+
+
+## Aggiornamento — coordinatore isolato (branch DSM)
+
+È stato aggiunto `src/core/account/account-lifecycle-coordinator.js`, esportato da `src/core/database/index.js`.
+
+- `beginTransition()` incrementa la generazione, passa a `switching`, azzera il contesto e notifica i listener.
+- `capture()` restituisce accountId e generazione solo nello stato attivo; `isCurrent()` rifiuta risultati appartenenti a generazioni precedenti.
+- Listener e risorse disposable possono essere registrati. Gli errori di pulizia mantengono il coordinatore non attivo; `retryCleanup()` consente un nuovo tentativo.
+- `activateLocal()` richiede il token di transizione e pulizia completata; `clear()` completa il logout.
+
+Test sintetici AUTH-003/AUTH-004 coprono invalidazione A→B, logout, pulizia cache tramite listener e retry dopo errore.
+
+**Non integrato:** BaseRepository, servizi applicativi e viste reali non ricevono ancora il coordinatore. I test di listener usano una cache sintetica, non il DOM dell'applicazione. Le transazioni IndexedDB già avviate non vengono abortite dal coordinatore. Non è una garanzia di isolamento completa né un'autorizzazione di sicurezza. Prima dell'uso applicativo servono wiring esplicito, test d'integrazione end-to-end e verifica multi-scheda.
