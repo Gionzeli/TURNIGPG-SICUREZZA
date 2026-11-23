@@ -19,7 +19,7 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
     const listenerErrors = publish(event);
     const cleanupErrors = [];
     for (const dispose of [...disposables]) {
-      try { await dispose(); }
+      try { await dispose(); disposables.delete(dispose); }
       catch { cleanupErrors.push("dispose-error"); }
     }
     cleanupComplete = listenerErrors.length === 0 && cleanupErrors.length === 0;
