@@ -1015,6 +1015,34 @@ async function run() {
     assert(updated.data.enabled === false && updated.revision === 2, "Aggiornamento semplice valido non riuscito.");
   });
 
+  await test("SET-002 — limiti impostazioni verificati ai valori di confine", async () => {
+    const settings = new SettingsRepository({ db, accountContext: context });
+    const atLimit = Object.fromEntries(Array.from({ length: 30 }, (_, index) => [`option${index}`, index]));
+    const saved = await settings.create(atLimit);
+    assert(Object.keys(saved.data).length === 30, "Il limite massimo di 30 chiavi non è rispettato.");
+    const longKey = "a".repeat(64);
+    const longKeyRecord = await settings.create({ [longKey]: "ok" });
+    assert(longKeyRecord.data[longKey] === "ok", "La chiave al limite di 64 caratteri non è stata accettata.");
+    const invalidPayloads = [
+      {},
+      Object.fromEntries(Array.from({ length: 31 }, (_, index) => [`option${index}`, index])),
+      { [`a${"b".repeat(64)}`]: true }
+    ];
+    for (const payload of invalidPayloads) {
+      let caught;
+      try { await settings.create(payload); } catch (error) { caught = error; }
+      assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Payload fuori dai limiti accettato.");
+    }
+    let updateError;
+    try {
+      await settings.update(saved.id, Object.fromEntries(Array.from({ length: 31 }, (_, index) => [`option${index}`, index])));
+    } catch (error) { updateError = error; }
+    assert(updateError?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Aggiornamento oltre 30 chiavi accettato.");
+    const persisted = await settings.getById(saved.id);
+    assert(persisted.revision === 1 && Object.keys(persisted.data).length === 30,
+      "Un aggiornamento non valido ha alterato l'impostazione originale.");
+  });
+
   await test("HIST-000 — modifiche profilo e turno registrate automaticamente", async () => {
     const history = new HistoryRepository({ db, accountContext: context });
     const profile = await profiles.create({ displayName: "Profilo audit test" });
