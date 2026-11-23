@@ -205,6 +205,7 @@ async function run() {
       "Il repository collegato ha esposto ad account B il record di A.");
     const logout = await lifecycle.beginTransition("logout");
     lifecycle.clear(logout);
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
   });
 
   await test("DB-005 — update, revision e delete", async () => {
