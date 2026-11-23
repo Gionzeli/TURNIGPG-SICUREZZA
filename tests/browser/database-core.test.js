@@ -96,10 +96,14 @@ async function run() {
   });
   await test("DB-008 — ID duplicato preserva record originale", async () => {
     const id = `duplicate-${crypto.randomUUID()}`;
+    const history = new HistoryRepository({ db, accountContext: context });
     await profiles.create({ marker: "first" }, { id });
+    const eventsBeforeDuplicate = (await history.getEvents()).filter(item => item.data.entityId === id).length;
     let caught; try { await profiles.create({ marker: "second" }, { id }); } catch (error) { caught = error; }
     assert(Boolean(caught), "ID duplicato non ha prodotto errore.");
     assert((await profiles.getById(id))?.data.marker === "first", "Record originale alterato.");
+    const eventsAfterDuplicate = (await history.getEvents()).filter(item => item.data.entityId === id).length;
+    assert(eventsAfterDuplicate === eventsBeforeDuplicate, "Scrittura fallita ha lasciato un evento storico orfano.");
   });
 
   await test("DB-009A — repository migrazione e quarantena isolati per account", async () => {
