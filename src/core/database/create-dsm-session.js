@@ -1,6 +1,7 @@
 import { DatabaseError, DB_ERROR_CODES } from "./database-errors.js";
 import { createAccountContext } from "../account/account-context.js";
 import { createAccountLifecycleCoordinator } from "../account/account-lifecycle-coordinator.js";
+import { createAccountLifecycleCrossTabBridge } from "../account/account-lifecycle-cross-tab.js";
 import { ProfileRepository } from "../repositories/profile-repository.js";
 import { ShiftRepository } from "../repositories/shift-repository.js";
 import { AbsenceRepository } from "../repositories/absence-repository.js";
@@ -13,7 +14,10 @@ import { ShiftService } from "../services/shift-service.js";
 import { AbsenceService } from "../services/absence-service.js";
 import { HistoryService } from "../services/history-service.js";
 
-export async function createDSMCoreSession({ db, accountId } = {}) {
+export async function createDSMCoreSession({ db, accountId, crossTabChannel, tabId } = {}) {
+  if ((crossTabChannel === undefined) !== (tabId === undefined)) {
+    throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Canale e identificativo scheda devono essere forniti insieme.");
+  }
   if (!db || typeof db.transaction !== "function" || !db.objectStoreNames) {
     throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Connessione database DSM non valida.");
   }
@@ -80,12 +84,19 @@ export async function createDSMCoreSession({ db, accountId } = {}) {
   }
 
   if (accountId !== undefined) await activateLocal(accountId, "initialize");
+  const crossTabBridge = crossTabChannel
+    ? createAccountLifecycleCrossTabBridge({ lifecycleCoordinator: lifecycle, channel: crossTabChannel, tabId })
+    : null;
 
   return Object.freeze({
     accountContext,
     lifecycle,
     repositories,
     services,
+    crossTabBridge,
+    dispose() {
+      crossTabBridge?.dispose();
+    },
     switchLocalAccount(nextAccountId) {
       return activateLocal(nextAccountId, "switch");
     },
