@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -678,6 +678,28 @@ async function run() {
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
+  });
+
+  await test("HIST-000A — impostazioni registrate automaticamente e isolate per account", async () => {
+    const settings = new SettingsRepository({ db, accountContext: context });
+    const history = new HistoryRepository({ db, accountContext: context });
+    const setting = await settings.create({ preference: "compact", enabled: true });
+    await settings.update(setting.id, { enabled: false }, { expectedRevision: 1 });
+    await settings.delete(setting.id, { expectedRevision: 2 });
+    const events = (await history.getEvents()).filter(item => item.data.entityId === setting.id);
+    assert(events.length === 3, "Creazione, modifica e cancellazione impostazione non registrate.");
+    assert(events.map(item => item.data.action).join(",") === "create,update,delete",
+      "Sequenza eventi impostazione errata.");
+    assert(events[1].data.previousRevision === 1 && events[1].data.newRevision === 2,
+      "Revisioni modifica impostazione errate.");
+    assert(events[2].data.previousRevision === 2, "Revisione cancellazione impostazione errata.");
+    context.activate({ accountId: "browser-test-account-B", identitySource: "local" });
+    assert((await settings.getAll()).every(item => item.id !== setting.id), "Account B legge impostazioni di A.");
+    assert((await history.getEvents()).every(item => item.data.entityId !== setting.id),
+      "Account B legge eventi impostazione di A.");
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+    assert((await history.getEvents()).filter(item => item.data.entityId === setting.id).length === 3,
+      "Account A non ritrova lo storico impostazione.");
   });
 
   await test("HIST-000 — modifiche profilo e turno registrate automaticamente", async () => {
