@@ -49,18 +49,29 @@ const safeReason = () => "Elemento da verificare localmente.";
 const safeWarning = () => "Avviso da verificare localmente.";
 const safeField = () => "campo da verificare";
 const safeSection = () => "sezione da verificare";
+const MAX_FILES = 100;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+
+function getFileSelectionError(files) {
+  if (files.length < 1) return "Seleziona almeno un export JSON.";
+  if (files.length > MAX_FILES) return "Limite superato: massimo 100 file.";
+  if (files.some(file => file.size > MAX_FILE_BYTES)) return "Un file supera il limite di 10 MB.";
+  if (files.reduce((total, file) => total + file.size, 0) > MAX_TOTAL_BYTES) {
+    return "Dimensione complessiva superata: massimo 50 MB per tutti i file.";
+  }
+  return "";
+}
 
 fileInput.addEventListener("change", () => {
   const files = [...fileInput.files];
-  analyzeButton.disabled = files.length < 1 || files.length > 100 ||
-    files.some(file => file.size > 10 * 1024 * 1024);
+  const selectionError = getFileSelectionError(files);
+  analyzeButton.disabled = Boolean(selectionError);
   errorNode.textContent = "";
   reportNode.hidden = true;
   safeReport = null;
   if (!files.length) text(statusNode, "In attesa dei file.");
-  else if (files.length < 1) text(statusNode, "Seleziona almeno un export JSON.");
-  else if (files.length > 100) text(statusNode, "Limite superato: massimo 100 file.");
-  else if (files.some(file => file.size > 10 * 1024 * 1024)) text(statusNode, "Un file supera il limite di 10 MB.");
+  else if (selectionError) text(statusNode, selectionError);
   else text(statusNode, files.length + " file selezionati. Nessun file è stato ancora letto.");
 });
 
@@ -68,9 +79,10 @@ analyzeButton.addEventListener("click", async () => {
   const files = [...fileInput.files];
   privatePreview = null;
   renderPrivatePreview(null);
-  if (files.length < 1 || files.length > 100 || files.some(file => file.size > 10 * 1024 * 1024)) {
-    analyzeButton.disabled = files.length < 1 || files.length > 100 || files.some(file => file.size > 10 * 1024 * 1024);
-    text(statusNode, files.length > 100 ? "Limite superato: massimo 100 file." : "Un file supera il limite di 10 MB.");
+  const selectionError = getFileSelectionError(files);
+  if (selectionError) {
+    analyzeButton.disabled = true;
+    text(statusNode, selectionError);
     return;
   }
   analyzeButton.disabled = true;
