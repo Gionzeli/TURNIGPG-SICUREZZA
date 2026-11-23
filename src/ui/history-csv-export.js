@@ -2,7 +2,7 @@ const COLUMNS = ["Data e ora", "Elemento", "Azione", "Descrizione", "Revisione"]
 
 function escapeCell(value) {
   let text = String(value ?? "");
-  if (/^[=+\-@\t\r]/.test(text)) text = `'${text}`;
+  if (/^[=+\-@\t\r\n]/.test(text)) text = `'${text}`;
   return `"${text.replace(/"/g, '""')}"`;
 }
 
