@@ -137,6 +137,20 @@ async function run() {
     context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
     assert((await profiles.getById(createdProfileId))?.accountId === "browser-test-account-A", "A non ritrova il suo record.");
   });
+  await test("AUTH-002 — clear del contesto blocca accesso ma non cancella IndexedDB", async () => {
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+    const repository = new ProfileRepository({ db, accountContext: context });
+    const profile = await repository.create({ displayName: "Profilo logout sintetico" });
+    context.clear();
+    assert(context.getActive() === null, "Il contesto non è stato azzerato.");
+    let caught;
+    try { await repository.getAll(); } catch (error) { caught = error; }
+    assert(caught?.code === DB_ERROR_CODES.ACCOUNT_REQUIRED, "Il repository ha consentito accesso dopo clear.");
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+    assert((await repository.getById(profile.id))?.id === profile.id,
+      "Il logout ha cancellato inaspettatamente i dati persistenti.");
+  });
+
   await test("DB-007 — turno e persistenza dopo riapertura", async () => {
     shifts = new ShiftRepository({ db, accountContext: context });
     createdShiftId = (await shifts.create({ date: "2099-01-01", type: "TEST" })).id;
