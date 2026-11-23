@@ -91,3 +91,18 @@ La session factory conserva internamente il token opaco e la destinazione di una
 ## Limite tra schede
 
 Il coordinatore e `accountContext` sono confinati all'istanza JavaScript della singola scheda. Un cambio account in una scheda non invalida automaticamente cache, viste o operazioni pendenti in un'altra scheda che usa lo stesso IndexedDB. Non considerare questo meccanismo un isolamento multi-tab o una barriera di sicurezza: prima dell'uso operativo servono un protocollo cross-tab verificato (ad esempio BroadcastChannel con gestione dei messaggi e fallback), un modello di autenticazione server-side e test di race tra schede.
+
+
+## Bridge opzionale di invalidazione cross-tab
+
+È stato aggiunto `createAccountLifecycleCrossTabBridge({ lifecycleCoordinator, channel, tabId })`, esportato dal database core. Il bridge usa un canale di messaggistica iniettato (ad esempio un'istanza `BroadcastChannel`) e pubblica soltanto notifiche minimali di transizione: tipo, versione, identificativo scheda e sequenza. Non invia accountId, credenziali, record, turni o contenuti delle viste.
+
+- Quando una scheda avvia una transizione locale, le altre schede ricevono una notifica e, se hanno una sessione attiva, la portano a `cleared` dopo la propria pulizia locale. Non ricevono automaticamente il nuovo account: ogni scheda deve autenticarsi/attivarsi nuovamente attraverso il composition root autorizzato.
+- I messaggi provenienti dalla stessa scheda, malformati o con sequenze duplicate/obsolete vengono ignorati.
+- Se una pulizia remota fallisce, il bridge conserva il token e `retryPendingInvalidation()` permette di riprovare.
+- Se una notifica arriva mentre la scheda è già in transizione, l'invalidazione viene rinviata fino al successivo evento di attivazione; se la scheda termina in logout, è già nello stato sicuro `cleared`.
+- `createDSMCoreSession({ db, accountId, crossTabChannel, tabId })` collega il bridge solo quando il chiamante fornisce esplicitamente sia il canale sia un identificativo univoco per quella scheda. `session.dispose()` rimuove il listener.
+
+AUTH-008 usa due canali sintetici nello stesso test browser e verifica l'invalidazione A→B, l'assenza di riattivazione da messaggio duplicato e il dispose.
+
+**Limiti importanti:** il bridge è best-effort e non è una barriera di sicurezza. Richiede un canale funzionante, un `tabId` univoco per ogni scheda e un composition root che lo istanzi e gestisca le riattivazioni. Non offre persistenza delle notifiche: una scheda sospesa, offline o aperta dopo la notifica può non riceverla. Non sostituisce controlli di autorizzazione server-side, autenticazione, cifratura IndexedDB, né la gestione delle race con codice ostile same-origin. Non è stato collegato automaticamente all'app operativa o a Firebase.
