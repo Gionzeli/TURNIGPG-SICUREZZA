@@ -203,7 +203,7 @@ try {
   assert.match(filteredCsv, /"Profilo"/);
   assert.doesNotMatch(filteredCsv, /"Turno"|"Impostazione"|demo-profile/);
   await historyPage.locator("#filter-entity").selectOption("all");
-  assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/);
+  assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificata/);
   await historyPage.locator("#page-next").click();
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
     "La seconda pagina deve mostrare gli eventi rimanenti.");
@@ -216,7 +216,7 @@ try {
     "L'ordinamento crescente non mostra gli eventi più vecchi per primi.");
   assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 2/);
   await historyPage.locator("#filter-sort").selectOption("newest");
-  assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/,
+  assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificata/,
     "L'ordinamento decrescente non ripristina gli eventi più recenti.");
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3);
   await historyPage.locator("#filter-page-size").selectOption("5");
@@ -236,7 +236,7 @@ try {
     "Il ripristino a 3 eventi non è corretto.");
   assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 2/);
   assert.match(await historyPage.locator("#history-status").textContent(), /6 di 6 eventi dimostrativi/);
-  assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/);
+  assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificata/);
   assert.match(await historyPage.locator(".notice").textContent(), /eventi inventati/);
   assert.equal(historyErrors.length, 0, historyErrors.join("; "));
   assert.ok(historyRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
