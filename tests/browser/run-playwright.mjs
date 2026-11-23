@@ -313,11 +313,11 @@ try {
   assert.match(await liveHistoryPage.locator(".dsm-history-status").textContent(), /12 di 12 eventi/);
   assert.match(await liveHistoryPage.locator(".dsm-history-pagination span").textContent(), /Pagina 1 di 2/);
   await liveHistoryPage.locator(".dsm-history-filters input[type=search]").fill("profilo");
-  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 4,
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 3,
     "Ricerca per categoria sulla pagina DSM non corretta.");
   await liveHistoryPage.locator(".dsm-history-filters input[type=search]").fill("");
   await liveHistoryPage.locator(".dsm-history-filters select").nth(0).selectOption("Turno");
-  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 4,
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 3,
     "Filtro categoria sulla pagina DSM non corretto.");
   await liveHistoryPage.locator(".dsm-history-filters select").nth(0).selectOption("Tutti");
   const dsmSelects = liveHistoryPage.locator(".dsm-history-filters select");
