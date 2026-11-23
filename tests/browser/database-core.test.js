@@ -278,6 +278,11 @@ async function run() {
     lifecycleB.activateLocal(initialB, "cross-tab-account-A");
     const channelA = makeChannel();
     const channelB = makeChannel();
+    let remoteCleanupAttempts = 0;
+    lifecycleB.registerDisposable(() => {
+      remoteCleanupAttempts += 1;
+      if (remoteCleanupAttempts === 1) throw new Error("synthetic remote cleanup failure");
+    });
     const bridgeA = createAccountLifecycleCrossTabBridge({
       lifecycleCoordinator: lifecycleA, channel: channelA, tabId: "synthetic-tab-A"
     });
@@ -289,8 +294,13 @@ async function run() {
     lifecycleA.activateLocal(switching, "cross-tab-account-B");
     await new Promise(resolve => setTimeout(resolve, 0));
     assert(lifecycleA.getStatus().state === "active", "La scheda mittente non ha completato lo switch locale.");
-    assert(lifecycleB.getStatus().state === "cleared", "La scheda ricevente non ha invalidato la sessione precedente.");
-    assert(bridgeB.getStatus().pendingRemote === false, "La notifica remota è rimasta pendente.");
+    assert(lifecycleB.getStatus().state === "switching", "La scheda ricevente non è rimasta bloccata dopo cleanup fallito.");
+    assert(bridgeB.getStatus().pendingRemote && bridgeB.getStatus().cleanupPending,
+      "Il bridge non ha conservato la transizione remota da riprendere.");
+    await bridgeB.retryPendingInvalidation();
+    assert(lifecycleB.getStatus().state === "cleared", "Il retry non ha invalidato la sessione ricevente.");
+    assert(bridgeB.getStatus().pendingRemote === false && remoteCleanupAttempts === 2,
+      "Il retry cross-tab non ha completato la pulizia una sola volta.");
 
     channelA.postMessage({
       type: "dsm-account-transition", version: 1, senderId: "synthetic-tab-A", sequence: 1
