@@ -109,3 +109,10 @@ AUTH-008 usa due canali sintetici nello stesso test browser e verifica l'invalid
 
 
 Il bridge limita a 128 il numero di mittenti per cui conserva il contatore anti-replay, per evitare una crescita illimitata della memoria in presenza di messaggi non attendibili. `dispose()` rifiuta la dismissione se un'invalidazione remota è ancora pendente: prima va completata o ripetuta con `retryPendingInvalidation()`. AUTH-008 verifica anche il fallimento sintetico del primo cleanup remoto e il completamento al retry.
+
+
+## Verifica browser reale cross-tab (2026-11-23)
+
+Oltre al test con canali sintetici, il runner Playwright apre ora due pagine distinte nello stesso BrowserContext e usa il vero `BroadcastChannel` del browser. Il test avvia una transizione nella scheda A e attende che la scheda B raggiunga lo stato `cleared`, verificando che non resti un'invalidazione pendente; poi rilascia i canali e chiude il contesto browser.
+
+Il workflow GitHub Actions `DSM Core browser tests` del commit `9926587ea3330ffb789c232f1061d171f189e4fb` (run `45256232821`) è terminato con esito `success`: installazione Playwright e step `Run IndexedDB browser tests` completati. Questa verifica conferma il comportamento del bridge nel caso testato tra due pagine Chromium; non elimina i limiti best-effort descritti sopra (schede sospese/offline, notifiche non persistenti, riattivazione account demandata al composition root).
