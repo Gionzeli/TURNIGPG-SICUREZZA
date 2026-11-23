@@ -11,7 +11,7 @@ Ogni assenza contiene esclusivamente:
 - `startDate`: data ISO `YYYY-MM-DD`
 - `endDate`: data ISO `YYYY-MM-DD`
 
-Le date sono inclusive come intervallo descrittivo, senza calcolo automatico di giorni lavorativi, ore, quote o residui. La data finale non può precedere quella iniziale. Non sono previsti note, dettagli sanitari, stato di approvazione o motivazioni.
+Le date sono inclusive come intervallo descrittivo, senza calcolo automatico di giorni lavorativi, ore, quote o residui. La data finale non può precedere quella iniziale.\n\n`getInRange(startDate, endDate)` restituisce le assenze che intersecano l'intervallo richiesto. `summarizeRange()` conteggia le registrazioni e i giorni di calendario unici per tipo, limitando il conteggio all'intervallo. Segnala anche le sovrapposizioni tra assenze, senza bloccarle né decidere quale tipo prevalga. I range sono limitati a 10 anni per contenere il carico di analisi. Non sono previsti note, dettagli sanitari, stato di approvazione o motivazioni.
 
 ## Repository e audit
 
