@@ -98,20 +98,63 @@ analyzeButton.addEventListener("click", async () => {
     let result;
     if (candidates.length > 1) {
       const reconciled = inspectLegacyReconciliation(candidates);
+      // The reconciliation adapter intentionally exposes aggregate-only DTOs.
+      // Keep the report at the same privacy level: no field names, record IDs,
+      // source filenames, raw reasons, or per-record quarantine details.
+      const genericRows = (count, value) => Array.from({ length: count }, () => value);
       result = {
-        mode: reconciled.mode, sourceCount: reconciled.sourceCount,
-        migrationReadiness: reconciled.migrationReadiness, sources: reconciled.sources,
-        totals: reconciled.totals,
-        profileConflicts: reconciled.profileConflicts.map(item => ({ section: safeSection(item.section), field: safeField(item.field), sources: item.values.map(value => value.source) })),
-        extraConflicts: reconciled.extraConflicts.map(item => ({ field: safeField(item.field), sources: item.values.map(value => value.source) })),
-        identicalGroups: reconciled.identicalRecords.length, idConflictGroups: reconciled.idConflicts.length,
-        possibleDuplicateGroups: reconciled.possibleDuplicates.map(item => ({ reason: safeReason(item.reason), copies: item.copies.map(copy => ({ source: copy.source, index: copy.index })) })),
+        mode: reconciled.mode,
+        sourceCount: reconciled.sourceCount,
+        migrationReadiness: reconciled.migrationReadiness,
+        sources: reconciled.sources.map(item => ({
+          source: `Export ${item.sourceNumber}`,
+          shiftsTotal: item.shiftsTotal,
+          shiftsReady: item.shiftsReady,
+          shiftsQuarantined: item.shiftsQuarantined,
+          profileValid: item.profileValid,
+          profileErrors: item.profileErrors,
+          extrasPresent: item.extrasPresent,
+          extraSkills: item.extraSkills,
+          extraSkillsQuarantined: item.extraSkillsQuarantined,
+          extraTemplates: item.extraTemplates,
+          extraTemplatesQuarantined: item.extraTemplatesQuarantined,
+          extraMonthlyValues: item.extraMonthlyValues,
+          warnings: item.warningCount,
+          importable: item.importable
+        })),
+        profileConflicts: genericRows(reconciled.conflicts.profileDifferences, {
+          section: "Profilo", field: "Differenze aggregate", sources: ["Fonti multiple"]
+        }),
+        extraConflicts: genericRows(reconciled.conflicts.extraDifferences, {
+          field: "Differenze aggregate", sources: ["Fonti multiple"]
+        }),
+        identicalGroups: reconciled.conflicts.identicalShiftGroups,
+        idConflictGroups: reconciled.conflicts.shiftIdConflicts,
+        possibleDuplicateGroups: genericRows(reconciled.conflicts.possibleDuplicateGroups, {
+          reason: safeReason(), copies: []
+        }),
         quarantine: reconciled.quarantine,
-        quarantinedShifts: reconciled.quarantinedShifts.map(item => ({ ...item, reason: safeReason(item.reason) })),
-        quarantinedTemplates: reconciled.quarantinedTemplates.map(item => ({ ...item, reason: safeReason(item.reason) })),
-        quarantinedSkills: reconciled.quarantinedSkills.map(item => ({ ...item, reason: safeReason(item.reason) })),
-        warnings: reconciled.warnings.map(safeWarning), writesPerformed: reconciled.writesPerformed,
-        automaticMergePerformed: reconciled.automaticMergePerformed
+        quarantinedShifts: genericRows(reconciled.quarantine.shifts, {
+          source: "Fonti multiple", index: "—", reason: safeReason()
+        }),
+        quarantinedTemplates: genericRows(reconciled.quarantine.templates, {
+          source: "Fonti multiple", index: "—", reason: safeReason()
+        }),
+        quarantinedSkills: genericRows(reconciled.quarantine.skills, {
+          source: "Fonti multiple", index: "—", reason: safeReason()
+        }),
+        warnings: genericRows(reconciled.warningCount, safeWarning()),
+        writesPerformed: reconciled.writesPerformed,
+        automaticMergePerformed: reconciled.automaticMergePerformed,
+        totals: {
+          shiftsReady: reconciled.totals.shiftsReady,
+          identicalGroups: reconciled.totals.identicalGroups,
+          idConflictGroups: reconciled.totals.idConflictGroups,
+          possibleDuplicateGroups: reconciled.totals.possibleDuplicateGroups,
+          profileConflictFields: reconciled.totals.profileConflictCount,
+          extraConflictFields: reconciled.totals.extraConflictCount,
+          sourcesWithWarnings: reconciled.totals.sourcesWithWarnings
+        }
       };
     } else {
       const candidate = candidates[0];
