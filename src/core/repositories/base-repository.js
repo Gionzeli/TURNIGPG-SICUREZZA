@@ -50,16 +50,44 @@ function validateData(data) {
 }
 
 export class BaseRepository {
-  constructor({ db, accountContext, storeName, clock = () => new Date().toISOString() }) {
+  constructor({ db, accountContext, storeName, clock = () => new Date().toISOString(), lifecycleCoordinator = null }) {
     if (!db || !storeName) throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Database e object store sono obbligatori.");
     if (!db.objectStoreNames.contains(storeName)) throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, `Object store non disponibile: ${storeName}.`);
     this.db = db;
     this.accountContext = accountContext;
     this.storeName = storeName;
     this.clock = clock;
+    if (lifecycleCoordinator && (
+      typeof lifecycleCoordinator.capture !== "function" ||
+      typeof lifecycleCoordinator.isCurrent !== "function" ||
+      typeof lifecycleCoordinator.registerDisposable !== "function"
+    )) throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Coordinatore lifecycle non valido.");
+    this.lifecycleCoordinator = lifecycleCoordinator;
+  }
+
+  _captureLifecycle() {
+    if (!this.lifecycleCoordinator) return null;
+    const capture = this.lifecycleCoordinator.capture();
+    const active = requireAccountContext(this.accountContext);
+    if (capture.accountId !== active.accountId || !this.lifecycleCoordinator.isCurrent(capture)) {
+      throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Contesto account non più corrente.");
+    }
+    return capture;
+  }
+
+  _assertLifecycleCurrent(capture) {
+    if (capture && !this.lifecycleCoordinator.isCurrent(capture)) {
+      throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Operazione invalidata dal cambio account.");
+    }
+  }
+
+  _trackTransaction(transaction) {
+    if (!this.lifecycleCoordinator) return () => {};
+    return this.lifecycleCoordinator.registerDisposable(() => abortTransaction(transaction));
   }
 
   async create(data, options = {}) {
+    const lifecycleCapture = this._captureLifecycle();
     const { accountId } = requireAccountContext(this.accountContext);
     validateData(data);
     const id = options.id === undefined ? createId() : options.id;
@@ -70,6 +98,7 @@ export class BaseRepository {
     const storeNames = entityType ? [this.storeName, "history"] : [this.storeName];
     const transaction = this.db.transaction(storeNames, "readwrite");
     const done = transactionToPromise(transaction);
+    const untrack = this._trackTransaction(transaction);
     const request = transaction.objectStore(this.storeName).add(record);
     if (entityType) {
       transaction.objectStore("history").add(createHistoryRecord({
@@ -80,15 +109,17 @@ export class BaseRepository {
     try {
       await requestToPromise(request);
       await done;
+      this._assertLifecycleCurrent(lifecycleCapture);
       return record;
     } catch (error) {
       abortTransaction(transaction);
       await done.catch(() => {});
       throw toDatabaseError(error);
-    }
+    } finally { untrack(); }
   }
 
   async getById(id) {
+    const lifecycleCapture = this._captureLifecycle();
     const { accountId } = requireAccountContext(this.accountContext);
     validateId(id);
     const transaction = this.db.transaction([this.storeName], "readonly");
@@ -97,11 +128,13 @@ export class BaseRepository {
     try {
       const record = await requestToPromise(request);
       await done;
+      this._assertLifecycleCurrent(lifecycleCapture);
       return record || null;
     } catch (error) { throw toDatabaseError(error); }
   }
 
   async getAll() {
+    const lifecycleCapture = this._captureLifecycle();
     const { accountId } = requireAccountContext(this.accountContext);
     const transaction = this.db.transaction([this.storeName], "readonly");
     const done = transactionToPromise(transaction);
@@ -109,11 +142,13 @@ export class BaseRepository {
     try {
       const records = await requestToPromise(request);
       await done;
+      this._assertLifecycleCurrent(lifecycleCapture);
       return records;
     } catch (error) { throw toDatabaseError(error); }
   }
 
   async update(id, changes, options = {}) {
+    const lifecycleCapture = this._captureLifecycle();
     const { accountId } = requireAccountContext(this.accountContext);
     validateId(id);
     validateData(changes);
@@ -126,6 +161,7 @@ export class BaseRepository {
     const storeNames = entityType ? [this.storeName, "history"] : [this.storeName];
     const transaction = this.db.transaction(storeNames, "readwrite");
     const done = transactionToPromise(transaction);
+    const untrack = this._trackTransaction(transaction);
     const store = transaction.objectStore(this.storeName);
     const historyStore = entityType ? transaction.objectStore("history") : null;
     const request = store.index("accountId_id").get([accountId, id]);
@@ -133,6 +169,11 @@ export class BaseRepository {
     let operationError = null;
 
     request.onsuccess = () => {
+      if (lifecycleCapture && !this.lifecycleCoordinator.isCurrent(lifecycleCapture)) {
+        operationError = new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Operazione invalidata dal cambio account.");
+        abortTransaction(transaction);
+        return;
+      }
       const current = request.result;
       if (!current) return;
       if (expectedRevision !== undefined && current.revision !== expectedRevision) {
@@ -158,16 +199,18 @@ export class BaseRepository {
 
     try {
       await done;
+      this._assertLifecycleCurrent(lifecycleCapture);
       return updated;
     } catch (error) {
       abortTransaction(transaction);
       await done.catch(() => {});
       if (operationError) throw operationError;
       throw toDatabaseError(error);
-    }
+    } finally { untrack(); }
   }
 
   async delete(id, options = {}) {
+    const lifecycleCapture = this._captureLifecycle();
     const { accountId } = requireAccountContext(this.accountContext);
     validateId(id);
     const expectedRevision = options.expectedRevision;
@@ -179,12 +222,18 @@ export class BaseRepository {
     const storeNames = entityType ? [this.storeName, "history"] : [this.storeName];
     const transaction = this.db.transaction(storeNames, "readwrite");
     const done = transactionToPromise(transaction);
+    const untrack = this._trackTransaction(transaction);
     const store = transaction.objectStore(this.storeName);
     const historyStore = entityType ? transaction.objectStore("history") : null;
     const request = store.index("accountId_id").get([accountId, id]);
     let deleted = false;
     let operationError = null;
     request.onsuccess = () => {
+      if (lifecycleCapture && !this.lifecycleCoordinator.isCurrent(lifecycleCapture)) {
+        operationError = new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Operazione invalidata dal cambio account.");
+        abortTransaction(transaction);
+        return;
+      }
       const current = request.result;
       if (!current) return;
       if (expectedRevision !== undefined && current.revision !== expectedRevision) {
@@ -203,12 +252,13 @@ export class BaseRepository {
     };
     try {
       await done;
+      this._assertLifecycleCurrent(lifecycleCapture);
       return deleted;
     } catch (error) {
       abortTransaction(transaction);
       await done.catch(() => {});
       if (operationError) throw operationError;
       throw toDatabaseError(error);
-    }
+    } finally { untrack(); }
   }
 }
