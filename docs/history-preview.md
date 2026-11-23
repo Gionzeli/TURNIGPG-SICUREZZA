@@ -22,7 +22,7 @@ Il file dimostrativo si chiama `cronologia-demo.csv` ed è generato localmente n
 
 I campi sono racchiusi tra virgolette e le virgolette interne vengono raddoppiate. I valori che iniziano con `=`, `+`, `-`, `@`, tab o ritorno carrello ricevono un apostrofo iniziale per ridurre il rischio di interpretazione come formula nei fogli di calcolo. Il file include il BOM UTF-8 per favorire la corretta lettura dei caratteri italiani.
 
-L'esportazione usa il serializzatore condiviso `src/ui/history-csv-export.js`. I valori che possono essere interpretati come formule sono prefissati da un apostrofo prima dell'escaping CSV; i campi restano correttamente racchiusi tra virgolette anche in presenza di virgolette o virgole interne. Il runner include casi sintetici per i prefissi `=`, `+`, `-`, `@`, tab e ritorno carrello e per le virgolette interne.
+L'esportazione usa il serializzatore condiviso `src/ui/history-csv-export.js`. I valori che possono essere interpretati come formule sono prefissati da un apostrofo prima dell'escaping CSV; i campi restano correttamente racchiusi tra virgolette anche in presenza di virgolette o virgole interne. Il runner include casi sintetici per i prefissi `=`, `+`, `-`, `@`, tab, ritorno carrello e nuova riga e per le virgolette interne.
 
 L'esportazione non carica il CSV su alcun servizio remoto. Il contenuto è limitato agli eventi sintetici mostrati dalla demo.
 
