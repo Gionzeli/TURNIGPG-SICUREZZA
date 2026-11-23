@@ -337,7 +337,21 @@ try {
   assert.equal(liveHistoryErrors.length, 0, liveHistoryErrors.join("; "));
   assert.ok(liveHistoryRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
     "La pagina cronologia DSM ha effettuato richieste esterne.");
-  console.log("PASS — DSM history page: HistoryService integration, filters, pagination, safe CSV export, no external requests");
+  const lifecycle = await liveHistoryPage.evaluate(() => {
+    const controller = window.__historyPageController;
+    const searchControl = window.__historySearchControl;
+    const statusNode = window.__historyStatusNode;
+    const previousStatus = statusNode.textContent;
+    controller.destroy();
+    controller.destroy();
+    const containerCleared = document.querySelector("#history-root").childElementCount === 0;
+    searchControl.value = "turno";
+    searchControl.dispatchEvent(new Event("input", { bubbles: true }));
+    return { containerCleared, listenerRemoved: statusNode.textContent === previousStatus };
+  });
+  assert.equal(lifecycle.containerCleared, true, "destroy() deve svuotare il contenitore.");
+  assert.equal(lifecycle.listenerRemoved, true, "destroy() deve rimuovere i listener.");
+  console.log("PASS — DSM history page: HistoryService integration, filters, pagination, safe CSV export, destroy lifecycle, no external requests");
   await liveHistoryPage.close();
 
   console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
