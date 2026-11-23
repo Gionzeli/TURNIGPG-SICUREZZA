@@ -143,8 +143,25 @@ try {
   await historyPage.goto("http://127.0.0.1:8000/tests/browser/history-preview.html", { waitUntil: "load" });
   await historyPage.waitForFunction(() => document.documentElement.dataset.previewResult === "pass" ||
     document.documentElement.dataset.previewResult === "fail");
-  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 6,
-    "L'anteprima non mostra i sei eventi dimostrativi.");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
+    "La prima pagina deve mostrare tre eventi.");
+  assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 2/);
+  assert.equal(await historyPage.locator("#page-previous").isDisabled(), true);
+  assert.equal(await historyPage.locator("#page-next").isDisabled(), false);
+  assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/);
+  await historyPage.locator("#page-next").click();
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
+    "La seconda pagina deve mostrare gli eventi rimanenti.");
+  assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 2 di 2/);
+  assert.equal(await historyPage.locator("#page-next").isDisabled(), true);
+  await historyPage.locator("#filter-sort").selectOption("oldest");
+  assert.match(await historyPage.locator("#history-events").textContent(), /Turno creato/,
+    "L'ordinamento crescente non mostra gli eventi più vecchi per primi.");
+  assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 2/);
+  await historyPage.locator("#filter-sort").selectOption("newest");
+  assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/,
+    "L'ordinamento decrescente non ripristina gli eventi più recenti.");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3);
   assert.match(await historyPage.locator("#history-status").textContent(), /6 di 6 eventi dimostrativi/);
   assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/);
   assert.match(await historyPage.locator("#history-events").textContent(), /Profilo modificato/);
@@ -178,8 +195,9 @@ try {
     "Intervallo date invertito non bloccato.");
   assert.match(await historyPage.locator("#history-status").textContent(), /intervallo non valido/i);
   await historyPage.locator("#clear-filters").click();
-  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 6,
-    "Azzera filtri non ripristina tutti gli eventi.");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
+    "Azzera filtri non ripristina la prima pagina degli eventi.");
+  assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 2/);
   assert.match(await historyPage.locator("#history-status").textContent(), /6 di 6/);
   await historyPage.locator("#filter-search").fill("profilo");
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 2,
