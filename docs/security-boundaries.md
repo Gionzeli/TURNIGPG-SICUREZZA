@@ -92,3 +92,10 @@ Questi controlli limitano gli stati fuorvianti nel prototipo; non costituiscono 
 Il repository impostazioni non definisce ancora un catalogo funzionale dei singoli parametri. Per ridurre il rischio di persistenza accidentale di payload complessi, ora accetta soltanto oggetti semplici con un massimo di 30 proprietà, nomi chiave in formato tecnico limitato e valori primitivi: stringhe fino a 256 caratteri, numeri finiti, booleani o `null`. Oggetti annidati, array, valori numerici non finiti e chiavi non conformi vengono rifiutati.
 
 Questa è una protezione strutturale, non una classificazione semantica dei dati: una stringa breve può comunque contenere un dato personale. Non inserire dati personali, retributivi, credenziali o contenuti operativi nelle impostazioni. Prima dell'uso reale occorre definire un catalogo esplicito delle preferenze ammesse, con finalità, retention e classificazione dei dati.
+
+
+## Report di riconciliazione legacy — minimizzazione dell'output
+
+La funzione `inspectLegacyReconciliation()` confronta internamente snapshot esportati, ma il risultato pubblico è limitato a conteggi e categorie generiche. Non restituisce etichette delle fonti, identificativi legacy, nomi dinamici dei campi, valori dei parametri, dettagli dei turni o contenuti delle voci in quarantena. I riferimenti originali restano confinati all'elaborazione locale e non sono inclusi nel report.
+
+La riconciliazione resta read-only: non seleziona una fonte vincente, non fonde record e mantiene `automaticImportAllowed: false`. I test browser verificano che il report non esponga nomi di campi e identificativi sintetici oltre ai conteggi aggregati.
