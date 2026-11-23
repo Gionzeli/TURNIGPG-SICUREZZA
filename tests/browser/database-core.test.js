@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -748,6 +748,31 @@ async function run() {
     try { await history.getRecentEvents(201); } catch (error) { invalidLimit = error; }
     assert(invalidFilter?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Filtro non valido accettato.");
     assert(invalidLimit?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Limite eccessivo accettato.");
+  });
+
+  await test("HIST-000C — servizio storico presenta eventi senza dati interni", async () => {
+    const historyRepository = new HistoryRepository({ db, accountContext: context });
+    const historyService = new HistoryService({ repository: historyRepository });
+    const profile = await profiles.create({ displayName: "Profilo non esposto nello storico" });
+    await profiles.update(profile.id, { displayName: "Nome modificato" }, { expectedRevision: 1 });
+    const events = await historyService.getEventsForEntity("profile", profile.id);
+    assert(events.length === 2, "Il servizio non restituisce gli eventi attesi.");
+    assert(events[0].entityLabel === "Profilo" && events[0].actionLabel === "Creato",
+      "Etichette evento creazione errate.");
+    assert(events[1].actionLabel === "Modificato" && events[1].previousRevision === 1 &&
+      events[1].newRevision === 2, "Descrizione o revisioni modifica errate.");
+    assert(typeof events[0].occurredAt === "string" && events[0].description === "Profilo creato",
+      "Data o descrizione leggibile mancante.");
+    assert(events.every(event => !Object.hasOwn(event, "entityId") &&
+      !Object.hasOwn(event, "data") && !Object.hasOwn(event, "raw") &&
+      !Object.hasOwn(event, "payload")), "Il servizio espone identificativi o payload interni.");
+    const recent = await historyService.getRecentEvents(10);
+    assert(recent.length <= 10 && recent.some(event => event.description === "Profilo modificato"),
+      "Consultazione recente del servizio non funzionante.");
+    let frozen = false;
+    try { events[0].description = "Alterato"; } catch { frozen = true; }
+    assert(Object.isFrozen(events) && (frozen || events[0].description === "Profilo creato"),
+      "Risultati del servizio non protetti da modifiche accidentali.");
   });
 
   await test("HIST-001 — registra evento storico sanitizzato", async () => {
