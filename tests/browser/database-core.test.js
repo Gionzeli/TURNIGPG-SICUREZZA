@@ -260,6 +260,19 @@ async function run() {
       await session.lifecycle.clear({});
     } catch { prematureClearBlocked = true; }
     assert(prematureClearBlocked, "Il coordinatore ha consentito clear senza token/cleanup valido.");
+
+    const guardContext = createAccountContext();
+    const guardLifecycle = createAccountLifecycleCoordinator({ accountContext: guardContext });
+    const guardToken = await guardLifecycle.beginTransition("initialize");
+    guardLifecycle.registerDisposable(() => { throw new Error("synthetic guarded cleanup failure"); });
+    let guardedClearBlocked = false;
+    try { guardLifecycle.clear(guardToken); } catch { guardedClearBlocked = true; }
+    assert(guardedClearBlocked && guardLifecycle.getStatus().state === "switching",
+      "clear(token) ha ignorato cleanupComplete=false.");
+    assert(await guardLifecycle.retryCleanup(guardToken), "Il retry della pulizia di guardia non è riuscito.");
+    guardLifecycle.clear(guardToken);
+    assert(guardLifecycle.getStatus().state === "cleared", "clear dopo cleanup riuscito non ha funzionato.");
+
     const logoutStatus = await session.resumePendingTransition();
     assert(logoutStatus.state === "cleared", "Il retry del logout non ha completato la pulizia.");
     assert(logoutAttempts === 2, "Il cleanup del logout non è stato ripetuto una sola volta.");
