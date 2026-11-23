@@ -18,14 +18,15 @@ Questo pacchetto introduce un primo nucleo IndexedDB isolato dal runtime legacy.
 - `src/core/repositories/base-repository.js`: operazioni CRUD con scope account e controllo concorrenza ottimistico su update/delete.
 - `src/core/repositories/profile-repository.js`: repository profili.
 - `src/core/repositories/shift-repository.js`: repository turni.
+- `src/core/repositories/absence-repository.js` e `src/core/services/absence-service.js`: archivio separato e validazione delle assenze.
 - `src/core/services/service-validation.js`: validazione condivisa di oggetti, date e revisioni.
 - `src/core/services/profile-service.js`: normalizzazione e validazione di parametri retributivi e dati profilo.
 - `src/core/services/shift-service.js`: validazione di date, tipi turno, orari, flag e ore.
 - `src/core/legacy/legacy-read-adapter.js`: analisi read-only degli snapshot `tg_online_v1`/`tg_extra_v1` e inventario delle copie di backup, chiavi per-utente, storico, formazione e contenitori cifrati.
 
-## Schema v1
+## Schema v2
 
-Object store: `accounts`, `profiles`, `settings`, `shifts`, `history`, `migration_jobs`, `migration_quarantine`, `schema_metadata`.
+Object store: `accounts`, `profiles`, `settings`, `shifts`, `absences`, `history`, `migration_jobs`, `migration_quarantine`, `schema_metadata`. La versione 2 aggiunge `absences` con upgrade non distruttivo dallo schema v1.
 
 Gli store applicativi hanno chiavi account e indice composto `accountId_id`. I record applicativi hanno forma:
 
