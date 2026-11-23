@@ -737,6 +737,12 @@ async function run() {
       "Gli eventi della stessa entità non sono ordinati cronologicamente.");
     const recent = await history.getRecentEvents(2);
     assert(recent.length <= 2, "Il limite della cronologia recente non è rispettato.");
+    const allRecentForEntity = (await history.getRecentEvents(200))
+      .filter(event => event.data.entityId === profile.id);
+    assert(allRecentForEntity.length === 2 &&
+      allRecentForEntity[0].data.action === "update" &&
+      allRecentForEntity[1].data.action === "create",
+      "La cronologia recente non ordina gli eventi della stessa entità dal più nuovo.");
     let invalidFilter, invalidLimit;
     try { await history.getEventsForEntity("unknown", profile.id); } catch (error) { invalidFilter = error; }
     try { await history.getRecentEvents(201); } catch (error) { invalidLimit = error; }
