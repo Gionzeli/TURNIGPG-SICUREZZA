@@ -37,10 +37,21 @@
             <option value="Eliminato">Eliminato</option>
           </select>
         </label>
+        <label for="filter-sort">Ordine
+          <select id="filter-sort">
+            <option value="newest">Più recenti</option>
+            <option value="oldest">Più vecchi</option>
+          </select>
+        </label>
         <button id="clear-filters" type="button">Azzera filtri</button>
       </div>
       <p id="history-status" role="status" aria-live="polite">Caricamento anteprima…</p>
       <div id="history-events"></div>
+      <nav id="history-pagination" class="pagination" aria-label="Pagine cronologia">
+        <button id="page-previous" type="button" disabled>Precedente</button>
+        <span id="page-indicator" aria-live="polite">Pagina 1 di 1</span>
+        <button id="page-next" type="button" disabled>Successiva</button>
+      </nav>
     </section>
     <footer>Modalità dimostrativa · nessun database aperto · nessuna sincronizzazione</footer>
   </main>
