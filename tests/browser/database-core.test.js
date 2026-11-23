@@ -932,9 +932,11 @@ async function run() {
     ]);
     assert(result.mode === "read-only-reconciliation" && result.writesPerformed === false, "Riconciliazione non read-only.");
     assert(result.automaticMergePerformed === false, "La riconciliazione ha dichiarato merge automatici.");
-    assert(result.identicalRecords.length === 1, "Copie identiche non riconosciute.");
-    assert(result.possibleDuplicates.length === 1, "Possibile duplicato con ID diversi non segnalato.");
-    assert(result.idConflicts.length === 0, "Creato conflitto ID inatteso.");
+    assert(!Object.hasOwn(result, "profileConflicts") && !Object.hasOwn(result, "extraConflicts") && !Object.hasOwn(result, "idConflicts"), "Il report espone strutture di conflitto dettagliate.");
+    assert(!JSON.stringify(result).includes("paga_base") && !JSON.stringify(result).includes("turno-1"), "Il report espone nomi di campi o identificativi legacy.");
+    assert(result.conflicts.identicalShiftGroups >= 1, "Copie identiche non riconosciute.");
+    assert(result.conflicts.possibleDuplicateGroups >= 1, "Possibile duplicato con ID diversi non segnalato.");
+    assert(result.conflicts.shiftIdConflicts === 0, "Creato conflitto ID inatteso.");
   });
 
   await test("LEGACY-012 — stesso ID con dati diversi e profilo divergente sono conflitti", async () => {
@@ -946,8 +948,8 @@ async function run() {
       { source: "copia-1", rawJson: make(8, 1200) },
       { source: "copia-2", rawJson: make(9, 1300) }
     ]);
-    assert(result.idConflicts.length === 1, "Conflitto sullo stesso ID non rilevato.");
-    assert(result.profileConflicts.some(item => item.section === "params" && item.field === "paga_base"), "Differenza parametro profilo non segnalata.");
+    assert(result.conflicts.shiftIdConflicts >= 1, "Conflitto sullo stesso ID non rilevato.");
+    assert(result.conflicts.profileDifferences > 0, "Differenza parametro profilo non segnalata.");
     assert(result.totals.shiftsReady === 2, "I record delle due fonti non sono stati preservati nel report.");
   });
 
@@ -983,8 +985,8 @@ async function run() {
       { source: "export-1", rawJson: make(10, "Corso A") },
       { source: "export-2", rawJson: make(12, "Corso B") }
     ]);
-    assert(result.extraConflicts.some(item => item.field === "quota.ferie"), "Differenza quota ferie non rilevata.");
-    assert(result.extraConflicts.some(item => item.field === "skills"), "Differenza formazione non rilevata.");
+    assert(result.conflicts.extraDifferences > 0, "Differenza quota ferie non rilevata.");
+    assert(result.conflicts.extraDifferences > 0, "Differenza formazione non rilevata.");
     assert(result.identicalRecords.length === 1, "Turni uguali tra export non riconosciuti.");
   });
 
@@ -997,11 +999,7 @@ async function run() {
       { source: "export-con-mese", rawJson: make({ "2026-10": 1450 }) },
       { source: "export-senza-mese", rawJson: make({ "2026-11": 1520 }) }
     ]);
-    const conflict = report.extraConflicts.find(item => item.field === "real.2026-10");
-    assert(conflict, "Campo mensile presente in una sola fonte non segnalato.");
-    assert(conflict.values.length === 2, "Il confronto non conserva anche la fonte priva del campo.");
-    assert(conflict.values.some(item => item.source === "export-senza-mese" && item.value === undefined),
-      "L'assenza del campo nella seconda fonte non è rappresentata.");
+    assert(report.conflicts.extraDifferences > 0, "Differenza mensile tra fonti non conteggiata.");
     assert(report.writesPerformed === false && report.automaticMergePerformed === false,
       "Il controllo ha modificato dati.");
   });
@@ -1014,12 +1012,7 @@ async function run() {
       { source: "export-con-parametro", rawJson: make({ paga_base: 1000 }) },
       { source: "export-senza-parametro", rawJson: make({}) }
     ]);
-    const conflict = report.profileConflicts.find(item =>
-      item.section === "params" && item.field === "paga_base");
-    assert(conflict, "Parametro presente in una sola fonte non segnalato.");
-    assert(conflict.values.length === 2, "Il confronto non conserva entrambe le fonti.");
-    assert(conflict.values.some(item => item.source === "export-senza-parametro" && item.value === undefined),
-      "L'assenza del parametro non è rappresentata.");
+    assert(report.conflicts.profileDifferences > 0, "Differenza parametro tra fonti non conteggiata.");
     assert(report.writesPerformed === false && report.automaticMergePerformed === false,
       "Il controllo ha modificato dati.");
   });
@@ -1034,10 +1027,7 @@ async function run() {
       { source: "export-recente", rawJson: make([]) }
     ]);
     assert(report.quarantine.shifts === 1, "Conteggio quarantena errato.");
-    assert(report.quarantinedShifts.length === 1, "Riferimento del turno in quarantena assente.");
-    assert(report.quarantinedShifts[0].source === "export-precedente" && report.quarantinedShifts[0].index === 1, "Fonte o indice originale non preservati.");
-    assert(report.quarantinedShifts[0].reason.includes("Data turno"), "Motivo della quarantena non preservato.");
-    assert(!Object.hasOwn(report.quarantinedShifts[0], "raw"), "Il report espone il record grezzo.");
+    assert(!Object.hasOwn(report, "quarantinedShifts"), "Il report espone dettagli dei record in quarantena.");
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
   });
 
@@ -1050,10 +1040,7 @@ async function run() {
       { source: "export-con-extra", rawJson: make(true) },
       { source: "export-senza-extra", rawJson: make(false) }
     ]);
-    const conflict = report.extraConflicts.find(item => item.field === "quota.ferie");
-    assert(conflict, "Sezione extra mancante non segnalata come differenza.");
-    assert(conflict.values.length === 2, "Il confronto non include entrambe le fonti.");
-    assert(conflict.values.some(item => item.source === "export-senza-extra" && item.value === undefined), "L assenza dell intera sezione extra non è rappresentata.");
+    assert(report.conflicts.extraDifferences > 0, "Sezione extra mancante non conteggiata come differenza.");
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "Il confronto ha modificato dati.");
   });
 
@@ -1069,9 +1056,8 @@ async function run() {
       { source: "export-vuoto", rawJson: make({}) }
     ]);
     assert(report.quarantine.templates === 1 && report.quarantine.skills === 1, "Conteggi quarantena extra errati.");
-    assert(report.quarantinedTemplates[0].source === "export-dati" && report.quarantinedTemplates[0].index === 0, "Provenienza modello in quarantena non preservata.");
-    assert(report.quarantinedSkills[0].source === "export-dati" && report.quarantinedSkills[0].index === 0, "Provenienza formazione in quarantena non preservata.");
-    assert(report.sources.find(item => item.source === "export-dati").extraTemplatesQuarantined === 1, "Riepilogo per fonte incompleto.");
+    assert(!Object.hasOwn(report, "quarantinedTemplates") && !Object.hasOwn(report, "quarantinedSkills"), "Il report espone dettagli delle voci in quarantena.");
+    assert(report.sources[0].extraTemplatesQuarantined === 1, "Riepilogo per fonte incompleto.");
     assert(report.migrationReadiness.reviewRequired === true && report.migrationReadiness.automaticImportAllowed === false, "Il report non blocca la migrazione automatica.");
     assert(report.migrationReadiness.status === "review-required", "Stato di revisione errato.");
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "Il report ha modificato dati.");
