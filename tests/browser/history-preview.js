@@ -53,6 +53,7 @@ function filterEvents(events) {
   if (from && to && from > to) {
     status.textContent = "Intervallo non valido: la data iniziale supera quella finale.";
     lastFilteredEvents = [];
+    controls.export.disabled = true;
     container.replaceChildren();
     pagination.previous.disabled = true;
     pagination.next.disabled = true;
@@ -73,6 +74,7 @@ function filterEvents(events) {
     return controls.sort.value === "oldest" ? stableOrder : -stableOrder;
   });
   lastFilteredEvents = filtered;
+  controls.export.disabled = filtered.length === 0;
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   currentPage = Math.min(currentPage, pageCount);
   const start = (currentPage - 1) * pageSize;
