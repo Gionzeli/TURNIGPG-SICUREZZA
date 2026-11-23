@@ -108,18 +108,19 @@ try {
     const columns = ["Data e ora", "Elemento", "Azione", "Descrizione", "Revisione"];
     const escapeCell = value => {
       let text = String(value ?? "");
-      if (/^[=+\\-@\\t\\r]/.test(text)) text = `"'${text}`;
+      if (/^[=+\-@\t\r]/.test(text)) text = `"'${text}`;
       return `"${text.replace(/"/g, '""')}"`;
     };
     const rows = lastFilteredEvents.map(event => [event.occurredAt, event.entityLabel, event.actionLabel, event.description, event.revision]);
-    const csv = [columns, ...rows].map(row => row.map(escapeCell).join(",")).join("\\r\\n");
-    const blob = new Blob(["\\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const csv = [columns, ...rows].map(row => row.map(escapeCell).join(",")).join("\r\\n");
+    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.download = "cronologia-demo.csv";
     link.click();
-    URL.revokeObjectURL(url);
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
     status.textContent = `Esportati ${rows.length} eventi dimostrativi filtrati.`;
   });
   controls.clear.addEventListener("click", () => {
