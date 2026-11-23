@@ -51,7 +51,7 @@ function matches(event, filters) {
  * Il chiamante deve fornire un servizio già associato all'account autorizzato.
  * Restituisce destroy() per rimuovere listener e contenuto.
  */
-export async function mountHistoryPage(container, { historyService, pageSize = 25 } = {}) {
+export async function mountHistoryPage(container, { historyService, pageSize = 25, lifecycleCoordinator = null } = {}) {
   if (!container || typeof container.replaceChildren !== "function") {
     throw new TypeError("Contenitore cronologia non valido.");
   }
@@ -59,6 +59,12 @@ export async function mountHistoryPage(container, { historyService, pageSize = 2
     throw new TypeError("HistoryService non disponibile.");
   }
   if (!PAGE_SIZES.includes(pageSize)) throw new TypeError("Dimensione pagina non valida.");
+  if (lifecycleCoordinator && (
+    typeof lifecycleCoordinator.capture !== "function" ||
+    typeof lifecycleCoordinator.isCurrent !== "function" ||
+    typeof lifecycleCoordinator.subscribe !== "function"
+  )) throw new TypeError("Coordinatore lifecycle non valido.");
+  const lifecycleCapture = lifecycleCoordinator ? lifecycleCoordinator.capture() : null;
 
   const heading = element("h1", {}, "Cronologia delle modifiche");
   const description = element("p", { className: "dsm-history-intro" },
@@ -97,6 +103,8 @@ export async function mountHistoryPage(container, { historyService, pageSize = 2
   let currentPage = 1;
   let destroyed = false;
   const listeners = [];
+  let unsubscribeLifecycle = null;
+  let destroyedHandle = false;
   const on = (node, eventName, callback) => {
     node.addEventListener(eventName, callback);
     listeners.push(() => node.removeEventListener(eventName, callback));
@@ -164,25 +172,42 @@ export async function mountHistoryPage(container, { historyService, pageSize = 2
     status.textContent = `Esportati ${filtered.length} eventi filtrati.`;
   });
 
+  function destroy() {
+    if (destroyed) return;
+    destroyed = true;
+    listeners.forEach(remove => remove());
+    unsubscribeLifecycle?.();
+    unsubscribeLifecycle = null;
+    container.replaceChildren();
+  }
+
+  if (lifecycleCoordinator) {
+    unsubscribeLifecycle = lifecycleCoordinator.subscribe(event => {
+      if (event.type === "transition-start" || event.type === "context-cleared") destroy();
+    });
+  }
+
   try {
     events = await historyService.getRecentEvents(200);
-    if (!Array.isArray(events)) throw new TypeError("Risposta cronologia non valida.");
-    render();
+    if (destroyed || (lifecycleCapture && !lifecycleCoordinator.isCurrent(lifecycleCapture))) {
+      destroy();
+      destroyedHandle = true;
+    } else {
+      if (!Array.isArray(events)) throw new TypeError("Risposta cronologia non valida.");
+      render();
+    }
   } catch {
-    status.textContent = "Impossibile caricare la cronologia. Verifica l'accesso e riprova.";
+    if (destroyed) destroyedHandle = true;
+    if (!destroyed) status.textContent = "Impossibile caricare la cronologia. Verifica l'accesso e riprova.";
     eventsNode.replaceChildren();
     exportButton.disabled = true;
     previous.disabled = true;
     next.disabled = true;
-    throw new Error("Caricamento cronologia DSM non riuscito.");
+    if (!destroyed) {
+      destroy();
+      throw new Error("Caricamento cronologia DSM non riuscito.");
+    }
   }
 
-  return Object.freeze({
-    refresh,
-    destroy() {
-      destroyed = true;
-      listeners.forEach(remove => remove());
-      container.replaceChildren();
-    }
-  });
+  return Object.freeze({ refresh, get destroyed() { return destroyed || destroyedHandle; }, destroy });
 }
