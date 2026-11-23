@@ -1,4 +1,5 @@
 import { HistoryService } from "../../src/core/services/history-service.js";
+import { createAccountContext, createAccountLifecycleCoordinator } from "../../src/core/database/index.js";
 import { mountHistoryPage } from "../../src/ui/history-page.js";
 
 const sampleEvents = Array.from({ length: 12 }, (_, index) => {
@@ -27,6 +28,28 @@ try {
     historyService: new HistoryService({ repository }),
     pageSize: 10
   });
+
+  const context = createAccountContext();
+  const lifecycle = createAccountLifecycleCoordinator({ accountContext: context });
+  const initialToken = await lifecycle.beginTransition("initialize");
+  lifecycle.activateLocal(initialToken, "history-page-account-A");
+  const staleRoot = document.createElement("section");
+  document.body.append(staleRoot);
+  let resolveStaleRead;
+  const pendingMount = mountHistoryPage(staleRoot, {
+    historyService: { getRecentEvents: () => new Promise(resolve => { resolveStaleRead = resolve; }) },
+    lifecycleCoordinator: lifecycle
+  });
+  await Promise.resolve();
+  const switchToken = await lifecycle.beginTransition("switch");
+  lifecycle.activateLocal(switchToken, "history-page-account-B");
+  resolveStaleRead(sampleEvents);
+  const staleController = await pendingMount;
+  if (staleRoot.childNodes.length !== 0 || !staleController.destroyed) {
+    throw new Error("La cronologia ha mantenuto dati obsoleti dopo il cambio account.");
+  }
+  staleRoot.remove();
+
   window.__historySearchControl = document.querySelector(".dsm-history-filters input[type=search]");
   window.__historyStatusNode = document.querySelector(".dsm-history-status");
   document.documentElement.dataset.pageResult = "pass";
