@@ -75,3 +75,10 @@ La coordinazione è per singola istanza/scheda. Non risolve conflitti cross-tab,
 - `lifecycle.subscribe()` resta il punto d'integrazione per le viste: i listener dell'app devono svuotare cache e DOM e annullare richieste UI. La factory non modifica automaticamente l'interfaccia operativa né collega Firebase.
 
 Il test AUTH-006 verifica con dati sintetici che servizio e repository condividano lo stesso coordinatore, che lo switch isoli i record dell'account precedente e che logout azzeri la sessione. La factory non trasforma account locali in identità autenticate e non modifica i limiti di sicurezza descritti sopra.
+
+
+## Integrazione vista cronologia
+
+`mountHistoryPage(container, { historyService, lifecycleCoordinator })` può ora ricevere il coordinatore della sessione. La vista cattura la generazione attiva prima della lettura e sottoscrive gli eventi lifecycle: su `transition-start` o `context-cleared` rimuove listener e contenuto dal container. Se la lettura asincrona termina dopo la transizione, il risultato viene scartato e non renderizzato. Il chiamante deve montare una nuova vista per l'account appena attivato.
+
+Il test browser della cronologia simula una lettura pendente dell'account A, avvia lo switch a B, completa tardivamente la lettura A e verifica che il container resti vuoto. Questa integrazione riguarda la sola pagina cronologia DSM; non equivale al collegamento di tutte le schermate dell'applicazione operativa.
