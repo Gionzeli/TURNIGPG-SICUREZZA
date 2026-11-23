@@ -243,7 +243,26 @@ async function run() {
     assert(resumed.state === "active" && resumed.accountId === "session-retry-account-B",
       "Il retry non ha completato lo switch verso B.");
     assert(attempts === 2, "Il cleanup non è stato ripetuto una sola volta.");
-    await session.logout();
+
+    let logoutAttempts = 0;
+    session.lifecycle.registerDisposable(() => {
+      logoutAttempts += 1;
+      if (logoutAttempts === 1) throw new Error("synthetic logout cleanup failure");
+    });
+    let logoutBlocked = false;
+    try { await session.logout(); } catch { logoutBlocked = true; }
+    assert(logoutBlocked, "Il logout ha ignorato il cleanup fallito.");
+    assert(session.lifecycle.getStatus().state === "switching",
+      "Il logout ha cancellato la sessione nonostante il cleanup incompleto.");
+    let prematureClearBlocked = false;
+    try {
+      const status = session.lifecycle.getStatus();
+      await session.lifecycle.clear({});
+    } catch { prematureClearBlocked = true; }
+    assert(prematureClearBlocked, "Il coordinatore ha consentito clear senza token/cleanup valido.");
+    const logoutStatus = await session.resumePendingTransition();
+    assert(logoutStatus.state === "cleared", "Il retry del logout non ha completato la pulizia.");
+    assert(logoutAttempts === 2, "Il cleanup del logout non è stato ripetuto una sola volta.");
     context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
   });
 
