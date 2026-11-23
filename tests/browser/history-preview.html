@@ -13,11 +13,32 @@
     <header>
       <p class="eyebrow">DSM · anteprima isolata</p>
       <h1>Cronologia delle modifiche</h1>
-      <p class="notice">Questa è una dimostrazione con eventi inventati. Non legge né modifica i dati dell'applicazione.</p>
+      <p class="notice">Dimostrazione con eventi inventati. Non legge né modifica i dati dell'applicazione.</p>
     </header>
     <section aria-labelledby="history-heading">
       <h2 id="history-heading">Attività recente</h2>
-      <p id="history-status" role="status">Caricamento anteprima…</p>
+      <div class="filters" aria-label="Filtri cronologia">
+        <label for="filter-from">Dal giorno<input id="filter-from" type="date"></label>
+        <label for="filter-to">Al giorno<input id="filter-to" type="date"></label>
+        <label for="filter-entity">Elemento
+          <select id="filter-entity">
+            <option value="all">Tutti</option>
+            <option value="Turno">Turno</option>
+            <option value="Profilo">Profilo</option>
+            <option value="Impostazione">Impostazione</option>
+          </select>
+        </label>
+        <label for="filter-action">Azione
+          <select id="filter-action">
+            <option value="all">Tutte</option>
+            <option value="Creato">Creato</option>
+            <option value="Modificato">Modificato</option>
+            <option value="Eliminato">Eliminato</option>
+          </select>
+        </label>
+        <button id="clear-filters" type="button">Azzera filtri</button>
+      </div>
+      <p id="history-status" role="status" aria-live="polite">Caricamento anteprima…</p>
       <div id="history-events"></div>
     </section>
     <footer>Modalità dimostrativa · nessun database aperto · nessuna sincronizzazione</footer>
