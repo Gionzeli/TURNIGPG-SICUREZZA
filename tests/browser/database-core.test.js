@@ -41,6 +41,18 @@ async function run() {
   }
   const context = createAccountContext();
 
+  await test("AUTH-001 — contesto locale rifiuta identità Firebase non verificate", async () => {
+    let caught;
+    try {
+      context.activate({
+        accountId: "browser-test-unverified-remote",
+        identitySource: "firebase_verified"
+      });
+    } catch (error) { caught = error; }
+    assert(caught?.code === DB_ERROR_CODES.ACCESS_DENIED, "Il contesto ha accettato un'identità remota non verificata.");
+    assert(context.getActive() === null, "Il tentativo remoto ha attivato un account.");
+  });
+
   await test("DB-000 — nome database vuoto rifiutato senza fallback", async () => {
     let caught;
     try { await openDSMDatabase({ name: "" }); } catch (error) { caught = error; }
