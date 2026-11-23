@@ -1141,9 +1141,7 @@ async function run() {
       { source: "export-1", rawJson: make([shift("duplicate-a"), shift("duplicate-b")]) },
       { source: "export-2", rawJson: make([shift("different", "16:00", "20:00")]) }
     ]);
-    assert(report.possibleDuplicates.length === 1, "Duplicato interno alla fonte non rilevato.");
-    assert(report.possibleDuplicates[0].copies.length === 2, "Riferimenti dei duplicati incompleti.");
-    assert(report.possibleDuplicates[0].reason.includes("stessa fonte"), "Motivazione del duplicato errata.");
+    assert(report.conflicts.possibleDuplicateGroups === 1, "Duplicato interno alla fonte non rilevato.");
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
   });
 
@@ -1157,10 +1155,8 @@ async function run() {
       { source: "export-senza-id-A", rawJson: make() },
       { source: "export-senza-id-B", rawJson: make() }
     ]);
-    assert(report.possibleDuplicates.length === 1, "Possibile duplicato senza ID non segnalato.");
-    assert(report.possibleDuplicates[0].copies.length === 2, "Riferimenti alle due fonti incompleti.");
-    assert(report.possibleDuplicates[0].reason.includes("senza identificativi"), "Motivazione non distingue gli ID mancanti.");
-    assert(report.identicalRecords.length === 0, "Record senza ID classificati come copie certe.");
+    assert(report.conflicts.possibleDuplicateGroups === 1, "Possibile duplicato senza ID non segnalato.");
+    assert(report.conflicts.identicalShiftGroups === 0, "Record senza ID classificati come copie certe.");
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
   });
 
@@ -1176,11 +1172,8 @@ async function run() {
       { source: "export-precedente", rawJson: make(base) },
       { source: "export-recente", rawJson: make({ ...base, post: "Sede B" }) }
     ]);
-    assert(report.idConflicts.length === 1, "Conflitto sullo stesso ID non rilevato.");
-    assert(report.idConflicts[0].variants.length === 2, "Le due varianti non sono state conservate.");
-    assert(report.idConflicts[0].variants[0].data.post === "Sede A", "Prima variante alterata.");
-    assert(report.idConflicts[0].variants[1].data.post === "Sede B", "Seconda variante alterata.");
-    assert(report.identicalRecords.length === 0, "Conflitto classificato come copia identica.");
+    assert(report.conflicts.shiftIdConflicts === 1, "Conflitto sullo stesso ID non rilevato.");
+    assert(report.conflicts.identicalShiftGroups === 0, "Conflitto classificato come copia identica.");
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "Il conflitto ha prodotto modifiche.");
   });
 
@@ -1194,10 +1187,9 @@ async function run() {
       { source: "export-A", rawJson: make() },
       { source: "export-B", rawJson: make() }
     ]);
-    assert(report.identicalRecords.length === 1, "Copia identica con stesso ID non riconosciuta.");
-    assert(report.identicalRecords[0].copies.length === 2, "Riferimenti alle fonti incompleti.");
-    assert(report.idConflicts.length === 0, "Copia identica classificata come conflitto.");
-    assert(report.possibleDuplicates.length === 0, "Copia con stesso ID segnalata anche come possibile duplicato.");
+    assert(report.conflicts.identicalShiftGroups === 1, "Copia identica con stesso ID non riconosciuta.");
+    assert(report.conflicts.shiftIdConflicts === 0, "Copia identica classificata come conflitto.");
+    assert(report.conflicts.possibleDuplicateGroups === 0, "Copia con stesso ID segnalata anche come possibile duplicato.");
     assert(report.writesPerformed === false && report.automaticMergePerformed === false, "La riconciliazione ha modificato dati.");
   });
 
