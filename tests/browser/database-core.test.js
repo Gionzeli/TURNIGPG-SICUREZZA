@@ -1,7 +1,7 @@
 import { renderHistoryEvents } from "../../src/ui/history-viewer.js";
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, AbsenceRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, AbsenceService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
+  createAccountContext, createAccountLifecycleCoordinator, ProfileRepository, ShiftRepository, AbsenceRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, AbsenceService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -40,6 +40,56 @@ async function run() {
     summary.textContent = `Avvio bloccato: ${error.message}`; summary.dataset.result = "fail"; return;
   }
   const context = createAccountContext();
+
+  await test("AUTH-003 — lifecycle invalida risultati stale e svuota viste prima del nuovo account", async () => {
+    const lifecycleContext = createAccountContext();
+    const lifecycle = createAccountLifecycleCoordinator({ accountContext: lifecycleContext });
+    const clearedViews = [];
+    lifecycleContext.activate({ accountId: "lifecycle-account-A", identitySource: "local" });
+    // Establish active lifecycle state through an explicit initial transition.
+    const initial = await lifecycle.beginTransition("initialize");
+    lifecycle.activateLocal(initial, "lifecycle-account-A");
+    const captureA = lifecycle.capture();
+    lifecycle.subscribe(event => {
+      if (event.type === "transition-start") clearedViews.splice(0, clearedViews.length);
+    });
+    let disposed = 0;
+    lifecycle.registerDisposable(() => { disposed += 1; });
+    const switching = await lifecycle.beginTransition("switch");
+    assert(clearedViews.length === 0, "La vista sintetica non è stata svuotata all'inizio della transizione.");
+    assert(!lifecycle.isCurrent(captureA), "Il token dell'account A è ancora valido durante il cambio.");
+    assert(lifecycle.getStatus().state === "switching", "La transizione non risulta in corso.");
+    assert(disposed === 1, "La risorsa precedente non è stata dismessa.");
+    lifecycle.activateLocal(switching, "lifecycle-account-B");
+    assert(lifecycle.isCurrent(lifecycle.capture()), "Il nuovo account B non risulta attivo.");
+    assert(!lifecycle.isCurrent(captureA), "Un risultato tardivo di A è stato considerato corrente dopo l'attivazione di B.");
+    const logout = await lifecycle.beginTransition("logout");
+    lifecycle.clear(logout);
+    assert(lifecycle.getStatus().state === "cleared", "Logout non ha azzerato lo stato lifecycle.");
+    assert(!lifecycle.isCurrent(captureA), "Il token precedente è valido dopo logout.");
+    let blocked = false;
+    try { lifecycle.capture(); } catch (error) { blocked = error?.code === DB_ERROR_CODES.ACCOUNT_REQUIRED; }
+    assert(blocked, "capture() ha consentito una lettura senza account attivo.");
+  });
+
+  await test("AUTH-004 — cleanup fallito mantiene il contesto bloccato fino al retry", async () => {
+    const lifecycleContext = createAccountContext();
+    const lifecycle = createAccountLifecycleCoordinator({ accountContext: lifecycleContext });
+    let attempts = 0;
+    lifecycle.registerDisposable(() => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("synthetic cleanup failure");
+    });
+    const token = await lifecycle.beginTransition("initialize");
+    assert(lifecycle.getStatus().state === "switching", "Cleanup fallito non ha mantenuto lo stato switching.");
+    assert(lifecycle.getStatus().cleanupComplete === false, "Cleanup fallito risulta completato.");
+    let blocked = false;
+    try { lifecycle.activateLocal(token, "lifecycle-account-C"); } catch (error) { blocked = error?.code === DB_ERROR_CODES.ACCESS_DENIED; }
+    assert(blocked, "Attivazione consentita dopo cleanup fallito.");
+    assert(await lifecycle.retryCleanup(token), "Retry cleanup non ha completato la pulizia.");
+    lifecycle.activateLocal(token, "lifecycle-account-C");
+    assert(lifecycle.getStatus().state === "active" && attempts === 2, "Il retry non ha attivato l'account dopo la pulizia.");
+  });
 
   await test("AUTH-001 — contesto locale rifiuta identità Firebase non verificate", async () => {
     let caught;
