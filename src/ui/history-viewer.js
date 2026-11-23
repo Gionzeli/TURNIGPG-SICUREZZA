@@ -1,5 +1,5 @@
 const ALLOWED_ACTIONS = new Set(["Creato", "Modificato", "Eliminato"]);
-const ALLOWED_ENTITIES = new Set(["Turno", "Profilo", "Impostazione"]);
+const ALLOWED_ENTITIES = new Set(["Turno", "Profilo", "Impostazione", "Assenza"]);
 
 function formatDate(value) {
   const date = new Date(value);
