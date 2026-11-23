@@ -330,8 +330,8 @@ try {
   const dsmCsvBuffer = Buffer.concat(dsmCsvChunks);
   assert.deepEqual([...dsmCsvBuffer.subarray(0, 3)], [0xEF, 0xBB, 0xBF],
     "L'export DSM deve iniziare con BOM UTF-8 reale.");
-  const dsmCsvText = dsmCsvBuffer.toString("utf8").replace(/^\\uFEFF/, "");
-  assert.equal(dsmCsvText.split(/\\r?\\n/).length, 13,
+  const dsmCsvText = dsmCsvBuffer.toString("utf8").replace(/^\uFEFF/, "");
+  assert.equal(dsmCsvText.split(/\r?\n/).length, 13,
     "L'export DSM deve contenere tutti i risultati filtrati, non solo la pagina visibile.");
   assert.doesNotMatch(dsmCsvText, /synthetic-|page-test-|entityId|accountId/);
   assert.equal(liveHistoryErrors.length, 0, liveHistoryErrors.join("; "));
