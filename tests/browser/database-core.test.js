@@ -263,8 +263,8 @@ async function run() {
 
     const guardContext = createAccountContext();
     const guardLifecycle = createAccountLifecycleCoordinator({ accountContext: guardContext });
-    const guardToken = await guardLifecycle.beginTransition("initialize");
     guardLifecycle.registerDisposable(() => { throw new Error("synthetic guarded cleanup failure"); });
+    const guardToken = await guardLifecycle.beginTransition("initialize");
     let guardedClearBlocked = false;
     try { guardLifecycle.clear(guardToken); } catch { guardedClearBlocked = true; }
     assert(guardedClearBlocked && guardLifecycle.getStatus().state === "switching",
