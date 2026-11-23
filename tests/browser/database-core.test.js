@@ -301,6 +301,29 @@ async function run() {
     }
   });
 
+  await test("SVC-010 — aggiornamento non può creare intervallo nullo", async () => {
+    const service = new ShiftService({ repository: shifts });
+    const record = await service.create({
+      date: "2026-11-23", type: "turno", start_time: "08:00", end_time: "16:00", hours: 8
+    });
+    let caught;
+    try {
+      await service.update(record.id, { end_time: "08:00" }, { expectedRevision: 1 });
+    } catch (error) { caught = error; }
+    assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Aggiornamento con intervallo nullo accettato.");
+    const persisted = await service.getById(record.id);
+    assert(persisted.revision === 1 && persisted.data.end_time === "16:00", "Il turno valido è stato alterato.");
+  });
+
+  await test("SVC-011 — turno notturno con passaggio a mezzanotte accettato", async () => {
+    const service = new ShiftService({ repository: shifts });
+    const record = await service.create({
+      date: "2026-11-23", type: "turno", start_time: "22:00", end_time: "06:00", hours: 8, is_night: true
+    });
+    assert(record.data.start_time === "22:00" && record.data.end_time === "06:00", "Intervallo notturno valido rifiutato.");
+    assert(record.data.hours === 8 && record.data.is_night === true, "Metadati turno notturno alterati.");
+  });
+
   await test("LEGACY-001 — anteprima snapshot valido senza scritture", async () => {
     const snapshot = JSON.stringify({
       params: { paga_base: 1250, ore_turno: 7.25 },
