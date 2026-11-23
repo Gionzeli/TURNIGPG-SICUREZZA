@@ -257,10 +257,10 @@ async function run() {
     const historyService = new HistoryService({ repository: history });
     const presented = await historyService.getEventsForEntity("absence", absence.id);
     assert(presented.length === 1 && presented[0].entityLabel === "Assenza" &&
-      presented[0].description === "Assenza creato", "HistoryService non presenta l'evento assenza.");
+      presented[0].description === "Assenza creata", "HistoryService non presenta l'evento assenza.");
     const historyContainer = document.createElement("section");
     assert(renderHistoryEvents(historyContainer, presented) === 1 &&
-      historyContainer.textContent.includes("Assenza creato"), "Renderer non accetta eventi assenza.");
+      historyContainer.textContent.includes("Assenza creata"), "Renderer non accetta eventi assenza.");
     const updated = await service.update(absence.id, { endDate: "2026-12-04" }, { expectedRevision: 1 });
     assert(updated.revision === 2 && updated.data.endDate === "2026-12-04", "Aggiornamento assenza errato.");
     assert((await history.getEventsForEntity("absence", absence.id)).length === 2, "Evento audit aggiornamento assenza mancante.");
