@@ -395,6 +395,34 @@ async function run() {
     assert(badFlag?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Flag non booleano accettato.");
   });
 
+  await test("SVC-005A — date ISO con anni inferiori a 0100 nei servizi profilo e turno", async () => {
+    const profileService = new ProfileService({ repository: profiles });
+    const shiftService = new ShiftService({ repository: shifts });
+    const profile = await profileService.create({
+      profile: { effective_date: "0096-02-29" }
+    });
+    const shift = await shiftService.create({
+      date: "0096-02-29", type: "turno"
+    });
+    assert(profile.data.profile.effective_date === "0096-02-29",
+      "La decorrenza profilo valida con anno 0096 è stata rifiutata.");
+    assert(shift.data.date === "0096-02-29",
+      "La data turno valida con anno 0096 è stata rifiutata.");
+    let invalidProfileDate, invalidShiftDate;
+    try {
+      await profileService.create({ profile: { effective_date: "0096-02-30" } });
+    } catch (error) { invalidProfileDate = error; }
+    try {
+      await shiftService.create({ date: "0096-02-30", type: "turno" });
+    } catch (error) { invalidShiftDate = error; }
+    assert(invalidProfileDate?.code === DB_ERROR_CODES.VALIDATION_FAILED,
+      "Il profilo ha accettato un giorno inesistente nell'anno 0096.");
+    assert(invalidShiftDate?.code === DB_ERROR_CODES.VALIDATION_FAILED,
+      "Il turno ha accettato un giorno inesistente nell'anno 0096.");
+    await profileService.delete(profile.id, { expectedRevision: 1 });
+    await shiftService.delete(shift.id, { expectedRevision: 1 });
+  });
+
   await test("SVC-006 — aggiornamento turno con conflitto revisione", async () => {
     const service = new ShiftService({ repository: shifts });
     const record = await service.create({ date: "2026-11-22", type: "turno", hours: 7 });
