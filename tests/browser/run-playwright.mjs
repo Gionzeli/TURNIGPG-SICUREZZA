@@ -219,8 +219,9 @@ try {
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 0,
     "La ricerca non deve inventare contenuti non presenti nella descrizione.");
   await historyPage.locator("#clear-filters").click();
-  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 6,
-    "Azzera non cancella la ricerca testuale.");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
+    "Azzera non cancella la ricerca testuale o non torna alla prima pagina.");
+  assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 2/);
   console.log("PASS — isolated history preview: synthetic data, service DTO, safe rendering, no external requests");
   await historyPage.close();
 
