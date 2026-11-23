@@ -14,6 +14,23 @@ function createId() {
   throw new DatabaseError(DB_ERROR_CODES.UNAVAILABLE, "Generatore casuale sicuro non disponibile.");
 }
 
+function historyEntityType(storeName) {
+  if (storeName === "shifts") return "shift";
+  if (storeName === "profiles") return "profile";
+  if (storeName === "settings") return "setting";
+  return null;
+}
+
+function createHistoryRecord({ accountId, entityType, entityId, action, previousRevision, newRevision, now }) {
+  const data = { entityType, entityId, action };
+  if (previousRevision !== undefined) data.previousRevision = previousRevision;
+  if (newRevision !== undefined) data.newRevision = newRevision;
+  return {
+    id: createId(), accountId, createdAt: now, updatedAt: now,
+    revision: 1, schemaVersion: 1, data
+  };
+}
+
 function validateId(id) {
   if (typeof id !== "string" || !id.trim() || id.length > 200) {
     throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "ID record non valido.");
@@ -48,9 +65,17 @@ export class BaseRepository {
     validateId(id);
     const now = this.clock();
     const record = { id, accountId, createdAt: now, updatedAt: now, revision: 1, schemaVersion: 1, data: { ...data } };
-    const transaction = this.db.transaction([this.storeName], "readwrite");
+    const entityType = historyEntityType(this.storeName);
+    const storeNames = entityType ? [this.storeName, "history"] : [this.storeName];
+    const transaction = this.db.transaction(storeNames, "readwrite");
     const done = transactionToPromise(transaction);
     const request = transaction.objectStore(this.storeName).add(record);
+    if (entityType) {
+      transaction.objectStore("history").add(createHistoryRecord({
+        accountId, entityType, entityId: id, action: "create",
+        newRevision: 1, now
+      }));
+    }
     try {
       await requestToPromise(request);
       await done;
@@ -96,9 +121,12 @@ export class BaseRepository {
       throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "expectedRevision deve essere un intero positivo.");
     }
 
-    const transaction = this.db.transaction([this.storeName], "readwrite");
+    const entityType = historyEntityType(this.storeName);
+    const storeNames = entityType ? [this.storeName, "history"] : [this.storeName];
+    const transaction = this.db.transaction(storeNames, "readwrite");
     const done = transactionToPromise(transaction);
     const store = transaction.objectStore(this.storeName);
+    const historyStore = entityType ? transaction.objectStore("history") : null;
     const request = store.index("accountId_id").get([accountId, id]);
     let updated = null;
     let operationError = null;
@@ -118,6 +146,13 @@ export class BaseRepository {
         data: { ...current.data, ...changes }
       };
       store.put(updated);
+      if (historyStore) {
+        historyStore.add(createHistoryRecord({
+          accountId, entityType, entityId: id, action: "update",
+          previousRevision: current.revision, newRevision: updated.revision,
+          now: updated.updatedAt
+        }));
+      }
     };
 
     try {
@@ -139,9 +174,12 @@ export class BaseRepository {
       throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "expectedRevision deve essere un intero positivo.");
     }
 
-    const transaction = this.db.transaction([this.storeName], "readwrite");
+    const entityType = historyEntityType(this.storeName);
+    const storeNames = entityType ? [this.storeName, "history"] : [this.storeName];
+    const transaction = this.db.transaction(storeNames, "readwrite");
     const done = transactionToPromise(transaction);
     const store = transaction.objectStore(this.storeName);
+    const historyStore = entityType ? transaction.objectStore("history") : null;
     const request = store.index("accountId_id").get([accountId, id]);
     let deleted = false;
     let operationError = null;
@@ -154,6 +192,12 @@ export class BaseRepository {
         return;
       }
       store.delete(id);
+      if (historyStore) {
+        historyStore.add(createHistoryRecord({
+          accountId, entityType, entityId: id, action: "delete",
+          previousRevision: current.revision, now: this.clock()
+        }));
+      }
       deleted = true;
     };
     try {
