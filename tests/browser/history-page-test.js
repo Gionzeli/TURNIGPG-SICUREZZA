@@ -23,10 +23,12 @@ const repository = Object.freeze({
 });
 
 try {
-  await mountHistoryPage(document.querySelector("#history-root"), {
+  window.__historyPageController = await mountHistoryPage(document.querySelector("#history-root"), {
     historyService: new HistoryService({ repository }),
     pageSize: 10
   });
+  window.__historySearchControl = document.querySelector(".dsm-history-filters input[type=search]");
+  window.__historyStatusNode = document.querySelector(".dsm-history-status");
   document.documentElement.dataset.pageResult = "pass";
   document.querySelector("#test-status").textContent = "Pagina cronologia pronta.";
 } catch {
