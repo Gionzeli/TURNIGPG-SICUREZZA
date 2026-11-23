@@ -1,7 +1,7 @@
 import { renderHistoryEvents } from "../../src/ui/history-viewer.js";
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus, createDSMCoreSession,
-  createAccountContext, createAccountLifecycleCoordinator, ProfileRepository, ShiftRepository, AbsenceRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, AbsenceService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
+  createAccountContext, createAccountLifecycleCoordinator, createAccountLifecycleCrossTabBridge, ProfileRepository, ShiftRepository, AbsenceRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, AbsenceService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -245,6 +245,63 @@ async function run() {
     assert(attempts === 2, "Il cleanup non è stato ripetuto una sola volta.");
     await session.logout();
     context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+  });
+
+  await test("AUTH-008 — invalidazione cross-tab e protezione replay", async () => {
+    const channels = [];
+    function makeChannel() {
+      const listeners = new Set();
+      const channel = {
+        listeners,
+        addEventListener(type, listener) { if (type === "message") listeners.add(listener); },
+        removeEventListener(type, listener) { if (type === "message") listeners.delete(listener); },
+        postMessage(data) {
+          for (const peer of channels) {
+            if (peer === channel) continue;
+            queueMicrotask(() => {
+              for (const listener of [...peer.listeners]) listener({ data });
+            });
+          }
+        }
+      };
+      channels.push(channel);
+      return channel;
+    }
+
+    const contextA = createAccountContext();
+    const contextB = createAccountContext();
+    const lifecycleA = createAccountLifecycleCoordinator({ accountContext: contextA });
+    const lifecycleB = createAccountLifecycleCoordinator({ accountContext: contextB });
+    const initialA = await lifecycleA.beginTransition("initialize");
+    lifecycleA.activateLocal(initialA, "cross-tab-account-A");
+    const initialB = await lifecycleB.beginTransition("initialize");
+    lifecycleB.activateLocal(initialB, "cross-tab-account-A");
+    const channelA = makeChannel();
+    const channelB = makeChannel();
+    const bridgeA = createAccountLifecycleCrossTabBridge({
+      lifecycleCoordinator: lifecycleA, channel: channelA, tabId: "synthetic-tab-A"
+    });
+    const bridgeB = createAccountLifecycleCrossTabBridge({
+      lifecycleCoordinator: lifecycleB, channel: channelB, tabId: "synthetic-tab-B"
+    });
+
+    const switching = await lifecycleA.beginTransition("switch");
+    lifecycleA.activateLocal(switching, "cross-tab-account-B");
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert(lifecycleA.getStatus().state === "active", "La scheda mittente non ha completato lo switch locale.");
+    assert(lifecycleB.getStatus().state === "cleared", "La scheda ricevente non ha invalidato la sessione precedente.");
+    assert(bridgeB.getStatus().pendingRemote === false, "La notifica remota è rimasta pendente.");
+
+    channelA.postMessage({
+      type: "dsm-account-transition", version: 1, senderId: "synthetic-tab-A", sequence: 1
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert(lifecycleB.getStatus().state === "cleared", "Un messaggio duplicato ha riattivato la sessione.");
+
+    bridgeA.dispose();
+    bridgeB.dispose();
+    assert(bridgeA.getStatus().disposed && bridgeB.getStatus().disposed,
+      "I bridge non sono stati dismessi correttamente.");
   });
 
   await test("DB-005 — update, revision e delete", async () => {
