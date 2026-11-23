@@ -106,3 +106,6 @@ Il coordinatore e `accountContext` sono confinati all'istanza JavaScript della s
 AUTH-008 usa due canali sintetici nello stesso test browser e verifica l'invalidazione A→B, l'assenza di riattivazione da messaggio duplicato e il dispose.
 
 **Limiti importanti:** il bridge è best-effort e non è una barriera di sicurezza. Richiede un canale funzionante, un `tabId` univoco per ogni scheda e un composition root che lo istanzi e gestisca le riattivazioni. Non offre persistenza delle notifiche: una scheda sospesa, offline o aperta dopo la notifica può non riceverla. Non sostituisce controlli di autorizzazione server-side, autenticazione, cifratura IndexedDB, né la gestione delle race con codice ostile same-origin. Non è stato collegato automaticamente all'app operativa o a Firebase.
+
+
+Il bridge limita a 128 il numero di mittenti per cui conserva il contatore anti-replay, per evitare una crescita illimitata della memoria in presenza di messaggi non attendibili. `dispose()` rifiuta la dismissione se un'invalidazione remota è ancora pendente: prima va completata o ripetuta con `retryPendingInvalidation()`. AUTH-008 verifica anche il fallimento sintetico del primo cleanup remoto e il completamento al retry.
