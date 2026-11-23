@@ -155,7 +155,8 @@ export async function mountHistoryPage(container, { historyService, pageSize = 2
     if (!filtered.length) return;
     const blob = new Blob(["\\uFEFF", buildHistoryCsv(filtered)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
-    const link = element("a", { download: "cronologia-dsm.csv" });
+    const link = element("a");
+    link.download = "cronologia-dsm.csv";
     link.href = url;
     link.click();
     link.remove();
