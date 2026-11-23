@@ -319,6 +319,11 @@ try {
   await liveHistoryPage.locator(".dsm-history-filters select").nth(0).selectOption("Turno");
   assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 3,
     "Filtro categoria sulla pagina DSM non corretto.");
+  await liveHistoryPage.locator(".dsm-history-filters select").nth(0).selectOption("Assenza");
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 3,
+    "Filtro assenze sulla pagina DSM non corretto.");
+  assert.ok((await liveHistoryPage.locator(".dsm-history-item").allTextContents()).every(text => text.includes("Assenza")),
+    "Il filtro assenze mostra eventi di altre categorie.");
   await liveHistoryPage.locator(".dsm-history-filters select").nth(0).selectOption("Tutti");
   const dsmSelects = liveHistoryPage.locator(".dsm-history-filters select");
   await dsmSelects.nth(1).selectOption("Creato");
