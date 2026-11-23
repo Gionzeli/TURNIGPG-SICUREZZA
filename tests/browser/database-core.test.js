@@ -106,6 +106,17 @@ async function run() {
     assert(db instanceof IDBDatabase, "Non è un IDBDatabase.");
     assert(getDSMDatabaseStatus().isOpen && getDSMDatabaseStatus().name === TEST_DB_NAME, "Status DB non coerente.");
   });
+  await test("DB-001B — chiusura invalida un'apertura pendente", async () => {
+    await closeDSMDatabase();
+    const pending = openDSMDatabase({ name: TEST_DB_NAME });
+    await closeDSMDatabase();
+    let rejected = false;
+    try { await pending; } catch (error) { rejected = error?.code === DB_ERROR_CODES.OPEN_FAILED; }
+    assert(rejected, "L'apertura iniziata prima della chiusura non è stata invalidata.");
+    assert(!getDSMDatabaseStatus().isOpen, "La connessione stale è rimasta attiva dopo la chiusura.");
+    db = await openDSMDatabase({ name: TEST_DB_NAME });
+    assert(getDSMDatabaseStatus().isOpen && db.name === TEST_DB_NAME, "La riapertura dopo l'invalidazione non funziona.");
+  });
   await test("DB-002 — object store previsti", async () => {
     for (const name of ["accounts","profiles","settings","shifts","absences","history","migration_jobs","migration_quarantine","schema_metadata"])
       assert(db.objectStoreNames.contains(name), `Object store mancante: ${name}`);
