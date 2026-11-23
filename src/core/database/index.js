@@ -24,6 +24,7 @@ export { QuarantineRepository } from "../repositories/quarantine-repository.js";
 
 export { ProfileService } from "../services/profile-service.js";
 export { ShiftService } from "../services/shift-service.js";
+export { HistoryService } from "../services/history-service.js";
 
 export { inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology } from "../legacy/legacy-read-adapter.js";
 
