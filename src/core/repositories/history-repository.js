@@ -1,7 +1,7 @@
 import { BaseRepository } from "./base-repository.js";
 import { DatabaseError, DB_ERROR_CODES } from "../database/database-errors.js";
 
-const ENTITY_TYPES = new Set(["shift", "profile", "setting"]);
+const ENTITY_TYPES = new Set(["shift", "profile", "setting", "absence"]);
 const ACTIONS = new Set(["create", "update", "delete"]);
 const ALLOWED_FIELDS = new Set([
   "entityType",
