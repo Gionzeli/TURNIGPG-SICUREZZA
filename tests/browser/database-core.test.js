@@ -290,6 +290,17 @@ async function run() {
     assert(await service.delete(record.id, { expectedRevision: updated.revision }), "Delete con revisione corrente non riuscito.");
   });
 
+  await test("SVC-009 — intervalli turno incompleti o di durata zero rifiutati", async () => {
+    const service = new ShiftService({ repository: shifts });
+    let missingEnd, missingStart, zeroLength;
+    try { await service.create({ date: "2026-11-23", type: "turno", start_time: "08:00" }); } catch (error) { missingEnd = error; }
+    try { await service.create({ date: "2026-11-23", type: "turno", end_time: "16:00" }); } catch (error) { missingStart = error; }
+    try { await service.create({ date: "2026-11-23", type: "turno", start_time: "08:00", end_time: "08:00" }); } catch (error) { zeroLength = error; }
+    for (const error of [missingEnd, missingStart, zeroLength]) {
+      assert(error?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Intervallo turno incompleto o nullo accettato.");
+    }
+  });
+
   await test("LEGACY-001 — anteprima snapshot valido senza scritture", async () => {
     const snapshot = JSON.stringify({
       params: { paga_base: 1250, ore_turno: 7.25 },
