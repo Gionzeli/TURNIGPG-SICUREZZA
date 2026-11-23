@@ -129,6 +129,26 @@ async function run() {
     assert(await profiles.delete(createdProfileId), "Delete non true.");
     assert(await profiles.getById(createdProfileId) === null, "Record cancellato ancora presente.");
   });
+  await test("DB-005A — aggiornamenti concorrenti con la stessa revisione non si sovrascrivono", async () => {
+    const history = new HistoryRepository({ db, accountContext: context });
+    const profile = await profiles.create({ displayName: "Profilo concorrenza iniziale" });
+    const outcomes = await Promise.allSettled([
+      profiles.update(profile.id, { displayName: "Modifica concorrente A" }, { expectedRevision: 1 }),
+      profiles.update(profile.id, { displayName: "Modifica concorrente B" }, { expectedRevision: 1 })
+    ]);
+    const fulfilled = outcomes.filter(item => item.status === "fulfilled");
+    const rejected = outcomes.filter(item => item.status === "rejected");
+    assert(fulfilled.length === 1, "Non è stata accettata esattamente una modifica concorrente.");
+    assert(rejected.length === 1 && rejected[0].reason?.code === DB_ERROR_CODES.REVISION_CONFLICT,
+      "La seconda modifica non ha ricevuto REVISION_CONFLICT.");
+    const persisted = await profiles.getById(profile.id);
+    assert(persisted?.revision === 2, "La revisione finale non è 2.");
+    assert(["Modifica concorrente A", "Modifica concorrente B"].includes(persisted.data.displayName),
+      "Il valore finale non corrisponde alla modifica vincente.");
+    const events = (await history.getEvents()).filter(item => item.data.entityId === profile.id);
+    assert(events.length === 2 && events.map(item => item.data.action).join(",") === "create,update",
+      "La modifica rifiutata ha lasciato un evento storico o la modifica vincente non è stata registrata.");
+  });
   await test("DB-006 — isolamento account A/B", async () => {
     const record = await profiles.create({ displayName: "Privato account A" }); createdProfileId = record.id;
     context.activate({ accountId: "browser-test-account-B", identitySource: "local" });
