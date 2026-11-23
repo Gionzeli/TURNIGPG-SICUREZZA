@@ -1,6 +1,6 @@
 import { renderHistoryEvents } from "../../src/ui/history-viewer.js";
 import {
-  openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
+  openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus, createDSMCoreSession,
   createAccountContext, createAccountLifecycleCoordinator, ProfileRepository, ShiftRepository, AbsenceRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, AbsenceService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
@@ -205,6 +205,23 @@ async function run() {
       "Il repository collegato ha esposto ad account B il record di A.");
     const logout = await lifecycle.beginTransition("logout");
     lifecycle.clear(logout);
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+  });
+
+  await test("AUTH-006 — session factory condivide lifecycle tra repository e servizi", async () => {
+    const session = await createDSMCoreSession({ db, accountId: "session-account-A" });
+    const profile = await session.services.profiles.create({});
+    assert(profile.accountId === "session-account-A", "Il servizio non usa il contesto iniziale.");
+    const repository = session.repositories.profiles;
+    assert(repository.lifecycleCoordinator === session.lifecycle, "Il repository non condivide il coordinatore della sessione.");
+    await session.switchLocalAccount("session-account-B");
+    assert((await session.services.profiles.getAll()).length === 0,
+      "Il servizio espone record dell'account precedente dopo lo switch.");
+    const status = session.lifecycle.getStatus();
+    assert(status.state === "active" && status.accountId === "session-account-B",
+      "Lo switch non ha attivato il nuovo account.");
+    await session.logout();
+    assert(session.lifecycle.getStatus().state === "cleared", "Logout sessione non completato.");
     context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
   });
 
