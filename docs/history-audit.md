@@ -5,7 +5,8 @@
 Il nucleo DSM registra automaticamente gli eventi di creazione, modifica e cancellazione per:
 - turni (`shifts`);
 - profili (`profiles`);
-- impostazioni (`settings`).
+- impostazioni (`settings`);
+- assenze (`absences`).
 
 La registrazione avviene nella stessa transazione IndexedDB della modifica: se la modifica viene annullata, anche l'evento storico viene annullato.
 
@@ -20,7 +21,7 @@ Il livello servizio `HistoryService` espone:
 - `getEventsForEntity(entityType, entityId)`;
 - `getRecentEvents(limit)`.
 
-Il servizio trasforma gli eventi in descrizioni leggibili (ad esempio “Profilo creato” e “Turno modificato”) e non restituisce l'identificativo interno dell'entità né il suo contenuto. I risultati sono congelati per evitare modifiche accidentali nell'interfaccia chiamante.
+Il servizio trasforma gli eventi in descrizioni leggibili (ad esempio “Profilo creato” e “Turno modificato” e “Assenza creata”) e non restituisce l'identificativo interno dell'entità né il suo contenuto. I risultati sono congelati per evitare modifiche accidentali nell'interfaccia chiamante.
 
 Esempio d'uso:
 
