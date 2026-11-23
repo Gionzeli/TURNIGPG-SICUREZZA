@@ -264,6 +264,18 @@ async function run() {
     const updated = await service.update(absence.id, { endDate: "2026-12-04" }, { expectedRevision: 1 });
     assert(updated.revision === 2 && updated.data.endDate === "2026-12-04", "Aggiornamento assenza errato.");
     assert((await history.getEventsForEntity("absence", absence.id)).length === 2, "Evento audit aggiornamento assenza mancante.");
+    const summary = await service.summarizeRange("2026-12-02", "2026-12-05");
+    assert(summary.records === 1 && summary.kinds.ferie.records === 1 &&
+      summary.kinds.ferie.uniqueCalendarDays === 3, "Riepilogo range ferie non conteggia i giorni inclusivi correttamente.");
+    const overlapping = await service.create({ kind: "permesso", startDate: "2026-12-03", endDate: "2026-12-04" });
+    const overlappingSummary = await service.summarizeRange("2026-12-01", "2026-12-05");
+    assert(overlappingSummary.overlaps.length === 1 &&
+      overlappingSummary.overlaps[0].calendarDays === 2, "Sovrapposizione assenze non segnalata.");
+    assert(overlappingSummary.kinds.permesso.uniqueCalendarDays === 2, "Giorni permesso non conteggiati.");
+    await service.delete(overlapping.id, { expectedRevision: 1 });
+    let invalidRange;
+    try { await service.getInRange("2026-12-05", "2026-12-01"); } catch (error) { invalidRange = error; }
+    assert(invalidRange?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Intervallo inverso non rifiutato.");
     let staleRevision;
     try { await service.update(absence.id, { endDate: "2026-12-05" }, { expectedRevision: 1 }); }
     catch (error) { staleRevision = error; }
