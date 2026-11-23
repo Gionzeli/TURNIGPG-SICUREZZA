@@ -25,3 +25,5 @@ export { ProfileService } from "../services/profile-service.js";
 export { ShiftService } from "../services/shift-service.js";
 
 export { inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology } from "../legacy/legacy-read-adapter.js";
+
+export { HistoryRepository } from "../repositories/history-repository.js";

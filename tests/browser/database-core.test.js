@@ -1,6 +1,6 @@
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, MigrationJobRepository, QuarantineRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -674,6 +674,82 @@ async function run() {
   await test("DB-009 — campi riservati rifiutati", async () => {
     let caught; try { await profiles.create({ accountId: "browser-test-account-B" }); } catch (error) { caught = error; }
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
+  });
+
+  await test("HIST-001 — registra evento storico sanitizzato", async () => {
+    const history = new HistoryRepository({ db, accountContext: context });
+    const event = await history.recordEvent({
+      entityType: "shift",
+      entityId: "test-shift-001",
+      action: "create",
+      newRevision: 1
+    });
+    assert(event.data.entityType === "shift", "Categoria evento errata.");
+    assert(event.data.entityId === "test-shift-001", "ID entità errato.");
+    assert(event.data.action === "create", "Azione errata.");
+    assert(event.data.newRevision === 1, "Revisione nuova errata.");
+    assert(event.revision === 1, "Revisione del record storico errata.");
+    assert(Object.keys(event.data).every(key =>
+      ["entityType", "entityId", "action", "previousRevision", "newRevision"].includes(key)
+    ), "Il record contiene campi non autorizzati.");
+    assert(!Object.hasOwn(event.data, "raw") && !Object.hasOwn(event.data, "payload"),
+      "Il record contiene un payload grezzo.");
+  });
+
+  await test("HIST-002 — rifiuta campi non autorizzati e revisioni incoerenti", async () => {
+    const history = new HistoryRepository({ db, accountContext: context });
+    let rawPayload, badRevision;
+    try {
+      await history.create({
+        entityType: "shift", entityId: "test-shift-002",
+        action: "create", newRevision: 1,
+        raw: { privateValue: "never-store" }
+      });
+    } catch (error) { rawPayload = error; }
+    try {
+      await history.recordEvent({
+        entityType: "shift", entityId: "test-shift-003",
+        action: "update", previousRevision: 1, newRevision: 3
+      });
+    } catch (error) { badRevision = error; }
+    assert(rawPayload?.code === DB_ERROR_CODES.VALIDATION_FAILED,
+      "Payload grezzo accettato.");
+    assert(badRevision?.code === DB_ERROR_CODES.VALIDATION_FAILED,
+      "Revisioni incoerenti accettate.");
+  });
+
+  await test("HIST-003 — eventi isolati per account e non modificabili", async () => {
+    const history = new HistoryRepository({ db, accountContext: context });
+    const event = await history.recordEvent({
+      entityType: "profile", entityId: "test-profile-001",
+      action: "create", newRevision: 1
+    });
+    let updateError, deleteError;
+    try { await history.update(event.id, { action: "delete" }); } catch (error) { updateError = error; }
+    try { await history.delete(event.id); } catch (error) { deleteError = error; }
+    assert(updateError?.code === DB_ERROR_CODES.VALIDATION_FAILED,
+      "Modifica evento consentita.");
+    assert(deleteError?.code === DB_ERROR_CODES.VALIDATION_FAILED,
+      "Cancellazione evento consentita.");
+    context.activate({ accountId: "browser-test-account-B", identitySource: "local" });
+    assert(await history.getById(event.id) === null, "Account B legge l'evento di A.");
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+    assert((await history.getById(event.id))?.id === event.id,
+      "Account A non ritrova il proprio evento.");
+  });
+
+  await test("HIST-004 — eventi persistono dopo riapertura database", async () => {
+    const historyBefore = new HistoryRepository({ db, accountContext: context });
+    const event = await historyBefore.recordEvent({
+      entityType: "setting", entityId: "test-setting-001",
+      action: "update", previousRevision: 1, newRevision: 2
+    });
+    await closeDSMDatabase();
+    db = await openDSMDatabase({ name: TEST_DB_NAME });
+    const historyAfter = new HistoryRepository({ db, accountContext: context });
+    const persisted = await historyAfter.getById(event.id);
+    assert(persisted?.data.action === "update", "Evento non persistito.");
+    assert(persisted?.data.newRevision === 2, "Revisione evento persistita errata.");
   });
 
   try {
