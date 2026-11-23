@@ -299,6 +299,8 @@ async function run() {
     const absence = await service.create({ kind: "permesso", startDate: "2026-12-10", endDate: "2026-12-10" });
     await closeDSMDatabase();
     db = await openDSMDatabase({ name: TEST_DB_NAME });
+    profiles = new ProfileRepository({ db, accountContext: context });
+    shifts = new ShiftRepository({ db, accountContext: context });
     const after = new AbsenceRepository({ db, accountContext: context });
     const historyAfter = new HistoryRepository({ db, accountContext: context });
     assert((await after.getById(absence.id))?.data.kind === "permesso", "Assenza non persistita dopo riapertura.");
