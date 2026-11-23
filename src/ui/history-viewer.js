@@ -36,9 +36,11 @@ export function renderHistoryEvents(container, events) {
     if (!event || typeof event !== "object" ||
         !ALLOWED_ENTITIES.has(event.entityLabel) ||
         !ALLOWED_ACTIONS.has(event.actionLabel) ||
-        typeof event.description !== "string" ||
+        typeof event.description !== "string" || event.description.length > 200 ||
         typeof event.occurredAt !== "string" ||
-        !Number.isSafeInteger(event.revision)) {
+        !Number.isFinite(new Date(event.occurredAt).getTime()) ||
+        !Number.isSafeInteger(event.revision) || event.revision < 1 ||
+        (event.newRevision != null && (!Number.isSafeInteger(event.newRevision) || event.newRevision < 1))) {
       throw new TypeError("Evento cronologico non valido.");
     }
 
