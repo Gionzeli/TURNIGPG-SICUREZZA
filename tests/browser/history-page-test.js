@@ -2,7 +2,7 @@ import { HistoryService } from "../../src/core/services/history-service.js";
 import { mountHistoryPage } from "../../src/ui/history-page.js";
 
 const sampleEvents = Array.from({ length: 12 }, (_, index) => {
-  const entityType = ["shift", "profile", "setting"][index % 3];
+  const entityType = ["shift", "profile", "setting", "absence"][index % 4];
   const action = ["create", "update", "delete"][index % 3];
   return {
     id: `page-test-${String(index + 1).padStart(2, "0")}`,
