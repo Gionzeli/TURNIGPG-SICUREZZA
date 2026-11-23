@@ -57,8 +57,9 @@ import {
 const db = await openDSMDatabase();
 const accountContext = createAccountContext();
 
-// Chiamare activate() solo da un servizio di autenticazione/onboarding
-// che abbia già verificato l'identità e il contesto.
+// Questo contesto client accetta soltanto identità locali/demo.
+// Non accetta "firebase_verified": non può verificare token o sessioni.
+// Un futuro adapter Firebase dovrà essere progettato e verificato separatamente.
 accountContext.activate({
   accountId: "local-demo-account",
   identitySource: "local"
@@ -122,3 +123,6 @@ Questa fase resta solo inventario/anteprima: nessuna scrittura, nessuna selezion
 ## Stato della verifica
 
 I moduli e l'harness sono stati inseriti nel branch dedicato. È stata completata una prova automatizzata in Chromium su IndexedDB reale. Prima di collegare il codice alla PWA occorre verificare l’autenticazione del contesto account, definire il flusso di backup/import e completare la riconciliazione delle copie legacy. Il risultato CI non certifica l'integrazione con la UI, Firebase, cifratura, migrazione o dispositivi mobili.
+
+
+Nota sicurezza: Il contesto account attuale accetta soltanto `identitySource: "local"`. I valori remoti, incluso `firebase_verified`, vengono rifiutati perché il core non contiene un verificatore di sessione/token Firebase. Non usare questo contesto come autenticazione; l'integrazione remota richiederà un adapter fidato e test dedicati.
