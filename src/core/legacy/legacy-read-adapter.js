@@ -635,16 +635,34 @@ export function inspectLegacyReconciliation(candidates) {
     writesPerformed: false,
     automaticMergePerformed: false,
     sourceCount: snapshots.length,
-    sources: sourceSummary,
-    profileConflicts,
-    extraConflicts,
-    quarantinedShifts,
-    quarantinedTemplates,
-    quarantinedSkills,
-    identicalRecords,
-    idConflicts,
-    possibleDuplicates,
-    quarantine: { shifts: quarantinedTotal, templates: quarantinedTemplates.length, skills: quarantinedSkills.length },
+    sources: sourceSummary.map((item, index) => ({
+      sourceNumber: index + 1,
+      shiftsTotal: item.shiftsTotal,
+      shiftsReady: item.shiftsReady,
+      shiftsQuarantined: item.shiftsQuarantined,
+      profileValid: item.profileValid,
+      profileErrors: item.profileErrors,
+      extrasPresent: item.extrasPresent,
+      extraSkills: item.extraSkills,
+      extraSkillsQuarantined: item.extraSkillsQuarantined,
+      extraTemplates: item.extraTemplates,
+      extraTemplatesQuarantined: item.extraTemplatesQuarantined,
+      extraMonthlyValues: item.extraMonthlyValues,
+      warningCount: item.warnings,
+      importable: item.importable
+    })),
+    conflicts: {
+      profileDifferences: profileConflicts.length,
+      extraDifferences: extraConflicts.length,
+      shiftIdConflicts: idConflicts.length,
+      possibleDuplicateGroups: possibleDuplicates.length,
+      identicalShiftGroups: identicalRecords.length
+    },
+    quarantine: {
+      shifts: quarantinedTotal,
+      templates: quarantinedTemplates.length,
+      skills: quarantinedSkills.length
+    },
     migrationReadiness: {
       status: migrationReviewRequired ? "review-required" : "no-conflicts-detected",
       reviewRequired: migrationReviewRequired,
@@ -655,11 +673,11 @@ export function inspectLegacyReconciliation(candidates) {
       identicalGroups: identicalRecords.length,
       idConflictGroups: idConflicts.length,
       possibleDuplicateGroups: possibleDuplicates.length,
-      profileConflictFields: profileConflicts.length,
-      extraConflictFields: extraConflicts.length,
+      profileConflictCount: profileConflicts.length,
+      extraConflictCount: extraConflicts.length,
       sourcesWithWarnings: sourceSummary.filter(item => item.warnings > 0).length
     },
-    warnings
+    warningCount: warnings.length
   });
 }
 
