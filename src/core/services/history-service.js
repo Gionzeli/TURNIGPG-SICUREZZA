@@ -1,0 +1,48 @@
+import { DatabaseError, DB_ERROR_CODES } from "../database/database-errors.js";
+
+const ENTITY_LABELS = Object.freeze({
+  shift: "Turno",
+  profile: "Profilo",
+  setting: "Impostazione"
+});
+const ACTION_LABELS = Object.freeze({
+  create: "Creato",
+  update: "Modificato",
+  delete: "Eliminato"
+});
+
+function presentEvent(event) {
+  const data = event?.data;
+  if (!data || !ENTITY_LABELS[data.entityType] || !ACTION_LABELS[data.action] ||
+      typeof event.createdAt !== "string" || !Number.isSafeInteger(event.revision)) {
+    throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Evento storico non valido per la consultazione.");
+  }
+
+  return Object.freeze({
+    id: event.id,
+    occurredAt: event.createdAt,
+    entityLabel: ENTITY_LABELS[data.entityType],
+    actionLabel: ACTION_LABELS[data.action],
+    description: `${ENTITY_LABELS[data.entityType]} ${ACTION_LABELS[data.action].toLowerCase()}`,
+    revision: event.revision,
+    previousRevision: data.previousRevision ?? null,
+    newRevision: data.newRevision ?? null
+  });
+}
+
+export class HistoryService {
+  constructor({ repository }) {
+    if (!repository) throw new TypeError("HistoryService richiede un repository.");
+    this.repository = repository;
+  }
+
+  async getRecentEvents(limit = 50) {
+    const events = await this.repository.getRecentEvents(limit);
+    return Object.freeze(events.map(presentEvent));
+  }
+
+  async getEventsForEntity(entityType, entityId) {
+    const events = await this.repository.getEventsForEntity(entityType, entityId);
+    return Object.freeze(events.map(presentEvent));
+  }
+}
