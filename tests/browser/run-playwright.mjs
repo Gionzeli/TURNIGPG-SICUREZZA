@@ -135,6 +135,27 @@ try {
   assert.equal(await reportPage.locator("#analyze").isDisabled(), true);
   assert.match(await reportPage.locator("#status").textContent(), /supera il limite di 10 MB/);
 
+  const historyPage = await browser.newPage();
+  const historyErrors = [];
+  const historyRequests = [];
+  historyPage.on("pageerror", error => historyErrors.push(error.message));
+  historyPage.on("request", request => historyRequests.push(request.url()));
+  await historyPage.goto("http://127.0.0.1:8000/tests/browser/history-preview.html", { waitUntil: "load" });
+  await historyPage.waitForFunction(() => document.documentElement.dataset.previewResult === "pass" ||
+    document.documentElement.dataset.previewResult === "fail");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
+    "L'anteprima non mostra i tre eventi dimostrativi.");
+  assert.match(await historyPage.locator("#history-status").textContent(), /3 eventi dimostrativi/);
+  assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/);
+  assert.match(await historyPage.locator("#history-events").textContent(), /Profilo modificato/);
+  assert.match(await historyPage.locator("#history-events").textContent(), /Turno creato/);
+  assert.match(await historyPage.locator(".notice").textContent(), /eventi inventati/);
+  assert.equal(historyErrors.length, 0, historyErrors.join("; "));
+  assert.ok(historyRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "L'anteprima cronologia ha effettuato richieste esterne.");
+  console.log("PASS — isolated history preview: synthetic data, service DTO, safe rendering, no external requests");
+  await historyPage.close();
+
   console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
   await reportPage.close();
 } finally {
