@@ -184,8 +184,9 @@ try {
   await historyPage.locator("#filter-action").selectOption("all");
   await historyPage.locator("#filter-from").fill("2026-11-22");
   await historyPage.locator("#filter-to").fill("2026-11-23");
-  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 4,
-    "Filtro intervallo date non corretto.");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
+    "La prima pagina del filtro intervallo date non è corretta.");
+  assert.match(await historyPage.locator("#history-status").textContent(), /4 di 6 eventi dimostrativi/);
   await historyPage.locator("#filter-entity").selectOption("Profilo");
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 2,
     "Filtro combinato date/elemento non corretto.");
