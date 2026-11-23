@@ -36,9 +36,10 @@ const controls = {
   action: document.querySelector("#filter-action"),
   search: document.querySelector("#filter-search"),
   sort: document.querySelector("#filter-sort"),
+  pageSize: document.querySelector("#filter-page-size"),
   clear: document.querySelector("#clear-filters")
 };
-const pageSize = 3;
+let pageSize = Number(controls.pageSize.value);
 let currentPage = 1;
 
 function filterEvents(events) {
@@ -85,9 +86,10 @@ try {
   const events = await service.getRecentEvents(50);
   const refresh = (resetPage = true) => {
     if (resetPage) currentPage = 1;
+    pageSize = Number(controls.pageSize.value);
     return filterEvents(events);
   };
-  for (const control of [controls.from, controls.to, controls.entity, controls.action, controls.sort]) {
+  for (const control of [controls.from, controls.to, controls.entity, controls.action, controls.sort, controls.pageSize]) {
     control.addEventListener("change", () => refresh());
   }
   controls.search.addEventListener("input", () => refresh());
@@ -105,6 +107,8 @@ try {
     controls.action.value = "all";
     controls.search.value = "";
     controls.sort.value = "newest";
+    controls.pageSize.value = "3";
+    pageSize = 3;
     refresh();
   });
   refresh();
