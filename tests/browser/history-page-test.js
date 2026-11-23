@@ -24,7 +24,8 @@ const repository = Object.freeze({
 
 try {
   await mountHistoryPage(document.querySelector("#history-root"), {
-    historyService: new HistoryService({ repository })
+    historyService: new HistoryService({ repository }),
+    pageSize: 10
   });
   document.documentElement.dataset.pageResult = "pass";
   document.querySelector("#test-status").textContent = "Pagina cronologia pronta.";
