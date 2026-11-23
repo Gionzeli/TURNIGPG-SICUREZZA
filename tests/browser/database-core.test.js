@@ -225,6 +225,26 @@ async function run() {
     context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
   });
 
+  await test("AUTH-007 — session factory consente retry cleanup dopo switch interrotto", async () => {
+    const session = await createDSMCoreSession({ db, accountId: "session-retry-account-A" });
+    let attempts = 0;
+    session.lifecycle.registerDisposable(() => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("synthetic view cleanup failure");
+    });
+    let blocked = false;
+    try { await session.switchLocalAccount("session-retry-account-B"); }
+    catch { blocked = true; }
+    assert(blocked, "Lo switch ha ignorato il cleanup fallito.");
+    assert(session.lifecycle.getStatus().state === "switching", "La sessione non è rimasta bloccata durante il cleanup.");
+    const resumed = await session.resumePendingTransition();
+    assert(resumed.state === "active" && resumed.accountId === "session-retry-account-B",
+      "Il retry non ha completato lo switch verso B.");
+    assert(attempts === 2, "Il cleanup non è stato ripetuto una sola volta.");
+    await session.logout();
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+  });
+
   await test("DB-005 — update, revision e delete", async () => {
     const updated = await profiles.update(createdProfileId, { displayName: "Profilo aggiornato" }, { expectedRevision: 1 });
     assert(updated?.revision === 2 && updated.data.displayName === "Profilo aggiornato", "Update/revision errati.");
