@@ -112,7 +112,7 @@ try {
       return `"${text.replace(/"/g, '""')}"`;
     };
     const rows = lastFilteredEvents.map(event => [event.occurredAt, event.entityLabel, event.actionLabel, event.description, event.revision]);
-    const csv = [columns, ...rows].map(row => row.map(escapeCell).join(",")).join("\r\\n");
+    const csv = [columns, ...rows].map(row => row.map(escapeCell).join(",")).join("\r\n");
     const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
