@@ -7,7 +7,8 @@ const MAX_STRING_LENGTH = 256;
 const KEY_PATTERN = /^[a-z][a-zA-Z0-9_]*$/;
 
 function validateSettings(data) {
-  if (!data || typeof data !== "object" || Array.isArray(data)) {
+  if (!data || typeof data !== "object" || Array.isArray(data) ||
+      ![Object.prototype, null].includes(Object.getPrototypeOf(data))) {
     throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Le impostazioni devono essere un oggetto semplice.");
   }
   const keys = Object.keys(data);
