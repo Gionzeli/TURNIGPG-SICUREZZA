@@ -193,6 +193,12 @@ try {
   await historyPage.locator("#filter-search").fill("testo inesistente");
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 0,
     "Ricerca senza risultati non corretta.");
+  await historyPage.locator("#filter-search").fill("2026-11-22");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 2,
+    "Ricerca per data non corretta.");
+  await historyPage.locator("#filter-search").fill("revisione 2");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 0,
+    "La ricerca non deve inventare contenuti non presenti nella descrizione.");
   await historyPage.locator("#clear-filters").click();
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 6,
     "Azzera non cancella la ricerca testuale.");
