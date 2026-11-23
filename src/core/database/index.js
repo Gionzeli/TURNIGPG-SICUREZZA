@@ -31,3 +31,5 @@ export { HistoryService } from "../services/history-service.js";
 export { inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology } from "../legacy/legacy-read-adapter.js";
 
 export { HistoryRepository } from "../repositories/history-repository.js";
+
+export { createAccountLifecycleCoordinator } from "../account/account-lifecycle-coordinator.js";
