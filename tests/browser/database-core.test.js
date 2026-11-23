@@ -1,3 +1,4 @@
+import { renderHistoryEvents } from "../../src/ui/history-viewer.js";
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
   createAccountContext, ProfileRepository, ShiftRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
