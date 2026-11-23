@@ -83,8 +83,8 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
     },
 
     clear(token) {
-      if (state !== "switching" || !token || token !== transitionToken) {
-        throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Token transizione non valido.");
+      if (state !== "switching" || !token || token !== transitionToken || !cleanupComplete) {
+        throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Token transizione non valido o pulizia incompleta.");
       }
       accountContext.clear();
       state = "cleared";
