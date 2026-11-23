@@ -191,6 +191,36 @@ async function run() {
     }
   });
 
+  await test("DB-009D — stati migrazione e quarantena seguono transizioni sicure", async () => {
+    const jobs = new MigrationJobRepository({ db, accountContext: context });
+    const quarantine = new QuarantineRepository({ db, accountContext: context });
+    let jobInitial, itemInitial, error;
+    try { await jobs.createJob({ status: "completed" }); } catch (caught) { error = caught; }
+    assert(error?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Un job non può nascere completed.");
+    error = null;
+    try { await quarantine.createItem({ itemType: "shift", sourceIndex: 0, reason: "invalid-data", resolutionStatus: "released" }); } catch (caught) { error = caught; }
+    assert(error?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Un elemento non può nascere released.");
+
+    jobInitial = await jobs.createJob({ sourceCount: 1 });
+    const reviewedJob = await jobs.updateJob(jobInitial.id, { status: "review-required" });
+    assert(reviewedJob.data.status === "review-required" && reviewedJob.revision === 2, "Transizione analysis → review-required non riuscita.");
+    error = null;
+    try { await jobs.updateJob(jobInitial.id, { status: "approved" }); } catch (caught) { error = caught; }
+    assert(error?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Il repository ha consentito approvazione senza processo autorizzativo.");
+    error = null;
+    try { await jobs.updateJob(jobInitial.id, { status: "completed" }); } catch (caught) { error = caught; }
+    assert(error?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Il repository ha consentito completamento senza esecuzione.");
+
+    itemInitial = await quarantine.createItem({ itemType: "shift", sourceIndex: 0, reason: "invalid-data" });
+    const reviewedItem = await quarantine.updateItem(itemInitial.id, { resolutionStatus: "reviewed" });
+    assert(reviewedItem.data.resolutionStatus === "reviewed" && reviewedItem.revision === 2, "Transizione pending → reviewed non riuscita.");
+    error = null;
+    try { await quarantine.updateItem(itemInitial.id, { resolutionStatus: "released" }); } catch (caught) { error = caught; }
+    assert(error?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Il repository ha consentito rilascio senza migrazione.");
+    const discardedItem = await quarantine.updateItem(itemInitial.id, { resolutionStatus: "discarded" });
+    assert(discardedItem.data.resolutionStatus === "discarded" && discardedItem.revision === 3, "Transizione reviewed → discarded non riuscita.");
+  });
+
   await test("DB-009C — job e quarantena persistono dopo riapertura", async () => {
     const jobsBefore = new MigrationJobRepository({ db, accountContext: context });
     const quarantineBefore = new QuarantineRepository({ db, accountContext: context });
