@@ -324,6 +324,32 @@ async function run() {
     assert(record.data.hours === 8 && record.data.is_night === true, "Metadati turno notturno alterati.");
   });
 
+  await test("SVC-012 — ore turno validate ai limiti e rifiuto di valori non numerici", async () => {
+    const service = new ShiftService({ repository: shifts });
+    const base = { date: "2026-11-23", type: "turno" };
+    for (const hours of [0, 48]) {
+      const record = await service.create({ ...base, hours });
+      assert(record.data.hours === hours, `Valore limite ${hours} non conservato.`);
+    }
+    for (const hours of [-0.1, 48.1, NaN, Infinity, true, "8"]) {
+      let caught;
+      try { await service.create({ ...base, hours }); } catch (error) { caught = error; }
+      assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED,
+        `Valore ore non valido accettato: ${String(hours)}.`);
+    }
+  });
+
+  await test("SVC-013 — campi turno sconosciuti rifiutati senza persistenza", async () => {
+    const service = new ShiftService({ repository: shifts });
+    const before = (await service.getAll()).length;
+    let caught;
+    try {
+      await service.create({ date: "2026-11-23", type: "turno", privatePayload: "not-allowed" });
+    } catch (error) { caught = error; }
+    assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Campo turno sconosciuto accettato.");
+    assert((await service.getAll()).length === before, "Il payload rifiutato ha creato un record.");
+  });
+
   await test("LEGACY-001 — anteprima snapshot valido senza scritture", async () => {
     const snapshot = JSON.stringify({
       params: { paga_base: 1250, ore_turno: 7.25 },
