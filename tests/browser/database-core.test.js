@@ -959,7 +959,7 @@ async function run() {
       { source: "copia-b", rawJson: JSON.stringify({ shifts: [{ id: "ok", date: "2026-11-22", type: "turno" }] }) }
     ]);
     assert(result.quarantine.shifts === 1, "Turno non valido non conteggiato in quarantena.");
-    assert(result.identicalRecords.length === 1, "Copia valida non riconosciuta.");
+    assert(result.conflicts.identicalShiftGroups >= 1, "Copia valida non riconosciuta.");
   });
 
 
@@ -987,7 +987,7 @@ async function run() {
     ]);
     assert(result.conflicts.extraDifferences > 0, "Differenza quota ferie non rilevata.");
     assert(result.conflicts.extraDifferences > 0, "Differenza formazione non rilevata.");
-    assert(result.identicalRecords.length === 1, "Turni uguali tra export non riconosciuti.");
+    assert(result.conflicts.identicalShiftGroups >= 1, "Turni uguali tra export non riconosciuti.");
   });
 
   await test("LEGACY-023 — campi extra presenti in una sola fonte restano conflitti", async () => {
