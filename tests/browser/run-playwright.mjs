@@ -48,6 +48,59 @@ try {
   }
   if (status !== "pass") process.exitCode = 1;
 
+  // Exercise real BroadcastChannel delivery between two same-origin browser pages.
+  const crossTabContext = await browser.newContext();
+  const crossTabPageA = await crossTabContext.newPage();
+  const crossTabPageB = await crossTabContext.newPage();
+  const crossTabUrl = "http://127.0.0.1:8000/tests/browser/history-page-test.html";
+  await Promise.all([
+    crossTabPageA.goto(crossTabUrl, { waitUntil: "load" }),
+    crossTabPageB.goto(crossTabUrl, { waitUntil: "load" })
+  ]);
+  const channelName = `dsm-cross-tab-ci-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  async function installCrossTabProbe(targetPage, tabId) {
+    return targetPage.evaluate(async ({ channelName, tabId }) => {
+      const {
+        createAccountContext,
+        createAccountLifecycleCoordinator,
+        createAccountLifecycleCrossTabBridge
+      } = await import("/src/core/database/index.js");
+      const accountContext = createAccountContext();
+      const lifecycle = createAccountLifecycleCoordinator({ accountContext });
+      const initial = await lifecycle.beginTransition("initialize");
+      lifecycle.activateLocal(initial, "synthetic-cross-tab-ci-account");
+      const channel = new BroadcastChannel(channelName);
+      const bridge = createAccountLifecycleCrossTabBridge({ lifecycleCoordinator: lifecycle, channel, tabId });
+      window.__dsmCrossTabProbe = { lifecycle, bridge, channel };
+      return lifecycle.getStatus();
+    }, { channelName, tabId });
+  }
+  await Promise.all([
+    installCrossTabProbe(crossTabPageA, "ci-browser-tab-A"),
+    installCrossTabProbe(crossTabPageB, "ci-browser-tab-B")
+  ]);
+  await crossTabPageA.evaluate(async () => {
+    const token = await window.__dsmCrossTabProbe.lifecycle.beginTransition("switch");
+    window.__dsmCrossTabProbe.lifecycle.activateLocal(token, "synthetic-cross-tab-next-account");
+  });
+  await crossTabPageB.waitForFunction(
+    () => window.__dsmCrossTabProbe?.lifecycle.getStatus().state === "cleared",
+    null,
+    { timeout: 5000 }
+  );
+  const crossTabResult = await crossTabPageB.evaluate(() => ({
+    state: window.__dsmCrossTabProbe.lifecycle.getStatus().state,
+    pending: window.__dsmCrossTabProbe.bridge.getStatus().pendingRemote
+  }));
+  assert.deepEqual(crossTabResult, { state: "cleared", pending: false },
+    "La scheda reale non ha invalidato la sessione dopo il messaggio BroadcastChannel.");
+  await Promise.all([crossTabPageA, crossTabPageB].map(targetPage => targetPage.evaluate(() => {
+    window.__dsmCrossTabProbe.bridge.dispose();
+    window.__dsmCrossTabProbe.channel.close();
+  })));
+  await crossTabContext.close();
+  console.log("PASS — real BroadcastChannel invalidation between two same-origin browser pages");
+
   const reportPage = await browser.newPage();
   const reportErrors = [];
   const requestedUrls = [];
