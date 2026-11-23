@@ -727,6 +727,23 @@ async function run() {
     )), "Lo storico contiene campi oltre la lista consentita.");
   });
 
+  await test("HIST-000B — consultazione cronologia filtrata e limitata", async () => {
+    const history = new HistoryRepository({ db, accountContext: context });
+    const profile = await profiles.create({ displayName: "Cronologia consultabile" });
+    await profiles.update(profile.id, { displayName: "Cronologia aggiornata" }, { expectedRevision: 1 });
+    const entityEvents = await history.getEventsForEntity("profile", profile.id);
+    assert(entityEvents.length === 2, "Filtro per entità restituisce un numero errato di eventi.");
+    assert(entityEvents[0].data.action === "create" && entityEvents[1].data.action === "update",
+      "Gli eventi della stessa entità non sono ordinati cronologicamente.");
+    const recent = await history.getRecentEvents(2);
+    assert(recent.length <= 2, "Il limite della cronologia recente non è rispettato.");
+    let invalidFilter, invalidLimit;
+    try { await history.getEventsForEntity("unknown", profile.id); } catch (error) { invalidFilter = error; }
+    try { await history.getRecentEvents(201); } catch (error) { invalidLimit = error; }
+    assert(invalidFilter?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Filtro non valido accettato.");
+    assert(invalidLimit?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Limite eccessivo accettato.");
+  });
+
   await test("HIST-001 — registra evento storico sanitizzato", async () => {
     const history = new HistoryRepository({ db, accountContext: context });
     const event = await history.recordEvent({
