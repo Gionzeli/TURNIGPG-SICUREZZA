@@ -143,9 +143,9 @@ try {
   await historyPage.goto("http://127.0.0.1:8000/tests/browser/history-preview.html", { waitUntil: "load" });
   await historyPage.waitForFunction(() => document.documentElement.dataset.previewResult === "pass" ||
     document.documentElement.dataset.previewResult === "fail");
-  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
-    "L'anteprima non mostra i tre eventi dimostrativi.");
-  assert.match(await historyPage.locator("#history-status").textContent(), /3 eventi dimostrativi/);
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 6,
+    "L'anteprima non mostra i sei eventi dimostrativi.");
+  assert.match(await historyPage.locator("#history-status").textContent(), /6 di 6 eventi dimostrativi/);
   assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/);
   assert.match(await historyPage.locator("#history-events").textContent(), /Profilo modificato/);
   assert.match(await historyPage.locator("#history-events").textContent(), /Turno creato/);
@@ -153,6 +153,34 @@ try {
   assert.equal(historyErrors.length, 0, historyErrors.join("; "));
   assert.ok(historyRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
     "L'anteprima cronologia ha effettuato richieste esterne.");
+  await historyPage.locator("#filter-entity").selectOption("Profilo");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 2,
+    "Filtro elemento non corretto.");
+  assert.match(await historyPage.locator("#history-status").textContent(), /2 di 6/);
+  await historyPage.locator("#filter-action").selectOption("Creato");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 1,
+    "Filtro combinato elemento/azione non corretto.");
+  await historyPage.locator("#filter-entity").selectOption("all");
+  await historyPage.locator("#filter-action").selectOption("Eliminato");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 1,
+    "Filtro azione non corretto.");
+  await historyPage.locator("#filter-action").selectOption("all");
+  await historyPage.locator("#filter-from").fill("2026-11-22");
+  await historyPage.locator("#filter-to").fill("2026-11-23");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 4,
+    "Filtro intervallo date non corretto.");
+  await historyPage.locator("#filter-entity").selectOption("Profilo");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 2,
+    "Filtro combinato date/elemento non corretto.");
+  await historyPage.locator("#filter-from").fill("2026-11-24");
+  await historyPage.locator("#filter-to").fill("2026-11-22");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 0,
+    "Intervallo date invertito non bloccato.");
+  assert.match(await historyPage.locator("#history-status").textContent(), /intervallo non valido/i);
+  await historyPage.locator("#clear-filters").click();
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 6,
+    "Azzera filtri non ripristina tutti gli eventi.");
+  assert.match(await historyPage.locator("#history-status").textContent(), /6 di 6/);
   console.log("PASS — isolated history preview: synthetic data, service DTO, safe rendering, no external requests");
   await historyPage.close();
 
