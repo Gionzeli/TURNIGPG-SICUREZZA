@@ -7,8 +7,8 @@ const csvSafetyCases = [
   ["+SUM(A1:A2)", "\"'+SUM(A1:A2)\""],
   ["-1+2", "\"'-1+2\""],
   ["@SUM(A1)", "\"'@SUM(A1)\""],
-  ["\\tformula", "\"'\\tformula\""],
-  ["\\rformula", "\"'\\rformula\""],
+  ["\tformula", "\"'\tformula\""],
+  ["\rformula", "\"'\rformula\""],
   ['test "quoted", value', '"test ""quoted"", value"']
 ];
 for (const [value, expected] of csvSafetyCases) {
@@ -19,7 +19,7 @@ for (const [value, expected] of csvSafetyCases) {
     description: value,
     revision: 2
   }]);
-  assert.equal(csv.split("\\r\\n")[1].split(",")[3], expected,
+  assert.equal(csv.split("\r\n")[1].split(",")[3], expected,
     `CSV escaping non corretto per il caso ${JSON.stringify(value)}`);
 }
 assert.throws(() => buildHistoryCsv(null), /array/);
