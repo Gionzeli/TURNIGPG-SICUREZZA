@@ -44,7 +44,7 @@ async function run() {
   await test("AUTH-003 — lifecycle invalida risultati stale e svuota viste prima del nuovo account", async () => {
     const lifecycleContext = createAccountContext();
     const lifecycle = createAccountLifecycleCoordinator({ accountContext: lifecycleContext });
-    const clearedViews = [];
+    const clearedViews = ["cached-record-from-A"];
     lifecycleContext.activate({ accountId: "lifecycle-account-A", identitySource: "local" });
     // Establish active lifecycle state through an explicit initial transition.
     const initial = await lifecycle.beginTransition("initialize");
