@@ -676,6 +676,31 @@ async function run() {
     assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "accountId non rifiutato.");
   });
 
+  await test("HIST-000 — modifiche profilo e turno registrate automaticamente", async () => {
+    const history = new HistoryRepository({ db, accountContext: context });
+    const profile = await profiles.create({ displayName: "Profilo audit test" });
+    await profiles.update(profile.id, { displayName: "Profilo audit aggiornato" }, { expectedRevision: 1 });
+    await profiles.delete(profile.id, { expectedRevision: 2 });
+    const shiftRepository = new ShiftRepository({ db, accountContext: context });
+    const shift = await shiftRepository.create({ date: "2099-02-01", type: "TEST" });
+    const events = (await history.getEvents()).filter(item =>
+      item.data.entityId === profile.id || item.data.entityId === shift.id
+    );
+    const profileEvents = events.filter(item => item.data.entityId === profile.id);
+    assert(profileEvents.length === 3, "Creazione, modifica e cancellazione profilo non registrate.");
+    assert(profileEvents.map(item => item.data.action).join(",") === "create,update,delete",
+      "Sequenza eventi profilo errata.");
+    assert(profileEvents[1].data.previousRevision === 1 && profileEvents[1].data.newRevision === 2,
+      "Revisioni modifica profilo errate.");
+    assert(profileEvents[2].data.previousRevision === 2, "Revisione cancellazione profilo errata.");
+    const shiftEvents = events.filter(item => item.data.entityId === shift.id);
+    assert(shiftEvents.length === 1 && shiftEvents[0].data.action === "create",
+      "Creazione turno non registrata automaticamente.");
+    assert(events.every(item => Object.keys(item.data).every(key =>
+      ["entityType", "entityId", "action", "previousRevision", "newRevision"].includes(key)
+    )), "Lo storico contiene campi oltre la lista consentita.");
+  });
+
   await test("HIST-001 — registra evento storico sanitizzato", async () => {
     const history = new HistoryRepository({ db, accountContext: context });
     const event = await history.recordEvent({
