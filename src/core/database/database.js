@@ -5,6 +5,7 @@ let openPromise = null;
 let activeDatabase = null;
 let activeDatabaseName = DSM_DB_NAME;
 let pendingDatabaseName = null;
+let openGeneration = 0;
 
 export function openDSMDatabase(options = {}) {
   const databaseName = options.name ?? DSM_DB_NAME;
@@ -27,6 +28,7 @@ export function openDSMDatabase(options = {}) {
   }
 
   pendingDatabaseName = databaseName;
+  const generation = ++openGeneration;
   openPromise = new Promise((resolve, reject) => {
     let request;
     try {
@@ -47,32 +49,47 @@ export function openDSMDatabase(options = {}) {
     request.onerror = () => reject(toDatabaseError(request.error, DB_ERROR_CODES.OPEN_FAILED));
     request.onsuccess = () => {
       const db = request.result;
+      if (generation !== openGeneration) {
+        db.close();
+        reject(new DatabaseError(DB_ERROR_CODES.OPEN_FAILED, "Apertura del database annullata da una chiusura precedente."));
+        return;
+      }
       db.onversionchange = () => {
         db.close();
-        if (activeDatabase === db) activeDatabase = null;
-        openPromise = null;
-        pendingDatabaseName = null;
-        activeDatabaseName = DSM_DB_NAME;
+        if (activeDatabase === db) {
+          activeDatabase = null;
+          openPromise = null;
+          pendingDatabaseName = null;
+          activeDatabaseName = DSM_DB_NAME;
+        }
       };
       db.onclose = () => {
-        if (activeDatabase === db) activeDatabase = null;
-        openPromise = null;
-        pendingDatabaseName = null;
-        activeDatabaseName = DSM_DB_NAME;
+        if (activeDatabase === db) {
+          activeDatabase = null;
+          openPromise = null;
+          pendingDatabaseName = null;
+          activeDatabaseName = DSM_DB_NAME;
+        }
       };
       activeDatabase = db;
       activeDatabaseName = databaseName;
       resolve(db);
     };
   }).catch(error => {
-    openPromise = null;
-    pendingDatabaseName = null;
+    if (generation === openGeneration) {
+      openPromise = null;
+      pendingDatabaseName = null;
+    }
     throw error;
   });
   return openPromise;
 }
 
 export async function closeDSMDatabase() {
+  // Invalidate pending opens: IDBOpenDBRequest cannot be cancelled directly.
+  openGeneration++;
+  openPromise = null;
+  pendingDatabaseName = null;
   const db = activeDatabase;
   if (db) {
     db.close();
