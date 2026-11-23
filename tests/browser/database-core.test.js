@@ -775,6 +775,25 @@ async function run() {
       "Risultati del servizio non protetti da modifiche accidentali.");
   });
 
+  await test("HIST-000D — interfaccia cronologia usa testo sicuro e stato vuoto", async () => {
+    const container = document.createElement("section");
+    const malicious = {
+      id: "event-1", occurredAt: "2026-11-23T10:00:00.000Z",
+      entityLabel: "Profilo", actionLabel: "Creato",
+      description: '<img src=x onerror=alert(1)>', revision: 1, newRevision: 1
+    };
+    assert(renderHistoryEvents(container, [malicious]) === 1, "Numero eventi renderizzati errato.");
+    assert(container.querySelector("img") === null, "Il renderer ha interpretato HTML fornito come testo.");
+    assert(container.textContent.includes(malicious.description), "Il testo dell'evento non è stato mostrato in modo letterale.");
+    assert(container.querySelector("time")?.getAttribute("datetime") === malicious.occurredAt,
+      "Data semantica non impostata.");
+    assert(renderHistoryEvents(container, []) === 0, "Stato vuoto restituisce un conteggio errato.");
+    assert(container.textContent.includes("Nessuna attività registrata"), "Stato vuoto non mostrato.");
+    let invalid;
+    try { renderHistoryEvents(container, [{ ...malicious, entityLabel: "Altro" }]); } catch (error) { invalid = error; }
+    assert(invalid instanceof TypeError, "Evento con categoria non consentita accettato.");
+  });
+
   await test("HIST-001 — registra evento storico sanitizzato", async () => {
     const history = new HistoryRepository({ db, accountContext: context });
     const event = await history.recordEvent({
