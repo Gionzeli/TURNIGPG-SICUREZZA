@@ -212,8 +212,10 @@ async function run() {
     const session = await createDSMCoreSession({ db, accountId: "session-account-A" });
     const profile = await session.services.profiles.create({});
     assert(profile.accountId === "session-account-A", "Il servizio non usa il contesto iniziale.");
-    const repository = session.repositories.profiles;
-    assert(repository.lifecycleCoordinator === session.lifecycle, "Il repository non condivide il coordinatore della sessione.");
+    for (const [name, repository] of Object.entries(session.repositories)) {
+      assert(repository.lifecycleCoordinator === session.lifecycle,
+        `Il repository ${name} non condivide il coordinatore della sessione.`);
+    }
     await session.switchLocalAccount("session-account-B");
     assert((await session.services.profiles.getAll()).length === 0,
       "Il servizio espone record dell'account precedente dopo lo switch.");
