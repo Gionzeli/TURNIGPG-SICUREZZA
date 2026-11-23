@@ -3,6 +3,7 @@ import { DatabaseError, DB_ERROR_CODES } from "../database/database-errors.js";
 const MESSAGE_TYPE = "dsm-account-transition";
 const MESSAGE_VERSION = 1;
 const TAB_ID_PATTERN = /^[A-Za-z0-9._:-]{1,128}$/;
+const MAX_TRACKED_SENDERS = 128;
 
 export function createAccountLifecycleCrossTabBridge({ lifecycleCoordinator, channel, tabId } = {}) {
   if (!lifecycleCoordinator ||
@@ -76,6 +77,10 @@ export function createAccountLifecycleCrossTabBridge({ lifecycleCoordinator, cha
 
     const last = lastSequenceBySender.get(message.senderId) || 0;
     if (message.sequence <= last) return;
+    if (!lastSequenceBySender.has(message.senderId) && lastSequenceBySender.size >= MAX_TRACKED_SENDERS) {
+      const oldestSender = lastSequenceBySender.keys().next().value;
+      lastSequenceBySender.delete(oldestSender);
+    }
     lastSequenceBySender.set(message.senderId, message.sequence);
     pendingRemote = true;
     void applyRemoteInvalidation();
@@ -122,6 +127,9 @@ export function createAccountLifecycleCrossTabBridge({ lifecycleCoordinator, cha
 
     dispose() {
       if (disposed) return;
+      if (pendingRemote || pendingToken) {
+        throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Completare l'invalidazione prima di dismettere il bridge.");
+      }
       disposed = true;
       channel.removeEventListener("message", onMessage);
       unsubscribeLifecycle();
