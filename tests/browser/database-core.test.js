@@ -276,7 +276,21 @@ async function run() {
     try { overlappingSummary.overlaps[0].kinds.push("malattia"); } catch { mutableOverlap = true; }
     assert(mutableOverlap || overlappingSummary.overlaps[0].kinds.length === 2, "Categorie sovrapposizione alterabili.");
     assert(overlappingSummary.kinds.permesso.uniqueCalendarDays === 2, "Giorni permesso non conteggiati.");
+    const clippedSummary = await service.summarizeRange("2026-12-03", "2026-12-03");
+    assert(clippedSummary.overlaps.length === 1 &&
+      clippedSummary.overlaps[0].startDate === "2026-12-03" &&
+      clippedSummary.overlaps[0].endDate === "2026-12-03" &&
+      clippedSummary.overlaps[0].calendarDays === 1,
+      "Sovrapposizione ai confini del periodo non limitata correttamente.");
     await service.delete(overlapping.id, { expectedRevision: 1 });
+    const leapAbsence = await service.create({
+      kind: "ferie", startDate: "2028-02-28", endDate: "2028-03-01"
+    });
+    const leapSummary = await service.summarizeRange("2028-02-29", "2028-02-29");
+    assert(leapSummary.kinds.ferie.uniqueCalendarDays === 1 &&
+      leapSummary.kinds.ferie.records === 1,
+      "Il giorno bisestile non è conteggiato correttamente.");
+    await service.delete(leapAbsence.id, { expectedRevision: 1 });
     let invalidRange;
     try { await service.getInRange("2026-12-05", "2026-12-01"); } catch (error) { invalidRange = error; }
     assert(invalidRange?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Intervallo inverso non rifiutato.");
