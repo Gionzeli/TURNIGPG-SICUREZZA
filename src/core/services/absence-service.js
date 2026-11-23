@@ -94,7 +94,7 @@ export class AbsenceService {
     return Object.freeze({
       startDate, endDate, records: records.length,
       kinds: Object.freeze(Object.fromEntries(Object.entries(kinds).map(([kind, value]) => [kind, Object.freeze(value)]))),
-      overlaps: Object.freeze(overlaps.map(item => Object.freeze(item)))
+      overlaps: Object.freeze(overlaps.map(item => Object.freeze({ ...item, kinds: Object.freeze([...item.kinds]) })))
     });
   }
 
