@@ -22,6 +22,7 @@ Questo pacchetto introduce un primo nucleo IndexedDB isolato dal runtime legacy.
 - `src/core/services/service-validation.js`: validazione condivisa di oggetti, date e revisioni.
 - `src/core/services/profile-service.js`: normalizzazione e validazione di parametri retributivi e dati profilo.
 - `src/core/services/shift-service.js`: validazione di date, tipi turno, orari, flag e ore.
+- `src/core/repositories/settings-repository.js` e `docs/settings-repository.md`: preferenze primitive con limiti strutturali; non usare per dati personali o segreti e non collegare alla UI senza un futuro SettingsService con allowlist.
 - `src/core/legacy/legacy-read-adapter.js`: analisi read-only degli snapshot `tg_online_v1`/`tg_extra_v1` e inventario delle copie di backup, chiavi per-utente, storico, formazione e contenitori cifrati.
 
 ## Schema v2
