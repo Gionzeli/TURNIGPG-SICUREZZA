@@ -59,6 +59,9 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
   async function logout() {
     const token = await lifecycle.beginTransition("logout");
     pendingTransition = { token, action: "logout", accountId: null };
+    if (!lifecycle.getStatus().cleanupComplete) {
+      throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Pulizia risorse incompleta; riprendere il logout.");
+    }
     lifecycle.clear(token);
     pendingTransition = null;
     return lifecycle.getStatus();
