@@ -24,14 +24,22 @@ const demoRepository = Object.freeze({
 
 const status = document.querySelector("#history-status");
 const container = document.querySelector("#history-events");
+const pagination = {
+  previous: document.querySelector("#page-previous"),
+  next: document.querySelector("#page-next"),
+  indicator: document.querySelector("#page-indicator")
+};
 const controls = {
   from: document.querySelector("#filter-from"),
   to: document.querySelector("#filter-to"),
   entity: document.querySelector("#filter-entity"),
   action: document.querySelector("#filter-action"),
   search: document.querySelector("#filter-search"),
+  sort: document.querySelector("#filter-sort"),
   clear: document.querySelector("#clear-filters")
 };
+const pageSize = 3;
+let currentPage = 1;
 
 function filterEvents(events) {
   const from = controls.from.value;
@@ -42,6 +50,9 @@ function filterEvents(events) {
   if (from && to && from > to) {
     status.textContent = "Intervallo non valido: la data iniziale supera quella finale.";
     container.replaceChildren();
+    pagination.previous.disabled = true;
+    pagination.next.disabled = true;
+    pagination.indicator.textContent = "Pagina 1 di 1";
     return 0;
   }
   const filtered = events.filter(event => {
@@ -52,25 +63,48 @@ function filterEvents(events) {
       (!query || [event.entityLabel, event.actionLabel, event.description, day, String(event.revision)].
         some(value => value.toLocaleLowerCase("it").includes(query)));
   });
-  const count = renderHistoryEvents(container, filtered);
-  status.textContent = `${count} di ${events.length} eventi dimostrativi · dati inventati`;
+  filtered.sort((a, b) => {
+    const difference = Date.parse(a.occurredAt) - Date.parse(b.occurredAt);
+    const stableOrder = difference || a.id.localeCompare(b.id);
+    return controls.sort.value === "oldest" ? stableOrder : -stableOrder;
+  });
+  const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
+  currentPage = Math.min(currentPage, pageCount);
+  const start = (currentPage - 1) * pageSize;
+  const visibleEvents = filtered.slice(start, start + pageSize);
+  const count = renderHistoryEvents(container, visibleEvents);
+  status.textContent = `${filtered.length} di ${events.length} eventi dimostrativi · pagina ${currentPage} di ${pageCount}`;
+  pagination.indicator.textContent = `Pagina ${currentPage} di ${pageCount}`;
+  pagination.previous.disabled = currentPage === 1;
+  pagination.next.disabled = currentPage === pageCount;
   return count;
 }
 
 try {
   const service = new HistoryService({ repository: demoRepository });
   const events = await service.getRecentEvents(50);
-  const refresh = () => filterEvents(events);
-  for (const control of [controls.from, controls.to, controls.entity, controls.action]) {
-    control.addEventListener("change", refresh);
+  const refresh = (resetPage = true) => {
+    if (resetPage) currentPage = 1;
+    return filterEvents(events);
+  };
+  for (const control of [controls.from, controls.to, controls.entity, controls.action, controls.sort]) {
+    control.addEventListener("change", () => refresh());
   }
-  controls.search.addEventListener("input", refresh);
+  controls.search.addEventListener("input", () => refresh());
+  pagination.previous.addEventListener("click", () => {
+    if (currentPage > 1) { currentPage -= 1; refresh(false); }
+  });
+  pagination.next.addEventListener("click", () => {
+    currentPage += 1;
+    refresh(false);
+  });
   controls.clear.addEventListener("click", () => {
     controls.from.value = "";
     controls.to.value = "";
     controls.entity.value = "all";
     controls.action.value = "all";
     controls.search.value = "";
+    controls.sort.value = "newest";
     refresh();
   });
   refresh();
