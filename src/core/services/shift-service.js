@@ -16,6 +16,12 @@ function normalizeShift(input) {
   const endTime = source.end_time ?? "";
   if ((startTime !== "" && (typeof startTime !== "string" || !timePattern.test(startTime))) ||
       (endTime !== "" && (typeof endTime !== "string" || !timePattern.test(endTime)))) validationError("Orario turno non valido.");
+  if ((startTime === "") !== (endTime === "")) {
+    validationError("Per indicare un intervallo servono sia l'orario iniziale sia quello finale.");
+  }
+  if (startTime !== "" && startTime === endTime) {
+    validationError("L'orario iniziale e quello finale non possono coincidere.");
+  }
   const hours = source.hours ?? 0;
   if (typeof hours !== "number" || !Number.isFinite(hours) || hours < 0 || hours > 48) validationError("Le ore del turno devono essere comprese tra 0 e 48.");
   const flags = {};
