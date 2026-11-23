@@ -1,0 +1,35 @@
+# DSM — audit cambio account e operazioni pendenti
+
+## Ambito
+Revisione del branch `dsm-enterprise/core-v1` su cambio account, riuso repository, connessioni IndexedDB e invalidazione UI. Nessun dato operativo o personale è stato usato.
+
+## Esito
+
+- **Filtro account nei repository:** le operazioni acquisiscono l'accountId all'inizio e filtrano le letture tramite gli indici `accountId` e `accountId_id`. Il test `DB-006` verifica il riuso di un repository passando da A a B e poi tornando ad A.
+- **Context clear:** `clear()` rimuove il contesto attivo; `AUTH-002` verifica che nuove chiamate repository vengano rifiutate e che i dati persistenti restino presenti.
+- **Database close/open:** la chiusura invalida richieste di apertura pendenti (`DB-001B`); il workflow browser CI è verde al commit esaminato.
+- **Cambio account e UI:** il core non ha un coordinatore che invalida viste, cache o riferimenti applicativi. L'isolamento dei repository non basta se una UI conserva dati già letti in memoria.
+- **Operazioni IndexedDB già avviate:** non è presente un meccanismo di cancellazione/revoca per operazioni già partite. Il loro accountId viene catturato all'inizio, ma una transizione di contesto non interrompe necessariamente l'operazione. Non considerare `clear()` come barriera completa.
+- **Repository collegati a una connessione:** i repository mantengono la connessione DB ricevuta al costruttore. Se la connessione viene chiusa o sostituita, i vecchi repository non vengono automaticamente ricreati; il chiamante deve ricostruirli e ricaricare la vista.
+
+## Decisione
+
+Non aggiungere un coordinatore parziale senza test controllabili: un blocco UI isolato non garantirebbe il rollback delle transazioni IndexedDB già avviate e potrebbe creare una falsa impressione di sicurezza. Per ora non cambiare codice applicativo.
+
+## Prerequisiti per il coordinatore lifecycle
+
+1. API lifecycle con stato transizione esplicito (`switching/clearing/active`) e blocco nuove operazioni.
+2. Token/generazione del contesto per rilevare operazioni e risultati stale.
+3. Registrazione delle operazioni pendenti e abort best-effort delle transazioni cancellabili; gestione chiara di quelle già completate.
+4. Evento di cambio contesto consumato dalle viste per svuotare immediatamente DOM, cache e riferimenti ai record.
+5. Rilascio dei vecchi repository/connessioni e ricostruzione solo dopo transizione conclusa.
+6. Test browser deterministici: A→B non mostra dati A nella UI; logout cancella viste; risultato asincrono stale non viene renderizzato; transazione in corso durante cambio account; errori/rollback; nuova connessione con repository freschi.
+7. Verificare il comportamento in più schede. Un context locale per scheda non è coordinamento cross-tab.
+
+## Limiti e sicurezza
+
+Il contesto client-side e gli indici IndexedDB forniscono separazione logica per prototipo, non autorizzazione contro codice same-origin ostile. IndexedDB resta non cifrato e persistente. Non usare dati personali/operativi finché autenticazione, protezione dei dati, lifecycle e retention non sono progettati e testati.
+
+## Stato di verifica
+
+L'ultimo workflow `DSM Core browser tests` esaminato (run 45250320994, commit `4d3a74aa19beedf4e9fe767a06494e4d2b4b6f6d`) ha conclusione `success`. Questo risultato si riferisce ai test del commit e non certifica i prerequisiti futuri sopra elencati.
