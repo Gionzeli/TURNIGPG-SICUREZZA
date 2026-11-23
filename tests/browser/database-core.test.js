@@ -263,13 +263,18 @@ async function run() {
 
     const guardContext = createAccountContext();
     const guardLifecycle = createAccountLifecycleCoordinator({ accountContext: guardContext });
-    guardLifecycle.registerDisposable(() => { throw new Error("synthetic guarded cleanup failure"); });
+    let guardAttempts = 0;
+    guardLifecycle.registerDisposable(() => {
+      guardAttempts += 1;
+      if (guardAttempts === 1) throw new Error("synthetic guarded cleanup failure");
+    });
     const guardToken = await guardLifecycle.beginTransition("initialize");
     let guardedClearBlocked = false;
     try { guardLifecycle.clear(guardToken); } catch { guardedClearBlocked = true; }
     assert(guardedClearBlocked && guardLifecycle.getStatus().state === "switching",
       "clear(token) ha ignorato cleanupComplete=false.");
     assert(await guardLifecycle.retryCleanup(guardToken), "Il retry della pulizia di guardia non è riuscito.");
+    assert(guardAttempts === 2, "Il cleanup di guardia non è stato ripetuto una sola volta.");
     guardLifecycle.clear(guardToken);
     assert(guardLifecycle.getStatus().state === "cleared", "clear dopo cleanup riuscito non ha funzionato.");
 
