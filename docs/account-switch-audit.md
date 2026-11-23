@@ -47,3 +47,19 @@ L'ultimo workflow `DSM Core browser tests` esaminato (run 45250320994, commit `4
 Test sintetici AUTH-003/AUTH-004 coprono invalidazione A→B, logout, pulizia cache tramite listener e retry dopo errore.
 
 **Non integrato:** BaseRepository, servizi applicativi e viste reali non ricevono ancora il coordinatore. I test di listener usano una cache sintetica, non il DOM dell'applicazione. Le transazioni IndexedDB già avviate non vengono abortite dal coordinatore. Non è una garanzia di isolamento completa né un'autorizzazione di sicurezza. Prima dell'uso applicativo servono wiring esplicito, test d'integrazione end-to-end e verifica multi-scheda.
+
+
+## Aggiornamento — collegamento BaseRepository (2026-11-23)
+
+La decisione iniziale di non modificare il codice applicativo è superata dall'implementazione incrementale seguente:
+
+- BaseRepository accetta l'opzione facoltativa lifecycleCoordinator; i repository concreti la inoltrano già tramite ...options.
+- Ogni operazione acquisisce una coppia accountId/generazione e verifica che sia ancora corrente prima di restituire risultati.
+- Le letture completate dopo una transizione vengono rifiutate, non restituite alla UI.
+- Le transazioni di scrittura vengono registrate come risorse disposable; beginTransition() tenta di abortire quelle ancora pendenti. Le transazioni già completate non sono reversibili.
+- Le verifiche di update/delete controllano anche la generazione nel callback IndexedDB prima di scrivere.
+- Il test AUTH-005 usa IndexedDB sintetico: controlla una lettura account A, avvia una scrittura e commuta ad account B, verifica che la scrittura pendente venga rifiutata e che B non legga il record di A.
+
+**Collegamento ancora esplicito, non automatico:** il chiamante deve passare la stessa istanza di lifecycleCoordinator a ogni repository (inclusi Profile, Shift, Absence, Settings, History, MigrationJob e Quarantine). I servizi usano i repository ricevuti e quindi ereditano la protezione. Non è ancora collegato il DOM dell'app operativa né esiste un composition root dell'app che istanzi e distribuisca il coordinatore. Le viste devono sottoscrivere gli eventi e cancellare cache/DOM; questo non va dichiarato completato.
+
+La coordinazione è per singola istanza/scheda. Non risolve conflitti cross-tab, autenticazione, cifratura IndexedDB o protezione contro script same-origin. Non costituisce autorizzazione di sicurezza e non rende il core pronto per produzione.
