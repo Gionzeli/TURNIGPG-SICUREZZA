@@ -86,3 +86,9 @@ I repository conservano soltanto metadati sintetici e non eseguono importazioni 
 - I cambi di stato usano la revisione corrente come controllo ottimistico per rifiutare aggiornamenti concorrenti.
 
 Questi controlli limitano gli stati fuorvianti nel prototipo; non costituiscono un'autorizzazione utente o una prova di approvazione aziendale.
+
+## Impostazioni: validazione minima del repository
+
+Il repository impostazioni non definisce ancora un catalogo funzionale dei singoli parametri. Per ridurre il rischio di persistenza accidentale di payload complessi, ora accetta soltanto oggetti semplici con un massimo di 30 proprietà, nomi chiave in formato tecnico limitato e valori primitivi: stringhe fino a 256 caratteri, numeri finiti, booleani o `null`. Oggetti annidati, array, valori numerici non finiti e chiavi non conformi vengono rifiutati.
+
+Questa è una protezione strutturale, non una classificazione semantica dei dati: una stringa breve può comunque contenere un dato personale. Non inserire dati personali, retributivi, credenziali o contenuti operativi nelle impostazioni. Prima dell'uso reale occorre definire un catalogo esplicito delle preferenze ammesse, con finalità, retention e classificazione dei dati.
