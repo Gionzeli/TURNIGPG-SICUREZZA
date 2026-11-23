@@ -180,7 +180,10 @@ try {
   const historyCsvStream = await historyCsvDownload.createReadStream();
   const historyCsvChunks = [];
   for await (const chunk of historyCsvStream) historyCsvChunks.push(chunk);
-  const historyCsv = Buffer.concat(historyCsvChunks).toString("utf8").replace(/^\uFEFF/, "");
+  const historyCsvBuffer = Buffer.concat(historyCsvChunks);
+  assert.deepEqual([...historyCsvBuffer.subarray(0, 3)], [0xEF, 0xBB, 0xBF],
+    "CSV must start with the actual UTF-8 BOM.");
+  const historyCsv = historyCsvBuffer.toString("utf8").replace(/^\uFEFF/, "");
   const historyCsvLines = historyCsv.split(/\r?\n/);
   assert.equal(historyCsvLines.length, 7, "L'export deve includere tutti i sei risultati, non solo la pagina visibile.");
   assert.equal(historyCsvLines[0], '"Data e ora","Elemento","Azione","Descrizione","Revisione"');
