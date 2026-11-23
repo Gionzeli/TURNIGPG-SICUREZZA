@@ -181,6 +181,21 @@ try {
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 6,
     "Azzera filtri non ripristina tutti gli eventi.");
   assert.match(await historyPage.locator("#history-status").textContent(), /6 di 6/);
+  await historyPage.locator("#filter-search").fill("profilo");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 2,
+    "Ricerca testuale case-insensitive non corretta.");
+  await historyPage.locator("#filter-search").fill("  TURNO  ");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
+    "Ricerca testuale non ignora maiuscole e spazi esterni.");
+  await historyPage.locator("#filter-search").fill("profilo creato");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 1,
+    "Ricerca testuale su descrizione non corretta.");
+  await historyPage.locator("#filter-search").fill("testo inesistente");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 0,
+    "Ricerca senza risultati non corretta.");
+  await historyPage.locator("#clear-filters").click();
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 6,
+    "Azzera non cancella la ricerca testuale.");
   console.log("PASS — isolated history preview: synthetic data, service DTO, safe rendering, no external requests");
   await historyPage.close();
 
