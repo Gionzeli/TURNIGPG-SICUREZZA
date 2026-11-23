@@ -271,6 +271,10 @@ async function run() {
     const overlappingSummary = await service.summarizeRange("2026-12-01", "2026-12-05");
     assert(overlappingSummary.overlaps.length === 1 &&
       overlappingSummary.overlaps[0].calendarDays === 2, "Sovrapposizione assenze non segnalata.");
+    assert(Object.isFrozen(overlappingSummary.overlaps[0].kinds), "Elenco categorie sovrapposizione modificabile.");
+    let mutableOverlap;
+    try { overlappingSummary.overlaps[0].kinds.push("malattia"); } catch { mutableOverlap = true; }
+    assert(mutableOverlap || overlappingSummary.overlaps[0].kinds.length === 2, "Categorie sovrapposizione alterabili.");
     assert(overlappingSummary.kinds.permesso.uniqueCalendarDays === 2, "Giorni permesso non conteggiati.");
     await service.delete(overlapping.id, { expectedRevision: 1 });
     let invalidRange;
