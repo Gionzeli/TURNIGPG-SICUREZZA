@@ -1,7 +1,7 @@
 import { renderHistoryEvents } from "./history-viewer.js";
 import { buildHistoryCsv } from "./history-csv-export.js";
 
-const ENTITIES = Object.freeze(["Tutti", "Turno", "Profilo", "Impostazione"]);
+const ENTITIES = Object.freeze(["Tutti", "Turno", "Profilo", "Impostazione", "Assenza"]);
 const ACTIONS = Object.freeze(["Tutte", "Creato", "Modificato", "Eliminato"]);
 const PAGE_SIZES = Object.freeze([10, 25, 50]);
 
