@@ -939,6 +939,33 @@ async function run() {
     assert(result.conflicts.shiftIdConflicts === 0, "Creato conflitto ID inatteso.");
   });
 
+  await test("LEGACY-028 — errori riconciliazione non rivelano etichette delle fonti", async () => {
+    const sensitiveLabel = "persona-esempio@example.invalid";
+    let malformedJsonError;
+    try {
+      inspectLegacyReconciliation([
+        { source: sensitiveLabel, rawJson: "{" },
+        { source: "snapshot-valido", rawJson: JSON.stringify({ params: {}, profile: {}, shifts: [] }) }
+      ]);
+    } catch (error) { malformedJsonError = error; }
+    assert(malformedJsonError, "JSON malformato non rifiutato.");
+    assert(!String(malformedJsonError.message).includes(sensitiveLabel),
+      "Il messaggio di errore espone l'etichetta potenzialmente personale.");
+
+    let malformedExtraError;
+    try {
+      inspectLegacyReconciliation([
+        { source: sensitiveLabel, rawJson: JSON.stringify({
+          app: "Turni Gpg/sicurezza online", params: {}, profile: {}, shifts: [], extra: []
+        }) },
+        { source: "snapshot-valido", rawJson: JSON.stringify({ params: {}, profile: {}, shifts: [] }) }
+      ]);
+    } catch (error) { malformedExtraError = error; }
+    assert(malformedExtraError, "Sezione extra non valida non rifiutata.");
+    assert(!String(malformedExtraError.message).includes(sensitiveLabel),
+      "L'errore sulla sezione extra espone l'etichetta potenzialmente personale.");
+  });
+
   await test("LEGACY-012 — stesso ID con dati diversi e profilo divergente sono conflitti", async () => {
     const make = (hours, salary) => JSON.stringify({
       params: { paga_base: salary }, profile: { role: "Operatore" },
