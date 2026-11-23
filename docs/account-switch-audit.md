@@ -82,3 +82,12 @@ Il test AUTH-006 verifica con dati sintetici che servizio e repository condivida
 `mountHistoryPage(container, { historyService, lifecycleCoordinator })` può ora ricevere il coordinatore della sessione. La vista cattura la generazione attiva prima della lettura e sottoscrive gli eventi lifecycle: su `transition-start` o `context-cleared` rimuove listener e contenuto dal container. Se la lettura asincrona termina dopo la transizione, il risultato viene scartato e non renderizzato. Il chiamante deve montare una nuova vista per l'account appena attivato.
 
 Il test browser della cronologia simula una lettura pendente dell'account A, avvia lo switch a B, completa tardivamente la lettura A e verifica che il container resti vuoto. Questa integrazione riguarda la sola pagina cronologia DSM; non equivale al collegamento di tutte le schermate dell'applicazione operativa.
+
+
+## Retry delle transizioni nella session factory
+
+La session factory conserva internamente il token opaco e la destinazione di una transizione se il cleanup fallisce. In questo caso `switchLocalAccount()` o `logout()` non attivano il nuovo contesto: la sessione resta `switching`. Il chiamante può invocare `resumePendingTransition()` per ripetere il cleanup; solo dopo il completamento vengono attivati il nuovo account o lo stato `cleared`. Se il retry fallisce, la sessione resta bloccata e la stessa API può essere richiamata nuovamente. AUTH-007 copre il caso sintetico di una risorsa vista che fallisce al primo cleanup e viene rilasciata al secondo tentativo.
+
+## Limite tra schede
+
+Il coordinatore e `accountContext` sono confinati all'istanza JavaScript della singola scheda. Un cambio account in una scheda non invalida automaticamente cache, viste o operazioni pendenti in un'altra scheda che usa lo stesso IndexedDB. Non considerare questo meccanismo un isolamento multi-tab o una barriera di sicurezza: prima dell'uso operativo servono un protocollo cross-tab verificato (ad esempio BroadcastChannel con gestione dei messaggi e fallback), un modello di autenticazione server-side e test di race tra schede.
