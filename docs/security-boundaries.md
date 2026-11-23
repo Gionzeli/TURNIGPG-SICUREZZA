@@ -74,3 +74,15 @@ Nessuna cancellazione globale viene implementata da questo documento.
 - revisione privacy e sicurezza prima di usare dati reali.
 
 Fino a quel momento il core va trattato come prototipo locale per test sintetici. Non inserirvi dati reali sensibili e non collegarlo all'app operativa.
+
+## Stato dei repository di migrazione e quarantena
+
+I repository conservano soltanto metadati sintetici e non eseguono importazioni o trasferimenti di dati.
+
+- Un nuovo job di migrazione nasce in stato `analysis`; sono consentiti soltanto passaggi di revisione, pausa o annullamento/errore compatibili con la modalità read-only.
+- Gli stati `approved`, `ready-to-execute` e `completed` non sono raggiungibili dalle API attuali: richiedono un futuro processo esplicito, autorizzato e verificato.
+- Un nuovo elemento in quarantena nasce `pending`; può essere marcato `reviewed` o `discarded`, ma non `released`.
+- Il rilascio dalla quarantena resta bloccato finché non esisterà una procedura di migrazione esplicita. Nessuna di queste etichette equivale a un'importazione effettiva.
+- I cambi di stato usano la revisione corrente come controllo ottimistico per rifiutare aggiornamenti concorrenti.
+
+Questi controlli limitano gli stati fuorvianti nel prototipo; non costituiscono un'autorizzazione utente o una prova di approvazione aziendale.
