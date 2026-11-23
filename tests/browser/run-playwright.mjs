@@ -159,6 +159,11 @@ try {
   }]);
   assert.equal(await reportPage.locator("#analyze").isDisabled(), true);
   assert.match(await reportPage.locator("#status").textContent(), /supera il limite di 10 MB/);
+  await reportPage.locator("#files").setInputFiles(Array.from({ length: 6 }, (_, index) => ({
+    name: `totale-${index}.json`, mimeType: "application/json", buffer: Buffer.alloc(9 * 1024 * 1024, 32)
+  })));
+  assert.equal(await reportPage.locator("#analyze").isDisabled(), true);
+  assert.match(await reportPage.locator("#status").textContent(), /massimo 50 MB per tutti i file/);
 
   const historyPage = await browser.newPage();
   const historyErrors = [];
