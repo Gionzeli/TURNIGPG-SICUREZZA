@@ -11,6 +11,23 @@ const ALLOWED_FIELDS = new Set([
   "newRevision"
 ]);
 
+function eventSequence(event) {
+  const data = event?.data || {};
+  if (data.action === "create") return 1;
+  if (data.action === "update" && Number.isSafeInteger(data.newRevision)) return data.newRevision;
+  if (data.action === "delete" && Number.isSafeInteger(data.previousRevision)) return data.previousRevision + 1;
+  return Number.MAX_SAFE_INTEGER;
+}
+
+function compareEventsAscending(a, b) {
+  const byTime = String(a.createdAt).localeCompare(String(b.createdAt));
+  if (byTime) return byTime;
+  const byEntity = String(a.data?.entityId).localeCompare(String(b.data?.entityId));
+  if (byEntity) return byEntity;
+  const bySequence = eventSequence(a) - eventSequence(b);
+  return bySequence || String(a.id).localeCompare(String(b.id));
+}
+
 function validateEvent(data) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
     throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Evento storico non valido.");
@@ -71,7 +88,8 @@ export class HistoryRepository extends BaseRepository {
   }
 
   async getEvents() {
-    return this.getAll();
+    const events = await this.getAll();
+    return events.sort(compareEventsAscending);
   }
 
   async getEventsForEntity(entityType, entityId) {
@@ -82,7 +100,7 @@ export class HistoryRepository extends BaseRepository {
     const events = await this.getAll();
     return events
       .filter(event => event.data.entityType === entityType && event.data.entityId === entityId)
-      .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+      .sort(compareEventsAscending);
   }
 
   async getRecentEvents(limit = 50) {
@@ -91,7 +109,7 @@ export class HistoryRepository extends BaseRepository {
     }
     const events = await this.getAll();
     return events
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
+      .sort((a, b) => compareEventsAscending(b, a))
       .slice(0, limit);
   }
 
