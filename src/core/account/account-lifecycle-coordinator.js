@@ -11,8 +11,19 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
   let state = "cleared";
   let generation = 0;
   let transitionToken = null;
+  let cleanupComplete = true;
   const listeners = new Set();
   const disposables = new Set();
+
+  async function runCleanup(event) {
+    const listenerErrors = publish(event);
+    const cleanupErrors = [];
+    for (const dispose of [...disposables]) {
+      try { await dispose(); }
+      catch { cleanupErrors.push("dispose-error"); }
+    }
+    cleanupComplete = listenerErrors.length === 0 && cleanupErrors.length === 0;
+  }
 
   function publish(event) {
     const errors = [];
@@ -25,7 +36,7 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
 
   return Object.freeze({
     getStatus() {
-      return Object.freeze({ state, generation, accountId: state === "active" ? accountContext.getActive()?.accountId ?? null : null });
+      return Object.freeze({ state, generation, cleanupComplete, accountId: state === "active" ? accountContext.getActive()?.accountId ?? null : null });
     },
 
     subscribe(listener) {
@@ -47,20 +58,13 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
       generation += 1;
       transitionToken = Object.freeze({});
       accountContext.clear();
-      const listenerErrors = publish({ type: "transition-start", reason });
-      const cleanupErrors = [];
-      for (const dispose of [...disposables]) {
-        try { await dispose(); }
-        catch { cleanupErrors.push("dispose-error"); }
-      }
-      if (listenerErrors.length || cleanupErrors.length) {
-        throw new DatabaseError(DB_ERROR_CODES.TRANSACTION_FAILED, "Pulizia lifecycle incompleta; contesto mantenuto non attivo.");
-      }
+      cleanupComplete = false;
+      await runCleanup({ type: "transition-start", reason });
       return transitionToken;
     },
 
     activateLocal(token, accountId) {
-      if (state !== "switching" || !token || token !== transitionToken) {
+      if (state !== "switching" || !token || token !== transitionToken || !cleanupComplete) {
         throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Token transizione non valido.");
       }
       const active = accountContext.activate({ accountId, identitySource: "local" });
@@ -70,12 +74,21 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
       return active;
     },
 
+    async retryCleanup(token) {
+      if (state !== "switching" || !token || token !== transitionToken) {
+        throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Token transizione non valido.");
+      }
+      await runCleanup({ type: "transition-retry" });
+      return cleanupComplete;
+    },
+
     clear(token) {
       if (state !== "switching" || !token || token !== transitionToken) {
         throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Token transizione non valido.");
       }
       accountContext.clear();
       state = "cleared";
+      cleanupComplete = true;
       transitionToken = null;
       publish({ type: "context-cleared", reason: "logout" });
     },
