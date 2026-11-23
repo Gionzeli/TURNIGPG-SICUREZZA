@@ -793,6 +793,16 @@ async function run() {
     let invalid;
     try { renderHistoryEvents(container, [{ ...malicious, entityLabel: "Altro" }]); } catch (error) { invalid = error; }
     assert(invalid instanceof TypeError, "Evento con categoria non consentita accettato.");
+    for (const patch of [
+      { occurredAt: "data-non-valida" },
+      { revision: 0 },
+      { newRevision: "2" },
+      { description: "x".repeat(201) }
+    ]) {
+      let rejected;
+      try { renderHistoryEvents(container, [{ ...malicious, ...patch }]); } catch (error) { rejected = error; }
+      assert(rejected instanceof TypeError, "Metadati cronologici non validi accettati.");
+    }
   });
 
   await test("HIST-001 — registra evento storico sanitizzato", async () => {
