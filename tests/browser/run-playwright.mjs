@@ -238,11 +238,15 @@ try {
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 0,
     "Intervallo date invertito non bloccato.");
   assert.match(await historyPage.locator("#history-status").textContent(), /intervallo non valido/i);
+  assert.equal(await historyPage.locator("#export-csv").isDisabled(), true,
+    "L'esportazione deve essere disabilitata se i filtri non producono risultati.");
   await historyPage.locator("#clear-filters").click();
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
     "Azzera filtri non ripristina la prima pagina degli eventi.");
   assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 2/);
   assert.match(await historyPage.locator("#history-status").textContent(), /6 di 6/);
+  assert.equal(await historyPage.locator("#export-csv").isDisabled(), false,
+    "L'esportazione deve riattivarsi dopo aver azzerato i filtri.");
   await historyPage.locator("#filter-search").fill("profilo");
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 2,
     "Ricerca testuale case-insensitive non corretta.");
