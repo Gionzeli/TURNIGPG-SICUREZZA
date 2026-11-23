@@ -1,5 +1,29 @@
 import { chromium } from "playwright";
 import assert from "node:assert/strict";
+import { buildHistoryCsv } from "../../src/ui/history-csv-export.js";
+
+const csvSafetyCases = [
+  ["=1+1", "\"'=1+1\""],
+  ["+SUM(A1:A2)", "\"'+SUM(A1:A2)\""],
+  ["-1+2", "\"'-1+2\""],
+  ["@SUM(A1)", "\"'@SUM(A1)\""],
+  ["\\tformula", "\"'\\tformula\""],
+  ["\\rformula", "\"'\\rformula\""],
+  ['test "quoted", value', '"test ""quoted"", value"']
+];
+for (const [value, expected] of csvSafetyCases) {
+  const csv = buildHistoryCsv([{
+    occurredAt: "2026-11-23T09:45:00.000Z",
+    entityLabel: "Profilo",
+    actionLabel: "Modificato",
+    description: value,
+    revision: 2
+  }]);
+  assert.equal(csv.split("\\r\\n")[1].split(",")[3], expected,
+    `CSV escaping non corretto per il caso ${JSON.stringify(value)}`);
+}
+assert.throws(() => buildHistoryCsv(null), /array/);
+console.log("PASS — CSV serializer: formula prefixes, quotes, and invalid input");
 
 const browser = await chromium.launch({ headless: true });
 let pageErrors = [];
