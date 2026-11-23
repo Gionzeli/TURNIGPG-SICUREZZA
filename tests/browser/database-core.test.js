@@ -990,6 +990,31 @@ async function run() {
       "Account A non ritrova lo storico impostazione.");
   });
 
+  await test("SET-001 — impostazioni limitate a valori primitivi e dimensioni controllate", async () => {
+    const settings = new SettingsRepository({ db, accountContext: context });
+    const valid = await settings.create({ preference: "compact", enabled: true, scale: 1.25, optional: null });
+    assert(valid.data.preference === "compact", "Impostazione valida non salvata.");
+    const invalidPayloads = [
+      { privateData: { value: "nested" } },
+      { entries: ["one", "two"] },
+      { oversized: "x".repeat(257) },
+      { "chiave non valida": true },
+      { amount: Number.NaN },
+      { amount: Number.POSITIVE_INFINITY }
+    ];
+    for (const payload of invalidPayloads) {
+      let caught;
+      try { await settings.create(payload); } catch (error) { caught = error; }
+      assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Payload impostazione non valido accettato.");
+    }
+    let updateError;
+    try { await settings.update(valid.id, { details: { unexpected: true } }, { expectedRevision: valid.revision }); }
+    catch (error) { updateError = error; }
+    assert(updateError?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Aggiornamento annidato non rifiutato.");
+    const updated = await settings.update(valid.id, { enabled: false }, { expectedRevision: valid.revision });
+    assert(updated.data.enabled === false && updated.revision === 2, "Aggiornamento semplice valido non riuscito.");
+  });
+
   await test("HIST-000 — modifiche profilo e turno registrate automaticamente", async () => {
     const history = new HistoryRepository({ db, accountContext: context });
     const profile = await profiles.create({ displayName: "Profilo audit test" });
