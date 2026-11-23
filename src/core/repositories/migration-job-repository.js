@@ -10,34 +10,49 @@ const JOB_FIELDS = new Set([
   "quarantinedCount", "errorCode"
 ]);
 
+function validationError(message) {
+  return new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, message);
+}
+
 function validateJobData(data, { partial = false } = {}) {
   if (!data || typeof data !== "object" || Array.isArray(data)) {
-    throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Dati del lavoro di migrazione non validi.");
+    throw validationError("Dati del lavoro di migrazione non validi.");
   }
   for (const key of Object.keys(data)) {
     if (!JOB_FIELDS.has(key)) {
-      throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, `Campo non consentito nel lavoro di migrazione: ${key}.`);
+      throw validationError(`Campo non consentito nel lavoro di migrazione: ${key}.`);
     }
   }
   if (data.status !== undefined && !JOB_STATUSES.has(data.status)) {
-    throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Stato del lavoro di migrazione non riconosciuto.");
+    throw validationError("Stato del lavoro di migrazione non riconosciuto.");
   }
   if (data.mode !== undefined && data.mode !== "read-only") {
-    throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "In questa fase sono ammessi solo lavori in sola lettura.");
+    throw validationError("In questa fase sono ammessi solo lavori in sola lettura.");
   }
   for (const field of ["sourceCount", "processedCount", "quarantinedCount"]) {
     if (data[field] !== undefined && (!Number.isSafeInteger(data[field]) || data[field] < 0)) {
-      throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, `${field} deve essere un intero non negativo.`);
+      throw validationError(`${field} deve essere un intero non negativo.`);
     }
   }
   if (data.errorCode !== undefined &&
       (typeof data.errorCode !== "string" || data.errorCode.length > 80 || !/^[A-Z0-9_]*$/.test(data.errorCode))) {
-    throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Codice errore non valido.");
+    throw validationError("Codice errore non valido.");
   }
-  if (!partial && data.status === undefined && data.mode !== undefined && data.mode !== "read-only") {
-    throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Modalità non valida.");
+  if (!partial && data.status !== undefined && data.status !== "analysis") {
+    throw validationError("Un nuovo job deve iniziare dallo stato analysis.");
   }
 }
+
+const JOB_TRANSITIONS = new Map([
+  ["analysis", new Set(["review-required", "paused", "failed", "cancelled"])],
+  ["review-required", new Set(["paused", "failed", "cancelled"])],
+  ["paused", new Set(["review-required", "failed", "cancelled"])],
+  ["approved", new Set()],
+  ["ready-to-execute", new Set()],
+  ["failed", new Set()],
+  ["cancelled", new Set()],
+  ["completed", new Set()]
+]);
 
 export class MigrationJobRepository extends BaseRepository {
   constructor(options) {
@@ -51,7 +66,15 @@ export class MigrationJobRepository extends BaseRepository {
 
   async updateJob(id, changes, options = {}) {
     validateJobData(changes, { partial: true });
-    return this.update(id, changes, options);
+    if (changes.status === undefined) return this.update(id, changes, options);
+    const current = await this.getJob(id);
+    if (!current) return null;
+    if (changes.status === current.data.status) return this.update(id, changes, { ...options, expectedRevision: options.expectedRevision ?? current.revision });
+    const allowed = JOB_TRANSITIONS.get(current.data.status);
+    if (!allowed?.has(changes.status)) {
+      throw validationError("Transizione di stato del job non consentita in modalità sola lettura.");
+    }
+    return this.update(id, changes, { ...options, expectedRevision: options.expectedRevision ?? current.revision });
   }
 
   getJob(id) { return this.getById(id); }
