@@ -37,10 +37,12 @@ const controls = {
   search: document.querySelector("#filter-search"),
   sort: document.querySelector("#filter-sort"),
   pageSize: document.querySelector("#filter-page-size"),
-  clear: document.querySelector("#clear-filters")
+  clear: document.querySelector("#clear-filters"),
+  export: document.querySelector("#export-csv")
 };
 let pageSize = Number(controls.pageSize.value);
 let currentPage = 1;
+let lastFilteredEvents = [];
 
 function filterEvents(events) {
   const from = controls.from.value;
@@ -50,6 +52,7 @@ function filterEvents(events) {
   const query = controls.search.value.trim().toLocaleLowerCase("it");
   if (from && to && from > to) {
     status.textContent = "Intervallo non valido: la data iniziale supera quella finale.";
+    lastFilteredEvents = [];
     container.replaceChildren();
     pagination.previous.disabled = true;
     pagination.next.disabled = true;
@@ -69,6 +72,7 @@ function filterEvents(events) {
     const stableOrder = difference || a.id.localeCompare(b.id);
     return controls.sort.value === "oldest" ? stableOrder : -stableOrder;
   });
+  lastFilteredEvents = filtered;
   const pageCount = Math.max(1, Math.ceil(filtered.length / pageSize));
   currentPage = Math.min(currentPage, pageCount);
   const start = (currentPage - 1) * pageSize;
@@ -99,6 +103,24 @@ try {
   pagination.next.addEventListener("click", () => {
     currentPage += 1;
     refresh(false);
+  });
+  controls.export.addEventListener("click", () => {
+    const columns = ["Data e ora", "Elemento", "Azione", "Descrizione", "Revisione"];
+    const escapeCell = value => {
+      let text = String(value ?? "");
+      if (/^[=+\\-@\\t\\r]/.test(text)) text = `"'${text}`;
+      return `"${text.replace(/"/g, '""')}"`;
+    };
+    const rows = lastFilteredEvents.map(event => [event.occurredAt, event.entityLabel, event.actionLabel, event.description, event.revision]);
+    const csv = [columns, ...rows].map(row => row.map(escapeCell).join(",")).join("\\r\\n");
+    const blob = new Blob(["\\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "cronologia-demo.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+    status.textContent = `Esportati ${rows.length} eventi dimostrativi filtrati.`;
   });
   controls.clear.addEventListener("click", () => {
     controls.from.value = "";
