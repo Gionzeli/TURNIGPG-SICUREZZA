@@ -485,14 +485,14 @@ export function inspectLegacyReconciliation(candidates) {
 
     let parsedCandidate;
     try { parsedCandidate = JSON.parse(candidate.rawJson); }
-    catch { invalid(`JSON non valido nello snapshot ${label}.`); }
+    catch { invalid("JSON non valido in uno snapshot della riconciliazione."); }
     let preview, extrasPreview = null;
     if (isObject(parsedCandidate) && parsedCandidate.app === "Turni Gpg/sicurezza online") {
       preview = inspectLegacySnapshot(JSON.stringify({
         params: parsedCandidate.params, profile: parsedCandidate.profile, shifts: parsedCandidate.shifts
       }));
       if (parsedCandidate.extra !== undefined) {
-        if (!isObject(parsedCandidate.extra)) invalid(`Sezione extra non valida nello snapshot ${label}.`);
+        if (!isObject(parsedCandidate.extra)) invalid("Sezione extra non valida in uno snapshot della riconciliazione.");
         extrasPreview = inspectLegacyExtras(JSON.stringify(parsedCandidate.extra));
       }
     } else {
