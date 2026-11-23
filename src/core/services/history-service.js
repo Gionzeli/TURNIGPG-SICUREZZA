@@ -3,7 +3,8 @@ import { DatabaseError, DB_ERROR_CODES } from "../database/database-errors.js";
 const ENTITY_LABELS = Object.freeze({
   shift: "Turno",
   profile: "Profilo",
-  setting: "Impostazione"
+  setting: "Impostazione",
+  absence: "Assenza"
 });
 const ACTION_LABELS = Object.freeze({
   create: "Creato",
