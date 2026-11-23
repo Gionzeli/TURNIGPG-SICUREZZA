@@ -48,6 +48,46 @@ async function run() {
     assert(!getDSMDatabaseStatus().isOpen, "Un database è stato aperto durante la validazione.");
   });
 
+  await test("DB-001A — upgrade da schema v1 conserva dati e aggiunge assenze", async () => {
+    const legacy = await new Promise((resolve, reject) => {
+      const request = indexedDB.open(TEST_DB_NAME, 1);
+      request.onupgradeneeded = () => {
+        const db = request.result;
+        for (const name of ["accounts", "profiles", "settings", "shifts", "history", "migration_jobs", "migration_quarantine"]) {
+          const store = db.createObjectStore(name, { keyPath: "id" });
+          store.createIndex("accountId", "accountId");
+          store.createIndex("accountId_id", ["accountId", "id"], { unique: true });
+        }
+        db.createObjectStore("schema_metadata", { keyPath: "key" });
+        request.transaction.objectStore("schema_metadata").put({ key: "schemaVersion", value: 1 });
+        request.transaction.objectStore("profiles").put({
+          id: "upgrade-preserved-profile", accountId: "browser-test-account-A",
+          createdAt: "2026-01-01T00:00:00.000Z", updatedAt: "2026-01-01T00:00:00.000Z",
+          revision: 1, schemaVersion: 1, data: { displayName: "Profilo conservato" }
+        });
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    assert(legacy.version === 1 && !legacy.objectStoreNames.contains("absences"), "Fixture v1 non corretta.");
+    legacy.close();
+    db = await openDSMDatabase({ name: TEST_DB_NAME });
+    assert(db.version === 2, "Il database non è stato aggiornato alla versione 2.");
+    assert(db.objectStoreNames.contains("absences"), "Lo store assenze non è stato creato.");
+    const metadata = await new Promise((resolve, reject) => {
+      const request = db.transaction(["schema_metadata"], "readonly")
+        .objectStore("schema_metadata").get("schemaVersion");
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    assert(metadata?.value === 2 && metadata.upgradedFrom === 1, "Metadati upgrade non coerenti.");
+    const contextForUpgrade = createAccountContext();
+    contextForUpgrade.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+    const preserved = await new ProfileRepository({ db, accountContext: contextForUpgrade })
+      .getById("upgrade-preserved-profile");
+    assert(preserved?.data.displayName === "Profilo conservato", "I dati preesistenti sono stati persi durante l'upgrade.");
+  });
+
   await test("DB-001 — apertura database di test isolato", async () => {
     db = await openDSMDatabase({ name: TEST_DB_NAME });
     assert(db.name === TEST_DB_NAME, "Database diverso da quello test.");
