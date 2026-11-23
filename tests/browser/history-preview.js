@@ -29,6 +29,7 @@ const controls = {
   to: document.querySelector("#filter-to"),
   entity: document.querySelector("#filter-entity"),
   action: document.querySelector("#filter-action"),
+  search: document.querySelector("#filter-search"),
   clear: document.querySelector("#clear-filters")
 };
 
@@ -37,6 +38,7 @@ function filterEvents(events) {
   const to = controls.to.value;
   const entity = controls.entity.value;
   const action = controls.action.value;
+  const query = controls.search.value.trim().toLocaleLowerCase("it");
   if (from && to && from > to) {
     status.textContent = "Intervallo non valido: la data iniziale supera quella finale.";
     container.replaceChildren();
@@ -46,7 +48,9 @@ function filterEvents(events) {
     const day = event.occurredAt.slice(0, 10);
     return (!from || day >= from) && (!to || day <= to) &&
       (entity === "all" || event.entityLabel === entity) &&
-      (action === "all" || event.actionLabel === action);
+      (action === "all" || event.actionLabel === action) &&
+      (!query || [event.entityLabel, event.actionLabel, event.description, day, String(event.revision)].
+        some(value => value.toLocaleLowerCase("it").includes(query)));
   });
   const count = renderHistoryEvents(container, filtered);
   status.textContent = `${count} di ${events.length} eventi dimostrativi · dati inventati`;
@@ -57,7 +61,7 @@ try {
   const service = new HistoryService({ repository: demoRepository });
   const events = await service.getRecentEvents(50);
   const refresh = () => filterEvents(events);
-  for (const control of [controls.from, controls.to, controls.entity, controls.action]) {
+  for (const control of [controls.from, controls.to, controls.entity, controls.action, controls.search]) {
     control.addEventListener("change", refresh);
   }
   controls.clear.addEventListener("click", () => {
@@ -65,6 +69,7 @@ try {
     controls.to.value = "";
     controls.entity.value = "all";
     controls.action.value = "all";
+    controls.search.value = "";
     refresh();
   });
   refresh();
