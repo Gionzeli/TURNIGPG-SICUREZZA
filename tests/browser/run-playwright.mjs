@@ -300,6 +300,46 @@ try {
   console.log("PASS — isolated history preview: synthetic data, service DTO, safe rendering, no external requests");
   await historyPage.close();
 
+  const liveHistoryPage = await browser.newPage();
+  const liveHistoryErrors = [];
+  const liveHistoryRequests = [];
+  liveHistoryPage.on("pageerror", error => liveHistoryErrors.push(error.message));
+  liveHistoryPage.on("request", request => liveHistoryRequests.push(request.url()));
+  await liveHistoryPage.goto("http://127.0.0.1:8000/tests/browser/history-page-test.html", { waitUntil: "load" });
+  await liveHistoryPage.waitForFunction(() => document.documentElement.dataset.pageResult === "pass" ||
+    document.documentElement.dataset.pageResult === "fail");
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 10,
+    "La pagina DSM deve mostrare 10 eventi iniziali.");
+  assert.match(await liveHistoryPage.locator(".dsm-history-status").textContent(), /12 di 12 eventi/);
+  assert.match(await liveHistoryPage.locator(".dsm-history-pagination span").textContent(), /Pagina 1 di 2/);
+  await liveHistoryPage.locator(".dsm-history-filters input[type=search]").fill("profilo");
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 4,
+    "Ricerca per categoria sulla pagina DSM non corretta.");
+  await liveHistoryPage.locator(".dsm-history-filters input[type=search]").fill("");
+  await liveHistoryPage.locator(".dsm-history-filters select").nth(0).selectOption("Turno");
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 4,
+    "Filtro categoria sulla pagina DSM non corretto.");
+  await liveHistoryPage.locator(".dsm-history-filters select").nth(0).selectOption("Tutti");
+  const dsmCsvPromise = liveHistoryPage.waitForEvent("download");
+  await liveHistoryPage.locator(".dsm-history-filters button").nth(1).click();
+  const dsmCsv = await dsmCsvPromise;
+  assert.equal(dsmCsv.suggestedFilename(), "cronologia-dsm.csv");
+  const dsmCsvStream = await dsmCsv.createReadStream();
+  const dsmCsvChunks = [];
+  for await (const chunk of dsmCsvStream) dsmCsvChunks.push(chunk);
+  const dsmCsvBuffer = Buffer.concat(dsmCsvChunks);
+  assert.deepEqual([...dsmCsvBuffer.subarray(0, 3)], [0xEF, 0xBB, 0xBF],
+    "L'export DSM deve iniziare con BOM UTF-8 reale.");
+  const dsmCsvText = dsmCsvBuffer.toString("utf8").replace(/^\\uFEFF/, "");
+  assert.equal(dsmCsvText.split(/\\r?\\n/).length, 13,
+    "L'export DSM deve contenere tutti i risultati filtrati, non solo la pagina visibile.");
+  assert.doesNotMatch(dsmCsvText, /synthetic-|page-test-|entityId|accountId/);
+  assert.equal(liveHistoryErrors.length, 0, liveHistoryErrors.join("; "));
+  assert.ok(liveHistoryRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "La pagina cronologia DSM ha effettuato richieste esterne.");
+  console.log("PASS — DSM history page: HistoryService integration, filters, pagination, safe CSV export, no external requests");
+  await liveHistoryPage.close();
+
   console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
   await reportPage.close();
 } finally {
