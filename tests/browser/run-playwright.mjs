@@ -9,6 +9,7 @@ const csvSafetyCases = [
   ["@SUM(A1)", "\"'@SUM(A1)\""],
   ["\tformula", "\"'\tformula\""],
   ["\rformula", "\"'\rformula\""],
+  ["\nformula", "\"'\nformula\""],
   ['test "quoted", value', '"test ""quoted"", value"']
 ];
 for (const [value, expected] of csvSafetyCases) {
