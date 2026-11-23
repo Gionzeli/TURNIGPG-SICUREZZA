@@ -76,6 +76,14 @@ Il logout deve:
 
 Il logout non deve cancellare automaticamente dati o cronologia: confondere logout e cancellazione può causare perdita irreversibile.
 
+## Verifica implementativa aggiuntiva
+
+Il test browser `AUTH-002` verifica il comportamento reale di `clear()`: il contesto in memoria viene azzerato e le successive chiamate ai repository vengono rifiutate con `DB_ACCOUNT_REQUIRED`, mentre i record IndexedDB restano presenti e tornano leggibili solo dopo una nuova selezione locale dello stesso namespace. Questo è logout del contesto, non cancellazione account.
+
+### Limite ancora aperto: operazioni pendenti
+
+Il repository base acquisisce l'account attivo all'inizio dell'operazione. Il contesto attuale non espone un meccanismo di revoca/cancellazione delle operazioni IndexedDB già avviate. Di conseguenza `clear()` da solo non garantisce l'annullamento atomico di tutte le operazioni già in corso né lo svuotamento di viste/cache UI. Prima di una UI multi-account o di dati reali servirà un lifecycle coordinator con blocco nuove operazioni, invalidazione delle viste e gestione delle richieste pendenti. Non presentare `clear()` come logout completo di sicurezza.
+
 ## Specifica per futura cancellazione account
 
 La cancellazione è distruttiva e deve essere progettata separatamente prima di scrivere il codice.
