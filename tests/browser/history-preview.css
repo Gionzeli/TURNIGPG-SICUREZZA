@@ -10,9 +10,9 @@ h2 { margin-top: 0; font-size: 1.15rem; }
 .notice { padding: 12px 14px; border-left: 4px solid #b7791f; background: #fff8e8; border-radius: 6px; line-height: 1.5; }
 .filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 12px; align-items: end; margin: 16px 0; }
 .filters label { display: grid; gap: 6px; color: #39465b; font-size: .88rem; font-weight: 600; }
-.filters input, .filters select, .filters button { width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid #cbd4e1; border-radius: 8px; background: #fff; color: #172033; font: inherit; }
-.filters button { cursor: pointer; background: #eef2f7; font-weight: 650; }
-.filters button:hover { background: #e3e9f1; }
+.filters input, .filters select, .filters button, .pagination button { width: 100%; min-height: 42px; padding: 8px 10px; border: 1px solid #cbd4e1; border-radius: 8px; background: #fff; color: #172033; font: inherit; }
+.filters button, .pagination button { cursor: pointer; background: #eef2f7; font-weight: 650; }
+.filters button:hover, .pagination button:not(:disabled):hover { background: #e3e9f1; }
 .filters input[type="search"] { min-width: 0; }
 #history-status { color: #52627a; }
 .dsm-history-list { list-style: none; margin: 0; padding: 0; }
@@ -21,4 +21,8 @@ h2 { margin-top: 0; font-size: 1.15rem; }
 .dsm-history-item time, .dsm-history-revision { color: #52627a; font-size: .88rem; }
 .dsm-history-revision { justify-self: start; padding: 3px 8px; background: #eef2f7; border-radius: 999px; }
 .dsm-history-empty { color: #52627a; padding: 16px 0; }
+.pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 16px; }
+.pagination button { width: auto; min-width: 112px; }
+.pagination button:disabled { cursor: not-allowed; opacity: .5; }
+#page-indicator { color: #52627a; font-size: .9rem; text-align: center; }
 footer { color: #65738a; font-size: .82rem; text-align: center; padding: 20px 8px; }
