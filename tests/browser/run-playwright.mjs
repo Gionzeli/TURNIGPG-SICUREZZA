@@ -19,7 +19,7 @@ for (const [value, expected] of csvSafetyCases) {
     description: value,
     revision: 2
   }]);
-  assert.equal(csv.split("\r\n")[1].split(",")[3], expected,
+  assert.equal(csv.split("\r\n")[1], ['"2026-11-23T09:45:00.000Z"', '"Profilo"', '"Modificato"', expected, '"2"'].join(","),
     `CSV escaping non corretto per il caso ${JSON.stringify(value)}`);
 }
 assert.throws(() => buildHistoryCsv(null), /array/);
