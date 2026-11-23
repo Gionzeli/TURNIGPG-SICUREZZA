@@ -11,6 +11,12 @@ const ACTION_LABELS = Object.freeze({
   update: "Modificato",
   delete: "Eliminato"
 });
+const ENTITY_DESCRIPTIONS = Object.freeze({
+  shift: { create: "Turno creato", update: "Turno modificato", delete: "Turno eliminato" },
+  profile: { create: "Profilo creato", update: "Profilo modificato", delete: "Profilo eliminato" },
+  setting: { create: "Impostazione creata", update: "Impostazione modificata", delete: "Impostazione eliminata" },
+  absence: { create: "Assenza creata", update: "Assenza modificata", delete: "Assenza eliminata" }
+});
 
 function presentEvent(event) {
   const data = event?.data;
@@ -24,7 +30,7 @@ function presentEvent(event) {
     occurredAt: event.createdAt,
     entityLabel: ENTITY_LABELS[data.entityType],
     actionLabel: ACTION_LABELS[data.action],
-    description: `${ENTITY_LABELS[data.entityType]} ${ACTION_LABELS[data.action].toLowerCase()}`,
+    description: ENTITY_DESCRIPTIONS[data.entityType][data.action],
     revision: event.revision,
     previousRevision: data.previousRevision ?? null,
     newRevision: data.newRevision ?? null
