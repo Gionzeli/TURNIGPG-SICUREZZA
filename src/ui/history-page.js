@@ -153,7 +153,7 @@ export async function mountHistoryPage(container, { historyService, pageSize = 2
   on(next, "click", () => { currentPage++; render(false); });
   on(exportButton, "click", () => {
     if (!filtered.length) return;
-    const blob = new Blob(["\\uFEFF", buildHistoryCsv(filtered)], { type: "text/csv;charset=utf-8" });
+    const blob = new Blob(["\uFEFF", buildHistoryCsv(filtered)], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = element("a");
     link.download = "cronologia-dsm.csv";
