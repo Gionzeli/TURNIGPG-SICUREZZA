@@ -33,3 +33,5 @@ export { inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspe
 export { HistoryRepository } from "../repositories/history-repository.js";
 
 export { createAccountLifecycleCoordinator } from "../account/account-lifecycle-coordinator.js";
+
+export { createDSMCoreSession } from "./create-dsm-session.js";
