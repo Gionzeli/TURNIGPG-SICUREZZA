@@ -37,9 +37,45 @@ export async function createDSMCoreSession({ db, accountId } = {}) {
     history: new HistoryService({ repository: repositories.history })
   });
 
+  let pendingTransition = null;
+
   async function activateLocal(nextAccountId, reason) {
     const token = await lifecycle.beginTransition(reason);
-    lifecycle.activateLocal(token, nextAccountId);
+    pendingTransition = { token, action: "activate", accountId: nextAccountId };
+    try {
+      lifecycle.activateLocal(token, nextAccountId);
+      pendingTransition = null;
+      return lifecycle.getStatus();
+    } catch (error) {
+      // Keep the opaque token so the caller can retry failed cleanup safely.
+      throw error;
+    }
+  }
+
+  async function logout() {
+    const token = await lifecycle.beginTransition("logout");
+    pendingTransition = { token, action: "logout", accountId: null };
+    lifecycle.clear(token);
+    pendingTransition = null;
+    return lifecycle.getStatus();
+  }
+
+  async function resumePendingTransition() {
+    if (!pendingTransition) {
+      throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Nessuna transizione da riprendere.");
+    }
+    const pending = pendingTransition;
+    const complete = await lifecycle.retryCleanup(pending.token);
+    if (!complete) {
+      throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Pulizia risorse ancora incompleta; riprovare.");
+    }
+    if (pending.action === "logout") {
+      lifecycle.clear(pending.token);
+      pendingTransition = null;
+      return lifecycle.getStatus();
+    }
+    lifecycle.activateLocal(pending.token, pending.accountId);
+    pendingTransition = null;
     return lifecycle.getStatus();
   }
 
@@ -53,10 +89,7 @@ export async function createDSMCoreSession({ db, accountId } = {}) {
     switchLocalAccount(nextAccountId) {
       return activateLocal(nextAccountId, "switch");
     },
-    async logout() {
-      const token = await lifecycle.beginTransition("logout");
-      lifecycle.clear(token);
-      return lifecycle.getStatus();
-    }
+    logout,
+    resumePendingTransition
   });
 }
