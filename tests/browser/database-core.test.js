@@ -184,6 +184,29 @@ async function run() {
     assert(record.accountId === "browser-test-account-A", "Account ID errato.");
     assert((await profiles.getById(record.id))?.data.displayName === "Profilo test browser", "Lettura errata.");
   });
+  await test("AUTH-005 — repository collegato invalida letture e abortisce scritture pendenti al cambio account", async () => {
+    const lifecycle = createAccountLifecycleCoordinator({ accountContext: context });
+    const initial = await lifecycle.beginTransition("initialize");
+    lifecycle.activateLocal(initial, "browser-test-account-A");
+    const boundProfiles = new ProfileRepository({
+      db, accountContext: context, lifecycleCoordinator: lifecycle
+    });
+    assert((await boundProfiles.getById(createdProfileId))?.accountId === "browser-test-account-A",
+      "Il repository lifecycle non legge l'account attivo.");
+    const pendingUpdate = boundProfiles.update(
+      createdProfileId, { displayName: "scrittura-stale" }, { expectedRevision: 1 }
+    );
+    const switching = await lifecycle.beginTransition("switch");
+    let rejected = false;
+    try { await pendingUpdate; } catch { rejected = true; }
+    assert(rejected, "Una scrittura pendente non è stata interrotta durante il cambio account.");
+    lifecycle.activateLocal(switching, "browser-test-account-B");
+    assert(await boundProfiles.getById(createdProfileId) === null,
+      "Il repository collegato ha esposto ad account B il record di A.");
+    const logout = await lifecycle.beginTransition("logout");
+    lifecycle.clear(logout);
+  });
+
   await test("DB-005 — update, revision e delete", async () => {
     const updated = await profiles.update(createdProfileId, { displayName: "Profilo aggiornato" }, { expectedRevision: 1 });
     assert(updated?.revision === 2 && updated.data.displayName === "Profilo aggiornato", "Update/revision errati.");
