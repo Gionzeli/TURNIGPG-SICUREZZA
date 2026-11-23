@@ -61,9 +61,10 @@ try {
   const service = new HistoryService({ repository: demoRepository });
   const events = await service.getRecentEvents(50);
   const refresh = () => filterEvents(events);
-  for (const control of [controls.from, controls.to, controls.entity, controls.action, controls.search]) {
+  for (const control of [controls.from, controls.to, controls.entity, controls.action]) {
     control.addEventListener("change", refresh);
   }
+  controls.search.addEventListener("input", refresh);
   controls.clear.addEventListener("click", () => {
     controls.from.value = "";
     controls.to.value = "";
