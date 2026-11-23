@@ -74,6 +74,27 @@ export class HistoryRepository extends BaseRepository {
     return this.getAll();
   }
 
+  async getEventsForEntity(entityType, entityId) {
+    if (!ENTITY_TYPES.has(entityType) ||
+        typeof entityId !== "string" || !entityId.trim() || entityId.length > 200) {
+      throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Filtro cronologia non valido.");
+    }
+    const events = await this.getAll();
+    return events
+      .filter(event => event.data.entityType === entityType && event.data.entityId === entityId)
+      .sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+  }
+
+  async getRecentEvents(limit = 50) {
+    if (!Number.isSafeInteger(limit) || limit < 1 || limit > 200) {
+      throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Limite cronologia non valido (1-200).");
+    }
+    const events = await this.getAll();
+    return events
+      .sort((a, b) => b.createdAt.localeCompare(a.createdAt) || b.id.localeCompare(a.id))
+      .slice(0, limit);
+  }
+
   async update() {
     throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Gli eventi storici non possono essere modificati.");
   }
