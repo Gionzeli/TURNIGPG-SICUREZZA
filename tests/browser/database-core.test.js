@@ -291,6 +291,12 @@ async function run() {
       leapSummary.kinds.ferie.records === 1,
       "Il giorno bisestile non è conteggiato correttamente.");
     await service.delete(leapAbsence.id, { expectedRevision: 1 });
+    const earlyYearAbsence = await service.create({
+      kind: "ferie", startDate: "0096-02-29", endDate: "0096-03-01"
+    });
+    assert(earlyYearAbsence.data.startDate === "0096-02-29",
+      "Una data ISO valida con anno inferiore a 0100 è stata rifiutata.");
+    await service.delete(earlyYearAbsence.id, { expectedRevision: 1 });
     let invalidRange;
     try { await service.getInRange("2026-12-05", "2026-12-01"); } catch (error) { invalidRange = error; }
     assert(invalidRange?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Intervallo inverso non rifiutato.");
