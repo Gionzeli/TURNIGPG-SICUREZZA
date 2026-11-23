@@ -530,6 +530,24 @@ async function run() {
     assert(preview.shifts.ready[0].legacyId === "turno-1", "ID legacy non mantenuto nell'anteprima.");
   });
 
+  await test("LEGACY-001A — date ISO con anni inferiori a 0100 nell'adapter legacy", async () => {
+    const snapshot = inspectLegacySnapshot(JSON.stringify({
+      params: {},
+      profile: { effective_date: "0096-02-29" },
+      shifts: [{ id: "early-year", date: "0096-02-29", type: "turno", hours: 8 }]
+    }));
+    assert(snapshot.profile.valid, "La decorrenza legacy valida con anno 0096 è stata rifiutata.");
+    assert(snapshot.shifts.ready.length === 1 && snapshot.shifts.quarantined.length === 0,
+      "Il turno legacy valido con anno 0096 è stato messo in quarantena.");
+    const invalid = inspectLegacySnapshot(JSON.stringify({
+      params: {},
+      profile: { effective_date: "0096-02-30" },
+      shifts: [{ date: "0096-02-30", type: "turno", hours: 8 }]
+    }));
+    assert(!invalid.profile.valid, "Il profilo legacy ha accettato il giorno inesistente.");
+    assert(invalid.shifts.quarantined.length === 1, "Il turno legacy con giorno inesistente non è stato isolato.");
+  });
+
   await test("LEGACY-002 — turni non validi messi in quarantena individualmente", async () => {
     const preview = inspectLegacySnapshot(JSON.stringify({
       params: {}, profile: {},
