@@ -164,6 +164,22 @@ try {
   assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/,
     "L'ordinamento decrescente non ripristina gli eventi più recenti.");
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3);
+  await historyPage.locator("#filter-page-size").selectOption("5");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 5,
+    "La dimensione pagina 5 non viene applicata.");
+  assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 2/);
+  await historyPage.locator("#page-next").click();
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 1,
+    "L'ultima pagina con dimensione 5 non contiene il solo evento rimanente.");
+  await historyPage.locator("#filter-page-size").selectOption("10");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 6,
+    "La dimensione pagina 10 non mostra tutti gli eventi.");
+  assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 1/);
+  assert.equal(await historyPage.locator("#page-next").isDisabled(), true);
+  await historyPage.locator("#filter-page-size").selectOption("3");
+  assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3,
+    "Il ripristino a 3 eventi non è corretto.");
+  assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 1 di 2/);
   assert.match(await historyPage.locator("#history-status").textContent(), /6 di 6 eventi dimostrativi/);
   assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/);
   assert.match(await historyPage.locator(".notice").textContent(), /eventi inventati/);
