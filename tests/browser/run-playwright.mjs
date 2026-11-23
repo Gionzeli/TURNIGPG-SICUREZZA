@@ -155,8 +155,8 @@ try {
   const historyCsvStream = await historyCsvDownload.createReadStream();
   const historyCsvChunks = [];
   for await (const chunk of historyCsvStream) historyCsvChunks.push(chunk);
-  const historyCsv = Buffer.concat(historyCsvChunks).toString("utf8").replace(/^\\uFEFF/, "");
-  const historyCsvLines = historyCsv.split(/\\r?\\n/);
+  const historyCsv = Buffer.concat(historyCsvChunks).toString("utf8").replace(/^\uFEFF/, "");
+  const historyCsvLines = historyCsv.split(/\r?\n/);
   assert.equal(historyCsvLines.length, 7, "L'export deve includere tutti i sei risultati, non solo la pagina visibile.");
   assert.equal(historyCsvLines[0], '"Data e ora","Elemento","Azione","Descrizione","Revisione"');
   assert.match(historyCsv, /"Impostazione","Modificato"/);
@@ -171,7 +171,7 @@ try {
   const filteredCsvChunks = [];
   for await (const chunk of filteredCsvStream) filteredCsvChunks.push(chunk);
   const filteredCsv = Buffer.concat(filteredCsvChunks).toString("utf8");
-  assert.equal(filteredCsv.split(/\\r?\\n/).length, 3, "L'export deve rispettare i filtri attivi.");
+  assert.equal(filteredCsv.split(/\r?\n/).length, 3, "L'export deve rispettare i filtri attivi.");
   assert.match(filteredCsv, /"Profilo"/);
   assert.doesNotMatch(filteredCsv, /"Turno"|"Impostazione"|demo-profile/);
   await historyPage.locator("#filter-entity").selectOption("all");
