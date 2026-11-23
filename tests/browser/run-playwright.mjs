@@ -320,6 +320,43 @@ try {
   assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 4,
     "Filtro categoria sulla pagina DSM non corretto.");
   await liveHistoryPage.locator(".dsm-history-filters select").nth(0).selectOption("Tutti");
+  const dsmSelects = liveHistoryPage.locator(".dsm-history-filters select");
+  await dsmSelects.nth(1).selectOption("Creato");
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 4,
+    "Filtro azione non corretto.");
+  await dsmSelects.nth(1).selectOption("Tutte");
+  await liveHistoryPage.locator(".dsm-history-filters input[type=date]").nth(0).fill("2026-11-24");
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 0,
+    "Filtro data iniziale non corretto.");
+  await liveHistoryPage.locator(".dsm-history-filters input[type=date]").nth(0).fill("");
+  await liveHistoryPage.locator(".dsm-history-filters input[type=date]").nth(1).fill("2026-11-22");
+  assert.match(await liveHistoryPage.locator(".dsm-history-status").textContent(), /0 di 12 eventi/);
+  await liveHistoryPage.locator(".dsm-history-filters input[type=date]").nth(1).fill("");
+  await liveHistoryPage.locator(".dsm-history-filters input[type=date]").nth(0).fill("2026-11-24");
+  await liveHistoryPage.locator(".dsm-history-filters input[type=date]").nth(1).fill("2026-11-22");
+  assert.match(await liveHistoryPage.locator(".dsm-history-status").textContent(), /Intervallo non valido/);
+  await liveHistoryPage.locator(".dsm-history-filters input[type=date]").nth(0).fill("");
+  await liveHistoryPage.locator(".dsm-history-filters input[type=date]").nth(1).fill("");
+  await dsmSelects.nth(2).selectOption("oldest");
+  assert.match(await liveHistoryPage.locator(".dsm-history-item time").first().getAttribute("datetime"), /T12:00:00/);
+  await dsmSelects.nth(2).selectOption("newest");
+  assert.match(await liveHistoryPage.locator(".dsm-history-item time").first().getAttribute("datetime"), /T12:11:00/);
+  await dsmSelects.nth(3).selectOption("25");
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 12,
+    "Dimensione pagina 25 non applicata.");
+  assert.match(await liveHistoryPage.locator(".dsm-history-pagination span").textContent(), /Pagina 1 di 1/);
+  await dsmSelects.nth(3).selectOption("10");
+  await liveHistoryPage.locator(".dsm-history-pagination button").nth(1).click();
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 2,
+    "Navigazione alla pagina successiva non corretta.");
+  await liveHistoryPage.locator(".dsm-history-pagination button").nth(0).click();
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 10,
+    "Navigazione alla pagina precedente non corretta.");
+  await liveHistoryPage.locator(".dsm-history-filters button").nth(0).click();
+  assert.equal(await liveHistoryPage.locator(".dsm-history-item").count(), 10,
+    "Reset filtri non ripristina la pagina iniziale.");
+  assert.equal(await dsmSelects.nth(3).inputValue(), "10",
+    "Reset non ripristina la dimensione pagina predefinita.");
   const dsmCsvPromise = liveHistoryPage.waitForEvent("download");
   await liveHistoryPage.locator(".dsm-history-filters button").nth(1).click();
   const dsmCsv = await dsmCsvPromise;
