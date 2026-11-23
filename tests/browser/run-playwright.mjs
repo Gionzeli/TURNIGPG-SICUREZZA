@@ -154,6 +154,8 @@ try {
     "La seconda pagina deve mostrare gli eventi rimanenti.");
   assert.match(await historyPage.locator("#page-indicator").textContent(), /Pagina 2 di 2/);
   assert.equal(await historyPage.locator("#page-next").isDisabled(), true);
+  assert.match(await historyPage.locator("#history-events").textContent(), /Profilo modificato/);
+  assert.match(await historyPage.locator("#history-events").textContent(), /Turno creato/);
   await historyPage.locator("#filter-sort").selectOption("oldest");
   assert.match(await historyPage.locator("#history-events").textContent(), /Turno creato/,
     "L'ordinamento crescente non mostra gli eventi più vecchi per primi.");
@@ -164,8 +166,6 @@ try {
   assert.equal(await historyPage.locator("#history-events .dsm-history-item").count(), 3);
   assert.match(await historyPage.locator("#history-status").textContent(), /6 di 6 eventi dimostrativi/);
   assert.match(await historyPage.locator("#history-events").textContent(), /Impostazione modificato/);
-  assert.match(await historyPage.locator("#history-events").textContent(), /Profilo modificato/);
-  assert.match(await historyPage.locator("#history-events").textContent(), /Turno creato/);
   assert.match(await historyPage.locator(".notice").textContent(), /eventi inventati/);
   assert.equal(historyErrors.length, 0, historyErrors.join("; "));
   assert.ok(historyRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
