@@ -1,5 +1,6 @@
 import { HistoryService } from "../../src/core/services/history-service.js";
 import { renderHistoryEvents } from "../../src/ui/history-viewer.js";
+import { buildHistoryCsv } from "../../src/ui/history-csv-export.js";
 
 // Repository fittizio: nessun IndexedDB, LocalStorage, Firebase o dato operativo.
 const sampleEvents = [
@@ -107,15 +108,8 @@ try {
     refresh(false);
   });
   controls.export.addEventListener("click", () => {
-    const columns = ["Data e ora", "Elemento", "Azione", "Descrizione", "Revisione"];
-    const escapeCell = value => {
-      let text = String(value ?? "");
-      if (/^[=+\-@\t\r]/.test(text)) text = `"'${text}`;
-      return `"${text.replace(/"/g, '""')}"`;
-    };
-    const rows = lastFilteredEvents.map(event => [event.occurredAt, event.entityLabel, event.actionLabel, event.description, event.revision]);
-    const csv = [columns, ...rows].map(row => row.map(escapeCell).join(",")).join("\r\n");
-    const blob = new Blob(["\uFEFF", csv], { type: "text/csv;charset=utf-8" });
+    const csv = buildHistoryCsv(lastFilteredEvents);
+    const blob = new Blob(["\\uFEFF", csv], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
@@ -123,7 +117,7 @@ try {
     link.click();
     link.remove();
     setTimeout(() => URL.revokeObjectURL(url), 0);
-    status.textContent = `Esportati ${rows.length} eventi dimostrativi filtrati.`;
+    status.textContent = `Esportati ${lastFilteredEvents.length} eventi dimostrativi filtrati.`;
   });
   controls.clear.addEventListener("click", () => {
     controls.from.value = "";
