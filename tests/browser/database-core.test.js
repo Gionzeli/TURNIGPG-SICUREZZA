@@ -1,7 +1,7 @@
 import { renderHistoryEvents } from "../../src/ui/history-viewer.js";
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus,
-  createAccountContext, ProfileRepository, ShiftRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
+  createAccountContext, ProfileRepository, ShiftRepository, AbsenceRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, AbsenceService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
 } from "../../src/core/database/index.js";
 
 const TEST_DB_NAME = "DSM_ENTERPRISE_TEST_DB";
@@ -55,7 +55,7 @@ async function run() {
     assert(getDSMDatabaseStatus().isOpen && getDSMDatabaseStatus().name === TEST_DB_NAME, "Status DB non coerente.");
   });
   await test("DB-002 — object store previsti", async () => {
-    for (const name of ["accounts","profiles","settings","shifts","history","migration_jobs","migration_quarantine","schema_metadata"])
+    for (const name of ["accounts","profiles","settings","shifts","absences","history","migration_jobs","migration_quarantine","schema_metadata"])
       assert(db.objectStoreNames.contains(name), `Object store mancante: ${name}`);
   });
   await test("DB-003 — blocco senza account attivo", async () => {
@@ -204,6 +204,55 @@ async function run() {
     assert((await profiles.getById(record.id))?.revision === 2, "Il record è stato cancellato da una richiesta obsoleta.");
     assert(await profiles.delete(record.id, { expectedRevision: 2 }), "Delete con revisione corrente non riuscito.");
     assert(await profiles.getById(record.id) === null, "Record ancora presente dopo delete valido.");
+  });
+
+  await test("ABS-001 — assenze separate, validate e registrate nello storico", async () => {
+    const repository = new AbsenceRepository({ db, accountContext: context });
+    const service = new AbsenceService({ repository });
+    const history = new HistoryRepository({ db, accountContext: context });
+    const absence = await service.create({ kind: "ferie", startDate: "2026-12-01", endDate: "2026-12-03" });
+    assert(absence.data.kind === "ferie" && absence.data.startDate === "2026-12-01", "Assenza non salvata correttamente.");
+    const events = await history.getEventsForEntity("absence", absence.id);
+    assert(events.length === 1 && events[0].data.action === "create", "Evento audit assenza mancante.");
+    const updated = await service.update(absence.id, { endDate: "2026-12-04" }, { expectedRevision: 1 });
+    assert(updated.revision === 2 && updated.data.endDate === "2026-12-04", "Aggiornamento assenza errato.");
+    assert((await history.getEventsForEntity("absence", absence.id)).length === 2, "Evento audit aggiornamento assenza mancante.");
+    let reversed, invalidKind, extraField, invalidDate;
+    for (const [payload, target] of [
+      [{ kind: "ferie", startDate: "2026-12-05", endDate: "2026-12-04" }, "reversed"],
+      [{ kind: "unknown", startDate: "2026-12-01", endDate: "2026-12-02" }, "kind"],
+      [{ kind: "permesso", startDate: "2026-12-01", endDate: "2026-12-02", note: "non consentita" }, "extra"],
+      [{ kind: "malattia", startDate: "2026-02-30", endDate: "2026-03-01" }, "date"]
+    ]) {
+      try { await service.create(payload); } catch (error) {
+        if (target === "reversed") reversed = error;
+        if (target === "kind") invalidKind = error;
+        if (target === "extra") extraField = error;
+        if (target === "date") invalidDate = error;
+      }
+    }
+    for (const error of [reversed, invalidKind, extraField, invalidDate])
+      assert(error?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Validazione assenza non ha rifiutato un input non valido.");
+    assert((await repository.getAll()).length === 1, "Input non valido ha creato record.");
+    context.activate({ accountId: "browser-test-account-B", identitySource: "local" });
+    assert(await repository.getById(absence.id) === null, "Account B legge un'assenza di A.");
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+    assert((await repository.getById(absence.id))?.id === absence.id, "Account A non ritrova l'assenza.");
+  });
+
+  await test("ABS-002 — assenze persistono dopo riapertura e cancellazione auditata", async () => {
+    const repository = new AbsenceRepository({ db, accountContext: context });
+    const service = new AbsenceService({ repository });
+    const history = new HistoryRepository({ db, accountContext: context });
+    const absence = await service.create({ kind: "permesso", startDate: "2026-12-10", endDate: "2026-12-10" });
+    await closeDSMDatabase();
+    db = await openDSMDatabase({ name: TEST_DB_NAME });
+    const after = new AbsenceRepository({ db, accountContext: context });
+    const historyAfter = new HistoryRepository({ db, accountContext: context });
+    assert((await after.getById(absence.id))?.data.kind === "permesso", "Assenza non persistita dopo riapertura.");
+    assert(await after.delete(absence.id, { expectedRevision: 1 }), "Cancellazione assenza non riuscita.");
+    const events = await historyAfter.getEventsForEntity("absence", absence.id);
+    assert(events.map(item => item.data.action).join(",") === "create,delete", "Cancellazione assenza non auditata.");
   });
 
   await test("SVC-001 — profilo normalizzato con valori predefiniti", async () => {
