@@ -2,9 +2,9 @@
 
 ## Current state
 - DSM core resta un prototipo locale isolato; nessun adapter Firebase remoto è implementato.
-- Ultimo HEAD verificato: `8139cfe3ca3676767b10263dff62da53295d2531`.
-- CI browser IndexedDB: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465230627 — success sullo stesso HEAD.
-- CI Firebase Rules Emulator: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465230643 — success sullo stesso HEAD.
+- Ultimo HEAD verificato della PR: `9e635e2b0718ee3bdad050de88083d440f768ff8`.
+- CI browser IndexedDB / Playwright: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45485825286 — **89 superati, 0 falliti**, eseguita sullo stesso SHA.
+- CI Firebase Rules Emulator: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45485825297 — **38 superati, 0 falliti, 0 saltati**, eseguita sullo stesso SHA.
 - PR #1 resta aperta e draft. Non eseguire merge, deploy o modifiche a `main`.
 
 ## Integration audit findings
@@ -38,3 +38,14 @@
 
 ## CI scope and limits
 The two successful workflows above establish that the browser IndexedDB suite and the local Firestore Rules Emulator suite passed on the recorded commit. They do not establish production integration, Firebase authentication, authorization of real users, data migration, or overall security certification.
+
+
+## Work log — verifica readonly e stato aggiornato (2026-11-24)
+
+- PR #1 HEAD verificato: `9e635e2b0718ee3bdad050de88083d440f768ff8`; PR resta aperta, draft e non unita.
+- La suite browser sullo stesso SHA riporta **89 superati, 0 falliti**. AUTH-005 verifica l'abort osservabile delle transazioni readonly pendenti e il rifiuto dei risultati stale durante il cambio account.
+- La suite Firestore Rules Emulator sullo stesso SHA riporta **38 superati, 0 falliti, 0 saltati**.
+- Questi esiti sono test automatizzati con fixture sintetiche; non costituiscono audit indipendente, certificazione o prova di autenticazione Firebase operativa.
+- L'adapter Firebase DSM non è implementato; `createDSMCoreSession()` non è collegato all'UI operativa e `index.html` continua a usare il percorso legacy.
+- Nessuna modifica a `main`, entrypoint operativo, Firebase UI, Firebase client o Firestore Rules; nessun merge, deploy, import o sync di dati reali.
+- Decisione invariata: mantenere il core isolato e la PR in draft. Ogni integrazione operativa richiede revisione e approvazione separate.
