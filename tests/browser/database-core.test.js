@@ -72,6 +72,29 @@ async function run() {
     assert(blocked, "capture() ha consentito una lettura senza account attivo.");
   });
 
+  await test("AUTH-005 — teardown include disposable registrati durante una pulizia asincrona", async () => {
+    const lifecycleContext = createAccountContext();
+    const lifecycle = createAccountLifecycleCoordinator({ accountContext: lifecycleContext });
+    let releaseFirst;
+    let markStarted;
+    const firstStarted = new Promise(resolve => { markStarted = resolve; });
+    const gate = new Promise(resolve => { releaseFirst = resolve; });
+    let lateDisposeCount = 0;
+    lifecycle.registerDisposable(async () => {
+      markStarted();
+      await gate;
+    });
+    const transitionPromise = lifecycle.beginTransition("initialize");
+    await firstStarted;
+    lifecycle.registerDisposable(() => { lateDisposeCount += 1; });
+    releaseFirst();
+    const token = await transitionPromise;
+    assert(lateDisposeCount === 1, "Un disposable registrato durante il teardown è rimasto attivo.");
+    assert(lifecycle.getStatus().cleanupComplete, "Il teardown è stato dichiarato completo con risorse pendenti.");
+    lifecycle.activateLocal(token, "lifecycle-account-late-registration");
+    assert(lifecycle.getStatus().state === "active", "Il lifecycle non si è riattivato dopo la pulizia completa.");
+  });
+
   await test("AUTH-004 — cleanup fallito mantiene il contesto bloccato fino al retry", async () => {
     const lifecycleContext = createAccountContext();
     const lifecycle = createAccountLifecycleCoordinator({ accountContext: lifecycleContext });
