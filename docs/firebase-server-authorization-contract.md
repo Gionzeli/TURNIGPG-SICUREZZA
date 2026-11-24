@@ -227,7 +227,78 @@ Rappresentazione dati raccomandata: distinguere esplicitamente il tipo di assegn
 
 Questa decisione definisce il comportamento richiesto, ma non approva ancora la gerarchia definitiva, il modello di membership, i ruoli complessivi o l'implementazione.
 
-## 10. Questioni aperte da decidere (non assunte)
+## 10. Policy di nomina e gestione degli amministratori
+
+**Decisione di progetto:** per la nomina ordinaria degli amministratori è richiesta la doppia approvazione; la creazione del primo amministratore avviene tramite un bootstrap iniziale separato. Questa decisione definisce il requisito documentale e non attesta l'esistenza di un flusso implementato.
+
+### 10.1 Nomina ordinaria: doppia approvazione
+
+1. Un amministratore attivo e autorizzato apre una proposta di nomina per un'identità destinataria.
+2. Un secondo amministratore attivo, distinto dal proponente, esamina e approva esplicitamente la proposta.
+3. Proponente e approvatore devono essere due identità distinte e le rispettive autorizzazioni devono essere verificate dal backend al momento dell'operazione.
+4. Il proponente non può approvare la propria proposta, neppure tramite una seconda sessione o un diverso dispositivo.
+5. La proposta deve avere un identificativo univoco, una scadenza, uno stato esplicito e un legame non modificabile con destinatario, account e ambito amministrativo richiesti.
+6. L'approvazione deve riferirsi esattamente alla proposta esaminata. Modifiche a destinatario, account, ruolo o ambito annullano le approvazioni precedenti e richiedono una nuova procedura.
+7. Il backend ricontrolla identità, stato e privilegi di entrambi gli amministratori, validità della proposta e requisiti del destinatario immediatamente prima di attivare la membership.
+8. Solo dopo la seconda approvazione valida e il completamento delle verifiche richieste il backend può attivare la membership amministrativa. Una proposta aperta o una sola approvazione non conferiscono alcun privilegio.
+9. Proposte scadute, revocate, già consumate o approvate da soggetti non più autorizzati devono essere rifiutate. L'attivazione deve essere atomica e resistente a replay e richieste concorrenti.
+
+### 10.2 Bootstrap iniziale del primo amministratore
+
+Il primo amministratore è nominato mediante una procedura straordinaria di bootstrap, distinta dal flusso ordinario a doppia approvazione. Il bootstrap deve essere utilizzabile una sola volta per l'inizializzazione dell'ambiente/account interessato e non deve diventare una scorciatoia permanente.
+
+Prima dell'implementazione devono essere definiti e approvati:
+- il soggetto o processo indipendente autorizzato ad avviare il bootstrap;
+- le prove e i controlli per verificare l'identità del destinatario;
+- il metodo di autorizzazione iniziale, custodito fuori dal client e non basato su credenziali condivise o account predefiniti;
+- la registrazione verificabile di autorizzante, destinatario, account, data/ora, motivazione ed esito;
+- la protezione contro ripetizione, replay o riapertura non autorizzata del bootstrap;
+- la procedura di recupero in caso di errore o perdita dell'accesso amministrativo.
+
+Il completamento del bootstrap deve chiudere il percorso iniziale e abilitare il normale processo a doppia approvazione. Non sono ammesse auto-nomine né promozioni basate esclusivamente su email, UID dichiarati dal client o campi UI. La modalità concreta di bootstrap resta una decisione operativa aperta e richiede revisione separata prima di qualsiasi attivazione.
+
+### 10.3 Requisiti di sicurezza per gli amministratori
+
+- MFA obbligatoria per ogni identità amministrativa.
+- Nuova autenticazione per nomine, approvazioni, revoche e altre operazioni amministrative sensibili.
+- Sessioni e autorizzazioni con scadenza e revoca controllate lato server.
+- Verifica server-side di token, revoca, membership, ruolo e ambito a ogni operazione protetta.
+- Principio del minimo privilegio e rifiuto predefinito per stati o ruoli sconosciuti.
+- Nessun privilegio amministrativo derivato da dati forniti dal browser, da una verifica email isolata o dal solo fatto di essere autenticati con Firebase.
+
+### 10.4 Sospensione, revoca e continuità amministrativa
+
+Sospensione e revoca sono decisioni applicate dal backend. Devono impedire nuove operazioni privilegiate, invalidare le autorizzazioni e le sessioni interessate secondo il meccanismo server-side definito e produrre un evento di audit. La persona revocata non può riattivarsi autonomamente.
+
+Il sistema deve impedire la disattivazione dell'ultimo amministratore attivo quando ciò lascerebbe l'organizzazione senza un amministratore autorizzato. La successione deve essere completata e verificata prima della disattivazione dell'amministratore uscente. Eventuali procedure di emergenza o recupero devono essere separate dal flusso ordinario, sottoposte a verifica indipendente e registrate integralmente.
+
+### 10.5 Audit e tracciabilità
+
+Registrare lato server almeno: creazione della proposta, proponente, approvatore, destinatario, account/ambito, versione o identificativo della proposta, esiti e motivazioni di rifiuto, attivazione, sospensione, revoca, scadenza e ogni operazione di bootstrap. I registri devono avere timestamp server-side, accesso ristretto e protezioni contro modifiche non autorizzate. Non registrare token, segreti o payload di autenticazione.
+
+### 10.6 Casi di rifiuto obbligatorio
+
+Negare l'operazione se proponente e approvatore coincidono; se uno dei due non è attivo o non è autorizzato al momento della decisione; se la proposta è scaduta, alterata, revocata o già utilizzata; se il destinatario non supera i controlli; se manca una delle due approvazioni; se il bootstrap non soddisfa i requisiti approvati; se la revoca lascerebbe l'organizzazione senza amministratori; oppure se membership, account o ambito sono mancanti o incoerenti. In caso di indisponibilità dei servizi di verifica, applicare fail-closed.
+
+### 10.7 Test di accettazione da aggiungere al piano
+
+- [ ] Il proponente non può approvare la propria proposta, anche con sessioni o dispositivi distinti.
+- [ ] Una sola approvazione non attiva la membership e non concede privilegi.
+- [ ] Due amministratori distinti e ancora autorizzati possono completare una proposta valida.
+- [ ] Revoca, sospensione o scadenza di uno degli approvatori prima dell'attivazione comporta il rifiuto.
+- [ ] Modifica della proposta invalida le approvazioni precedenti.
+- [ ] Proposta scaduta, duplicata, revocata o già consumata non può essere riutilizzata.
+- [ ] Richieste concorrenti o replay non producono più di un'attivazione.
+- [ ] Il bootstrap può essere completato solo dal processo autorizzato e non può essere ripetuto dopo l'inizializzazione.
+- [ ] Nessuna auto-nomina, promozione via email o escalation tramite payload client.
+- [ ] MFA e nuova autenticazione sono richieste secondo la policy per gli attori amministrativi.
+- [ ] Il sistema impedisce di rimuovere l'ultimo amministratore attivo senza successione valida.
+- [ ] Sospensione e revoca bloccano le successive operazioni protette lato server.
+- [ ] Tutti gli eventi amministrativi producono audit server-side senza segreti o token.
+
+Questa policy non definisce ancora il modello canonico completo delle membership, la procedura operativa dettagliata di bootstrap, il servizio di MFA o gli endpoint amministrativi. Tali elementi richiedono progettazione, test e autorizzazioni separate. Non autorizza modifiche a Firebase operativo, Firestore Rules, app DSM, dati reali, né implementazione o deploy.
+
+## 11. Questioni aperte da decidere (non assunte)
 
 - Quale progetto Firebase e quale ambiente di test saranno dedicati all'emulazione?
 - Qual è lo schema canonico membership e chi può modificarlo?
@@ -240,7 +311,7 @@ Questa decisione definisce il comportamento richiesto, ma non approva ancora la 
 - Quali API dati server-side saranno necessarie? Il core IndexedDB attuale non fornisce protezione server-side dei dati locali.
 - Quali dati personali sono indispensabili e quali retention/cancellazione si applicano?
 
-## 11. Stato e limitazioni attuali
+## 12. Stato e limitazioni attuali
 
 - Esiste un adapter browser isolato che richiede a `resolveAuthorization` un oggetto con `verifiedBy`, `uid`, `status`, `accountId`, `role`, `permissions` ed `expiresAt`; la risposta viene validata sintatticamente e convertita in principal congelato.
 - I test browser correnti usano resolver sintetici. Non dimostrano che un server reale verifichi token, revoca o membership.
