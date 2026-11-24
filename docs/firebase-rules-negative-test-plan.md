@@ -123,3 +123,14 @@ Sul commit `a570bde875a725343cbd02834085537540888520` entrambe le pipeline sono 
 Entrambe le pipeline sono completate con esito positivo sul medesimo SHA:
 - Firestore Emulator: [run 45456600293](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456600293).
 - Browser IndexedDB / Playwright: [run 45456600298](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456600298).
+
+
+### Verifica congiunta CI sul commit `642d6b20c44ca050ae0886e6769ed46cce640996`
+
+Il 24 novembre 2026 entrambe le pipeline sono state completate con esito positivo sullo stesso SHA:
+- Browser IndexedDB / Playwright: [run 45467136541](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45467136541). Il log riporta **88 superati, 0 falliti**; include AUTH-001 con cinque sorgenti non locali rifiutate e tentativi di dichiarare UID, ruolo admin, email verificata e membership.
+- Firestore Rules Emulator: [run 45467136692](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45467136692). Il log riporta **38 test, 38 pass, 0 fail, 0 skipped**.
+
+Il job browser ha inoltre completato le prove Playwright per BroadcastChannel tra due pagine same-origin, fixture CSP, preview e demo composition isolata. Le prove usano esclusivamente dati sintetici. Il job Firebase usa il progetto demo `demo-dsm-rules` e Firestore Emulator; non si collega a Firebase production.
+
+Questa verifica riguarda il commit indicato, non autorizza adapter Firebase, integrazione nell'entrypoint operativo, import/sync di dati, deploy o merge. Le regole operative e il guard account non sono stati modificati.
