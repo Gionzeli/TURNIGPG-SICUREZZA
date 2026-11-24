@@ -29,14 +29,14 @@ Make account changes/logout a UI and operation lifecycle boundary. Il coordinato
 5. Old connections/repositories are retired after views have cleared; fresh instances are constructed after the new context is active.
 6. Cross-tab coordination is a separate requirement and cannot be implied by a per-tab coordinator.
 
-## Proposed API (not implemented)
-- `beginTransition(reason)`: moves to `switching`, increments generation, notifies listeners; returns opaque transition handle.
-- `activateLocal(handle, accountId)`: validates transition handle, activates only local/demo identity, publishes active state.
-- `clear(handle)`: clears account context, publishes cleared state, and completes transition.
-- `capture()`: returns immutable accountId + generation only in active state.
-- `isCurrent(capture)`: false if cleared, switching, account differs, or generation differs.
-- `subscribe(listener)`: returns unsubscribe; listeners must clear UI state on transition start and dispose stale caches.
-- `registerDisposable(disposable)`: connection/repository/view cleanup registry; disposal errors are isolated and surfaced to diagnostics, never data-bearing logs.
+## API implementata (sintesi del contratto effettivo)
+- `beginTransition(reason)`: passa a `switching`, incrementa la generazione, svuota il contesto e notifica i listener; restituisce un token opaco.
+- `activateLocal(token, accountId)`: accetta solo il token corrente e una pulizia completata; attiva esclusivamente un contesto locale/demo.
+- `clear(token)`: completa il logout del contesto soltanto dopo la pulizia.
+- `capture()` / `isCurrent(capture)`: acquisiscono e verificano account e generazione per scartare risultati obsoleti.
+- `subscribe(listener)`: restituisce una funzione unsubscribe; i listener UI devono rimuovere dati visibili su `transition-start`.
+- `registerDisposable(dispose)`: registra callback di pulizia; gli errori impediscono la riattivazione finché `retryCleanup(token)` non completa.
+- La session factory espone inoltre `switchLocalAccount()`, `logout()` e `resumePendingTransition()`; `dispose()` dismette il solo bridge cross-tab, non equivale a logout.
 
 ## Ordering for account switch
 1. Start transition and increment generation (old async results become stale immediately).
@@ -62,12 +62,12 @@ Make account changes/logout a UI and operation lifecycle boundary. Il coordinato
 - Read begun under A resolves after B activation: result must be discarded before render.
 - Cross-tab note: confirm no security claim without explicit coordination and tests.
 
-## Implementation sequence
-A. Implement coordinator as an isolated module with unit/browser tests.
-B. Add repository operation capture/check hooks (without pretending they cancel IndexedDB).
-C. Wire UI views to transition subscriptions and clear caches.
-D. Add integration tests for late results and account switch.
-E. Review multi-tab behavior separately.
+## Stato della sequenza di implementazione
+
+- **Completato:** coordinatore isolato e test; hook di generazione nei repository; session factory DSM; test browser per risultati tardivi, cambio account e cleanup retry.
+- **Parziale:** wiring UI della cronologia soltanto se il chiamante passa esplicitamente `lifecycleCoordinator`.
+- **Completato con limiti:** bridge cross-tab opzionale e test BroadcastChannel reale; non è una garanzia persistente per schede sospese/offline o aperte dopo la notifica.
+- **Ancora aperto:** composition root DSM e wiring obbligatorio delle future viste. Non esiste integrazione con `index.html` né con la UI Firebase operativa; tale integrazione resta fuori perimetro.
 
 ## Security note
 This coordinator only protects application lifecycle correctness. Client-side account contexts are not authentication, and generation tokens do not protect against same-origin malicious scripts. IndexedDB is currently unencrypted; do not use operational or sensitive data.
