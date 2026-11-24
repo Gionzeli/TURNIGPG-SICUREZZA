@@ -30,7 +30,7 @@ const browser = await chromium.launch({ headless: true });
 let pageErrors = [];
 try {
   const page = await browser.newPage();
-  page.on("pageerror", error => pageErrors.push(error.message));
+  page.on("pageerror", error => pageErrors.push(error.stack || error.message));
   const fixtureRequests = [];
   page.on("request", request => fixtureRequests.push(request.url()));
   await page.goto("http://127.0.0.1:8000/tests/browser/", { waitUntil: "load" });
