@@ -1,7 +1,7 @@
 # DSM Core — revisione tecnica preliminare di sicurezza
 
 Data: 2026-11-24
-Riferimento: branch `dsm-enterprise/core-v1`, HEAD verificato `8139cfe3ca3676767b10263dff62da53295d2531`.
+Riferimento: branch `dsm-enterprise/core-v1`, HEAD verificato `b804cd2d50b9642612191a6bf9cb2492bc484044`.
 
 ## Esito
 
@@ -56,12 +56,12 @@ Generazioni, abort delle transazioni e disposable registrati mitigano callback t
 - Il fixture demo usa dati sintetici, database temporaneo e nessuna richiesta esterna.
 - Le regole Firestore e il runtime Firebase operativo non sono parte di questa integrazione.
 
-## Verifiche CI sul HEAD di riferimento
+## Verifiche CI e corrispondenza dei commit
 
-- Browser IndexedDB: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465230627 — success.
-- Firebase Rules Emulator: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465230643 — success.
+- **Firebase Rules Emulator sul HEAD attuale** `b804cd2d50b9642612191a6bf9cb2492bc484044`: [workflow 45465935709](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465935709) — success. Il job `firestore-rules-emulator` ha completato tutti gli step, inclusa l'esecuzione dei test nell'emulatore locale.
+- **Browser IndexedDB sull'ultimo commit con modifiche al codice** `1563262904f191a73ca60d71796820dae0bc5347`: [workflow 45465628030](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465628030) — success. Il successivo commit `b804cd2` modifica soltanto documentazione; non attribuiamo quindi questa esecuzione browser al suo SHA.
 
-Questi workflow verificano le rispettive suite automatizzate sul commit indicato; non sono un penetration test, non certificano l'autenticazione/autorizzazione reale e non attestano l'integrazione nell'app operativa.
+Questi workflow verificano le rispettive suite automatizzate nei commit specificati; non sono un penetration test, non certificano l'autenticazione/autorizzazione reale e non attestano l'integrazione nell'app operativa.
 
 ## Gate obbligatori prima dell'uso reale
 
