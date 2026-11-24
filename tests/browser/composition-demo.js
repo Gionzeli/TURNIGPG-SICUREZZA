@@ -37,6 +37,9 @@ async function startDemo() {
           createdAt: new Date(Date.UTC(2026, 10, 24, 9, index * 15)).toISOString()
         });
       }
+      if (new URLSearchParams(window.location.search).has("fail-mount")) {
+        throw new Error("synthetic demo mount failure");
+      }
       const view = await mountHistoryPage(root, {
         historyService: session.services.history,
         lifecycleCoordinator: session.lifecycle,
