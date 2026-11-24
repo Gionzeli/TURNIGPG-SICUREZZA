@@ -67,7 +67,7 @@ La fixture browser attuale della cronologia resta un test della vista; non deve 
 
 `start()` esegue il mount; se questo fallisce, tenta il teardown. Se un cleanup fallisce, la connessione resta aperta e la sessione resta bloccata in transizione: il chiamante può ripetere `teardown()`, che riprende la pulizia pendente prima di chiudere il DB. La chiusura viene tentata soltanto dopo il completamento della pulizia lifecycle. L'API non implementa login, principal remoto, cambio account o UI di prodotto; l'accountId resta esclusivamente locale/demo.
 
-La fixture browser verifica un mount parziale con cleanup fallito al primo tentativo: nessuna chiusura DB anticipata, retry riuscito, una sola chiusura finale. Questa copertura dimostra l'orchestrazione di teardown nel modulo, non un'integrazione con `index.html`.
+La fixture browser verifica un mount parziale su un database IndexedDB reale con nome CI isolato e sintetico, cleanup fallito al primo tentativo, nessuna chiusura anticipata, retry riuscito, chiusura effettiva della connessione e cancellazione del database temporaneo. Verifica inoltre che la sessione esponga i repository e servizi attesi. Questa copertura dimostra l'orchestrazione di teardown nel modulo, non un'integrazione con `index.html`.
 
 ## Copertura già presente e lacune residue
 
