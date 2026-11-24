@@ -1,6 +1,7 @@
 import { HistoryService } from "../../src/core/services/history-service.js";
 import { createAccountContext, createAccountLifecycleCoordinator } from "../../src/core/database/index.js";
 import { mountHistoryPage } from "../../src/ui/history-page.js";
+import { createDSMComposition } from "../../src/ui/create-dsm-composition.js";
 
 const sampleEvents = Array.from({ length: 12 }, (_, index) => {
   const entityType = ["shift", "profile", "setting", "absence"][index % 4];
@@ -78,6 +79,31 @@ try {
     throw new Error("La cronologia ha mantenuto dati obsoleti dopo il cambio account.");
   }
   staleRoot.remove();
+
+  let cleanupAttempts = 0;
+  let databaseCloseAttempts = 0;
+  const composition = createDSMComposition({
+    db: { transaction() {}, objectStoreNames: [] },
+    accountId: "synthetic-composition-account",
+    mount: ({ registerCleanup }) => {
+      registerCleanup(() => {
+        cleanupAttempts += 1;
+        if (cleanupAttempts === 1) throw new Error("synthetic partial mount cleanup failure");
+      });
+      throw new Error("synthetic view mount failure");
+    },
+    closeDatabase: async () => { databaseCloseAttempts += 1; }
+  });
+  let mountFailure;
+  try { await composition.start(); } catch (error) { mountFailure = error; }
+  if (!(mountFailure instanceof AggregateError) || composition.status === "closed" ||
+      databaseCloseAttempts !== 0 || cleanupAttempts !== 1) {
+    throw new Error("Il composition root non ha mantenuto il teardown bloccato dopo il mount parziale.");
+  }
+  await composition.teardown();
+  if (composition.status !== "closed" || cleanupAttempts !== 2 || databaseCloseAttempts !== 1) {
+    throw new Error("Il retry del teardown non ha completato cleanup e chiusura DB nell'ordine previsto.");
+  }
 
   window.__historySearchControl = document.querySelector(".dsm-history-filters input[type=search]");
   window.__historyStatusNode = document.querySelector(".dsm-history-status");
