@@ -143,3 +143,12 @@ Il 24 novembre 2026 entrambe le pipeline sono terminate con esito positivo sul m
 - Firestore Rules Emulator: [run 45467870487](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45467870487), **38 test, 38 pass, 0 fail, 0 skipped**.
 
 Le suite usano fixture sintetiche e l'emulatore locale. Questa verifica non attesta un'autenticazione Firebase reale né l'esistenza di un adapter DSM. Non autorizza integrazione operativa, import/sync, deploy o merge; regole Firebase e guard account operativo restano fuori ambito.
+
+
+### Verifica congiunta CI sul commit `acda5653cf228d52d212886447b67aaf1b3e8242`
+
+Il 24 novembre 2026 entrambe le pipeline sono terminate con esito positivo sul medesimo SHA:
+- Browser IndexedDB / Playwright: [run 45468368000](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45468368000), **89 superati, 0 falliti**. AUTH-005 verifica che, dopo l'invalidazione della scrittura pendente durante lo switch A→B, il ritorno all'account sintetico A restituisca il record originale con contenuto invariato e revisione 1.
+- Firestore Rules Emulator: [run 45468368016](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45468368016), **38 test, 38 pass, 0 fail, 0 skipped**.
+
+Le suite usano fixture sintetiche e Firestore Emulator locale. Il test aggiuntivo verifica il percorso di abort della transazione nel caso riprodotto; non dimostra che scritture già completate possano essere annullate retroattivamente. Nessuna regola Firebase operativa, UI Firebase o guard account è stata modificata. Questa verifica non autorizza adapter, import/sync, deploy o merge.
