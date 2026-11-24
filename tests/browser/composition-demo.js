@@ -73,7 +73,17 @@ try {
   await startDemo();
   document.documentElement.dataset.demoResult = "ready";
 } catch {
-  status.textContent = "Impossibile avviare la dimostrazione locale. Nessun dato operativo è stato aperto.";
-  document.documentElement.dataset.demoResult = "error";
-  closeButton.disabled = true;
+  try {
+    if (composition && composition.status !== "closed") await composition.teardown();
+    await removeDemoDatabase();
+  } catch {
+    status.textContent = "Avvio non riuscito; cleanup incompleto del database temporaneo. Non riavviare la fixture.";
+    document.documentElement.dataset.demoResult = "cleanup-error";
+    closeButton.disabled = true;
+  }
+  if (document.documentElement.dataset.demoResult !== "cleanup-error") {
+    status.textContent = "Impossibile avviare la dimostrazione locale. Il database temporaneo è stato chiuso e rimosso.";
+    document.documentElement.dataset.demoResult = "error";
+    closeButton.disabled = true;
+  }
 }
