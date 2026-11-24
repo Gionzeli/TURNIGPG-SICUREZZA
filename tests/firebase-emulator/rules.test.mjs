@@ -225,3 +225,45 @@ test("FR-19b synthetic admin can delete a notification", async () => {
   ));
 });
 
+const updatePath = (id = "update-1") => `updates/${id}`;
+const updateData = () => ({
+  title: "Synthetic release note",
+  body: "Emulator-only update",
+  published: true
+});
+
+const seedUpdate = async (id = "update-1") => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), updatePath(id)), updateData());
+  });
+};
+
+test("FR-22a verified user can read a published update", async () => {
+  await seedUpdate();
+  await assertSucceeds(getDoc(doc(verifiedUser(), updatePath())));
+});
+
+test("FR-22b unverified user cannot read updates", async () => {
+  await seedUpdate();
+  await assertFails(getDoc(doc(unverifiedUser(), updatePath())));
+});
+
+test("FR-22c synthetic admin can create an update", async () => {
+  await assertSucceeds(setDoc(doc(adminUser(), updatePath()), updateData()));
+});
+
+test("FR-22d verified non-admin cannot create an update", async () => {
+  await assertFails(setDoc(doc(verifiedUser(), updatePath()), updateData()));
+});
+
+test("FR-22e only synthetic admin can update or delete an update", async () => {
+  await seedUpdate();
+  await assertFails(updateDoc(doc(verifiedUser(), updatePath()), {
+    title: "Unauthorized synthetic edit"
+  }));
+  await assertFails(deleteDoc(doc(verifiedUser(), updatePath())));
+  await assertSucceeds(updateDoc(doc(adminUser(), updatePath()), {
+    title: "Admin synthetic edit"
+  }));
+  await assertSucceeds(deleteDoc(doc(adminUser(), updatePath())));
+});
