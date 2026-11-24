@@ -1,5 +1,16 @@
 # DSM — audit cambio account e operazioni pendenti
 
+> **Stato corrente — aggiornato dopo la verifica del commit 1245967**
+>
+> Le sezioni di audit iniziali e gli aggiornamenti intermedi qui sotto sono una traccia cronologica: alcune decisioni e limitazioni descritte sono state successivamente superate. Per lo stato attuale fanno fede questa nota, la sezione **Integrazione vista cronologia** e la specifica [lifecycle-coordinator-design.md](./lifecycle-coordinator-design.md).
+>
+> - Il lifecycle coordinator è integrato in BaseRepository e nella session factory; la protezione delle viste non è universale.
+> - `mountHistoryPage()` è l'unica vista DSM verificata collegata al coordinatore in questo branch; il collegamento è opzionale e dipende dal chiamante.
+> - La vista distrugge listener e DOM su `transition-start`/`context-cleared`, e scarta letture asincrone stale.
+> - Il runner Playwright verifica anche che un pulsante CSV conservato da una vista distrutta non possa generare un'esportazione dopo l'inizio della transizione.
+> - Il bridge cross-tab è opzionale e best-effort; non rende persistenti le notifiche e non autentica né autorizza account.
+> - Non esiste un composition root universale per tutte le schermate; Firebase e la UI operativa restano fuori dall'integrazione.
+>
 ## Ambito
 Revisione del branch `dsm-enterprise/core-v1` su cambio account, riuso repository, connessioni IndexedDB e invalidazione UI. Nessun dato operativo o personale è stato usato.
 
@@ -46,7 +57,7 @@ L'ultimo workflow `DSM Core browser tests` esaminato (run 45250320994, commit `4
 
 Test sintetici AUTH-003/AUTH-004 coprono invalidazione A→B, logout, pulizia cache tramite listener e retry dopo errore.
 
-**Non integrato:** BaseRepository, servizi applicativi e viste reali non ricevono ancora il coordinatore. I test di listener usano una cache sintetica, non il DOM dell'applicazione. Le transazioni IndexedDB già avviate non vengono abortite dal coordinatore. Non è una garanzia di isolamento completa né un'autorizzazione di sicurezza. Prima dell'uso applicativo servono wiring esplicito, test d'integrazione end-to-end e verifica multi-scheda.
+**Nota storica — superata dagli aggiornamenti successivi:** al momento di questa prima implementazione BaseRepository, servizi e viste non ricevevano ancora il coordinatore. Il wiring BaseRepository/sessione, l'integrazione opzionale della pagina cronologia e i test browser reali sono documentati nelle sezioni successive. Restano validi i limiti di sicurezza e di abort best-effort descritti qui.
 
 
 ## Aggiornamento — collegamento BaseRepository (2026-11-23)
@@ -116,3 +127,14 @@ Il bridge limita a 128 il numero di mittenti per cui conserva il contatore anti-
 Oltre al test con canali sintetici, il runner Playwright apre ora due pagine distinte nello stesso BrowserContext e usa il vero `BroadcastChannel` del browser. Il test avvia una transizione nella scheda A e attende che la scheda B raggiunga lo stato `cleared`, verificando che non resti un'invalidazione pendente; poi rilascia i canali e chiude il contesto browser.
 
 Il workflow GitHub Actions `DSM Core browser tests` del commit `9926587ea3330ffb789c232f1061d171f189e4fb` (run `45256232821`) è terminato con esito `success`: installazione Playwright e step `Run IndexedDB browser tests` completati. Questa verifica conferma il comportamento del bridge nel caso testato tra due pagine Chromium; non elimina i limiti best-effort descritti sopra (schede sospese/offline, notifiche non persistenti, riattivazione account demandata al composition root).
+
+## Verifica UI su cambio account — 2026-11-24
+
+Il test `tests/browser/history-page-test.js` monta una seconda pagina cronologia con il coordinatore attivo e dati esclusivamente sintetici. Conserva un riferimento al pulsante CSV, avvia `beginTransition("switch")` e verifica che il container sia svuotato e il controller risulti distrutto. Clicca poi il vecchio riferimento al pulsante e intercetta `URL.createObjectURL`: nessun URL/CSV deve essere creato dopo la transizione. Il test prosegue attivando l'account sintetico B e mantiene separato il caso già presente della lettura asincrona stale.
+
+Il commit `12459677f3a711318a7f2861d4b030e5dcf83894` ha superato entrambi i workflow sullo SHA esatto:
+- Browser IndexedDB / Playwright, run [45457990347](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45457990347): `success`.
+- Firestore Emulator, run [45457990326](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45457990326): `success`.
+
+Il test dimostra la barriera UI della sola pagina cronologia DSM nel percorso provato; non dimostra che altre viste siano collegate né che una scrittura già completata sia reversibile. Non sono state modificate le regole Firebase operative o la UI Firebase.
+
