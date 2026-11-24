@@ -2,6 +2,11 @@ import { DatabaseError, DB_ERROR_CODES } from "../database/database-errors.js";
 
 const REASONS = new Set(["switch", "logout", "initialize"]);
 
+function isExpiredFirebaseContext(context) {
+  return context?.identitySource === "firebase" &&
+    (!Number.isFinite(context.expiresAt) || context.expiresAt <= Date.now());
+}
+
 export function createAccountLifecycleCoordinator({ accountContext } = {}) {
   if (!accountContext || typeof accountContext.activate !== "function" ||
       typeof accountContext.clear !== "function" || typeof accountContext.getActive !== "function") {
@@ -18,9 +23,6 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
   async function runCleanup(event) {
     const listenerErrors = publish(event);
     const cleanupErrors = [];
-    // Drain resources registered while an asynchronous teardown is in progress.
-    // A single snapshot would miss late registrations and could activate the next
-    // account while resources from the previous account are still alive.
     while (disposables.size > 0) {
       let batchFailed = false;
       for (const dispose of [...disposables]) {
@@ -39,6 +41,14 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
       catch { errors.push("listener-error"); }
     }
     return errors;
+  }
+
+  function requireCurrentFirebaseAuthorization() {
+    const active = accountContext.getActive();
+    if (isExpiredFirebaseContext(active)) {
+      throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Autorizzazione Firebase scaduta; ri-autenticarsi.");
+    }
+    return active;
   }
 
   return Object.freeze({
@@ -113,13 +123,19 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
 
     capture() {
       if (state !== "active") throw new DatabaseError(DB_ERROR_CODES.ACCOUNT_REQUIRED, "Nessun account lifecycle attivo.");
+      const active = requireCurrentFirebaseAuthorization();
       const { accountId } = accountContext.requireActive();
+      if (isExpiredFirebaseContext(active)) {
+        throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Autorizzazione Firebase scaduta; ri-autenticarsi.");
+      }
       return Object.freeze({ accountId, generation });
     },
 
     isCurrent(capture) {
       if (!capture || state !== "active" || capture.generation !== generation) return false;
-      return accountContext.getActive()?.accountId === capture.accountId;
+      const active = accountContext.getActive();
+      if (isExpiredFirebaseContext(active)) return false;
+      return active?.accountId === capture.accountId;
     }
   });
 }
