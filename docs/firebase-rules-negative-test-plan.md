@@ -134,3 +134,12 @@ Il 24 novembre 2026 entrambe le pipeline sono state completate con esito positiv
 Il job browser ha inoltre completato le prove Playwright per BroadcastChannel tra due pagine same-origin, fixture CSP, preview e demo composition isolata. Le prove usano esclusivamente dati sintetici. Il job Firebase usa il progetto demo `demo-dsm-rules` e Firestore Emulator; non si collega a Firebase production.
 
 Questa verifica riguarda il commit indicato, non autorizza adapter Firebase, integrazione nell'entrypoint operativo, import/sync di dati, deploy o merge. Le regole operative e il guard account non sono stati modificati.
+
+
+### Verifica congiunta CI sul commit `dc35072b02619d0bff03bed3bb0f1b7ff87f2b15`
+
+Il 24 novembre 2026 entrambe le pipeline sono terminate con esito positivo sul medesimo SHA:
+- Browser IndexedDB / Playwright: [run 45467870415](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45467870415), **89 superati, 0 falliti**. Include AUTH-002: claim remoti aggiuntivi (UID, ruolo admin, flag admin, email verificata, membership e permessi) non vengono propagati dal contesto locale; l'oggetto mantiene soltanto `accountId`, `identitySource` e `verifiedAt`.
+- Firestore Rules Emulator: [run 45467870487](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45467870487), **38 test, 38 pass, 0 fail, 0 skipped**.
+
+Le suite usano fixture sintetiche e l'emulatore locale. Questa verifica non attesta un'autenticazione Firebase reale né l'esistenza di un adapter DSM. Non autorizza integrazione operativa, import/sync, deploy o merge; regole Firebase e guard account operativo restano fuori ambito.
