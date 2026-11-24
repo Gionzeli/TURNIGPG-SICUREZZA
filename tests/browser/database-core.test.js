@@ -255,6 +255,11 @@ async function run() {
     lifecycle.activateLocal(switching, "browser-test-account-B");
     assert(await boundProfiles.getById(createdProfileId) === null,
       "Il repository collegato ha esposto ad account B il record di A.");
+    const returnToA = await lifecycle.beginTransition("switch");
+    lifecycle.activateLocal(returnToA, "browser-test-account-A");
+    const afterAbortedWrite = await boundProfiles.getById(createdProfileId);
+    assert(afterAbortedWrite?.data.displayName === "Profilo test browser" && afterAbortedWrite.revision === 1,
+      "La scrittura invalidata ha modificato il record persistito dell'account A.");
     const logout = await lifecycle.beginTransition("logout");
     lifecycle.clear(logout);
     context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
