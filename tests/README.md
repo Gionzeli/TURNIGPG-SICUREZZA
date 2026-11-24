@@ -11,6 +11,15 @@ I test usano IndexedDB reale e un database dedicato `DSM_ENTERPRISE_TEST_DB`; no
 
 Non usare `file://`, perché i moduli ES richiedono HTTP.
 
+## Fixture composition root dimostrativa
+
+- Aprire `http://localhost:8000/tests/browser/composition-demo.html` per la dimostrazione isolata.
+- La pagina mostra un avviso persistente: account locale non autenticato e dati esclusivamente sintetici.
+- Crea un database IndexedDB con nome casuale, monta la cronologia tramite `createDSMComposition` e popola tre eventi sintetici.
+- Il pulsante di terminazione esegue il teardown, distrugge la vista, chiude la connessione e cancella il database temporaneo.
+- CSP: script e stili same-origin, `connect-src 'none'`, nessuna risorsa remota; non importa Firebase né la pagina operativa.
+- La fixture non è una pagina di prodotto, non autentica utenti e non deve essere collegata a `index.html`.
+
 ## Copertura
 
 - rifiuto del nome DB vuoto senza fallback al DB operativo;
