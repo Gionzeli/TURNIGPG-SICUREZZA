@@ -1511,6 +1511,36 @@ async function run() {
       "Account A non ritrova il proprio evento.");
   });
 
+  await test("HIST-005 — IndexedDB diretto può alterare la cronologia fuori dall'API", async () => {
+    const history = new HistoryRepository({ db, accountContext: context });
+    const event = await history.recordEvent({
+      entityType: "profile", entityId: "synthetic-direct-tamper",
+      action: "create", newRevision: 1
+    });
+    await new Promise((resolve, reject) => {
+      const transaction = db.transaction(["history"], "readwrite");
+      const store = transaction.objectStore("history");
+      const request = store.get(event.id);
+      request.onsuccess = () => {
+        const raw = request.result;
+        if (!raw) {
+          transaction.abort();
+          reject(new Error("Evento sintetico non trovato nello store raw."));
+          return;
+        }
+        raw.data.action = "delete";
+        store.put(raw);
+      };
+      request.onerror = () => reject(request.error);
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+      transaction.onabort = () => reject(transaction.error || new Error("Transazione raw abortita."));
+    });
+    const changed = await history.getById(event.id);
+    assert(changed?.data.action === "delete",
+      "Il test non ha dimostrato la possibilità di alterare direttamente lo store IndexedDB.");
+  });
+
   await test("HIST-004 — eventi persistono dopo riapertura database", async () => {
     const historyBefore = new HistoryRepository({ db, accountContext: context });
     const event = await historyBefore.recordEvent({
