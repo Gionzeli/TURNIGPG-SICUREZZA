@@ -1,7 +1,7 @@
 # DSM Core — revisione tecnica preliminare di sicurezza
 
 Data: 2026-11-24
-Riferimento: branch `dsm-enterprise/core-v1`, HEAD verificato `7156f7127e0af86002963f88e8e297663ea9d5f8`.
+Riferimento: branch `dsm-enterprise/core-v1`; revisione documentale aggiornata il 24 novembre 2026.
 
 ## Esito
 
@@ -58,7 +58,7 @@ Generazioni, abort delle transazioni e disposable registrati mitigano callback t
 
 ## Verifiche CI e corrispondenza dei commit
 
-Il HEAD attuale `7156f7127e0af86002963f88e8e297663ea9d5f8` aggiorna soltanto questa documentazione. Le ultime esecuzioni verificate sono:
+Gli aggiornamenti documentali successivi non modificano il codice eseguito da queste suite. Le ultime esecuzioni verificate sono:
 
 - **Firebase Rules Emulator** sul commit `b804cd2d50b9642612191a6bf9cb2492bc484044`: [workflow 45465935709](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465935709) — success. Il job `firestore-rules-emulator` ha completato tutti gli step, inclusa l'esecuzione dei test nell'emulatore locale.
 - **Browser IndexedDB sull'ultimo commit con modifiche al codice** `1563262904f191a73ca60d71796820dae0bc5347`: [workflow 45465628030](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465628030) — success. Il successivo commit `b804cd2` modifica soltanto documentazione; non attribuiamo quindi questa esecuzione browser al suo SHA.
