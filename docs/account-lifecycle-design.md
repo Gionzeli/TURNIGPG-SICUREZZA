@@ -14,6 +14,14 @@ Questo documento definisce il comportamento richiesto per accesso locale, cambio
 - Non esiste un servizio account completo né una cancellazione coordinata di tutti gli store.
 - Il contesto client non è un meccanismo di autenticazione o autorizzazione contro codice same-origin ostile.
 
+## Stato aggiornato del lifecycle — 2026-11-24
+
+La descrizione iniziale dello stato implementato e la sezione storica sulle operazioni pendenti qui sotto precedono l'introduzione del coordinatore: non descrivono più integralmente il branch corrente. Oggi sono presenti `createAccountLifecycleCoordinator()`, il controllo generazione/operazioni in `BaseRepository`, `createDSMCoreSession()` e il bridge cross-tab opzionale. Le implementazioni e i limiti sono descritti in `lifecycle-coordinator-design.md` e `account-switch-audit.md`.
+
+**Limite di integrazione UI verificato sul tree del branch:** `src/ui/history-page.js` è un modulo DSM autonomo e il suo wiring lifecycle è facoltativo. Il modulo viene esercitato dai fixture `tests/browser/history-page-test.html` e `tests/browser/history-page-test.js`; non risultano chiamanti applicativi nel tree del branch. `index.html` resta la pagina legacy/operativa e non importa `src/ui/history-page.js` né la session factory DSM. Di conseguenza non si deve descrivere la cronologia come già collegata all'app operativa, né estendere automaticamente il coordinatore alla UI Firebase.
+
+La verifica Playwright sul commit `12459677f3a711318a7f2861d4b030e5dcf83894` ha superato i test di transizione della fixture cronologia, compreso il blocco dell'export CSV tramite un riferimento obsoleto al pulsante. È una prova del modulo/fixture DSM, non di integrazione end-to-end nell'applicazione operativa.
+
 ## Terminologia obbligatoria
 
 - **Selezione account locale**: scelta di un namespace locale per dati sintetici o di prova. Non equivale a login.
@@ -80,9 +88,9 @@ Il logout non deve cancellare automaticamente dati o cronologia: confondere logo
 
 Il test browser `AUTH-002` verifica il comportamento reale di `clear()`: il contesto in memoria viene azzerato e le successive chiamate ai repository vengono rifiutate con `DB_ACCOUNT_REQUIRED`, mentre i record IndexedDB restano presenti e tornano leggibili solo dopo una nuova selezione locale dello stesso namespace. Questo è logout del contesto, non cancellazione account.
 
-### Limite ancora aperto: operazioni pendenti
+### Nota storica: limite delle operazioni pendenti
 
-Il repository base acquisisce l'account attivo all'inizio dell'operazione. Il contesto attuale non espone un meccanismo di revoca/cancellazione delle operazioni IndexedDB già avviate. Di conseguenza `clear()` da solo non garantisce l'annullamento atomico di tutte le operazioni già in corso né lo svuotamento di viste/cache UI. Prima di una UI multi-account o di dati reali servirà un lifecycle coordinator con blocco nuove operazioni, invalidazione delle viste e gestione delle richieste pendenti. Non presentare `clear()` come logout completo di sicurezza.
+Questa sezione descrive lo stato precedente al lifecycle coordinator e resta valida soltanto per `accountContext.clear()` usato isolatamente: `clear()` da solo non garantisce l'annullamento delle operazioni già avviate né lo svuotamento delle viste/cache UI. Nel branch corrente `BaseRepository` può ricevere il coordinatore e applicare controlli di generazione e abort best-effort delle scritture pendenti. Una scrittura già completata non è reversibile; il wiring della UI resta esplicito e non universale. Non presentare `clear()` isolato come logout completo di sicurezza.
 
 ## Specifica per futura cancellazione account
 
