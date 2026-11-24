@@ -141,3 +141,87 @@ test("FR-21 unlisted collections remain denied", async () => {
     value: "synthetic"
   }));
 });
+
+const notificationPath = (uid, notificationId = "notice-1") =>
+  `notifications/${uid}/items/${notificationId}`;
+
+const notificationData = () => ({
+  title: "Synthetic notice",
+  body: "Emulator-only fixture",
+  read: false,
+  createdAt: "2026-01-01T00:00:00.000Z"
+});
+
+const seedNotification = async (uid = "user-a", notificationId = "notice-1") => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), notificationPath(uid, notificationId)),
+      notificationData()
+    );
+  });
+};
+
+test("FR-19a synthetic admin can create a notification for a user", async () => {
+  await assertSucceeds(setDoc(
+    doc(adminUser(), notificationPath("user-a")),
+    notificationData()
+  ));
+});
+
+test("FR-20a non-admin cannot create a notification", async () => {
+  await assertFails(setDoc(
+    doc(verifiedUser(), notificationPath("user-a")),
+    notificationData()
+  ));
+});
+
+test("FR-20b notification is readable by its owner but not another user", async () => {
+  await seedNotification();
+  const owner = verifiedUser();
+  const other = env.authenticatedContext("user-b", {
+    email: "user-b@example.invalid",
+    email_verified: true
+  }).firestore();
+
+  await assertSucceeds(getDoc(doc(owner, notificationPath("user-a"))));
+  await assertFails(getDoc(doc(other, notificationPath("user-a"))));
+});
+
+test("FR-15 owner can mark a notification as read with a boolean", async () => {
+  await seedNotification();
+  await assertSucceeds(updateDoc(
+    doc(verifiedUser(), notificationPath("user-a")),
+    { read: true }
+  ));
+});
+
+test("FR-14 owner cannot change notification content", async () => {
+  await seedNotification();
+  await assertFails(updateDoc(
+    doc(verifiedUser(), notificationPath("user-a")),
+    { title: "Tampered synthetic title" }
+  ));
+});
+
+test("FR-16 owner cannot set notification read to a string", async () => {
+  await seedNotification();
+  await assertFails(updateDoc(
+    doc(verifiedUser(), notificationPath("user-a")),
+    { read: "true" }
+  ));
+});
+
+test("FR-20c owner cannot delete a notification", async () => {
+  await seedNotification();
+  await assertFails(deleteDoc(
+    doc(verifiedUser(), notificationPath("user-a"))
+  ));
+});
+
+test("FR-19b synthetic admin can delete a notification", async () => {
+  await seedNotification();
+  await assertSucceeds(deleteDoc(
+    doc(adminUser(), notificationPath("user-a"))
+  ));
+});
+
