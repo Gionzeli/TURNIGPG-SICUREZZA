@@ -33,6 +33,35 @@ try {
   const lifecycle = createAccountLifecycleCoordinator({ accountContext: context });
   const initialToken = await lifecycle.beginTransition("initialize");
   lifecycle.activateLocal(initialToken, "history-page-account-A");
+  const lifecycleRoot = document.createElement("section");
+  document.body.append(lifecycleRoot);
+  const lifecyclePage = await mountHistoryPage(lifecycleRoot, {
+    historyService: new HistoryService({ repository }),
+    lifecycleCoordinator: lifecycle,
+    pageSize: 10
+  });
+  const detachedExportButton = lifecycleRoot.querySelector(".dsm-history-filters button:last-child");
+  if (!detachedExportButton || detachedExportButton.disabled) {
+    throw new Error("L'esportazione sintetica non era disponibile prima della transizione.");
+  }
+  let objectUrlCreations = 0;
+  const originalCreateObjectURL = URL.createObjectURL;
+  URL.createObjectURL = (...args) => {
+    objectUrlCreations += 1;
+    return originalCreateObjectURL.apply(URL, args);
+  };
+  const uiSwitch = await lifecycle.beginTransition("switch");
+  if (lifecycleRoot.childNodes.length !== 0 || !lifecyclePage.destroyed) {
+    throw new Error("La vista cronologia non è stata svuotata all'inizio della transizione.");
+  }
+  detachedExportButton.click();
+  URL.createObjectURL = originalCreateObjectURL;
+  if (objectUrlCreations !== 0) {
+    throw new Error("Un pulsante di esportazione obsoleto ha generato un CSV dopo la transizione.");
+  }
+  lifecycle.activateLocal(uiSwitch, "history-page-account-B");
+  lifecycleRoot.remove();
+
   const staleRoot = document.createElement("section");
   document.body.append(staleRoot);
   let resolveStaleRead;
