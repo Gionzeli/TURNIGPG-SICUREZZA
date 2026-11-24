@@ -1,7 +1,7 @@
 # DSM Core — revisione tecnica preliminare di sicurezza
 
 Data: 2026-11-24
-Riferimento: branch `dsm-enterprise/core-v1`, HEAD verificato `9ea713783b4b968ace4d5c87280426ba3e522077`.
+Riferimento: branch `dsm-enterprise/core-v1`, revisione aggiornata con test sintetici sul commit `816e725b98fab8110cc9d696fc149a8c3e3d1245`.
 
 ## Esito
 
@@ -21,7 +21,7 @@ Questa è una revisione statica preliminare dei moduli elencati, non un penetrat
 ### SEC-02 — IndexedDB non è un confine di sicurezza
 **Gravità: alta per dati reali.**
 
-I repository applicano filtri per account, ma codice eseguito nella stessa origine può accedere direttamente a IndexedDB e alterare record, indici e cronologia. La CSP della fixture demo riduce le superfici della pagina di test, ma non protegge un'applicazione diversa o una sessione compromessa.
+I repository applicano filtri per account, ma codice eseguito nella stessa origine può accedere direttamente a IndexedDB e alterare record, indici e cronologia. Il test browser `HIST-005` scrive direttamente nello store `history` e verifica che la modifica sia visibile attraverso il repository. La CSP della fixture demo riduce le superfici della pagina di test, ma non protegge un'applicazione diversa o una sessione compromessa.
 
 **Azione richiesta:** non conservare qui segreti o dati reali finché non sono definiti threat model, mitigazioni XSS, gestione sessione e strategia di protezione dei dati. La cifratura lato client, da sola, non sostituisce l'autorizzazione e richiede un ciclo di vita delle chiavi separato.
 
@@ -35,14 +35,14 @@ I repository applicano filtri per account, ma codice eseguito nella stessa origi
 ### SEC-04 — Il bridge cross-tab è solo invalidazione best-effort
 **Gravità: media, mitigazione già documentata.**
 
-I messaggi BroadcastChannel contengono senderId e sequence e scartano replay semplici, ma tali campi sono falsificabili da codice nella stessa origine. Il modulo stesso dichiara che il bridge non è autenticazione né confine di sicurezza.
+I messaggi BroadcastChannel contengono senderId e sequence e scartano replay semplici, ma tali campi sono falsificabili da codice nella stessa origine. Un test browser sintetico dimostra che un senderId inventato può provocare l'invalidazione della sessione ricevente. Il bridge non è autenticazione né confine di sicurezza.
 
 **Azione richiesta:** mantenerlo come meccanismo di coordinamento UX; non usarlo per autorizzare operazioni o dimostrare logout globale. Il backend dovrà imporre autonomamente i permessi.
 
 ### SEC-05 — Lifecycle e cleanup riducono le operazioni obsolete, ma non revocano codice ostile
 **Gravità: media.**
 
-Generazioni, abort delle transazioni e disposable registrati mitigano callback tardive e cambi account concorrenti. Non proteggono da XSS, manipolazione diretta dello storage o codice che conserva riferimenti e ignora il lifecycle.
+Generazioni, abort delle transazioni e disposable registrati mitigano callback tardive e cambi account concorrenti. Un test aggiuntivo ha riprodotto la registrazione di un disposable durante un cleanup asincrono; il coordinatore ora drena anche le risorse registrate durante il teardown. Non protegge da XSS, manipolazione diretta dello storage o codice che conserva riferimenti e ignora il lifecycle.
 
 **Azione richiesta:** ogni vista deve registrare cleanup appena crea risorse; i servizi futuri dovranno verificare l'autorizzazione al momento dell'operazione, non affidarsi solo al controllo della vista.
 
