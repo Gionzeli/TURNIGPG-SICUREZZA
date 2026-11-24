@@ -111,7 +111,7 @@ export async function runFirebaseLifecycleTests() {
       cleanupCalls += 1;
       if (cleanupCalls === 1) throw new Error("synthetic cleanup failure");
     });
-    await assert.rejects(session.activateFirebase(), /pulizia|cleanup/i);
+    await assert.rejects(session.activateFirebase(), error => error?.code === "DB_ACCESS_DENIED");
     auth.setPrincipal(null);
     auth.emit();
     // The auth observer invalidates the pending transition; it must never activate
