@@ -1,7 +1,7 @@
 # DSM Core — revisione tecnica preliminare di sicurezza
 
 Data: 2026-11-24
-Riferimento: branch `dsm-enterprise/core-v1`, revisione aggiornata con test sintetici sul commit `816e725b98fab8110cc9d696fc149a8c3e3d1245`.
+Riferimento: branch `dsm-enterprise/core-v1`, HEAD verificato `8139cfe3ca3676767b10263dff62da53295d2531`.
 
 ## Esito
 
@@ -55,6 +55,13 @@ Generazioni, abort delle transazioni e disposable registrati mitigano callback t
 - La cronologia espone una API senza update/delete.
 - Il fixture demo usa dati sintetici, database temporaneo e nessuna richiesta esterna.
 - Le regole Firestore e il runtime Firebase operativo non sono parte di questa integrazione.
+
+## Verifiche CI sul HEAD di riferimento
+
+- Browser IndexedDB: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465230627 — success.
+- Firebase Rules Emulator: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465230643 — success.
+
+Questi workflow verificano le rispettive suite automatizzate sul commit indicato; non sono un penetration test, non certificano l'autenticazione/autorizzazione reale e non attestano l'integrazione nell'app operativa.
 
 ## Gate obbligatori prima dell'uso reale
 
