@@ -104,9 +104,6 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
       pendingTransition = null;
       return;
     }
-    if (status.state === "switching" && pendingTransition) {
-      await clearPendingTransition(pendingTransition);
-    }
   }
 
   const unsubscribeFirebase = firebaseAuthAdapter?.subscribe(() => {
