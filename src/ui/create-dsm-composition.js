@@ -79,8 +79,7 @@ export function createDSMComposition({ db, accountId, mount, closeDatabase } = {
   const api = Object.freeze({
     start,
     teardown,
-    get status() { return phase; },
-    get session() { return sessionPromise; }
+    get status() { return phase; }
   });
   return api;
 }
