@@ -498,7 +498,7 @@ try {
   const demoDatabaseName = await demoPage.evaluate(() => window.__dsmDemoDatabaseName);
   await demoPage.locator("#demo-close").click();
   await demoPage.waitForFunction(() => document.documentElement.dataset.demoResult === "closed", null, { timeout: 10000 });
-  assert.equal(await demoPage.locator("#demo-history").childElementCount, 0,
+  assert.equal(await demoPage.locator("#demo-history").evaluate(node => node.childElementCount), 0,
     "Il teardown demo non ha svuotato la vista cronologia.");
   assert.match(await demoPage.locator("#demo-status").textContent(), /database temporaneo cancellato/);
   const remainingDemoDatabases = await demoPage.evaluate(async () =>
