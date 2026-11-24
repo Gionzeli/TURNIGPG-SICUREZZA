@@ -95,7 +95,7 @@ export async function runFirebaseLifecycleTests() {
       cleanupCalls += 1;
       if (cleanupCalls === 1) throw new Error("synthetic cleanup failure");
     });
-    await assert.rejects(session.activateFirebase(), /pulizia|cleanup/i);
+    await assert.rejects(session.activateFirebase(), error => error?.code === "DB_ACCESS_DENIED");
     const replacement = principal({ accountId: "synthetic-account-refreshed" });
     auth.setPrincipal(replacement);
     await session.resumePendingTransition();
@@ -116,7 +116,7 @@ export async function runFirebaseLifecycleTests() {
     auth.emit();
     // The auth observer invalidates the pending transition; it must never activate
     // the previously captured principal after cleanup eventually succeeds.
-    await new Promise(resolve => setTimeout(resolve, 0));
+    await session.resumePendingTransition();
     assert.equal(session.lifecycle.getStatus().state, "cleared");
     assert.equal(session.lifecycle.getStatus().accountId, null);
     session.dispose();
