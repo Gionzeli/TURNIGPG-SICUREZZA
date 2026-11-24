@@ -1,6 +1,6 @@
 # Piano test negativi Firebase — DSM
 
-**Stato:** specifica di test; non eseguita.
+**Stato:** specifica e suite parzialmente eseguite; verifiche emulator e browser automatizzate sul branch indicato.
 **Ambiente previsto:** Firebase Emulator Suite, progetto demo isolato e dati sintetici.
 **Branch:** `dsm-enterprise/core-v1`
 
@@ -87,9 +87,9 @@ Aggiornato il 24 novembre 2026:
 - Firebase Emulator Suite configurato in `tests/firebase-emulator/`, con progetto demo `demo-dsm-rules`;
 - workflow CI dedicato: `.github/workflows/firebase-rules-emulator-tests.yml`;
 - le regole testate sono copiate dalla root del commit nella directory del progetto emulator prima dell'avvio;
-- **29 test Firestore superati, 0 falliti** sul commit `4ea8ea1da2f71bba9b02829231e1180a0e5b5783`, run [45454517961](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45454517961);
-- **test browser IndexedDB superati** sullo stesso SHA, run [45454517753](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45454517753);
-- copertura dinamica attuale: FR-01, FR-04, FR-05, FR-08, FR-09, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c, FR-21, FR-22a–22e e FR-23a–23f;
+- **31 test Firestore superati, 0 falliti** sul commit `4d8a37e8a546c7a38e9f1d93d8440177ad7c6de0`, run [45454845547](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45454845547);
+- **test browser IndexedDB superati** sullo stesso SHA, run [45454845380](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45454845380);
+- copertura dinamica attuale: FR-01, FR-04, FR-05, FR-08, FR-09, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c, FR-21, FR-22a–22e e FR-23a–23h;
 - i casi non presenti nella suite non sono dichiarati superati;
 - nessun adapter Firebase DSM implementato; nessun account o dato reale usato.
 
