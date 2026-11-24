@@ -267,3 +267,52 @@ test("FR-22e only synthetic admin can update or delete an update", async () => {
   }));
   await assertSucceeds(deleteDoc(doc(adminUser(), updatePath())));
 });
+
+
+const memberPath = (uid = "user-a") => `members/${uid}`;
+const memberData = () => ({
+  active: true,
+  role: "operator"
+});
+
+const seedMember = async (uid = "user-a") => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(doc(context.firestore(), memberPath(uid)), memberData());
+  });
+};
+
+test("FR-23a verified member can read their own membership", async () => {
+  await seedMember("user-a");
+  await assertSucceeds(getDoc(doc(verifiedUser(), memberPath("user-a"))));
+});
+
+test("FR-23b verified user cannot read another member document", async () => {
+  await seedMember("user-b");
+  await assertFails(getDoc(doc(verifiedUser(), memberPath("user-b"))));
+});
+
+test("FR-23c synthetic admin can read another member document", async () => {
+  await seedMember("user-b");
+  await assertSucceeds(getDoc(doc(adminUser(), memberPath("user-b"))));
+});
+
+test("FR-23d unverified user cannot read their own membership", async () => {
+  await seedMember("user-unverified");
+  await assertFails(getDoc(doc(unverifiedUser(), memberPath("user-unverified"))));
+});
+
+test("FR-23e non-admin cannot update or delete another member document", async () => {
+  await seedMember("user-b");
+  await assertFails(updateDoc(doc(verifiedUser(), memberPath("user-b")), {
+    active: false
+  }));
+  await assertFails(deleteDoc(doc(verifiedUser(), memberPath("user-b"))));
+});
+
+test("FR-23f synthetic admin can update and delete a member document", async () => {
+  await seedMember("user-b");
+  await assertSucceeds(updateDoc(doc(adminUser(), memberPath("user-b")), {
+    active: false
+  }));
+  await assertSucceeds(deleteDoc(doc(adminUser(), memberPath("user-b"))));
+});
