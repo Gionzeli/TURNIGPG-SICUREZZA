@@ -31,7 +31,15 @@ let pageErrors = [];
 try {
   const page = await browser.newPage();
   page.on("pageerror", error => pageErrors.push(error.message));
+  const fixtureRequests = [];
+  page.on("request", request => fixtureRequests.push(request.url()));
   await page.goto("http://127.0.0.1:8000/tests/browser/", { waitUntil: "load" });
+  const fixturePolicy = await page.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
+  assert.ok(fixturePolicy?.includes("default-src 'none'") &&
+    fixturePolicy.includes("script-src 'self'") &&
+    fixturePolicy.includes("connect-src 'none'") &&
+    fixturePolicy.includes("form-action 'none'"),
+    "La fixture IndexedDB non applica la Content Security Policy restrittiva.");
   await page.waitForFunction(() => {
     const summary = document.querySelector("#summary");
     return summary?.dataset.result === "pass" || summary?.dataset.result === "fail";
@@ -47,6 +55,9 @@ try {
     process.exitCode = 1;
   }
   if (status !== "pass") process.exitCode = 1;
+  assert.ok(fixtureRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "La fixture IndexedDB ha richiesto risorse da un'origine esterna.");
+  console.log("PASS — IndexedDB fixture CSP blocks external resource requests");
 
   // Exercise real BroadcastChannel delivery between two same-origin browser pages.
   const crossTabContext = await browser.newContext();
