@@ -1,5 +1,5 @@
 import { HistoryService } from "../../src/core/services/history-service.js";
-import { createAccountContext, createAccountLifecycleCoordinator } from "../../src/core/database/index.js";
+import { createAccountContext, createAccountLifecycleCoordinator, openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus } from "../../src/core/database/index.js";
 import { mountHistoryPage } from "../../src/ui/history-page.js";
 import { createDSMComposition } from "../../src/ui/create-dsm-composition.js";
 
@@ -82,28 +82,44 @@ try {
 
   let cleanupAttempts = 0;
   let databaseCloseAttempts = 0;
+  const compositionDatabaseName = `dsm-composition-ci-${crypto.randomUUID()}`;
+  const compositionDb = await openDSMDatabase({ name: compositionDatabaseName });
   const composition = createDSMComposition({
-    db: { transaction() {}, objectStoreNames: { contains: () => true } },
+    db: compositionDb,
     accountId: "synthetic-composition-account",
-    mount: ({ registerCleanup }) => {
+    mount: ({ session, registerCleanup }) => {
+      if (!session.services?.history || !session.repositories?.history) {
+        throw new Error("La session reale non ha composto repository e servizi DSM.");
+      }
       registerCleanup(() => {
         cleanupAttempts += 1;
         if (cleanupAttempts === 1) throw new Error("synthetic partial mount cleanup failure");
       });
       throw new Error("synthetic view mount failure");
     },
-    closeDatabase: async () => { databaseCloseAttempts += 1; }
+    closeDatabase: async db => {
+      if (db !== compositionDb) throw new Error("Il composition root ha tentato di chiudere una connessione diversa.");
+      databaseCloseAttempts += 1;
+      await closeDSMDatabase();
+    }
   });
   let mountFailure;
   try { await composition.start(); } catch (error) { mountFailure = error; }
   if (!(mountFailure instanceof AggregateError) || composition.status === "closed" ||
-      databaseCloseAttempts !== 0 || cleanupAttempts !== 1) {
-    throw new Error("Il composition root non ha mantenuto il teardown bloccato dopo il mount parziale.");
+      databaseCloseAttempts !== 0 || cleanupAttempts !== 1 || !getDSMDatabaseStatus().isOpen) {
+    throw new Error("Il mount parziale non ha mantenuto aperta la connessione IndexedDB reale dopo il cleanup fallito.");
   }
   await composition.teardown();
-  if (composition.status !== "closed" || cleanupAttempts !== 2 || databaseCloseAttempts !== 1) {
-    throw new Error("Il retry del teardown non ha completato cleanup e chiusura DB nell'ordine previsto.");
+  if (composition.status !== "closed" || cleanupAttempts !== 2 || databaseCloseAttempts !== 1 ||
+      getDSMDatabaseStatus().isOpen) {
+    throw new Error("Il retry del teardown non ha completato cleanup e chiusura IndexedDB reale nell'ordine previsto.");
   }
+  await new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(compositionDatabaseName);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error("La cancellazione del database sintetico è bloccata."));
+  });
 
   window.__historySearchControl = document.querySelector(".dsm-history-filters input[type=search]");
   window.__historyStatusNode = document.querySelector(".dsm-history-status");
