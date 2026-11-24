@@ -152,3 +152,14 @@ Il 24 novembre 2026 entrambe le pipeline sono terminate con esito positivo sul m
 - Firestore Rules Emulator: [run 45468368016](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45468368016), **38 test, 38 pass, 0 fail, 0 skipped**.
 
 Le suite usano fixture sintetiche e Firestore Emulator locale. Il test aggiuntivo verifica il percorso di abort della transazione nel caso riprodotto; non dimostra che scritture già completate possano essere annullate retroattivamente. Nessuna regola Firebase operativa, UI Firebase o guard account è stata modificata. Questa verifica non autorizza adapter, import/sync, deploy o merge.
+
+### Verifica congiunta CI sul commit `df56cd4b7c750a744447b78eb778fd5576453a34`
+
+Il 24 novembre 2026 entrambe le pipeline sono terminate con esito positivo sul medesimo SHA:
+- Browser IndexedDB / Playwright: [run 45470440340](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45470440340), **89 superati, 0 falliti**.
+- Firestore Rules Emulator: [run 45470440378](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45470440378), **38 test, 38 pass, 0 fail, 0 skipped**.
+
+Le prove usano account e dati sintetici. La revisione di AUTH-005 distingue l'interruzione delle scritture dal rifiuto dei risultati di lettura obsoleti: `BaseRepository.create/update/delete` registrano le transazioni nel lifecycle e il teardown ne tenta l'abort; `getById/getAll` non registrano invece le transazioni readonly nel cleanup. Queste letture attendono il completamento e poi verificano la generazione lifecycle, rifiutando il risultato se l'account è cambiato. Il test dimostra quindi che il risultato stale non viene consegnato, **non** che la transazione readonly venga abortita. L'eventuale cancellazione anticipata delle letture richiede una modifica runtime separata e non è inclusa in questo commit.
+
+Nessuna regola Firebase operativa, UI Firebase o guard account è stata modificata. Questa verifica non autorizza adapter, import/sync, deploy o merge.
+
