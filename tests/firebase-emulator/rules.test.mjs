@@ -394,3 +394,15 @@ test("FR-24b synthetic admin can enumerate the accessRequests collection", async
   const snapshot = await assertSucceeds(getDocs(collection(adminUser(), "accessRequests")));
   assert.equal(snapshot.size, 2);
 });
+
+test("FR-25 documents that an owner can rewrite createdAt while status stays pending", async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), "accessRequests/user-a"),
+      requestData("user-a", "user-a@example.invalid")
+    );
+  });
+  await assertSucceeds(updateDoc(doc(verifiedUser(), "accessRequests/user-a"), {
+    createdAt: "2035-12-31T23:59:59.000Z"
+  }));
+});
