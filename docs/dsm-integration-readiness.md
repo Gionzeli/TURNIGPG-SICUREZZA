@@ -27,3 +27,11 @@
 - [ ] Separate approval for merge/deploy
 
 **Status:** Not operationally integrated. DSM remains a prototype core; no real data migration or synchronization is enabled.
+
+
+## Work log — adapter boundary investigation
+
+- Confirmed `firebase-ui-v3-13.js` emits a UI session event with UID/admin/member/request, but the event is not a trusted auth boundary for DSM.
+- Confirmed `createAccountContext()` deliberately accepts only `identitySource: "local"` and rejects other sources. This blocks wiring Firebase UIDs directly into DSM (correct fail-closed behavior).
+- A safe Firebase adapter therefore must consume Firebase SDK auth state (`auth.currentUser` / `onAuthStateChanged`) directly and validate verified email plus current member authorization, but also requires a new trusted capability path in account-context/lifecycle. That capability is not yet implemented; don't circumvent the local-only check or treat event payloads as proof.
+- Integration is still not connected. The next implementation should be isolated adapter + synthetic auth tests and a capability-gated core API, reviewed together before any UI integration.
