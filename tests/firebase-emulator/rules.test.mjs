@@ -144,6 +144,50 @@ test("FR-21 unlisted collections remain denied", async () => {
   }));
 });
 
+test("FR-06 rejects access requests with mismatched identity or non-pending status", async () => {
+  const db = verifiedUser();
+  await assertFails(setDoc(doc(db, "accessRequests/user-a"), {
+    ...requestData("user-b", "user-a@example.invalid")
+  }));
+  await assertFails(setDoc(doc(db, "accessRequests/user-a"), {
+    ...requestData("user-a", "other@example.invalid")
+  }));
+  await assertFails(setDoc(doc(db, "accessRequests/user-a"), {
+    ...requestData("user-a", "user-a@example.invalid"),
+    status: "approved"
+  }));
+});
+
+test("FR-07 rejects access requests with unexpected fields", async () => {
+  const db = verifiedUser();
+  await assertFails(setDoc(doc(db, "accessRequests/user-a"), {
+    ...requestData("user-a", "user-a@example.invalid"),
+    isAdmin: true
+  }));
+});
+
+test("FR-10 owner cannot change access request UID or email", async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), "accessRequests/user-a"),
+      requestData("user-a", "user-a@example.invalid")
+    );
+  });
+  const db = verifiedUser();
+  await assertFails(updateDoc(doc(db, "accessRequests/user-a"), { uid: "user-b" }));
+  await assertFails(updateDoc(doc(db, "accessRequests/user-a"), { email: "other@example.invalid" }));
+});
+
+test("FR-11 owner can delete their own access request", async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    await setDoc(
+      doc(context.firestore(), "accessRequests/user-a"),
+      requestData("user-a", "user-a@example.invalid")
+    );
+  });
+  await assertSucceeds(deleteDoc(doc(verifiedUser(), "accessRequests/user-a")));
+});
+
 const notificationPath = (uid, notificationId = "notice-1") =>
   `notifications/${uid}/items/${notificationId}`;
 
