@@ -114,16 +114,24 @@ async function run() {
     assert(lifecycle.getStatus().state === "active" && attempts === 2, "Il retry non ha attivato l'account dopo la pulizia.");
   });
 
-  await test("AUTH-001 — contesto locale rifiuta identità Firebase non verificate", async () => {
-    let caught;
-    try {
-      context.activate({
-        accountId: "browser-test-unverified-remote",
-        identitySource: "firebase_verified"
-      });
-    } catch (error) { caught = error; }
-    assert(caught?.code === DB_ERROR_CODES.ACCESS_DENIED, "Il contesto ha accettato un'identità remota non verificata.");
-    assert(context.getActive() === null, "Il tentativo remoto ha attivato un account.");
+  await test("AUTH-001 — contesto locale rifiuta ogni sorgente identità remota dichiarata dal chiamante", async () => {
+    for (const identitySource of ["firebase", "firebase_verified", "remote", "firebase_admin", ""]) {
+      let caught;
+      try {
+        context.activate({
+          accountId: "browser-test-unverified-remote",
+          identitySource,
+          uid: "synthetic-admin-uid",
+          role: "admin",
+          emailVerified: true,
+          membership: { active: true, role: "admin" }
+        });
+      } catch (error) { caught = error; }
+      assert(caught?.code === DB_ERROR_CODES.ACCESS_DENIED,
+        `Il contesto ha accettato la sorgente non locale "${identitySource}".`);
+      assert(context.getActive() === null,
+        `Il tentativo "${identitySource}" ha attivato un account.`);
+    }
   });
 
   await test("DB-000 — nome database vuoto rifiutato senza fallback", async () => {
