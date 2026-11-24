@@ -51,3 +51,16 @@ Definire come una futura integrazione DSM possa ricevere un'identità autenticat
 ## Decisione
 
 Il prossimo lavoro può sviluppare solo test harness e revisione documentale. L'adapter non è autorizzato a bypassare il guard locale esistente. Nessuna integrazione con app operativa o dati reali.
+
+## Riscontro sul codice Firebase esistente (audit statico)
+
+File esaminati: `firebase-client.js`, `firebase-ui-v3-13.js`, `firestore.rules`.
+
+- Il client usa Firebase Auth SDK 10.14.1, espone `watchAuth` basato su `onAuthStateChanged`, esegue `reload()` e controlla `emailVerified` nel flusso UI.
+- La UI legge `members/{uid}` tramite `getAccess` e calcola `active/start/end` in `memberValid`; questi dati possono essere un input per una futura policy, ma il CustomEvent `turni-firebase-session` rimane non attendibile per DSM.
+- Le Firestore Rules consentono la scrittura di `members` solo all'amministratore, mentre il proprietario può leggere il proprio documento. Questo è il confine autorizzativo attualmente visibile e va verificato con emulator/security-rules tests prima di riutilizzarlo.
+- La regola `isAdmin()` si basa sull'email amministratore hardcoded nelle rules. Prima di un uso produttivo valutare una custom claim o un'autorità server gestita, con procedura di bootstrap e revoca documentata.
+- Le rules per `accessRequests` consentono al proprietario di aggiornare alcuni campi, incluso `status`, entro il vincolo `status == "pending"`. Verificare con test emulator che un utente non possa alterare stati/ruoli o ottenere privilegi; le rules devono essere la fonte effettiva del blocco, non la UI.
+- L'audit è statico: non sono stati eseguiti Firebase Emulator Suite, test delle rules o prove con account. Non si afferma quindi che le regole siano state validate dinamicamente.
+
+Questi rilievi non modificano il codice Firebase e non autorizzano l'adapter DSM.
