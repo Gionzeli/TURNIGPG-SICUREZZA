@@ -509,6 +509,27 @@ try {
   console.log("PASS — isolated composition demo: synthetic-only banner, real history view, teardown, IndexedDB deletion, strict CSP, no external requests");
   await demoPage.close();
 
+  const failedDemoPage = await browser.newPage();
+  const failedDemoErrors = [];
+  const failedDemoRequests = [];
+  failedDemoPage.on("pageerror", error => failedDemoErrors.push(error.message));
+  failedDemoPage.on("request", request => failedDemoRequests.push(request.url()));
+  await failedDemoPage.goto("http://127.0.0.1:8000/tests/browser/composition-demo.html?fail-mount", { waitUntil: "load" });
+  await failedDemoPage.waitForFunction(() => document.documentElement.dataset.demoResult === "error" ||
+    document.documentElement.dataset.demoResult === "cleanup-error", null, { timeout: 15000 });
+  assert.equal(await failedDemoPage.locator("#demo-close").isDisabled(), true);
+  assert.match(await failedDemoPage.locator("#demo-status").textContent(), /database temporaneo è stato chiuso e rimosso/);
+  const failedDemoDatabaseName = await failedDemoPage.evaluate(() => window.__dsmDemoDatabaseName);
+  const remainingFailedDemoDatabases = await failedDemoPage.evaluate(async () =>
+    (await indexedDB.databases()).map(database => database.name));
+  assert.ok(!remainingFailedDemoDatabases.includes(failedDemoDatabaseName),
+    "Il fallimento di mount ha lasciato il database demo temporaneo.");
+  assert.equal(failedDemoErrors.length, 0, failedDemoErrors.join("; "));
+  assert.ok(failedDemoRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "Il percorso di errore demo ha richiesto risorse esterne.");
+  console.log("PASS — isolated composition demo startup failure: teardown and temporary IndexedDB deletion");
+  await failedDemoPage.close();
+
   console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
   await reportPage.close();
 } finally {
