@@ -21,6 +21,7 @@ async function removeDemoDatabase() {
 
 async function startDemo() {
   databaseName = `dsm-local-demo-${crypto.randomUUID()}`;
+  window.__dsmDemoDatabaseName = databaseName;
   const db = await openDSMDatabase({ name: databaseName });
   composition = createDSMComposition({
     db,
