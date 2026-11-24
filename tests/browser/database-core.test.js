@@ -245,21 +245,35 @@ async function run() {
     });
     assert((await boundProfiles.getById(createdProfileId))?.accountId === "browser-test-account-A",
       "Il repository lifecycle non legge l'account attivo.");
+    const pendingById = boundProfiles.getById(createdProfileId);
+    const pendingList = boundProfiles.getAll();
     const pendingUpdate = boundProfiles.update(
       createdProfileId, { displayName: "scrittura-stale" }, { expectedRevision: 1 }
     );
     const switching = await lifecycle.beginTransition("switch");
-    let rejected = false;
-    try { await pendingUpdate; } catch { rejected = true; }
-    assert(rejected, "Una scrittura pendente non è stata interrotta durante il cambio account.");
+    let readByIdRejected = false, listRejected = false, updateRejected = false;
+    try { await pendingById; } catch { readByIdRejected = true; }
+    try { await pendingList; } catch { listRejected = true; }
+    try { await pendingUpdate; } catch { updateRejected = true; }
+    assert(readByIdRejected && listRejected,
+      "Una lettura avviata prima della revoca ha restituito un risultato stale.");
+    assert(updateRejected, "Una scrittura pendente non è stata interrotta durante il cambio account.");
     lifecycle.activateLocal(switching, "browser-test-account-B");
     assert(await boundProfiles.getById(createdProfileId) === null,
       "Il repository collegato ha esposto ad account B il record di A.");
     const returnToA = await lifecycle.beginTransition("switch");
     lifecycle.activateLocal(returnToA, "browser-test-account-A");
+    const pendingDelete = boundProfiles.delete(createdProfileId, { expectedRevision: 1 });
+    const logoutTransition = await lifecycle.beginTransition("logout");
+    let deleteRejected = false;
+    try { await pendingDelete; } catch { deleteRejected = true; }
+    assert(deleteRejected, "Una cancellazione pendente non è stata interrotta durante la revoca.");
+    lifecycle.clear(logoutTransition);
+    const reactivateA = await lifecycle.beginTransition("initialize");
+    lifecycle.activateLocal(reactivateA, "browser-test-account-A");
     const afterAbortedWrite = await boundProfiles.getById(createdProfileId);
     assert(afterAbortedWrite?.data.displayName === "Profilo test browser" && afterAbortedWrite.revision === 1,
-      "La scrittura invalidata ha modificato il record persistito dell'account A.");
+      "Una scrittura/cancellazione invalidata ha modificato il record persistito dell'account A.");
     const logout = await lifecycle.beginTransition("logout");
     lifecycle.clear(logout);
     context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
