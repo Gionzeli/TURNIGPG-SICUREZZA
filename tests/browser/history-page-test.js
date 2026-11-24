@@ -121,6 +121,49 @@ try {
     request.onblocked = () => reject(new Error("La cancellazione del database sintetico è bloccata."));
   });
 
+  let successfulMountController;
+  const successfulDatabaseName = `dsm-composition-view-ci-${crypto.randomUUID()}`;
+  const successfulDb = await openDSMDatabase({ name: successfulDatabaseName });
+  const successfulRoot = document.createElement("section");
+  document.body.append(successfulRoot);
+  const successfulComposition = createDSMComposition({
+    db: successfulDb,
+    accountId: "synthetic-composition-view-account",
+    mount: async ({ session }) => {
+      successfulMountController = await mountHistoryPage(successfulRoot, {
+        historyService: session.services.history,
+        lifecycleCoordinator: session.lifecycle,
+        pageSize: 10
+      });
+      if (!successfulRoot.querySelector("h1") ||
+          successfulRoot.querySelector("h1").textContent !== "Cronologia delle modifiche") {
+        throw new Error("La vista cronologia non è stata montata dal composition root.");
+      }
+      return () => successfulMountController.destroy();
+    },
+    closeDatabase: async db => {
+      if (db !== successfulDb) throw new Error("Chiusura richiesta per un database inatteso.");
+      await closeDSMDatabase();
+    }
+  });
+  await successfulComposition.start();
+  if (successfulComposition.status !== "active" || successfulRoot.childNodes.length === 0 ||
+      successfulMountController.destroyed) {
+    throw new Error("Il composition root non ha mantenuto attiva la vista cronologia.");
+  }
+  await successfulComposition.teardown();
+  if (successfulComposition.status !== "closed" || successfulRoot.childNodes.length !== 0 ||
+      !successfulMountController.destroyed || getDSMDatabaseStatus().isOpen) {
+    throw new Error("Il teardown del composition root non ha distrutto la vista e chiuso IndexedDB.");
+  }
+  successfulRoot.remove();
+  await new Promise((resolve, reject) => {
+    const request = indexedDB.deleteDatabase(successfulDatabaseName);
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+    request.onblocked = () => reject(new Error("La cancellazione del database della vista è bloccata."));
+  });
+
   window.__historySearchControl = document.querySelector(".dsm-history-filters input[type=search]");
   window.__historyStatusNode = document.querySelector(".dsm-history-status");
   document.documentElement.dataset.pageResult = "pass";
