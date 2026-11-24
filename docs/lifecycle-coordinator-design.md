@@ -1,7 +1,25 @@
-# DSM Lifecycle Coordinator — design proposal
+# DSM Lifecycle Coordinator — specifica e stato implementativo
 
 ## Goal
-Make account changes/logout a UI and operation lifecycle boundary. This is a proposal, not an active security control; no UI or repository is wired to it yet.
+Make account changes/logout a UI and operation lifecycle boundary. Il coordinatore e alcuni punti d'integrazione sono implementati nel branch DSM; restano limiti espliciti e non costituiscono un controllo di autenticazione/autorizzazione.
+
+## Stato implementato nel branch
+
+- `createAccountLifecycleCoordinator()` gestisce stati `switching/active/cleared`, generazione, token opaco di transizione, listener e cleanup retry.
+- `BaseRepository` può ricevere il coordinatore: cattura account/generazione, invalida risultati stale e registra le transazioni di scrittura per abort best-effort.
+- `createDSMCoreSession()` costruisce un unico contesto/coordinatore condiviso da repository e servizi; espone switch, logout e retry.
+- `createAccountLifecycleCrossTabBridge()` è opzionale e trasmette solo invalidazioni minimali. Richiede canale e `tabId` espliciti.
+- `mountHistoryPage()` accetta facoltativamente il coordinatore, cattura la generazione, si sottoscrive e distrugge listener/DOM su `transition-start` o `context-cleared`.
+- I test browser coprono invalidazione repository, session factory, retry cleanup, bridge sintetico e `BroadcastChannel` reale tra due pagine Playwright.
+
+## Limiti attuali
+
+- La protezione UI è collegata alla pagina cronologia solo quando il chiamante passa `lifecycleCoordinator`; non esiste un composition root che garantisca il wiring per ogni vista.
+- Le transazioni IndexedDB sono abortite best-effort; una scrittura già completata prima della transizione non può essere annullata retroattivamente.
+- Il bridge cross-tab non è persistente: schede sospese/offline o aperte dopo il messaggio possono non ricevere l'invalidazione.
+- `tabId` deve essere univoco per scheda; il canale e la riattivazione restano responsabilità del chiamante.
+- Il coordinatore è per correttezza del lifecycle, non autenticazione o autorizzazione; non protegge da codice malevolo same-origin.
+- IndexedDB resta non cifrato e i dati persistenti non vengono cancellati dal logout.
 
 ## Required invariants
 1. Every activation/clear/switch increments a monotonically increasing context generation.
