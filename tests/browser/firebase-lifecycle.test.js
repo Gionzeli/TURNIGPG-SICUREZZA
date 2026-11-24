@@ -17,7 +17,7 @@ function principal(overrides = {}) {
   });
 }
 function expectDenied(fn) {
-  assert.throws(fn, error => error?.code === "DSM_ACCESS_DENIED" || error?.code === "ACCESS_DENIED");
+  assert.throws(fn, error => error?.code === "DB_ACCESS_DENIED");
 }
 export async function runFirebaseLifecycleTests() {
   let passed = 0;
