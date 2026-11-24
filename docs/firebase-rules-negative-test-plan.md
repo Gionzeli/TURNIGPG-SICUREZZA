@@ -82,11 +82,14 @@ Questi test sono unit/integration test del futuro adapter e non test Firestore. 
 
 ## Stato effettivo
 
-Al momento della stesura:
+Aggiornato il 24 novembre 2026:
 - audit statico di `firestore.rules` e `firebase-client.js` completato;
-- nessun Firebase Emulator Suite configurato o eseguito;
-- nessuna prova dinamica di allow/deny effettuata;
-- nessun adapter Firebase DSM implementato;
-- test browser IndexedDB esistenti non coprono Firebase.
+- Firebase Emulator Suite configurato in `tests/firebase-emulator/`, con progetto demo `demo-dsm-rules`;
+- workflow CI dedicato: `.github/workflows/firebase-rules-emulator-tests.yml`;
+- le regole testate sono copiate dalla root del commit nella directory del progetto emulator prima dell'avvio;
+- **18 test Firestore superati, 0 falliti** sul commit `705892133272426c41eeff86950718ce64f247bb`, run [45453780016](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45453780016);
+- copertura dinamica attuale: FR-01, FR-04, FR-05, FR-08, FR-09, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c e FR-21;
+- i casi non presenti nella suite non sono dichiarati superati;
+- nessun adapter Firebase DSM implementato; nessun account o dato reale usato.
 
-Non dichiarare questi casi superati finché un workflow emulator dedicato non li esegue sul commit esatto.
+La suite verifica le regole correnti, non certifica l'intero modello di sicurezza. FR-12b continua a documentare un gap effettivo: la creazione di una richiesta da parte di un utente autenticato ma non verificato è consentita dalle regole correnti.
