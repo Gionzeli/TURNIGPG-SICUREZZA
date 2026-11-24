@@ -368,6 +368,20 @@ async function run() {
     await new Promise(resolve => setTimeout(resolve, 0));
     assert(lifecycleB.getStatus().state === "cleared", "Un messaggio duplicato ha riattivato la sessione.");
 
+    // A syntactically valid message with a forged sender ID is still accepted
+    // as an invalidation signal. This is intentional best-effort coordination,
+    // not sender authentication or proof of authorization.
+    const reinitializeB = await lifecycleB.beginTransition("initialize");
+    lifecycleB.activateLocal(reinitializeB, "cross-tab-account-B");
+    channelA.postMessage({
+      type: "dsm-account-transition", version: 1, senderId: "forged-synthetic-sender", sequence: 999
+    });
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert(lifecycleB.getStatus().state === "cleared",
+      "Il test non ha dimostrato che un messaggio con senderId falsificato può provocare invalidazione.");
+    assert(bridgeB.getStatus().pendingRemote === false,
+      "L'invalidazione provocata dal messaggio sintetico falsificato è rimasta pendente.");
+
     bridgeA.dispose();
     bridgeB.dispose();
     assert(bridgeA.getStatus().disposed && bridgeB.getStatus().disposed,
