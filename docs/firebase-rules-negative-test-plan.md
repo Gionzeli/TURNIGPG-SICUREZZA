@@ -89,8 +89,8 @@ Aggiornato il 24 novembre 2026:
 - Firebase Emulator Suite configurato in `tests/firebase-emulator/`, con progetto demo `demo-dsm-rules`;
 - workflow CI dedicato: `.github/workflows/firebase-rules-emulator-tests.yml`;
 - le regole testate sono copiate dalla root del commit nella directory del progetto emulator prima dell'avvio;
-- **33 test Firestore superati, 0 falliti** sul commit `1574c51bdd46df896e70159c1f4c1f8b2a40876c`, run [45455543014](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45455543014);
-- **test browser IndexedDB superati** sullo stesso SHA, run [45455543372](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45455543372);
+- **37 test Firestore superati, 0 falliti** sul commit `a570bde875a725343cbd02834085537540888520`, run [45456336449](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336449), run [45455543014](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45455543014);
+- **test browser IndexedDB superati** sul commit `a570bde875a725343cbd02834085537540888520`, run [45456336316](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336316);
 - copertura dinamica attuale: FR-01, FR-04, FR-05, FR-08, FR-09, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c, FR-21, FR-22a–22e e FR-23a–23h e FR-24a–24b;
 - i casi non presenti nella suite non sono dichiarati superati;
 - nessun adapter Firebase DSM implementato; nessun account o dato reale usato.
@@ -98,9 +98,8 @@ Aggiornato il 24 novembre 2026:
 La suite verifica le regole correnti, non certifica l'intero modello di sicurezza. FR-12b continua a documentare un gap effettivo: la creazione di una richiesta da parte di un utente autenticato ma non verificato è consentita dalle regole correnti.
 
 
-### Verifica CI sul commit documentale corrente
+### Verifica CI sul commit `a570bde`
 
-Sul commit `1f87a34eb3c8bfafd2895423c51f0eb2ac10880d` entrambe le pipeline sono state completate con esito positivo:
-- Firestore Emulator: [run 45455804054](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45455804054), job completato con successo.
-- Browser IndexedDB / Playwright: [run 45455804147](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45455804147), job completato con successo.
-- Il test file emulator contiene 33 casi; il conteggio esplicito 33/33 è stato riportato nella run precedente sul commit `1574c51`. La run sul commit `1f87a34` conferma il successo del job, senza attribuire un nuovo conteggio non letto dai log.
+Sul commit `a570bde875a725343cbd02834085537540888520` entrambe le pipeline sono completate con esito positivo:
+- Firestore Emulator: [run 45456336449](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336449); log esplicito `# tests 37`, `# pass 37`, `# fail 0`.
+- Browser IndexedDB / Playwright: [run 45456336316](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336316), job completato con successo.
