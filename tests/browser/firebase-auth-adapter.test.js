@@ -185,7 +185,7 @@ export async function runFirebaseAuthAdapterTests() {
         : Promise.resolve(activeAuthorization(uid))
     });
     const staleRequest = adapter.getPrincipal();
-    await Promise.resolve();
+    while (!release) await new Promise(resolve => setTimeout(resolve, 0));
     fake.emit(secondUser);
     release();
     assert.equal(await staleRequest, null);
