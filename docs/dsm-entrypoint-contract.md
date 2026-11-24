@@ -2,7 +2,7 @@
 
 ## Stato
 
-**Specificazione, non entrypoint eseguibile.** Nel branch non esiste ancora un composition root DSM applicativo. `src/core/database/create-dsm-session.js` compone repository e servizi a partire da una connessione IndexedDB già aperta; non apre il database, non autentica un'identità e non autorizza l'accesso a dati remoti. `src/ui/history-page.js` è una vista montabile, non un'applicazione completa.
+**Primo orchestratore isolato disponibile; non è un entrypoint di prodotto né un confine di autenticazione.** `src/ui/create-dsm-composition.js` riceve una connessione già aperta, un accountId locale, una funzione di mount e una callback esplicita di chiusura DB. Coordina sessione, cleanup registrati, retry del teardown e chiusura della connessione. Non apre il database, non autentica un'identità e non autorizza dati remoti. `src/core/database/create-dsm-session.js` compone repository e servizi; `src/ui/history-page.js` resta una vista montabile.
 
 Questo documento definisce i vincoli per un futuro entrypoint separato. Non autorizza modifiche a `index.html`, alla UI Firebase, alle regole Firestore o ai guard operativi.
 
@@ -59,6 +59,15 @@ Un eventuale fixture separato dovrà essere collocato sotto `tests/` e non prese
 
 La fixture browser attuale della cronologia resta un test della vista; non deve essere descritta come composition root o app DSM.
 
+
+
+## Primo orchestratore isolato — stato implementativo
+
+`createDSMComposition()` è un modulo di orchestrazione riutilizzabile, non una pagina o un'applicazione avviata automaticamente. Il chiamante deve aprire la connessione e trasferire esplicitamente la responsabilità di chiuderla tramite `closeDatabase`. La callback `mount` riceve la sessione e `registerCleanup`: ogni vista deve registrare il proprio cleanup appena crea risorse, così anche un mount interrotto a metà può essere dismesso.
+
+`start()` esegue il mount; se questo fallisce, tenta il teardown. Se un cleanup fallisce, la connessione resta aperta e la sessione resta bloccata in transizione: il chiamante può ripetere `teardown()`, che riprende la pulizia pendente prima di chiudere il DB. La chiusura viene tentata soltanto dopo il completamento della pulizia lifecycle. L'API non implementa login, principal remoto, cambio account o UI di prodotto; l'accountId resta esclusivamente locale/demo.
+
+La fixture browser verifica un mount parziale con cleanup fallito al primo tentativo: nessuna chiusura DB anticipata, retry riuscito, una sola chiusura finale. Questa copertura dimostra l'orchestrazione di teardown nel modulo, non un'integrazione con `index.html`.
 
 ## Copertura già presente e lacune residue
 
