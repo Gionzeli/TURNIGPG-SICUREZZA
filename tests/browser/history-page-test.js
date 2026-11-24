@@ -83,7 +83,7 @@ try {
   let cleanupAttempts = 0;
   let databaseCloseAttempts = 0;
   const composition = createDSMComposition({
-    db: { transaction() {}, objectStoreNames: [] },
+    db: { transaction() {}, objectStoreNames: { contains: () => true } },
     accountId: "synthetic-composition-account",
     mount: ({ registerCleanup }) => {
       registerCleanup(() => {
