@@ -87,8 +87,9 @@ Aggiornato il 24 novembre 2026:
 - Firebase Emulator Suite configurato in `tests/firebase-emulator/`, con progetto demo `demo-dsm-rules`;
 - workflow CI dedicato: `.github/workflows/firebase-rules-emulator-tests.yml`;
 - le regole testate sono copiate dalla root del commit nella directory del progetto emulator prima dell'avvio;
-- **18 test Firestore superati, 0 falliti** sul commit `705892133272426c41eeff86950718ce64f247bb`, run [45453780016](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45453780016);
-- copertura dinamica attuale: FR-01, FR-04, FR-05, FR-08, FR-09, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c e FR-21;
+- **23 test Firestore superati, 0 falliti** sul commit `4f4dce34a71e605710441daa3f77d2a6dda54ad4`, run [45454154319](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45454154319);
+- **test browser IndexedDB superati** sullo stesso SHA, run [45454154188](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45454154188);
+- copertura dinamica attuale: FR-01, FR-04, FR-05, FR-08, FR-09, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c, FR-21 e FR-22a–22e;
 - i casi non presenti nella suite non sono dichiarati superati;
 - nessun adapter Firebase DSM implementato; nessun account o dato reale usato.
 
