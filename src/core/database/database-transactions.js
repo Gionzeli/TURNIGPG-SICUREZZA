@@ -10,8 +10,10 @@ export function requestToPromise(request) {
 export function transactionToPromise(transaction) {
   return new Promise((resolve, reject) => {
     transaction.oncomplete = () => resolve();
+    // The transaction "error" event bubbles from individual IDBRequests.
+    // It is not the transaction's terminal event; wait for "abort" so callers
+    // observe one settled outcome after IndexedDB has completed rollback.
     transaction.onabort = () => reject(toDatabaseError(transaction.error));
-    transaction.onerror = () => reject(toDatabaseError(transaction.error));
   });
 }
 
