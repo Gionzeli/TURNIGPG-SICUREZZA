@@ -18,11 +18,18 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
   async function runCleanup(event) {
     const listenerErrors = publish(event);
     const cleanupErrors = [];
-    for (const dispose of [...disposables]) {
-      try { await dispose(); disposables.delete(dispose); }
-      catch { cleanupErrors.push("dispose-error"); }
+    // Drain resources registered while an asynchronous teardown is in progress.
+    // A single snapshot would miss late registrations and could activate the next
+    // account while resources from the previous account are still alive.
+    while (disposables.size > 0) {
+      let batchFailed = false;
+      for (const dispose of [...disposables]) {
+        try { await dispose(); disposables.delete(dispose); }
+        catch { cleanupErrors.push("dispose-error"); batchFailed = true; }
+      }
+      if (batchFailed) break;
     }
-    cleanupComplete = listenerErrors.length === 0 && cleanupErrors.length === 0;
+    cleanupComplete = listenerErrors.length === 0 && cleanupErrors.length === 0 && disposables.size === 0;
   }
 
   function publish(event) {
