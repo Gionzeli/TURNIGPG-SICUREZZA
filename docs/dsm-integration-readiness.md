@@ -1,9 +1,11 @@
 # DSM integration readiness — audit
 
 ## Current state
-- DSM core is implemented and its browser CI passes on commit `8cbe70f80fdc7e79b55e805dfaf71e996092fd15`.
-- CI run: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45272296307
-- This branch is a draft PR. Do not merge, deploy, or change `main` as part of this audit.
+- DSM core resta un prototipo locale isolato; nessun adapter Firebase remoto è implementato.
+- Ultimo HEAD verificato prima di questo aggiornamento documentale: `f3b4ac43ee4e1db2e1b1af48e7a30914ee842961`.
+- CI browser IndexedDB: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45464810556 — success.
+- CI Firebase Rules Emulator: https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45464810104 — success.
+- PR #1 resta aperta e draft. Non eseguire merge, deploy o modifiche a `main`.
 
 ## Integration audit findings
 1. The operational UI in `index.html` still reads and writes legacy operational data using `LocalStorage` (including `tg_online_v1`).
@@ -26,7 +28,7 @@
 - [ ] Security/privacy review and explicit user approval
 - [ ] Separate approval for merge/deploy
 
-**Status:** Not operationally integrated. DSM remains a prototype core; no real data migration or synchronization is enabled.
+**Status:** Not operationally integrated. DSM remains a prototype core; no real data migration or synchronization is enabled. The local account context rejects `identitySource: "firebase_verified"`; there is no supported remote identity capability path yet.
 
 
 ## Work log — adapter boundary investigation
