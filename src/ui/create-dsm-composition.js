@@ -30,8 +30,8 @@ export function createDSMComposition({ db, accountId, mount, closeDatabase } = {
     if (phase === "active") return api;
     if (phase !== "created") throw new Error("Composition DSM non avviabile nello stato corrente.");
     phase = "mounting";
-    const session = await getSession();
     try {
+      const session = await getSession();
       const registerCleanup = cleanup => {
         if (typeof cleanup !== "function") throw new TypeError("Cleanup vista non valido.");
         let active = true;
