@@ -472,6 +472,43 @@ try {
   console.log("PASS — DSM history page: HistoryService integration, filters, pagination, safe CSV export, destroy lifecycle, no external requests");
   await liveHistoryPage.close();
 
+  const demoPage = await browser.newPage();
+  const demoErrors = [];
+  const demoRequests = [];
+  demoPage.on("pageerror", error => demoErrors.push(error.message));
+  demoPage.on("request", request => demoRequests.push(request.url()));
+  await demoPage.goto("http://127.0.0.1:8000/tests/browser/composition-demo.html", { waitUntil: "load" });
+  const demoPolicy = await demoPage.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
+  assert.ok(demoPolicy?.includes("default-src 'none'") &&
+    demoPolicy.includes("script-src 'self'") &&
+    demoPolicy.includes("style-src 'self'") &&
+    demoPolicy.includes("connect-src 'none'") &&
+    demoPolicy.includes("form-action 'none'"),
+    "La fixture composition demo non applica la CSP restrittiva prevista.");
+  await demoPage.waitForFunction(() => document.documentElement.dataset.demoResult === "ready" ||
+    document.documentElement.dataset.demoResult === "error", null, { timeout: 15000 });
+  assert.equal(await demoPage.locator("body .demo-banner").count(), 1);
+  assert.match(await demoPage.locator(".demo-banner").textContent(), /account locale non autenticato/i);
+  assert.match(await demoPage.locator("#demo-status").textContent(), /3 eventi sintetici caricati/);
+  assert.equal(await demoPage.locator("#demo-history .dsm-history-item").count(), 3);
+  assert.equal(await demoPage.locator("#demo-close").isDisabled(), false);
+  assert.equal(demoErrors.length, 0, demoErrors.join("; "));
+  assert.ok(demoRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "La fixture composition demo ha richiesto risorse esterne.");
+  const demoDatabaseName = await demoPage.evaluate(() => window.__dsmDemoDatabaseName);
+  await demoPage.locator("#demo-close").click();
+  await demoPage.waitForFunction(() => document.documentElement.dataset.demoResult === "closed", null, { timeout: 10000 });
+  assert.equal(await demoPage.locator("#demo-history").childElementCount, 0,
+    "Il teardown demo non ha svuotato la vista cronologia.");
+  assert.match(await demoPage.locator("#demo-status").textContent(), /database temporaneo cancellato/);
+  const remainingDemoDatabases = await demoPage.evaluate(async () =>
+    (await indexedDB.databases()).map(database => database.name));
+  assert.ok(!remainingDemoDatabases.includes(demoDatabaseName),
+    "Il database temporaneo della demo non è stato cancellato.");
+  assert.equal(demoErrors.length, 0, demoErrors.join("; "));
+  console.log("PASS — isolated composition demo: synthetic-only banner, real history view, teardown, IndexedDB deletion, strict CSP, no external requests");
+  await demoPage.close();
+
   console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
   await reportPage.close();
 } finally {
