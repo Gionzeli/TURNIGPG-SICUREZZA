@@ -114,6 +114,27 @@ async function run() {
     assert(lifecycle.getStatus().state === "active" && attempts === 2, "Il retry non ha attivato l'account dopo la pulizia.");
   });
 
+  await test("AUTH-002 — claim remoti aggiuntivi non diventano privilegi nel contesto locale", async () => {
+    const localOnlyContext = createAccountContext();
+    const active = localOnlyContext.activate({
+      accountId: "browser-test-local-claims",
+      identitySource: "local",
+      uid: "synthetic-admin-uid",
+      role: "admin",
+      isAdmin: true,
+      emailVerified: true,
+      membership: { active: true, role: "admin" },
+      permissions: ["*"]
+    });
+    assert(active.accountId === "browser-test-local-claims" && active.identitySource === "local",
+      "Il contesto locale non ha mantenuto la propria identità locale.");
+    assert(!("uid" in active) && !("role" in active) && !("isAdmin" in active) &&
+      !("emailVerified" in active) && !("membership" in active) && !("permissions" in active),
+      "Il contesto locale ha propagato claim remoti o privilegi dichiarati dal chiamante.");
+    assert(Object.keys(active).sort().join(",") === "accountId,identitySource,verifiedAt",
+      "Il contesto ha esposto campi oltre il contratto locale previsto.");
+  });
+
   await test("AUTH-001 — contesto locale rifiuta ogni sorgente identità remota dichiarata dal chiamante", async () => {
     for (const identitySource of ["firebase", "firebase_verified", "remote", "firebase_admin", ""]) {
       let caught;
