@@ -91,13 +91,13 @@ Aggiornato il 24 novembre 2026:
 - Firebase Emulator Suite configurato in `tests/firebase-emulator/`, con progetto demo `demo-dsm-rules`;
 - workflow CI dedicato: `.github/workflows/firebase-rules-emulator-tests.yml`;
 - le regole testate sono copiate dalla root del commit nella directory del progetto emulator prima dell'avvio;
-- **37 test Firestore superati, 0 falliti** sul commit `a570bde875a725343cbd02834085537540888520`, run [45456336449](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336449), run [45455543014](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45455543014);
-- **test browser IndexedDB superati** sul commit `a570bde875a725343cbd02834085537540888520`, run [45456336316](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336316);
-- copertura dinamica attuale: FR-01, FR-04, FR-05, FR-08, FR-09, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c, FR-21, FR-22a–22e e FR-23a–23h, FR-24a–24b e FR-25;
+- **38 test Firestore superati, 0 falliti, 0 saltati** sul commit `b804cd2d50b9642612191a6bf9cb2492bc484044`, run [45465935709](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465935709); il log riporta `# tests 38`, `# pass 38`, `# fail 0`;
+- **test browser IndexedDB superati** sul commit `1563262904f191a73ca60d71796820dae0bc5347`, run [45465628030](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465628030); i successivi commit fino a `b804cd2` hanno modificato solo documentazione, non il codice coperto;
+- copertura dinamica attuale: FR-01, FR-04, FR-05, FR-06, FR-07, FR-08, FR-09, FR-10, FR-11, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c, FR-21, FR-22a–22e, FR-23a–23h, FR-24a–24b e FR-25;
 - i casi non presenti nella suite non sono dichiarati superati;
 - nessun adapter Firebase DSM implementato; nessun account o dato reale usato.
 
-La suite verifica le regole correnti, non certifica l'intero modello di sicurezza. FR-12b continua a documentare un gap effettivo: la creazione di una richiesta da parte di un utente autenticato ma non verificato è consentita dalle regole correnti.
+La suite verifica le regole correnti, non certifica l'intero modello di sicurezza. FR-12b continua a documentare un gap effettivo: la creazione di una richiesta da parte di un utente autenticato ma non verificato è consentita dalle regole correnti. FR-25 dimostra inoltre che il proprietario può riscrivere `createdAt` mantenendo lo stato `pending`; tale campo non è quindi una prova temporale attendibile.
 
 
 ### Verifica CI sul commit `a570bde`
