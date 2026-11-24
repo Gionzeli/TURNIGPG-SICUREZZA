@@ -207,7 +207,27 @@ Il contratto può essere considerato pronto per una revisione di implementazione
 
 Il superamento dei test dell'adapter browser non sostituisce questi criteri. Non usare il solo endpoint di risoluzione per proteggere operazioni dati che non eseguono un controllo server-side autonomo.
 
-## 9. Questioni aperte da decidere (non assunte)
+## 9. Ambito organizzativo: assegnazione a una sede
+
+**Decisione approvata per questa specifica:** un manager assegnato a una sede ottiene accesso a tutti i reparti appartenenti a quella sede, senza dover assegnare ogni reparto singolarmente.
+
+Regole normative:
+
+1. L'assegnazione esplicita a una sede include tutti i reparti che, al momento della verifica, risultano appartenere a quella sede.
+2. I reparti creati successivamente nella stessa sede sono inclusi automaticamente, senza aggiornare manualmente la membership del manager.
+3. Un reparto trasferito a un'altra sede segue la sua appartenenza organizzativa corrente: il manager della sede precedente perde l'accesso ereditato e il manager della nuova sede lo acquisisce, se la sua assegnazione è attiva.
+4. L'assegnazione a una sede non concede accesso ad altre sedi dello stesso account.
+5. La revoca o scadenza dell'assegnazione alla sede revoca anche l'accesso derivato a tutti i reparti della sede.
+6. Il backend deve risolvere l'ambito usando la gerarchia organizzativa canonica e aggiornata. Non deve fidarsi di elenchi di reparti o scopeIds inviati dal browser.
+7. Le query e le scritture devono applicare il vincolo di sede/account lato server. Un controllo UI o una lista di ID precalcolata nel client non sono sufficienti.
+8. Le modifiche alla relazione reparto-sede devono essere autorizzate e registrate nell'audit server-side. La transizione deve evitare finestre in cui il reparto risulti accessibile tramite la vecchia sede dopo il trasferimento.
+9. Se la relazione organizzativa è mancante, ambigua o incoerente, l'accesso del manager a quella risorsa è negato (fail-closed).
+
+Rappresentazione dati raccomandata: distinguere esplicitamente il tipo di assegnazione, ad esempio `scopeType: "site"` e `scopeId: "<site-id>"`, anziché espandere permanentemente la sede in una lista statica di reparti. L'autorizzazione deve derivare dalla relazione corrente reparto→sede. Eventuali assegnazioni dirette a singoli reparti richiedono una policy separata e non sono implicate da questa decisione.
+
+Questa decisione definisce il comportamento richiesto, ma non approva ancora la gerarchia definitiva, il modello di membership, i ruoli complessivi o l'implementazione.
+
+## 10. Questioni aperte da decidere (non assunte)
 
 - Quale progetto Firebase e quale ambiente di test saranno dedicati all'emulazione?
 - Qual è lo schema canonico membership e chi può modificarlo?
@@ -220,7 +240,7 @@ Il superamento dei test dell'adapter browser non sostituisce questi criteri. Non
 - Quali API dati server-side saranno necessarie? Il core IndexedDB attuale non fornisce protezione server-side dei dati locali.
 - Quali dati personali sono indispensabili e quali retention/cancellazione si applicano?
 
-## 10. Stato e limitazioni attuali
+## 11. Stato e limitazioni attuali
 
 - Esiste un adapter browser isolato che richiede a `resolveAuthorization` un oggetto con `verifiedBy`, `uid`, `status`, `accountId`, `role`, `permissions` ed `expiresAt`; la risposta viene validata sintatticamente e convertita in principal congelato.
 - I test browser correnti usano resolver sintetici. Non dimostrano che un server reale verifichi token, revoca o membership.
