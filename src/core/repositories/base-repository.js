@@ -124,6 +124,10 @@ export class BaseRepository {
     validateId(id);
     const transaction = this.db.transaction([this.storeName], "readonly");
     const done = transactionToPromise(transaction);
+    // Handle the terminal rejection immediately: the request can reject before
+    // this method reaches the await of the transaction completion promise.
+    done.catch(() => {});
+    const untrack = this._trackTransaction(transaction);
     const request = transaction.objectStore(this.storeName).index("accountId_id").get([accountId, id]);
     try {
       const record = await requestToPromise(request);
@@ -131,6 +135,7 @@ export class BaseRepository {
       this._assertLifecycleCurrent(lifecycleCapture);
       return record || null;
     } catch (error) { throw toDatabaseError(error); }
+    finally { untrack(); }
   }
 
   async getAll() {
@@ -138,6 +143,10 @@ export class BaseRepository {
     const { accountId } = requireAccountContext(this.accountContext);
     const transaction = this.db.transaction([this.storeName], "readonly");
     const done = transactionToPromise(transaction);
+    // Handle the terminal rejection immediately: the request can reject before
+    // this method reaches the await of the transaction completion promise.
+    done.catch(() => {});
+    const untrack = this._trackTransaction(transaction);
     const request = transaction.objectStore(this.storeName).index("accountId").getAll(accountId);
     try {
       const records = await requestToPromise(request);
@@ -145,6 +154,7 @@ export class BaseRepository {
       this._assertLifecycleCurrent(lifecycleCapture);
       return records;
     } catch (error) { throw toDatabaseError(error); }
+    finally { untrack(); }
   }
 
   async update(id, changes, options = {}) {
