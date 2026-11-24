@@ -61,6 +61,6 @@ File esaminati: `firebase-client.js`, `firebase-ui-v3-13.js`, `firestore.rules`.
 - Le Firestore Rules consentono la scrittura di `members` solo all'amministratore, mentre il proprietario può leggere il proprio documento. Questo è il confine autorizzativo attualmente visibile e va verificato con emulator/security-rules tests prima di riutilizzarlo.
 - La regola `isAdmin()` si basa sull'email amministratore hardcoded nelle rules. Prima di un uso produttivo valutare una custom claim o un'autorità server gestita, con procedura di bootstrap e revoca documentata.
 - Le rules per `accessRequests` consentono al proprietario di aggiornare alcuni campi, incluso `status`, entro il vincolo `status == "pending"`. Verificare con test emulator che un utente non possa alterare stati/ruoli o ottenere privilegi; le rules devono essere la fonte effettiva del blocco, non la UI.
-- L'audit è statico: non sono stati eseguiti Firebase Emulator Suite, test delle rules o prove con account. Non si afferma quindi che le regole siano state validate dinamicamente.
+- L'ispezione di `firebase-client.js`, `firebase-ui-v3-13.js` e `firestore.rules` descritta sopra è statica. Separatamente, Firebase Emulator Suite è stata eseguita in CI sul commit `1563262904f191a73ca60d71796820dae0bc5347` con esito success ([run](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465628237)). Non sono state eseguite prove con account Firebase reali, né test di un adapter DSM, che non esiste ancora.
 
 Questi rilievi non modificano il codice Firebase e non autorizzano l'adapter DSM.
