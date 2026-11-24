@@ -7,9 +7,11 @@ import {
   initializeTestEnvironment
 } from "@firebase/rules-unit-testing";
 import {
+  collection,
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc
 } from "firebase/firestore";
@@ -315,4 +317,17 @@ test("FR-23f synthetic admin can update and delete a member document", async () 
     active: false
   }));
   await assertSucceeds(deleteDoc(doc(adminUser(), memberPath("user-b"))));
+});
+
+test("FR-23g verified non-admin cannot enumerate the members collection", async () => {
+  await seedMember("user-a");
+  await seedMember("user-b");
+  await assertFails(getDocs(collection(verifiedUser(), "members")));
+});
+
+test("FR-23h synthetic admin can enumerate the members collection", async () => {
+  await seedMember("user-a");
+  await seedMember("user-b");
+  const snapshot = await assertSucceeds(getDocs(collection(adminUser(), "members")));
+  assert.equal(snapshot.size, 2);
 });
