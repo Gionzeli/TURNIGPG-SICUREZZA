@@ -78,3 +78,15 @@ Questi workflow verificano le rispettive suite automatizzate nei commit specific
 ## Decisione
 
 **Mantenere la PR in bozza e il core in ambiente sintetico.** Nessun merge, deploy, collegamento a `index.html`, importazione o sincronizzazione di dati reali è autorizzato da questa revisione.
+
+
+## Aggiornamento evidenze CI — 24 novembre 2026
+
+La PR #1 è stata ricontrollata sul commit `9e635e2b0718ee3bdad050de88083d440f768ff8`. Le due esecuzioni seguenti hanno checkout esplicito dello stesso SHA:
+
+- **Browser IndexedDB / Playwright:** [workflow 45485825286](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45485825286) — **89 superati, 0 falliti**. Il log include AUTH-005 per l'invalidazione delle letture e l'abort delle scritture pendenti; la verifica aggiornata osserva anche l'abort delle transazioni readonly.
+- **Firestore Rules Emulator:** [workflow 45485825297](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45485825297) — **38 superati, 0 falliti, 0 saltati**.
+
+Questi risultati attestano soltanto le suite automatizzate eseguite con fixture e ambiente emulatoriale. Non attestano un adapter Firebase DSM, l'autenticazione o autorizzazione di utenti reali, l'integrazione operativa, né una certificazione di sicurezza.
+
+La PR #1 risulta aperta, in draft e non unita al momento dell'aggiornamento. Il suo HEAD verificato è `9e635e2b0718ee3bdad050de88083d440f768ff8`. Il core resta isolato: nessun collegamento a `index.html`, nessuna modifica al runtime Firebase o alle Firestore Rules, nessuna importazione/sincronizzazione di dati reali. I rilievi SEC-01–SEC-05 e tutti i gate obbligatori sopra restano invariati; il superamento CI non li chiude.
