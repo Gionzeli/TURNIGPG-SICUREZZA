@@ -59,6 +59,18 @@ Un eventuale fixture separato dovrà essere collocato sotto `tests/` e non prese
 
 La fixture browser attuale della cronologia resta un test della vista; non deve essere descritta come composition root o app DSM.
 
+
+## Copertura già presente e lacune residue
+
+L'audit dei test browser esistenti evita di duplicare scenari già verificati:
+
+- `tests/browser/database-core.test.js`, AUTH-006: verifica che la session factory condivida lo stesso coordinatore tra repository e servizi, che il cambio A → B non esponga i record precedenti e che il logout porti il lifecycle allo stato `cleared`.
+- `tests/browser/database-core.test.js`, AUTH-007: verifica il blocco durante cleanup fallito e il retry sia per lo switch sia per il logout.
+- `tests/browser/history-page-test.js`: verifica che la vista venga svuotata e distrutta all'avvio della transizione, che un riferimento obsoleto al pulsante CSV non produca un export e che una lettura asincrona tardiva non rimonti dati della generazione precedente.
+- `tests/browser/run-playwright.mjs`: esegue anche la prova cross-tab su due pagine browser reali e verifica il rapporto legacy in sola lettura.
+
+Questi test coprono i componenti e alcuni collegamenti, ma **non** dimostrano l'esistenza di un composition root: i test costruiscono sessione e vista separatamente. Restano senza copertura integrata l'ordine orchestrato di mount/teardown, la chiusura della connessione DB da parte del proprietario e il comportamento del root quando il mount di una vista fallisce a metà. Non si deve colmare il gap collegando la vista a `index.html`; prima va realizzata una fixture dedicata sotto `tests/`, non una pagina di prodotto.
+
 ## Test di accettazione prima di creare l'entrypoint
 
 | Scenario | Esito richiesto |
