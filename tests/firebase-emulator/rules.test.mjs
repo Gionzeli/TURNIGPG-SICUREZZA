@@ -331,3 +331,22 @@ test("FR-23h synthetic admin can enumerate the members collection", async () => 
   const snapshot = await assertSucceeds(getDocs(collection(adminUser(), "members")));
   assert.equal(snapshot.size, 2);
 });
+
+test("FR-24a verified non-admin cannot enumerate the accessRequests collection", async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await setDoc(doc(db, "accessRequests/user-a"), requestData("user-a", "user-a@example.invalid"));
+    await setDoc(doc(db, "accessRequests/user-b"), requestData("user-b", "user-b@example.invalid"));
+  });
+  await assertFails(getDocs(collection(verifiedUser(), "accessRequests")));
+});
+
+test("FR-24b synthetic admin can enumerate the accessRequests collection", async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await setDoc(doc(db, "accessRequests/user-a"), requestData("user-a", "user-a@example.invalid"));
+    await setDoc(doc(db, "accessRequests/user-b"), requestData("user-b", "user-b@example.invalid"));
+  });
+  const snapshot = await assertSucceeds(getDocs(collection(adminUser(), "accessRequests")));
+  assert.equal(snapshot.size, 2);
+});
