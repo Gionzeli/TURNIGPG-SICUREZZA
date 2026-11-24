@@ -33,6 +33,7 @@ Ogni caso deve asserire sia l'esito atteso (allow/deny) sia che nessun documento
 | FR-09 | utente A verificato | update richiesta modificando solo campi ammessi e lasciando status pending | allow | modifica richiesta legittima |
 | FR-10 | utente A verificato | update richiesta tentando di cambiare UID/email | deny | alterazione identità |
 | FR-11 | utente A verificato | delete propria richiesta | allow secondo regola attuale | cancellazione richiesta |
+| FR-25 | utente A verificato | update `createdAt` della propria richiesta mantenendo `status: pending` | allow secondo regola attuale | integrità temporale della richiesta |
 | FR-12a | utente A non verificato | read `accessRequests/A` | deny | `isOwner()` richiede email verificata |
 | FR-12b | utente A non verificato ma autenticato, con email token coerente | create `accessRequests/A` con tutti i campi ammessi e status pending | **allow secondo le regole attuali** | `create` controlla solo `request.auth != null`, non `email_verified` |
 | FR-13 | utente A verificato | read/write `privateData/A` | deny | area privata disabilitata |
@@ -50,6 +51,7 @@ Ogni caso deve asserire sia l'esito atteso (allow/deny) sia che nessun documento
 - L'attuale `isAdmin()` confronta l'email verificata con un indirizzo hardcoded. I test emulator devono dimostrare che un utente ordinario non ottiene privilegi alterando campi del proprio documento o della richiesta.
 - **Gap rilevato:** `accessRequests.create` verifica `request.auth != null` ma non `request.auth.token.email_verified == true`. Un utente autenticato con email non verificata può creare una richiesta se UID, email e campi ammessi coincidono. FR-12b documenta il comportamento attuale; una futura modifica dovrà richiedere `signedIn()` e avere una prova che passa da allow a deny.
 - La regola owner su `accessRequests` consente aggiornamenti limitati, inclusa la possibilità di mantenere/impostare `status: "pending"`; non deve essere interpretata come approvazione o membership.
+- **Gap d'integrità:** `createdAt` è tra i campi modificabili dal proprietario. FR-25 documenta che un owner può riscrivere il timestamp mantenendo lo stato `pending`; non è una prova temporale attendibile e non va usato per audit o ordinamento autorevole.
 - La membership `members/{uid}` è scrivibile solo dall'admin secondo le regole attuali. Un documento `accessRequests` non deve mai essere sufficiente per creare un contesto DSM.
 - Il test dell'email amministratore hardcoded non risolve il rischio operativo di gestione dell'identità admin. La migrazione a custom claims o autorità server richiede una decisione separata, bootstrap, revoca e test; non modificarla in questa attività.
 
@@ -91,7 +93,7 @@ Aggiornato il 24 novembre 2026:
 - le regole testate sono copiate dalla root del commit nella directory del progetto emulator prima dell'avvio;
 - **37 test Firestore superati, 0 falliti** sul commit `a570bde875a725343cbd02834085537540888520`, run [45456336449](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336449), run [45455543014](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45455543014);
 - **test browser IndexedDB superati** sul commit `a570bde875a725343cbd02834085537540888520`, run [45456336316](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336316);
-- copertura dinamica attuale: FR-01, FR-04, FR-05, FR-08, FR-09, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c, FR-21, FR-22a–22e e FR-23a–23h e FR-24a–24b;
+- copertura dinamica attuale: FR-01, FR-04, FR-05, FR-08, FR-09, FR-12a, FR-12b, FR-13, FR-14, FR-15, FR-16, FR-19/19a/19b, FR-20a/20b/20c, FR-21, FR-22a–22e e FR-23a–23h, FR-24a–24b e FR-25;
 - i casi non presenti nella suite non sono dichiarati superati;
 - nessun adapter Firebase DSM implementato; nessun account o dato reale usato.
 
@@ -103,3 +105,10 @@ La suite verifica le regole correnti, non certifica l'intero modello di sicurezz
 Sul commit `a570bde875a725343cbd02834085537540888520` entrambe le pipeline sono completate con esito positivo:
 - Firestore Emulator: [run 45456336449](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336449); log esplicito `# tests 37`, `# pass 37`, `# fail 0`.
 - Browser IndexedDB / Playwright: [run 45456336316](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456336316), job completato con successo.
+
+
+### Verifica CI sul commit `cf093db3d3d27e9ad5ca85e7baebc69b98ed0512`
+
+Entrambe le pipeline sono completate con esito positivo sul medesimo SHA:
+- Firestore Emulator: [run 45456600293](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456600293).
+- Browser IndexedDB / Playwright: [run 45456600298](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45456600298).
