@@ -33,7 +33,8 @@ Ogni caso deve asserire sia l'esito atteso (allow/deny) sia che nessun documento
 | FR-09 | utente A verificato | update richiesta modificando solo campi ammessi e lasciando status pending | allow | modifica richiesta legittima |
 | FR-10 | utente A verificato | update richiesta tentando di cambiare UID/email | deny | alterazione identità |
 | FR-11 | utente A verificato | delete propria richiesta | allow secondo regola attuale | cancellazione richiesta |
-| FR-12a | utente A non verificato | read `accessRequests/A` | deny | `isOwner()` richiede email verificata |\n| FR-12b | utente A non verificato ma autenticato, con email token coerente | create `accessRequests/A` con tutti i campi ammessi e status pending | **allow secondo le regole attuali** | `create` controlla solo `request.auth != null`, non `email_verified` |
+| FR-12a | utente A non verificato | read `accessRequests/A` | deny | `isOwner()` richiede email verificata |
+| FR-12b | utente A non verificato ma autenticato, con email token coerente | create `accessRequests/A` con tutti i campi ammessi e status pending | **allow secondo le regole attuali** | `create` controlla solo `request.auth != null`, non `email_verified` |
 | FR-13 | utente A verificato | read/write `privateData/A` | deny | area privata disabilitata |
 | FR-14 | utente A verificato | update notifica cambiando campi diversi da `read` | deny | modifica contenuto notifica |
 | FR-15 | utente A verificato | update notifica con `read: true` booleano | allow | sola marcatura lettura |
@@ -47,7 +48,8 @@ Ogni caso deve asserire sia l'esito atteso (allow/deny) sia che nessun documento
 ### Verifiche di policy da non confondere con le regole
 
 - L'attuale `isAdmin()` confronta l'email verificata con un indirizzo hardcoded. I test emulator devono dimostrare che un utente ordinario non ottiene privilegi alterando campi del proprio documento o della richiesta.
-- **Gap rilevato:** `accessRequests.create` verifica `request.auth != null` ma non `request.auth.token.email_verified == true`. Un utente autenticato con email non verificata può creare una richiesta se UID, email e campi ammessi coincidono. FR-12b documenta il comportamento attuale; una futura modifica dovrà richiedere `signedIn()` e avere una prova che passa da allow a deny.\n- La regola owner su `accessRequests` consente aggiornamenti limitati, inclusa la possibilità di mantenere/impostare `status: "pending"`; non deve essere interpretata come approvazione o membership.
+- **Gap rilevato:** `accessRequests.create` verifica `request.auth != null` ma non `request.auth.token.email_verified == true`. Un utente autenticato con email non verificata può creare una richiesta se UID, email e campi ammessi coincidono. FR-12b documenta il comportamento attuale; una futura modifica dovrà richiedere `signedIn()` e avere una prova che passa da allow a deny.
+- La regola owner su `accessRequests` consente aggiornamenti limitati, inclusa la possibilità di mantenere/impostare `status: "pending"`; non deve essere interpretata come approvazione o membership.
 - La membership `members/{uid}` è scrivibile solo dall'admin secondo le regole attuali. Un documento `accessRequests` non deve mai essere sufficiente per creare un contesto DSM.
 - Il test dell'email amministratore hardcoded non risolve il rischio operativo di gestione dell'identità admin. La migrazione a custom claims o autorità server richiede una decisione separata, bootstrap, revoca e test; non modificarla in questa attività.
 
@@ -94,3 +96,11 @@ Aggiornato il 24 novembre 2026:
 - nessun adapter Firebase DSM implementato; nessun account o dato reale usato.
 
 La suite verifica le regole correnti, non certifica l'intero modello di sicurezza. FR-12b continua a documentare un gap effettivo: la creazione di una richiesta da parte di un utente autenticato ma non verificato è consentita dalle regole correnti.
+
+
+### Verifica CI sul commit documentale corrente
+
+Sul commit `1f87a34eb3c8bfafd2895423c51f0eb2ac10880d` entrambe le pipeline sono state completate con esito positivo:
+- Firestore Emulator: [run 45455804054](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45455804054), job completato con successo.
+- Browser IndexedDB / Playwright: [run 45455804147](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45455804147), job completato con successo.
+- Il test file emulator contiene 33 casi; il conteggio esplicito 33/33 è stato riportato nella run precedente sul commit `1574c51`. La run sul commit `1f87a34` conferma il successo del job, senza attribuire un nuovo conteggio non letto dai log.
