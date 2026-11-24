@@ -2,9 +2,12 @@ import { chromium } from "playwright";
 import assert from "node:assert/strict";
 import { buildHistoryCsv } from "../../src/ui/history-csv-export.js";
 import { runFirebaseAuthAdapterTests } from "./firebase-auth-adapter.test.js";
+import { runFirebaseLifecycleTests } from "./firebase-lifecycle.test.js";
 
 const firebaseAdapterTestCount = await runFirebaseAuthAdapterTests();
 console.log(`PASS — ${firebaseAdapterTestCount} test adapter Firebase sintetici`);
+const firebaseLifecycleTestCount = await runFirebaseLifecycleTests();
+console.log(`PASS — ${firebaseLifecycleTestCount} test lifecycle Firebase sintetici`);
 
 const csvSafetyCases = [
   ["=1+1", "\"'=1+1\""],
