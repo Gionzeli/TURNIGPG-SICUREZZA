@@ -71,3 +71,15 @@ Make account changes/logout a UI and operation lifecycle boundary. Il coordinato
 
 ## Security note
 This coordinator only protects application lifecycle correctness. Client-side account contexts are not authentication, and generation tokens do not protect against same-origin malicious scripts. IndexedDB is currently unencrypted; do not use operational or sensitive data.
+
+## Nota di verifica — transazioni readonly dei repository
+
+Revisione del 24 novembre 2026 sul branch `dsm-enterprise/core-v1`:
+
+- `BaseRepository.create()`, `update()` e `delete()` registrano le rispettive transazioni tramite `_trackTransaction()`; il cleanup tenta `abortTransaction()` e la Promise dell'operazione si risolve con errore se la transazione viene abortita.
+- `BaseRepository.getById()` e `getAll()` creano transazioni `readonly` ma non chiamano `_trackTransaction()`. Attendono la conclusione IndexedDB e poi chiamano `_assertLifecycleCurrent()`; se la generazione è cambiata, il risultato viene rifiutato al chiamante.
+- Di conseguenza, il contratto attualmente verificato per le letture è **invalidazione/scarto del risultato obsoleto**, non abort della transazione readonly durante il cleanup.
+- AUTH-005 avvia letture pendenti e verifica che vengano rifiutate dopo la transizione. Non osserva direttamente l'evento `abort` delle transazioni readonly e non va descritto come prova di tale abort.
+
+Un eventuale miglioramento futuro può registrare anche le transazioni readonly come disposable. Prima di adottarlo, i test sintetici dovranno verificare separatamente: abort effettivo quando la lettura è ancora attiva; gestione senza errore quando la transazione è già completata; rifiuto del risultato se la generazione cambia; nessun risultato o dato dell'account A consegnato dopo l'attivazione di B. Questa revisione è documentale: non modifica il runtime né amplia l'autorizzazione a intervenire su Firebase, UI operativa o entrypoint.
+
