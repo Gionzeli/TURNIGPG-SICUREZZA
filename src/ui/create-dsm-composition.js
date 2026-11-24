@@ -37,8 +37,8 @@ export function createDSMComposition({ db, accountId, mount, closeDatabase } = {
         let active = true;
         const dispose = async () => {
           if (!active) return;
-          active = false;
           await cleanup();
+          active = false;
         };
         session.lifecycle.registerDisposable(dispose);
         return dispose;
