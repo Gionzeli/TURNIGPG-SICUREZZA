@@ -250,11 +250,17 @@ async function run() {
     const pendingUpdate = boundProfiles.update(
       createdProfileId, { displayName: "scrittura-stale" }, { expectedRevision: 1 }
     );
+    // Attach rejection handling immediately: lifecycle teardown intentionally aborts
+    // this transaction before the test reaches the assertion below.
+    const pendingUpdateOutcome = pendingUpdate.then(
+      value => ({ value }), error => ({ error })
+    );
     const switching = await lifecycle.beginTransition("switch");
-    let readByIdRejected = false, listRejected = false, updateRejected = false;
+    let readByIdRejected = false, listRejected = false;
     try { await pendingById; } catch { readByIdRejected = true; }
     try { await pendingList; } catch { listRejected = true; }
-    try { await pendingUpdate; } catch { updateRejected = true; }
+    const updateOutcome = await pendingUpdateOutcome;
+    const updateRejected = Boolean(updateOutcome.error);
     assert(readByIdRejected && listRejected,
       "Una lettura avviata prima della revoca ha restituito un risultato stale.");
     assert(updateRejected, "Una scrittura pendente non è stata interrotta durante il cambio account.");
@@ -264,9 +270,13 @@ async function run() {
     const returnToA = await lifecycle.beginTransition("switch");
     lifecycle.activateLocal(returnToA, "browser-test-account-A");
     const pendingDelete = boundProfiles.delete(createdProfileId, { expectedRevision: 1 });
+    // Observe the expected abort rejection before starting asynchronous teardown.
+    const pendingDeleteOutcome = pendingDelete.then(
+      value => ({ value }), error => ({ error })
+    );
     const logoutTransition = await lifecycle.beginTransition("logout");
-    let deleteRejected = false;
-    try { await pendingDelete; } catch { deleteRejected = true; }
+    const deleteOutcome = await pendingDeleteOutcome;
+    const deleteRejected = Boolean(deleteOutcome.error);
     assert(deleteRejected, "Una cancellazione pendente non è stata interrotta durante la revoca.");
     lifecycle.clear(logoutTransition);
     const reactivateA = await lifecycle.beginTransition("initialize");
