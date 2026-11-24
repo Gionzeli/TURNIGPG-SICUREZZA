@@ -240,8 +240,21 @@ async function run() {
     const lifecycle = createAccountLifecycleCoordinator({ accountContext: context });
     const initial = await lifecycle.beginTransition("initialize");
     lifecycle.activateLocal(initial, "browser-test-account-A");
+    let readonlyAbortCount = 0;
+    let readonlyCompleteCount = 0;
+    const observedDb = {
+      objectStoreNames: db.objectStoreNames,
+      transaction(...args) {
+        const transaction = db.transaction(...args);
+        if (args[1] === "readonly") {
+          transaction.addEventListener("abort", () => { readonlyAbortCount += 1; });
+          transaction.addEventListener("complete", () => { readonlyCompleteCount += 1; });
+        }
+        return transaction;
+      }
+    };
     const boundProfiles = new ProfileRepository({
-      db, accountContext: context, lifecycleCoordinator: lifecycle
+      db: observedDb, accountContext: context, lifecycleCoordinator: lifecycle
     });
     assert((await boundProfiles.getById(createdProfileId))?.accountId === "browser-test-account-A",
       "Il repository lifecycle non legge l'account attivo.");
@@ -255,19 +268,30 @@ async function run() {
     const pendingUpdateOutcome = pendingUpdate.then(
       value => ({ value }), error => ({ error })
     );
+    const completedBeforeSwitch = readonlyCompleteCount;
     const switching = await lifecycle.beginTransition("switch");
     let readByIdRejected = false, listRejected = false;
     try { await pendingById; } catch { readByIdRejected = true; }
     try { await pendingList; } catch { listRejected = true; }
     const updateOutcome = await pendingUpdateOutcome;
     const updateRejected = Boolean(updateOutcome.error);
+    assert(readonlyAbortCount === 2,
+      "Il teardown non ha abortito entrambe le transazioni readonly pendenti.");
+    assert(readonlyCompleteCount === completedBeforeSwitch,
+      "Una lettura readonly pendente è stata completata invece di essere abortita.");
     assert(readByIdRejected && listRejected,
       "Una lettura avviata prima della revoca ha restituito un risultato stale.");
     assert(updateRejected, "Una scrittura pendente non è stata interrotta durante il cambio account.");
     lifecycle.activateLocal(switching, "browser-test-account-B");
     assert(await boundProfiles.getById(createdProfileId) === null,
       "Il repository collegato ha esposto ad account B il record di A.");
+    const completedBeforeReturn = readonlyCompleteCount;
+    const abortsBeforeReturn = readonlyAbortCount;
     const returnToA = await lifecycle.beginTransition("switch");
+    assert(readonlyAbortCount === abortsBeforeReturn,
+      "Il cleanup ha tentato di abortire una lettura readonly già completata.");
+    assert(readonlyCompleteCount === completedBeforeReturn,
+      "Il conteggio delle letture readonly completate è cambiato durante il cleanup.");
     lifecycle.activateLocal(returnToA, "browser-test-account-A");
     const pendingDelete = boundProfiles.delete(createdProfileId, { expectedRevision: 1 });
     // Observe the expected abort rejection before starting asynchronous teardown.
