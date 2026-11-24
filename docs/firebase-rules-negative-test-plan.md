@@ -100,6 +100,17 @@ Aggiornato il 24 novembre 2026:
 La suite verifica le regole correnti, non certifica l'intero modello di sicurezza. FR-12b continua a documentare un gap effettivo: la creazione di una richiesta da parte di un utente autenticato ma non verificato è consentita dalle regole correnti. FR-25 dimostra inoltre che il proprietario può riscrivere `createdAt` mantenendo lo stato `pending`; tale campo non è quindi una prova temporale attendibile.
 
 
+### Ultima verifica congiunta delle pipeline
+
+Sul commit `3d4cc2158064f4e3d588799779b3c08ace8f216b` entrambe le pipeline sono completate con esito positivo:
+- Browser IndexedDB / Playwright: [run 45466631470](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45466631470), job `indexeddb-browser-tests` completato.
+- Firestore Rules Emulator: [run 45466632153](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45466632153), job `firestore-rules-emulator` completato.
+
+Il log della run Firebase sul commit precedente `b804cd2` documenta esplicitamente 38 test, 38 pass, 0 fail e 0 skipped. Per la run `45466632153` è stato verificato l'esito positivo di tutti gli step del job; non viene attribuito un conteggio numerico non estratto dal relativo log.
+
+Il branch è poi avanzato con commit documentali successivi (`e53ab6e`, `3d4cc21`, `38cb5f9`). Queste esecuzioni non vanno presentate come run sullo SHA HEAD `38cb5f9`; i cambiamenti successivi alle pipeline sono documentali e non modificano il codice testato.
+
+
 ### Verifica CI sul commit `a570bde`
 
 Sul commit `a570bde875a725343cbd02834085537540888520` entrambe le pipeline sono completate con esito positivo:
