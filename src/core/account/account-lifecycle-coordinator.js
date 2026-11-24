@@ -81,6 +81,17 @@ export function createAccountLifecycleCoordinator({ accountContext } = {}) {
       return active;
     },
 
+    activateFirebase(token, principal) {
+      if (state !== "switching" || !token || token !== transitionToken || !cleanupComplete) {
+        throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Token transizione non valido.");
+      }
+      const active = accountContext.activateFirebase(principal);
+      state = "active";
+      transitionToken = null;
+      publish({ type: "context-active", reason: "firebase-activate" });
+      return active;
+    },
+
     async retryCleanup(token) {
       if (state !== "switching" || !token || token !== transitionToken) {
         throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Token transizione non valido.");
