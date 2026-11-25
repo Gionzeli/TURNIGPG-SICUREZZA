@@ -137,3 +137,76 @@ test("composes canonical resolution with scope authorization", async () => {
     loaders
   }), error => error.code === "permission-denied");
 });
+
+
+test("denies absent or mismatched canonical account before descendant lookups", async () => {
+  calls.length = 0;
+  const missingAccount = {
+    ...loaders,
+    async loadAccount(accountId) {
+      calls.push(["account", accountId]);
+      return null;
+    }
+  };
+  await assert.rejects(resolveCanonicalResourceContext({
+    principal,
+    selector: { type: "site", accountId: "acct1", siteId: "siteA" },
+    loaders: missingAccount
+  }), error => error.code === "permission-denied");
+  assert.deepEqual(calls, [["account", "acct1"]]);
+
+  calls.length = 0;
+  const mismatchedAccount = {
+    ...loaders,
+    async loadAccount(accountId) {
+      calls.push(["account", accountId]);
+      return { accountId: "acct-other" };
+    }
+  };
+  await assert.rejects(resolveCanonicalResourceContext({
+    principal,
+    selector: { type: "department", accountId: "acct1", siteId: "siteA", departmentId: "deptA" },
+    loaders: mismatchedAccount
+  }), error => error.code === "permission-denied");
+  assert.deepEqual(calls, [["account", "acct1"]]);
+});
+
+test("denies malformed canonical site and department records", async () => {
+  const malformedSite = {
+    ...loaders,
+    async loadSite() { return ["not-a-canonical-record"]; }
+  };
+  await assert.rejects(resolveCanonicalResourceContext({
+    principal,
+    selector: { type: "site", accountId: "acct1", siteId: "siteA" },
+    loaders: malformedSite
+  }), error => error.code === "permission-denied");
+
+  for (const record of [
+    null,
+    { accountId: "acct1", siteId: "siteA" },
+    { accountId: "acct1", siteId: "siteA", departmentId: "dept-other" },
+    { accountId: "acct-other", siteId: "siteA", departmentId: "deptA" },
+    { accountId: "acct1", siteId: "site-other", departmentId: "deptA" }
+  ]) {
+    const malformedDepartment = {
+      ...loaders,
+      async loadDepartment() { return record; }
+    };
+    await assert.rejects(resolveCanonicalResourceContext({
+      principal,
+      selector: { type: "department", accountId: "acct1", siteId: "siteA", departmentId: "deptA" },
+      loaders: malformedDepartment
+    }), error => error.code === "permission-denied");
+  }
+});
+
+test("rejects malformed principal identity before invoking any loader", async () => {
+  calls.length = 0;
+  await assert.rejects(resolveCanonicalResourceContext({
+    principal: { ...principal, accountId: "../acct1" },
+    selector: { type: "account", accountId: "acct1" },
+    loaders
+  }), error => error.code === "permission-denied");
+  assert.deepEqual(calls, []);
+});
