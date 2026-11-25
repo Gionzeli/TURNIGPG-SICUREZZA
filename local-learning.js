@@ -129,6 +129,7 @@ export function createLocalLearning(options = {}) {
   const activeTransactions = new Set();
   let channel = null;
   let syncChannelAvailable = false;
+  let cancelOpening = null;
   try {
     if (typeof globalThis.BroadcastChannel === "function") {
       channel = new BroadcastChannel("ocr-learning-sync:" + databaseName);
@@ -180,6 +181,11 @@ export function createLocalLearning(options = {}) {
     activeTransactions.clear();
     if (database) database.close();
     database = null;
+    if (cancelOpening) {
+      const cancel = cancelOpening;
+      cancelOpening = null;
+      cancel(new Error("Archivio apprendimento chiuso durante l'inizializzazione"));
+    }
     try { channel?.close(); } catch { /* canale già chiuso */ }
     channel = null;
     syncChannelAvailable = false;
@@ -208,17 +214,30 @@ export function createLocalLearning(options = {}) {
 
   const ready = new Promise((resolve, reject) => {
     let settled = false;
+    cancelOpening = error => {
+      if (settled) return;
+      settled = true;
+      reject(error);
+    };
     if (!globalThis.indexedDB) {
       reject(new Error("IndexedDB non disponibile: apprendimento locale disattivato"));
       return;
     }
     // Usa la versione esistente del database: non tentare downgrade dopo un upgrade.
     const opening = indexedDB.open(databaseName);
+    let upgradeError = null;
     opening.onupgradeneeded = () => {
-      const db = opening.result;
-      if (!db.objectStoreNames.contains(STORE)) {
-        const store = db.createObjectStore(STORE, { keyPath: "id" });
-        store.createIndex("kind", "kind", { unique: false });
+      try {
+        const db = opening.result;
+        const store = db.objectStoreNames.contains(STORE)
+          ? opening.transaction.objectStore(STORE)
+          : db.createObjectStore(STORE, { keyPath: "id" });
+        if (!store.indexNames.contains("kind")) {
+          store.createIndex("kind", "kind", { unique: false });
+        }
+      } catch (error) {
+        upgradeError = error;
+        try { opening.transaction?.abort(); } catch { /* upgrade già annullato */ }
       }
     };
     opening.onsuccess = async () => {
@@ -247,8 +266,10 @@ export function createLocalLearning(options = {}) {
         }
         records = rows.filter(isValidStoredRule).slice(0, MAX_RULES);
         settled = true;
+        cancelOpening = null;
         resolve();
       } catch (error) {
+        cancelOpening = null;
         invalidateStorage();
         settled = true;
         reject(error);
@@ -257,11 +278,13 @@ export function createLocalLearning(options = {}) {
     opening.onerror = () => {
       if (settled) return;
       settled = true;
-      reject(opening.error || new Error("Archivio apprendimento non apribile"));
+      cancelOpening = null;
+      reject(upgradeError || opening.error || new Error("Archivio apprendimento non apribile"));
     };
     opening.onblocked = () => {
       if (settled) return;
       settled = true;
+      cancelOpening = null;
       reject(new Error("Archivio apprendimento bloccato da un'altra scheda"));
     };
   });
