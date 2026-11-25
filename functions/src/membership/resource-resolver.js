@@ -17,7 +17,8 @@ async function loadCanonical(loader, args) {
   } catch {
     deny();
   }
-}\nfunction validRecord(record) {
+}
+function validRecord(record) {
   return Boolean(record && typeof record === "object" && !Array.isArray(record));
 }
 
