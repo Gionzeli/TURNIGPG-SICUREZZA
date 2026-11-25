@@ -6,6 +6,7 @@ import { createAdminNomination, approveAdminNomination, cancelAdminNomination } 
 import { revokeMembership } from "../src/membership/revocation-service.js";
 
 const enabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
+const verifiedAdminIdentity = (uid, nowMs = Date.now()) => ({ uid, emailVerified: true, authTime: Math.floor(nowMs / 1000), secondFactor: "totp" });
 
 test("Firestore Emulator: nomination approval, cancellation and membership revocation", { skip: !enabled }, async () => {
   const app = initializeApp({ projectId: "demo-dsm-membership" }, "membership-integration");
@@ -32,12 +33,12 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     ]);
 
     await createAdminNomination({
-      db, accountId, actorUid: "adminA", nominationId: "approve-1",
+      db, accountId, actorUid: "adminA", actorIdentity: verifiedAdminIdentity("adminA", 100), nominationId: "approve-1",
       targetUid: "manager1", role: "manager", scopeType: "site",
-      scopeIds: ["site1"], expiresAt: 10_000, now: () => 100
+      scopeIds: ["site1"], now: () => 100
     });
     await approveAdminNomination({
-      db, accountId, actorUid: "adminB", nominationId: "approve-1", now: () => 200
+      db, accountId, actorUid: "adminB", actorIdentity: verifiedAdminIdentity("adminB", 200), nominationId: "approve-1", now: () => 200
     });
     const approved = await nominations.doc("approve-1").get();
     const manager = await members.doc("manager1").get();
@@ -46,12 +47,12 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     assert.equal(manager.data().approvedBy, "adminB");
 
     await createAdminNomination({
-      db, accountId, actorUid: "adminA", nominationId: "cancel-1",
+      db, accountId, actorUid: "adminA", actorIdentity: verifiedAdminIdentity("adminA", 300), nominationId: "cancel-1",
       targetUid: "member2", role: "member", scopeType: "department",
-      scopeIds: ["dept1"], expiresAt: 10_000, now: () => 300
+      scopeIds: ["dept1"], now: () => 300
     });
     await cancelAdminNomination({
-      db, accountId, actorUid: "adminA", nominationId: "cancel-1",
+      db, accountId, actorUid: "adminA", actorIdentity: verifiedAdminIdentity("adminA", 400), nominationId: "cancel-1",
       eventId: "audit-cancel-1", reason: "Synthetic integration cancellation",
       now: () => 400
     });
@@ -83,7 +84,7 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     );
     await assert.rejects(
       createAdminNomination({
-        db, accountId, actorUid: "memberActor", nominationId: "member-nomination",
+        db, accountId, actorUid: "memberActor", actorIdentity: verifiedAdminIdentity("memberActor"), nominationId: "member-nomination",
         targetUid: "member3", role: "member", scopeType: "department",
         scopeIds: ["dept1"], expiresAt: Date.now() + 60_000
       }),
@@ -92,13 +93,13 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
 
     // Only the original proposer may cancel, even when another admin is active.
     await createAdminNomination({
-      db, accountId, actorUid: "adminA", nominationId: "cancel-denied",
+      db, accountId, actorUid: "adminA", actorIdentity: verifiedAdminIdentity("adminA"), nominationId: "cancel-denied",
       targetUid: "member4", role: "member", scopeType: "department",
       scopeIds: ["dept1"], expiresAt: Date.now() + 60_000
     });
     await assert.rejects(
       cancelAdminNomination({
-        db, accountId, actorUid: "adminB", nominationId: "cancel-denied",
+        db, accountId, actorUid: "adminB", actorIdentity: verifiedAdminIdentity("adminB"), nominationId: "cancel-denied",
         eventId: "audit-cancel-denied", reason: "Synthetic negative test"
       }),
       error => error.code === "permission-denied"
@@ -132,7 +133,7 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     });
     await assert.rejects(
       approveAdminNomination({
-        db, accountId, actorUid: "adminB", nominationId: "malformed-nomination"
+        db, accountId, actorUid: "adminB", actorIdentity: verifiedAdminIdentity("adminB"), nominationId: "malformed-nomination"
       }),
       error => error.code === "failed-precondition"
     );
@@ -141,14 +142,14 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
 
     // Duplicate audit selectors reject cancellation and revocation without writes.
     await createAdminNomination({
-      db, accountId, actorUid: "adminB", nominationId: "duplicate-audit-nomination",
+      db, accountId, actorUid: "adminB", actorIdentity: verifiedAdminIdentity("adminB"), nominationId: "duplicate-audit-nomination",
       targetUid: "member6", role: "member", scopeType: "department",
       scopeIds: ["dept1"], expiresAt: Date.now() + 60_000
     });
     await audit.doc("audit-duplicate-cancel").set({ type: "pre-existing synthetic event" });
     await assert.rejects(
       cancelAdminNomination({
-        db, accountId, actorUid: "adminB",
+        db, accountId, actorUid: "adminB", actorIdentity: verifiedAdminIdentity("adminB"),
         nominationId: "duplicate-audit-nomination",
         eventId: "audit-duplicate-cancel", reason: "Synthetic duplicate event"
       }),
