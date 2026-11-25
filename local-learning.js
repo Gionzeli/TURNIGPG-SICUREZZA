@@ -396,9 +396,17 @@ export function createLocalLearning(options = {}) {
     assertOpen();
     const activeDatabase = database;
     const generation = storageGeneration;
-    const tx = activeDatabase.transaction(STORE, "readwrite");
-    const done = trackTransaction(tx);
-    tx.objectStore(STORE).delete(String(id));
+    let done;
+    try {
+      const tx = activeDatabase.transaction(STORE, "readwrite");
+      done = trackTransaction(tx);
+      tx.objectStore(STORE).delete(String(id));
+    } catch (error) {
+      // Anche un errore sincrono nell'apertura/preparazione della transazione
+      // rende non affidabile lo stato locale: chiudi in modo fail-closed.
+      invalidateStorage();
+      throw error;
+    }
     await waitForWrite(done);
     assertCurrentStorage(activeDatabase, generation);
     records = records.filter(rule => rule.id !== id);
@@ -410,9 +418,16 @@ export function createLocalLearning(options = {}) {
     assertOpen();
     const activeDatabase = database;
     const generation = storageGeneration;
-    const tx = activeDatabase.transaction(STORE, "readwrite");
-    const done = trackTransaction(tx);
-    tx.objectStore(STORE).clear();
+    let done;
+    try {
+      const tx = activeDatabase.transaction(STORE, "readwrite");
+      done = trackTransaction(tx);
+      tx.objectStore(STORE).clear();
+    } catch (error) {
+      // Non lasciare attiva una cache che potrebbe divergere dal database.
+      invalidateStorage();
+      throw error;
+    }
     await waitForWrite(done);
     assertCurrentStorage(activeDatabase, generation);
     records = [];
