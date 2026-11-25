@@ -3,11 +3,14 @@ import assert from "node:assert/strict";
 import { buildHistoryCsv } from "../../src/ui/history-csv-export.js";
 import { runFirebaseAuthAdapterTests } from "./firebase-auth-adapter.test.js";
 import { runFirebaseLifecycleTests } from "./firebase-lifecycle.test.js";
+import { runFirebaseAuthRenewalTests } from "./firebase-auth-renewal.test.js";
 
 const firebaseAdapterTestCount = await runFirebaseAuthAdapterTests();
 console.log(`PASS — ${firebaseAdapterTestCount} test adapter Firebase sintetici`);
 const firebaseLifecycleTestCount = await runFirebaseLifecycleTests();
 console.log(`PASS — ${firebaseLifecycleTestCount} test lifecycle Firebase sintetici`);
+const firebaseRenewalTestCount = await runFirebaseAuthRenewalTests();
+console.log(`PASS — ${firebaseRenewalTestCount} test rinnovo Firebase sintetici`);
 
 const csvSafetyCases = [
   ["=1+1", "\"'=1+1\""],
