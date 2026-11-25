@@ -208,7 +208,11 @@ export class BaseRepository {
         if (lifecycleCapture && !this.lifecycleCoordinator.isCurrent(lifecycleCapture)) {
           throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Operazione invalidata dal cambio account.");
         }
-        updated = { ...current, updatedAt: this.clock(), revision: current.revision + 1, data: { ...nextData } };
+        const updatedAt = this.clock();
+        if (lifecycleCapture && !this.lifecycleCoordinator.isCurrent(lifecycleCapture)) {
+          throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Operazione invalidata dal cambio account.");
+        }
+        updated = { ...current, updatedAt, revision: current.revision + 1, data: { ...nextData } };
         store.put(updated);
         if (historyStore) historyStore.add(createHistoryRecord({
           accountId, entityType, entityId: id, action: "update",

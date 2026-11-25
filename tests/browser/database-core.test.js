@@ -164,6 +164,106 @@ async function run() {
     await lifecycle.dispose();
   });
 
+  await test("AUTH-007 — scadenza durante la preparazione del timestamp blocca record e storico", async () => {
+    const expiringContext = createAccountContext();
+    const lifecycle = createAccountLifecycleCoordinator({ accountContext: expiringContext });
+    const expiresAt = Date.now() + 30;
+    const token = await lifecycle.beginTransition("initialize");
+    lifecycle.activateFirebase(token, Object.freeze({
+      uid: "synthetic-expiring-clock-user",
+      accountId: "synthetic-expiring-clock-account",
+      role: "member",
+      permissions: Object.freeze(["profiles:write"]),
+      expiresAt,
+      identityProvider: "firebase",
+      authorizationSource: "server"
+    }));
+
+    const current = {
+      id: "synthetic-expiring-clock-profile",
+      accountId: "synthetic-expiring-clock-account",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      revision: 1,
+      schemaVersion: 1,
+      data: { displayName: "prima" }
+    };
+    let aborted = false;
+    let abortCount = 0;
+    let recordWrites = 0;
+    let historyWrites = 0;
+    let transformCalls = 0;
+    const transaction = {
+      error: new DOMException("Synthetic transaction aborted", "AbortError"),
+      objectStore(name) {
+        if (name === "profiles") {
+          return {
+            index(indexName) {
+              assert(indexName === "accountId_id", "Indice account-scoped inatteso.");
+              return {
+                get(key) {
+                  assert(key[0] === current.accountId && key[1] === current.id,
+                    "La lettura non ha usato la chiave account-scoped.");
+                  const request = { result: current };
+                  setTimeout(() => {
+                    if (!aborted) request.onsuccess?.();
+                  }, 0);
+                  return request;
+                }
+              };
+            },
+            put() {
+              recordWrites += 1;
+              setTimeout(() => { if (!aborted) transaction.oncomplete?.(); }, 0);
+            }
+          };
+        }
+        if (name === "history") return { add() { historyWrites += 1; } };
+        throw new Error("Object store inatteso: " + name);
+      },
+      abort() {
+        if (aborted) return;
+        aborted = true;
+        abortCount += 1;
+        this.onabort?.();
+      }
+    };
+    const fakeDb = {
+      objectStoreNames: { contains: () => true },
+      transaction(storeNames, mode) {
+        assert(mode === "readwrite", "La transazione non è readwrite.");
+        assert(storeNames.includes("profiles") && storeNames.includes("history"),
+          "La transazione non include record e storico.");
+        return transaction;
+      }
+    };
+    const repository = new ProfileRepository({
+      db: fakeDb,
+      accountContext: expiringContext,
+      lifecycleCoordinator: lifecycle,
+      clock: () => {
+        while (Date.now() < expiresAt) { /* Attende intenzionalmente la scadenza sintetica. */ }
+        return new Date().toISOString();
+      }
+    });
+
+    let caught;
+    try {
+      await repository.updateWithCurrent(current.id, record => {
+        transformCalls += 1;
+        return { ...record.data, displayName: "dopo" };
+      });
+    } catch (error) { caught = error; }
+
+    assert(caught?.code === DB_ERROR_CODES.ACCESS_DENIED,
+      "L'update non è stato rifiutato dopo la scadenza durante il timestamp.");
+    assert(transformCalls === 1, "La trasformazione sincrona non è stata eseguita una sola volta.");
+    assert(abortCount === 1 && aborted, "La transazione non è stata abortita dopo il timestamp.");
+    assert(recordWrites === 0, "Il record è stato scritto dopo la scadenza.");
+    assert(historyWrites === 0, "Lo storico è stato scritto dopo la scadenza.");
+    await lifecycle.dispose();
+  });
+
   await test("AUTH-005 — teardown include disposable registrati durante una pulizia asincrona", async () => {
     const lifecycleContext = createAccountContext();
     const lifecycle = createAccountLifecycleCoordinator({ accountContext: lifecycleContext });
