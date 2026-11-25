@@ -42,7 +42,7 @@
     ["Paga base", "1.450,00"],
     ["Scatti di anzianità", "48,50"],
     ["Superminimo", "125,00"],
-    ["Straordinario", "72,00"],
+    ["Compenso straordinario", "72,00"],
     ["Indennità notturna", "18,00"],
     ["Piantonamento", "32,00"],
     ["Maggiorazione domenicale", "24,00"],
@@ -120,7 +120,7 @@
       status.textContent = failed === 0 ? "PASS — OCR Paddle e parser hanno riconosciuto tutti i campi della fixture." :
         "PARZIALE — " + passed + "/" + results.length + " campi corretti; verificare il dettaglio.";
       const seconds = ((performance.now() - started) / 1000).toFixed(1);
-      metrics.textContent = "Tempo totale: " + seconds + " s · Motore: PaddleOCR PP-OCRv6 · Backend WASM";
+      metrics.textContent = "Tempo totale: " + seconds + " s · Motore richiesto: PaddleOCR PP-OCRv6 · Configurazione richiesta: WASM";
     } catch (error) {
       status.textContent = "FAIL — prova non completata.";
       parsedView.textContent = String(error?.stack || error?.message || error);
