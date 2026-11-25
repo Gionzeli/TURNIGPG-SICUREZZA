@@ -72,6 +72,98 @@ async function run() {
     assert(blocked, "capture() ha consentito una lettura senza account attivo.");
   });
 
+  await test("AUTH-006 — principal Firebase scaduto durante una lettura transazionale abortisce l'update", async () => {
+    const expiringContext = createAccountContext();
+    const lifecycle = createAccountLifecycleCoordinator({ accountContext: expiringContext });
+    const token = await lifecycle.beginTransition("initialize");
+    lifecycle.activateFirebase(token, Object.freeze({
+      uid: "synthetic-expiring-user",
+      accountId: "synthetic-expiring-account",
+      role: "member",
+      permissions: Object.freeze(["profiles:write"]),
+      expiresAt: Date.now() + 25,
+      identityProvider: "firebase",
+      authorizationSource: "server"
+    }));
+
+    const current = {
+      id: "synthetic-expiring-profile",
+      accountId: "synthetic-expiring-account",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      revision: 1,
+      schemaVersion: 1,
+      data: { displayName: "prima" }
+    };
+    let aborted = false;
+    let abortCount = 0;
+    let recordWrites = 0;
+    let historyWrites = 0;
+    let transformCalls = 0;
+    const transaction = {
+      error: new DOMException("Synthetic transaction aborted", "AbortError"),
+      objectStore(name) {
+        if (name === "profiles") {
+          return {
+            index(indexName) {
+              assert(indexName === "accountId_id", "Indice account-scoped inatteso.");
+              return {
+                get(key) {
+                  assert(key[0] === current.accountId && key[1] === current.id,
+                    "La lettura non ha usato la chiave account-scoped.");
+                  const request = { result: current };
+                  setTimeout(() => {
+                    if (!aborted) request.onsuccess?.();
+                  }, 60);
+                  return request;
+                }
+              };
+            },
+            put() { recordWrites += 1; }
+          };
+        }
+        if (name === "history") return { add() { historyWrites += 1; } };
+        throw new Error(`Object store inatteso: ${name}`);
+      },
+      abort() {
+        if (aborted) return;
+        aborted = true;
+        abortCount += 1;
+        this.onabort?.();
+      }
+    };
+    const fakeDb = {
+      objectStoreNames: { contains: () => true },
+      transaction(storeNames, mode) {
+        assert(mode === "readwrite", "La transazione non è readwrite.");
+        assert(storeNames.includes("profiles") && storeNames.includes("history"),
+          "La transazione non include record e storico.");
+        return transaction;
+      }
+    };
+    const repository = new ProfileRepository({
+      db: fakeDb,
+      accountContext: expiringContext,
+      lifecycleCoordinator: lifecycle
+    });
+
+    let caught;
+    try {
+      await repository.updateWithCurrent(current.id, record => {
+        transformCalls += 1;
+        return { ...record.data, displayName: "dopo" };
+      });
+    } catch (error) { caught = error; }
+
+    assert(caught?.code === DB_ERROR_CODES.ACCESS_DENIED,
+      "L'update non è stato rifiutato dopo la scadenza del principal.");
+    assert(abortCount === 1 && aborted, "La transazione non è stata abortita.");
+    assert(transformCalls === 0, "La trasformazione è stata eseguita dopo la scadenza.");
+    assert(recordWrites === 0, "Il record è stato scritto dopo la scadenza.");
+    assert(historyWrites === 0, "Lo storico è stato scritto dopo la scadenza.");
+    await lifecycle.dispose();
+  });
+
   await test("AUTH-005 — teardown include disposable registrati durante una pulizia asincrona", async () => {
     const lifecycleContext = createAccountContext();
     const lifecycle = createAccountLifecycleCoordinator({ accountContext: lifecycleContext });
