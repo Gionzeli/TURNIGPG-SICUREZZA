@@ -21,7 +21,10 @@ Platform: Firebase Cloud Functions v2, Node.js 20, Firebase Admin SDK.
 - Approval and target membership activation occur in one Firestore transaction.
 - Target active membership already present is rejected; no implicit role replacement.
 - Nomination IDs are caller selectors and must be unique.
-- No admin bootstrap or nomination cancellation is implemented.
+- Only the original proposing admin, while still an active canonical admin, may cancel their pending nomination.
+- Cancellation requires a trimmed 1–500 character reason; do not put personal or sensitive data in the reason.
+- Cancellation status and its audit event are written in one Firestore transaction; audit event IDs are caller-supplied unique selectors.
+- No admin bootstrap is implemented.
 
 ## Membership revocation prototype
 - Only a canonical active account admin can revoke a canonical active membership.
