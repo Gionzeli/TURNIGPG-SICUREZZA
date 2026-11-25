@@ -258,6 +258,39 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     }
     await Promise.all([clear(raceApprovalRevocationMembers), clear(raceApprovalRevocationNominations), clear(db.collection(`accounts/${raceApprovalRevocationAccountId}/membershipAudit`))]);
 
+    // A nomination cannot be approved after its proposer has been revoked.
+    const revokedProposerAccountId = "revoked-proposer-account";
+    const revokedProposerMembers = db.collection(`accounts/${revokedProposerAccountId}/members`);
+    const revokedProposerNominations = db.collection(`accounts/${revokedProposerAccountId}/adminNominations`);
+    await Promise.all([
+      revokedProposerMembers.doc("revokedProposer").set({ uid: "revokedProposer", accountId: revokedProposerAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] }),
+      revokedProposerMembers.doc("revokedProposerApprover").set({ uid: "revokedProposerApprover", accountId: revokedProposerAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] }),
+      revokedProposerMembers.doc("revokedProposerRevoker").set({ uid: "revokedProposerRevoker", accountId: revokedProposerAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] })
+    ]);
+    await createAdminNomination({
+      db, accountId: revokedProposerAccountId, actorUid: "revokedProposer",
+      actorIdentity: verifiedAdminIdentity("revokedProposer", 1400), nominationId: "revoked-proposer-nomination",
+      targetUid: "revokedProposerTarget", role: "member", scopeType: "department", scopeIds: ["dept1"], now: () => 1400
+    });
+    await revokeMembership({
+      db, accountId: revokedProposerAccountId, actorUid: "revokedProposerRevoker",
+      targetUid: "revokedProposer", eventId: "revoked-proposer-event", now: () => 1450
+    });
+    await assert.rejects(
+      approveAdminNomination({
+        db, accountId: revokedProposerAccountId, actorUid: "revokedProposerApprover",
+        actorIdentity: verifiedAdminIdentity("revokedProposerApprover", 1500),
+        nominationId: "revoked-proposer-nomination", now: () => 1500
+      }),
+      error => error.code === "failed-precondition"
+    );
+    assert.equal((await revokedProposerNominations.doc("revoked-proposer-nomination").get()).data().status, "pending");
+    assert.equal((await revokedProposerMembers.doc("revokedProposerTarget").get()).exists, false);
+    await Promise.all([
+      clear(revokedProposerMembers), clear(revokedProposerNominations),
+      clear(db.collection(`accounts/${revokedProposerAccountId}/membershipAudit`))
+    ]);
+
     // Concurrent mutual admin revocations must not leave the account without an admin.
     const raceAccountId = "race-account";
     const raceMembers = db.collection(`accounts/${raceAccountId}/members`);

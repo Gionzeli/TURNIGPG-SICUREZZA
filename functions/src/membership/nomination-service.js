@@ -86,9 +86,19 @@ export async function approveAdminNomination({ db, accountId, actorUid, actorIde
         nomination.expiresAt <= approvedAt) {
       fail("failed-precondition", "Nomination has expired or has an invalid expiry.");
     }
+    if (!validId(nomination.nominatedBy)) fail("failed-precondition", "Nomination proposer is invalid.");
     if (nomination.nominatedBy === actorUid) fail("permission-denied", "A different admin must approve.");
+    const proposerRef = db.doc(`accounts/${accountId}/members/${nomination.nominatedBy}`);
     const targetRef = db.doc(`accounts/${accountId}/members/${nomination.targetUid}`);
-    const targetSnap = await tx.get(targetRef);
+    const [proposerSnap, targetSnap] = await Promise.all([tx.get(proposerRef), tx.get(targetRef)]);
+    const proposer = validateCanonicalMembership(
+      proposerSnap.exists ? proposerSnap.data() : null,
+      nomination.nominatedBy,
+      accountId
+    );
+    if (!proposer || proposer.role !== "admin") {
+      fail("failed-precondition", "Proposing admin is no longer active.");
+    }
     if (targetSnap.exists && targetSnap.data()?.status === "active") fail("already-exists", "Target already has active membership.");
     const membership = { uid: nomination.targetUid, accountId, status: "active", role: nomination.role, scopeType: nomination.scopeType, scopeIds: [...nomination.scopeIds], grantedBy: nomination.nominatedBy, approvedBy: actorUid, activatedAt: approvedAt };
     if (!validateCanonicalMembership(membership, nomination.targetUid, accountId)) fail("failed-precondition", "Proposed membership violates role/scope policy.");

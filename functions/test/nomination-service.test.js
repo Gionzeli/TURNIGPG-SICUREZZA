@@ -47,6 +47,37 @@ test("approval requires different active admin and atomically activates membersh
   assert.equal(store.get("accounts/ac1/members/newUser").status,"active");
   assert.equal(store.get("accounts/ac1/adminNominations/n1").status,"approved");
 });
+test("approval rejects nomination when proposer is missing, revoked, or no longer an admin", async () => {
+  const nowMs = 2_000;
+  const nominationId = "inactive-proposer";
+  const nomination = {
+    ...baseNom, accountId: "ac1", nominationId, status: "pending",
+    nominatedBy: "adminA", createdAt: 1_000, expiresAt: 1_000 + 24 * 60 * 60 * 1000
+  };
+  for (const proposerMembership of [
+    undefined,
+    { ...admin("adminA"), status: "revoked" },
+    { ...admin("adminA"), role: "manager", scopeType: "site", scopeIds: ["siteA"] }
+  ]) {
+    const seed = {
+      "accounts/ac1/members/adminB": admin("adminB"),
+      [`accounts/ac1/adminNominations/${nominationId}`]: nomination
+    };
+    if (proposerMembership) seed["accounts/ac1/members/adminA"] = proposerMembership;
+    const { db, store } = fakeDb(seed);
+    await assert.rejects(
+      approveAdminNomination({
+        db, accountId: "ac1", actorUid: "adminB",
+        actorIdentity: stepUp("adminB", nowMs), nominationId, now: () => nowMs
+      }),
+      error => error.code === "failed-precondition" &&
+        error.message === "Proposing admin is no longer active."
+    );
+    assert.equal(store.has("accounts/ac1/members/newUser"), false);
+    assert.equal(store.get(`accounts/ac1/adminNominations/${nominationId}`).status, "pending");
+  }
+});
+
 test("approval rejects malformed or stale nomination and does not write membership",async()=>{
   const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/adminB":admin("adminB"),"accounts/ac1/adminNominations/n2":{...baseNom,accountId:"ac1",nominationId:"n2",status:"cancelled",nominatedBy:"adminA"}});
   await assert.rejects(approveAdminNomination({db,accountId:"ac1",actorUid:"adminB",actorIdentity:stepUp("adminB"),nominationId:"n2"}),e=>e.code==="failed-precondition");
