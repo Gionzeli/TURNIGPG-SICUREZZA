@@ -136,13 +136,13 @@ try {
 
   await run("parser attestati distingue corso, ente, data, scadenza e ore", async () => {
     const training = window.LocalDocAI.parseTraining([
-      "Attestato di formazione",
+      "Documento rilasciato",
       "Corso: Aggiornamento sicurezza",
-      "Ente formatore: Centro Formazione",
+      "Ente: Centro Formazione",
       "Data svolgimento: 12/05/2026",
       "Valido fino al: 12/05/2028",
       "Durata: 8 ore"
-    ].join("\\n"));
+    ].join("\n"));
     assert.equal(training.title, "Corso Aggiornamento sicurezza");
     assert.equal(training.provider, "Centro Formazione");
     assert.equal(training.date, "2026-05-12");
