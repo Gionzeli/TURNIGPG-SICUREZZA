@@ -176,11 +176,12 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     const raceApprovalMembers = db.collection(`accounts/${raceApprovalAccountId}/members`);
     const raceApprovalNominations = db.collection(`accounts/${raceApprovalAccountId}/adminNominations`);
     await Promise.all([
+      raceApprovalMembers.doc("raceApprovalProposer").set({ uid: "raceApprovalProposer", accountId: raceApprovalAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] }),
       raceApprovalMembers.doc("raceApprovalAdminA").set({ uid: "raceApprovalAdminA", accountId: raceApprovalAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] }),
       raceApprovalMembers.doc("raceApprovalAdminB").set({ uid: "raceApprovalAdminB", accountId: raceApprovalAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] })
     ]);
     await createAdminNomination({
-      db, accountId: raceApprovalAccountId, actorUid: "raceApprovalAdminA", actorIdentity: verifiedAdminIdentity("raceApprovalAdminA", 800), nominationId: "race-approval",
+      db, accountId: raceApprovalAccountId, actorUid: "raceApprovalProposer", actorIdentity: verifiedAdminIdentity("raceApprovalProposer", 800), nominationId: "race-approval",
       targetUid: "raceTarget", role: "member", scopeType: "department",
       scopeIds: ["dept1"], now: () => 800
     });
@@ -193,6 +194,38 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     assert.equal((await raceApprovalMembers.doc("raceTarget").get()).data().status, "active");
     assert.equal((await raceApprovalNominations.doc("race-approval").get()).data().status, "approved");
     await Promise.all([clear(raceApprovalMembers), clear(raceApprovalNominations)]);
+
+    // Cancellation and approval racing on one nomination: exactly one transition wins.
+    const raceCancelAccountId = "race-cancel-account";
+    const raceCancelMembers = db.collection("accounts/" + raceCancelAccountId + "/members");
+    const raceCancelNominations = db.collection("accounts/" + raceCancelAccountId + "/adminNominations");
+    const raceCancelAudit = db.collection("accounts/" + raceCancelAccountId + "/membershipAudit");
+    await Promise.all([
+      raceCancelMembers.doc("raceCancelProposer").set({ uid: "raceCancelProposer", accountId: raceCancelAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] }),
+      raceCancelMembers.doc("raceCancelApprover").set({ uid: "raceCancelApprover", accountId: raceCancelAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] })
+    ]);
+    await createAdminNomination({
+      db, accountId: raceCancelAccountId, actorUid: "raceCancelProposer", actorIdentity: verifiedAdminIdentity("raceCancelProposer", 1000), nominationId: "race-cancel-approval",
+      targetUid: "raceCancelTarget", role: "member", scopeType: "department", scopeIds: ["dept1"], now: () => 1000
+    });
+    const cancelApprovalRace = await Promise.allSettled([
+      cancelAdminNomination({ db, accountId: raceCancelAccountId, actorUid: "raceCancelProposer", actorIdentity: verifiedAdminIdentity("raceCancelProposer", 1100), nominationId: "race-cancel-approval", eventId: "race-cancel-event", reason: "Synthetic concurrent cancellation", now: () => 1100 }),
+      approveAdminNomination({ db, accountId: raceCancelAccountId, actorUid: "raceCancelApprover", actorIdentity: verifiedAdminIdentity("raceCancelApprover", 1100), nominationId: "race-cancel-approval", now: () => 1100 })
+    ]);
+    assert.equal(cancelApprovalRace.filter(result => result.status === "fulfilled").length, 1);
+    assert.equal(cancelApprovalRace.filter(result => result.status === "rejected").length, 1);
+    const finalRaceNomination = (await raceCancelNominations.doc("race-cancel-approval").get()).data();
+    assert.ok(["cancelled", "approved"].includes(finalRaceNomination.status));
+    const raceCancelTarget = await raceCancelMembers.doc("raceCancelTarget").get();
+    const raceCancelEvent = await raceCancelAudit.doc("race-cancel-event").get();
+    if (finalRaceNomination.status === "cancelled") {
+      assert.equal(raceCancelTarget.exists, false);
+      assert.equal(raceCancelEvent.exists, true);
+    } else {
+      assert.equal(raceCancelTarget.data().status, "active");
+      assert.equal(raceCancelEvent.exists, false);
+    }
+    await Promise.all([clear(raceCancelMembers), clear(raceCancelNominations), clear(raceCancelAudit)]);
 
     // Concurrent mutual admin revocations must not leave the account without an admin.
     const raceAccountId = "race-account";
