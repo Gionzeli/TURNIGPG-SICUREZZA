@@ -249,4 +249,28 @@ test("denies malformed canonical site records before department lookup", async (
     ]);
   }
 });
-\n\ntest("normalizes canonical loader failures to permission-denied and stops resolution", async () => {\n  const cases = [\n    ["account", { async loadAccount() { throw new Error("storage unavailable"); } }],\n    ["site", { async loadSite() { throw new Error("storage unavailable"); } }],\n    ["department", { async loadDepartment() { throw new Error("storage unavailable"); } }]\n  ];\n  for (const [failedLoader, override] of cases) {\n    const seen = [];\n    const faultLoaders = {\n      async loadAccount(id) { seen.push("account"); return records.account; },\n      async loadSite(a, s) { seen.push("site"); return records.site; },\n      async loadDepartment(a, s, d) { seen.push("department"); return records.department; },\n      ...override\n    };\n    const selector = failedLoader === "account"\n      ? { type: "account", accountId: "acct1" }\n      : failedLoader === "site"\n        ? { type: "site", accountId: "acct1", siteId: "siteA" }\n        : { type: "department", accountId: "acct1", siteId: "siteA", departmentId: "deptA" };\n    await assert.rejects(resolveCanonicalResourceContext({ principal, selector, loaders: faultLoaders }),\n      error => error.code === "permission-denied");\n  }\n});\n
+
+
+test("normalizes canonical loader failures to permission-denied and stops resolution", async () => {
+  const cases = [
+    ["account", { async loadAccount() { throw new Error("storage unavailable"); } }],
+    ["site", { async loadSite() { throw new Error("storage unavailable"); } }],
+    ["department", { async loadDepartment() { throw new Error("storage unavailable"); } }]
+  ];
+  for (const [failedLoader, override] of cases) {
+    const seen = [];
+    const faultLoaders = {
+      async loadAccount(id) { seen.push("account"); return records.account; },
+      async loadSite(a, s) { seen.push("site"); return records.site; },
+      async loadDepartment(a, s, d) { seen.push("department"); return records.department; },
+      ...override
+    };
+    const selector = failedLoader === "account"
+      ? { type: "account", accountId: "acct1" }
+      : failedLoader === "site"
+        ? { type: "site", accountId: "acct1", siteId: "siteA" }
+        : { type: "department", accountId: "acct1", siteId: "siteA", departmentId: "deptA" };
+    await assert.rejects(resolveCanonicalResourceContext({ principal, selector, loaders: faultLoaders }),
+      error => error.code === "permission-denied");
+  }
+});
