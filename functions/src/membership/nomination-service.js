@@ -63,6 +63,7 @@ export async function approveAdminNomination({ db, accountId, actorUid, nominati
       fail("failed-precondition", "Nomination fields are invalid.");
     }
     const approvedAt = now();
+    if (!Number.isSafeInteger(approvedAt)) fail("failed-precondition", "Trusted clock returned an invalid approval timestamp.");
     if (!Number.isSafeInteger(nomination.expiresAt) || nomination.expiresAt <= approvedAt) {
       fail("failed-precondition", "Nomination has expired or has an invalid expiry.");
     }
