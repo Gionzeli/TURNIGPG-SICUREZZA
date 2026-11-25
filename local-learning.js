@@ -138,11 +138,21 @@ export function createLocalLearning(options = {}) {
       await done;
       records = rows.filter(isValidStoredRule).slice(0, MAX_RULES);
     } catch (error) {
-      // Un errore di sincronizzazione non interrompe la lettura del documento.
+      // Fail closed: non usare alias potenzialmente revocati se IndexedDB non è leggibile.
+      records = [];
+      applyEnabled = false;
     }
   }
+  function invalidateStorage() {
+    records = [];
+    applyEnabled = false;
+    closed = true;
+    if (database) database.close();
+    database = null;
+    channel?.close();
+  }
   if (channel) channel.onmessage = event => {
-    if (event?.data?.type === "refresh") refreshFromDatabase();
+    if (event?.data?.type === "refresh" && !closed) refreshFromDatabase();
   };
   function announceChange() {
     try { channel?.postMessage({ type: "refresh" }); } catch { /* canale non disponibile */ }
@@ -163,11 +173,8 @@ export function createLocalLearning(options = {}) {
     };
     opening.onsuccess = async () => {
       database = opening.result;
-      database.onversionchange = () => {
-        database.close();
-        database = null;
-        closed = true;
-      };
+      database.onversionchange = () => invalidateStorage();
+      database.onclose = () => invalidateStorage();
       try {
         const tx = database.transaction(STORE, "readonly");
         const done = transactionDone(tx);
@@ -331,10 +338,7 @@ export function createLocalLearning(options = {}) {
     get applyEnabled() { return applyEnabled; },
     get available() { return !!database && !closed; },
     close() {
-      if (database) database.close();
-      database = null;
-      closed = true;
-      channel?.close();
+      invalidateStorage();
     },
     async destroy() {
       if (database) database.close();

@@ -116,6 +116,27 @@ try {
     await reopened.destroy();
   });
 
+  await run("disattiva la cache e l'applicazione alias quando IndexedDB viene chiuso per cambio versione", async () => {
+    const lifecycleName = "ocr-learning-lifecycle-" + crypto.randomUUID();
+    const lifecycle = createLocalLearning({ databaseName: lifecycleName });
+    await lifecycle.ready;
+    await lifecycle.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
+    assert.equal(lifecycle.list().length, 1);
+    const upgrade = indexedDB.open(lifecycleName, 2);
+    await new Promise((resolve, reject) => {
+      upgrade.onsuccess = () => resolve();
+      upgrade.onerror = () => reject(upgrade.error);
+    });
+    const deadline = Date.now() + 2000;
+    while (lifecycle.available && Date.now() < deadline) await new Promise(resolve => setTimeout(resolve, 10));
+    assert.equal(lifecycle.available, false);
+    assert.equal(lifecycle.list().length, 0);
+    assert.equal(lifecycle.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale | 1.450,00");
+    await assert.rejects(() => lifecycle.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" }));
+    upgrade.result.close();
+    await lifecycle.destroy();
+  });
+
   await run("il parser cedolino applica solo alias espliciti e mantiene il valore numerico", async () => {
     assert.equal(window.LocalDocAI.learning.available(), true);
     const direct = window.LocalDocAI.parsePayslip("paga base | 1.450,00", [["paga_base", "Paga base"]], {});
