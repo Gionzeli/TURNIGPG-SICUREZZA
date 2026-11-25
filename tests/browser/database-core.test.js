@@ -694,6 +694,7 @@ async function run() {
       try { updated = await service.update(record.id, patch, { expectedRevision: 1 }); }
       finally { repository.getById = originalGet; }
       assert(updated?.revision === 2, "Il servizio non ha aggiornato tramite transazione unica.");
+      await service.delete(record.id, { expectedRevision: updated.revision });
     }
   });
 
