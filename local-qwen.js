@@ -74,7 +74,9 @@ export function createLocalQwen(options = {}) {
     if (!loading) {
       loading = (async () => {
         onProgress?.("Caricamento motore AI locale…");
-        const { pipeline, env } = await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0");
+        const { pipeline, env } = options.pipelineLoader
+          ? await options.pipelineLoader()
+          : await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0");
         env.allowRemoteModels = true;
         env.allowLocalModels = false;
         env.useBrowserCache = true;
