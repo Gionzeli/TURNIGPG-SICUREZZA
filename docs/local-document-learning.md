@@ -26,6 +26,8 @@ Qwen viene scaricato da Hugging Face tramite Transformers.js e viene eseguito ne
 
 Questa architettura evita l'upload applicativo dei documenti e l'inferenza remota, ma non rende invulnerabile un dispositivo compromesso o un browser con estensioni malevole. Chi controlla il dispositivo o una sessione browser già sbloccata può potenzialmente leggere ciò che è visualizzato o presente in memoria. Usare un profilo browser personale, blocco dispositivo e cifratura del disco. I dati applicativi già presenti in localStorage non vengono cifrati da questa funzionalità.
 
+**Limite della catena di fornitura:** il lettore carica librerie OCR e il motore Transformers.js da CDN; il codice JavaScript scaricato viene eseguito nel contesto della pagina e, come ogni codice con quei privilegi, potrebbe tecnicamente accedere al testo OCR in memoria o alla pagina. Il flusso applicativo non invia intenzionalmente i documenti a un servizio remoto, ma questa scelta non equivale a una garanzia crittografica che il codice di terze parti non possa farlo. Per documenti ad alta riservatezza, non abilitare Qwen e usare una distribuzione con dipendenze verificate e servite da infrastruttura controllata, insieme a una Content Security Policy restrittiva. Anche il caricamento iniziale delle librerie OCR esterne va incluso nella valutazione.
+
 ## Test
 
 La fixture `tests/browser/local-learning.html` verifica con dati sintetici:
