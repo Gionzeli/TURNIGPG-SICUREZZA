@@ -63,3 +63,47 @@ export async function approveAdminNomination({ db, accountId, actorUid, nominati
     return Object.freeze({ status: "approved", targetUid: nomination.targetUid, role: nomination.role, approvedBy: actor.uid });
   });
 }
+
+/**
+ * Cancels a pending nomination. Policy: only its original proposer, while still
+ * an active canonical account admin, may cancel. Cancellation and audit append
+ * are committed in one Firestore transaction. The free-text reason must not
+ * contain personal, account, or other sensitive data.
+ */
+export async function cancelAdminNomination({ db, accountId, actorUid, nominationId, eventId, reason, now = () => Date.now() }) {
+  if (!validId(accountId) || !validId(actorUid) || !validId(nominationId) || !validId(eventId)) {
+    fail("invalid-argument", "Invalid cancellation selector.");
+  }
+  if (typeof reason !== "string" || reason.trim().length < 1 || reason.trim().length > 500) {
+    fail("invalid-argument", "Cancellation reason must be 1–500 characters.");
+  }
+  const cleanReason = reason.trim();
+  const nominationRef = db.doc(`accounts/${accountId}/adminNominations/${nominationId}`);
+  const actorRef = db.doc(`accounts/${accountId}/members/${actorUid}`);
+  const auditRef = db.doc(`accounts/${accountId}/membershipAudit/${eventId}`);
+  return db.runTransaction(async tx => {
+    const [actorSnap, nominationSnap, auditSnap] = await Promise.all([
+      tx.get(actorRef), tx.get(nominationRef), tx.get(auditRef)
+    ]);
+    requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId);
+    if (!nominationSnap.exists) fail("not-found", "Nomination not found.");
+    const nomination = nominationSnap.data();
+    if (nomination.status !== "pending") fail("failed-precondition", "Nomination is not pending.");
+    if (nomination.accountId !== accountId || nomination.nominationId !== nominationId || !validRequest(nomination)) {
+      fail("failed-precondition", "Nomination fields are invalid.");
+    }
+    if (nomination.nominatedBy !== actorUid) fail("permission-denied", "Only the proposing admin may cancel this nomination.");
+    if (auditSnap.exists) fail("already-exists", "Audit event ID already used.");
+    const timestamp = now();
+    const audit = {
+      eventId, type: "admin_nomination_cancelled", accountId, nominationId,
+      actorUid, reason: cleanReason, occurredAt: timestamp
+    };
+    tx.update(nominationRef, {
+      status: "cancelled", cancelledBy: actorUid, cancelledAt: timestamp,
+      cancellationReason: cleanReason, cancellationEventId: eventId
+    });
+    tx.create(auditRef, audit);
+    return Object.freeze({ status: "cancelled", nominationId, cancelledBy: actorUid, cancelledAt: timestamp, eventId });
+  });
+}
