@@ -86,7 +86,7 @@ try {
     if (typeof BroadcastChannel !== "function") {
       await second.destroy();
       await first.destroy();
-      return;
+      throw new Error("BroadcastChannel non supportato: test di sincronizzazione non eseguibile");
     }
     const waitFor = async expected => {
       const deadline = Date.now() + 2000;
