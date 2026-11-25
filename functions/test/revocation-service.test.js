@@ -8,7 +8,7 @@ function fakeDb(seed={}) {
   const store=new Map(Object.entries(seed));
   const db={
     doc(path){return {path};},
-    collection(path){return {where(...args){return {path,filters:[...(this.filters||[]),args]};},filters:[]};},
+    collection(path){const query={path,filters:[],where(field,op,value){return {...this,filters:[...this.filters,[field,op,value]]};}};return query;},
     async runTransaction(fn){
       const writes=[];
       const tx={
