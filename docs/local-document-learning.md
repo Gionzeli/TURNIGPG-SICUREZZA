@@ -51,3 +51,10 @@ La fixture `tests/browser/local-learning.html` verifica con dati sintetici:
 - disattivazione e cancellazione delle regole;
 - integrazione sintetica con i parser cedolino e turni e presenza della UI di apprendimento;
 - verifica che Transformers.js riceva la revisione Hugging Face fissata.
+
+
+## Prova manuale OCR Paddle sui cedolini
+
+La pagina `tests/browser/ocr-smoke.html` genera una fixture grafica sintetica nel canvas e la passa al percorso reale `LocalDocAI.ocrPayslipImages` (PaddleOCR PP-OCRv6), quindi a `parsePayslip`. Non richiede upload o selezione di file e confronta dieci campi con valori noti. Avviare il server statico dalla radice del repository e aprire `http://localhost:8000/tests/browser/ocr-smoke.html`.
+
+Il risultato è specifico del browser, della rete e dell'hardware usati. La pagina mostra il testo OCR, i valori estratti, il confronto campo per campo e il tempo totale. Un esito parziale va trattato come errore di accuratezza, non corretto automaticamente con Qwen. La pagina carica SDK e modello PaddleOCR da CDN: usare esclusivamente la fixture sintetica e considerare il rischio di supply chain descritto sopra. Questa prova manuale non sostituisce un corpus di validazione rappresentativo né costituisce una garanzia di precisione su cedolini reali.
