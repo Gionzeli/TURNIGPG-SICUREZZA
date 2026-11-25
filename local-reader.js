@@ -183,7 +183,7 @@ function labeledValue(lines,aliases,requireCents=false,detail=null){
  const rows=lines.map(x=>norm(String(x||"").replace(/^\s*(?:PAGINA|PAG\.)\s*\d+\s*:?\s*/i,"").replace(/^\s*RIGA\s*\d+\s*:?\s*/i,"").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ")));
  const valueOf=s=>{const m=String(s||"").match(number);if(!m)return null;const n=italianNumber(m[0]);return n!==null&&n>0?n:null};
  for(const alias of keys){
-  const safeAlias=alias.replace(/[.*+?^${}()|[\]]/g,"\\$&").replace(/\\/g,"\\\\");const label=new RegExp("(^|[^a-z])"+safeAlias.split(/\s+/).join("\s+")+"(?=$|[^a-z])","i");
+  const safeAlias=alias.replace(/[.*+?^${}()|[\]]/g,"\\$&").replace(/\\/g,"\\\\");const label=new RegExp("(^|[^a-z])"+safeAlias.split(/\s+/).join("\\s+")+"(?=$|[^a-z])","i");
   for(let i=0;i<rows.length;i++){
    const hit=label.exec(rows[i]);if(!hit)continue;
    // Quando più etichette precedono tutti gli importi nella stessa riga,
