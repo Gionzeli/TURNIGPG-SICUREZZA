@@ -11,7 +11,7 @@ Definire come una futura integrazione DSM possa ricevere un'identità autenticat
 
 - L'evento turni-firebase-session prodotto dall'interfaccia UI è un segnale UI e non costituisce prova di autenticazione o autorizzazione.
 - UID, admin, member, request, email, date di validità o stato copiati da payload UI non devono essere accettati come credenziali.
-- Un futuro adapter deve ascoltare lo stato auth del Firebase SDK e gestire null/sign-out, errori, refresh e cambi identità.
+- L'adapter isolato attuale ascolta onAuthStateChanged: gestisce identità, sign-out e cambi utente, ma non osserva esplicitamente ogni refresh del token (onIdTokenChanged non è collegato). getPrincipal() forza il refresh del token quando viene invocato; non esiste un rinnovo periodico o push automatico della membership.
 - Autenticazione (identità) e autorizzazione (accesso DSM) sono distinte: email verificata da sola non conferisce accesso.
 - La membership/ruolo deve derivare da una fonte autorizzativa affidabile, con regole di backend e Firestore Security Rules verificate; campi client modificabili non sono autorità.
 - Non passare token, password, OTP, PIN, claim sensibili o dati personali in IndexedDB, audit, log o BroadcastChannel.
@@ -63,3 +63,14 @@ File esaminati: `firebase-client.js`, `firebase-ui-v3-13.js`, `firestore.rules`.
 - L'ispezione di `firebase-client.js`, `firebase-ui-v3-13.js` e `firestore.rules` descritta sopra è statica. Separatamente, Firebase Emulator Suite è stata eseguita in CI con esito success sul commit `1563262904f191a73ca60d71796820dae0bc5347` ([run 45465628237](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465628237)) e nuovamente sul commit `b804cd2d50b9642612191a6bf9cb2492bc484044` ([run 45465935709](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45465935709)); quest'ultima esecuzione riporta 38 test superati e 0 falliti. Non sono state eseguite prove con account Firebase reali. I test adapter e lifecycle DSM usano esclusivamente fixture sintetiche e non dimostrano l'integrazione operativa.
 
 Questi rilievi non modificano il codice Firebase operativo, le Firestore Rules o l'interfaccia legacy e non autorizzano un'integrazione operativa.
+
+
+## Limiti verificati: rinnovo, revoca e indisponibilità
+
+- Il callable resolveAuthorization verifica il Firebase ID token con checkRevoked=true e legge la membership canonica corrente dal percorso account lato server. Una membership revocata viene quindi rifiutata alla successiva chiamata al resolver.
+- La risposta del resolver scade dopo cinque minuti. Il lifecycle locale rifiuta capture() quando il principal è scaduto, ma non cancella automaticamente il contesto, non rinnova il principal e non pianifica una nuova richiesta.
+- Una revoca membership successiva all'attivazione non viene propagata in tempo reale al browser. Senza una nuova chiamata a getPrincipal()/resolveAuthorization, il contesto locale può restare attivo fino alla scadenza del principal.
+- Un errore di rete o del resolver impedisce una nuova attivazione/autorizzazione; non costituisce da solo un meccanismo di invalidazione immediata di un contesto già attivo. Alla scadenza, le catture del lifecycle falliscono chiuse.
+- Non sono implementati endpoint protetti per lettura/scrittura dei dati DSM: il backend dichiara protectedDataApisImplemented: false e authorizationImplemented: false. Di conseguenza, la risoluzione iniziale del principal non equivale a un controllo server su ogni operazione IndexedDB.
+- Non integrare onIdTokenChanged come semplice sostituto dell'observer corrente senza coordinare la session factory: ogni evento adapter invalida la sessione attiva e il refresh forzato durante getPrincipal() può generare un evento. Il rinnovo deve essere progettato e testato come transizione atomica, evitando sia sessioni stale sia logout involontari.
+- Questi limiti sono release blocker per qualsiasi uso con dati reali. Il percorso resta isolato e sintetico; non sono stati usati account Firebase reali.

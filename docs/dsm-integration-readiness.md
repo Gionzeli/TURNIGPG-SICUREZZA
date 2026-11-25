@@ -57,3 +57,12 @@ The two successful workflows above establish that the browser IndexedDB suite an
 - Il percorso usa un principal congelato derivato da autorizzazione server-side e test sintetici; `firebase-lifecycle.test.js` viene eseguito dalla suite browser CI. Non è integrato in `index.html` o nella UI Firebase legacy.
 - `session.dispose()` è una dismissione terminale, non un semplice unsubscribe: invalida il contesto, blocca ogni riattivazione e permette soltanto retry del cleanup incompleto. Non cancella i dati persistenti.
 - Queste capability non modificano Firebase operativo, Firestore Rules, dati reali, `main` o deployment.
+
+## Audit mirato — refresh e revoca Firebase (2026-11-25)
+
+- Il resolver server controlla la revoca del token e rilegge la membership canonica a ogni chiamata. Il controllo non è un push verso il browser.
+- L'adapter ascolta onAuthStateChanged, non onIdTokenChanged; forza un refresh solo quando getPrincipal() viene chiamato.
+- Il principal client ha una scadenza di cinque minuti. Il lifecycle blocca nuove catture dopo la scadenza, ma non rinnova o cancella automaticamente il contesto.
+- La revoca membership dopo l'attivazione è rilevata dal resolver alla successiva richiesta; non è garantita invalidazione immediata della sessione locale.
+- Non esistono ancora API protette per i dati DSM: health riporta protectedDataApisImplemented: false e authorizationImplemented: false. Nessuna operazione IndexedDB deve essere descritta come autorizzata dal server.
+- Refresh coordinato, revoca durante sessione attiva, outage/timeout e ripristino restano test/gate prima di integrazione. Non collegare un listener onIdTokenChanged senza gestire la transizione che il suo evento innesca.
