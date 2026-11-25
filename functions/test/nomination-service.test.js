@@ -96,9 +96,9 @@ test("approval rejects mismatched canonical selectors and expired nominations wi
   const seed={
     "accounts/ac1/members/adminA":admin("adminA"),
     "accounts/ac1/members/adminB":admin("adminB"),
-    "accounts/ac1/adminNominations/wrong-account":{...baseNom,accountId:"other",nominationId:"wrong-account",status:"pending",nominatedBy:"adminA",expiresAt:Date.now()+60_000},
-    "accounts/ac1/adminNominations/wrong-id":{...baseNom,accountId:"ac1",nominationId:"different-id",status:"pending",nominatedBy:"adminA",expiresAt:Date.now()+60_000},
-    "accounts/ac1/adminNominations/expired":{...baseNom,accountId:"ac1",nominationId:"expired",status:"pending",nominatedBy:"adminA",expiresAt:500}
+    "accounts/ac1/adminNominations/wrong-account":{...baseNom,accountId:"other",nominationId:"wrong-account",status:"pending",nominatedBy:"adminA",createdAt:1000,expiresAt:1000+24*60*60*1000},
+    "accounts/ac1/adminNominations/wrong-id":{...baseNom,accountId:"ac1",nominationId:"different-id",status:"pending",nominatedBy:"adminA",createdAt:1000,expiresAt:1000+24*60*60*1000},
+    "accounts/ac1/adminNominations/expired":{...baseNom,accountId:"ac1",nominationId:"expired",status:"pending",nominatedBy:"adminA",createdAt:100,expiresAt:500}
   };
   const {db,store}=fakeDb(seed);
   for (const nominationId of ["wrong-account","wrong-id","expired"]) {
@@ -182,4 +182,29 @@ test("unknown MFA factor and future auth_time are rejected", async () => {
     actorIdentity:{uid:"adminA",emailVerified:true,authTime:Math.floor(Date.now()/1000)+1,secondFactor:"totp"},
     nominationId:"future-auth",...baseNom
   }), error=>error.code==="permission-denied");
+});
+
+
+test("approval rejects nominations whose stored lifetime exceeds 24 hours", async () => {
+  const createdAt = 1_000;
+  const nominationId = "overlong-expiry";
+  const nomination = {
+    ...baseNom, accountId: "ac1", nominationId, status: "pending",
+    nominatedBy: "adminA", createdAt,
+    expiresAt: createdAt + 24 * 60 * 60 * 1000 + 1
+  };
+  const {db,store}=fakeDb({
+    "accounts/ac1/members/adminA": admin("adminA"),
+    "accounts/ac1/members/adminB": admin("adminB"),
+    [`accounts/ac1/adminNominations/${nominationId}`]: nomination
+  });
+  await assert.rejects(
+    approveAdminNomination({
+      db, accountId: "ac1", actorUid: "adminB",
+      actorIdentity: stepUp("adminB", 2_000), nominationId, now: () => 2_000
+    }),
+    error => error.code === "failed-precondition"
+  );
+  assert.equal(store.has("accounts/ac1/members/newUser"), false);
+  assert.deepEqual(store.get(`accounts/ac1/adminNominations/${nominationId}`), nomination);
 });

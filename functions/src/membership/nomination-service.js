@@ -73,7 +73,12 @@ export async function approveAdminNomination({ db, accountId, actorUid, actorIde
     if (nomination.accountId !== accountId || nomination.nominationId !== nominationId || !validRequest(nomination)) {
       fail("failed-precondition", "Nomination fields are invalid.");
     }
-    if (!Number.isSafeInteger(nomination.expiresAt) || nomination.expiresAt <= approvedAt) {
+    if (!Number.isSafeInteger(nomination.createdAt) ||
+        !Number.isSafeInteger(nomination.expiresAt) ||
+        nomination.createdAt > approvedAt ||
+        !Number.isSafeInteger(nomination.createdAt + MAX_NOMINATION_LIFETIME_MS) ||
+        nomination.expiresAt !== nomination.createdAt + MAX_NOMINATION_LIFETIME_MS ||
+        nomination.expiresAt <= approvedAt) {
       fail("failed-precondition", "Nomination has expired or has an invalid expiry.");
     }
     if (nomination.nominatedBy === actorUid) fail("permission-denied", "A different admin must approve.");
