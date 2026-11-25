@@ -52,6 +52,9 @@ export async function revokeMembership({ db, accountId, actorUid, targetUid, eve
     }
 
     const revokedAt = now();
+    if (!Number.isSafeInteger(revokedAt)) {
+      fail("failed-precondition", "Trusted clock returned an invalid revocation timestamp.");
+    }
     const auditEvent = Object.freeze({
       eventId, type: "membership.revoked", accountId, targetUid,
       targetRole: target.role, actorUid, occurredAt: revokedAt

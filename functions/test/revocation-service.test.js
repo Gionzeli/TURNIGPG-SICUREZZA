@@ -73,6 +73,19 @@ test("duplicate audit event ID is rejected",async()=>{
   await assert.rejects(revokeMembership(request({db})),e=>e.code==="already-exists");
   assert.equal(store.get("accounts/ac1/members/m1").status,"active");
 });
+test("invalid trusted clock rejects revocation without membership or audit writes", async () => {
+  const { db, store } = fakeDb({
+    "accounts/ac1/members/adminA": admin("adminA"),
+    "accounts/ac1/members/m1": member("m1")
+  });
+  await assert.rejects(
+    revokeMembership(request({ db, now: () => Number.NaN })),
+    error => error.code === "failed-precondition" &&
+      error.message === "Trusted clock returned an invalid revocation timestamp."
+  );
+  assert.equal(store.get("accounts/ac1/members/m1").status, "active");
+  assert.equal(store.has("accounts/ac1/membershipAudit/evt1"), false);
+});
 test("rejects malformed selector",async()=>{
   const {db}=fakeDb();
   await assert.rejects(revokeMembership(request({db,eventId:"bad/id"})),e=>e.code==="invalid-argument");
