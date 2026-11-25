@@ -74,7 +74,27 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
       throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Adapter Firebase non configurato.");
     }
     const revision = authRevision;
-    const principal = await firebaseAuthAdapter.getPrincipal();
+    let principal;
+    try {
+      principal = await firebaseAuthAdapter.getPrincipal();
+    } catch (error) {
+      // An explicit revalidation failure must never leave a previously active
+      // Firebase principal usable. Wait for any auth-event invalidation first
+      // to avoid racing two concurrent logout transitions.
+      await authChangeTask;
+      const active = accountContext.getActive();
+      if (lifecycle.getStatus().state === "active" && active?.identitySource === "firebase") {
+        try {
+          await logout();
+        } catch (cleanupError) {
+          throw new AggregateError(
+            [error, cleanupError],
+            "Verifica Firebase fallita; contesto invalidato ma pulizia incompleta."
+          );
+        }
+      }
+      throw error;
+    }
     assertSessionActive();
     if (!principal) {
       if (lifecycle.getStatus().state === "active") await logout();

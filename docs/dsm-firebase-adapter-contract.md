@@ -65,6 +65,12 @@ File esaminati: `firebase-client.js`, `firebase-ui-v3-13.js`, `firestore.rules`.
 Questi rilievi non modificano il codice Firebase operativo, le Firestore Rules o l'interfaccia legacy e non autorizzano un'integrazione operativa.
 
 
+## Invalidazione dopo una nuova verifica fallita
+
+Quando `session.activateFirebase()` viene invocata mentre è già attivo un principal Firebase, un errore della nuova risoluzione non deve lasciare utilizzabile il principal precedente. La session factory attende prima l'eventuale invalidazione già avviata da un evento Auth; se il contesto Firebase è ancora attivo, avvia il logout e completa la pulizia prima di propagare l'errore. Se la pulizia fallisce, il lifecycle resta in `switching`, il contesto rimane vuoto e `resumePendingTransition()` può riprendere soltanto il cleanup, senza riattivare il principal precedente.
+
+Questa garanzia vale per una chiamata esplicita a `activateFirebase()`: non è un rinnovo automatico, un timer, né una notifica push di revoca. Non estende il comportamento alle operazioni repository locali che non interrogano il backend.
+
 ## Limiti verificati: rinnovo, revoca e indisponibilità
 
 - Il callable resolveAuthorization verifica il Firebase ID token con checkRevoked=true e legge la membership canonica corrente dal percorso account lato server. Una membership revocata viene quindi rifiutata alla successiva chiamata al resolver.

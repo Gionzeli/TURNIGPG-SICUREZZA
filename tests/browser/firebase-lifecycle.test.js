@@ -25,15 +25,21 @@ function fakeDb() {
 function fakeAdapter(initialPrincipal = principal()) {
   let listener = null;
   let currentPrincipal = initialPrincipal;
+  let principalError = null;
   let principalCalls = 0;
   let unsubscribeCount = 0;
   return {
     adapter: {
-      async getPrincipal() { principalCalls += 1; return currentPrincipal; },
+      async getPrincipal() {
+        principalCalls += 1;
+        if (principalError) throw principalError;
+        return currentPrincipal;
+      },
       subscribe(callback) { listener = callback; return () => { unsubscribeCount += 1; listener = null; }; }
     },
     emit() { listener?.({ authenticated: Boolean(currentPrincipal) }); },
     setPrincipal(value) { currentPrincipal = value; },
+    setError(value) { principalError = value; },
     get principalCalls() { return principalCalls; },
     get unsubscribeCount() { return unsubscribeCount; }
   };
@@ -87,6 +93,40 @@ export async function runFirebaseLifecycleTests() {
     });
     assert.equal(await session.activateFirebase(), null);
     assert.equal(session.lifecycle.getStatus().state, "cleared");
+    await session.dispose();
+  });
+  await test("failed explicit revalidation clears an already active Firebase context", async () => {
+    const auth = fakeAdapter(principal());
+    const session = await createDSMCoreSession({ db: fakeDb(), firebaseAuthAdapter: auth.adapter });
+    await session.activateFirebase();
+    assert.equal(session.lifecycle.getStatus().state, "active");
+    assert.equal(session.accountContext.getActive()?.identitySource, "firebase");
+
+    auth.setError(new Error("synthetic resolver unavailable"));
+    await assert.rejects(session.activateFirebase(), /synthetic resolver unavailable/);
+
+    assert.equal(session.lifecycle.getStatus().state, "cleared");
+    assert.equal(session.accountContext.getActive(), null);
+    assert.throws(() => session.lifecycle.capture(), error => error?.code === "DB_ACCOUNT_REQUIRED");
+    await session.dispose();
+  });
+  await test("failed revalidation remains blocked when logout cleanup must be retried", async () => {
+    const auth = fakeAdapter(principal());
+    const session = await createDSMCoreSession({ db: fakeDb(), firebaseAuthAdapter: auth.adapter });
+    await session.activateFirebase();
+    let cleanupCalls = 0;
+    session.lifecycle.registerDisposable(() => {
+      cleanupCalls += 1;
+      if (cleanupCalls === 1) throw new Error("synthetic cleanup failure");
+    });
+
+    auth.setError(new Error("synthetic membership lookup failure"));
+    await assert.rejects(session.activateFirebase(), error => error instanceof AggregateError);
+    assert.equal(session.lifecycle.getStatus().state, "switching");
+    assert.equal(session.accountContext.getActive(), null);
+    await session.resumePendingTransition();
+    assert.equal(session.lifecycle.getStatus().state, "cleared");
+    assert.equal(cleanupCalls, 2);
     await session.dispose();
   });
   await test("Firebase principal is re-resolved before a failed transition is resumed", async () => {
