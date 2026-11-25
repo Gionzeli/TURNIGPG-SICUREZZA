@@ -9,20 +9,15 @@ function fail(code, message) {
   error.code = code;
   throw error;
 }
+function validId(value) {
+  return typeof value === "string" && ID_PATTERN.test(value);
+}
 function validRequest({ targetUid, role, scopeType, scopeIds }) {
-  if (!ID_PATTERN.test(targetUid ?? "") || !ROLES.has(role) || !SCOPE_TYPES.has(scopeType)) return false;
-  if (!Array.isArray(scopeIds) || scopeIds.some(id => !ID_PATTERN.test(id ?? "")) || new Set(scopeIds).size !== scopeIds.length) return false;
+  if (!validId(targetUid) || !ROLES.has(role) || !SCOPE_TYPES.has(scopeType)) return false;
+  if (!Array.isArray(scopeIds) || scopeIds.some(id => !validId(id)) || new Set(scopeIds).size !== scopeIds.length) return false;
   if (role === "admin") return scopeType === "account" && scopeIds.length === 0;
   if (role === "manager") return scopeType === "site" && scopeIds.length > 0;
   return scopeType !== "account" && scopeIds.length > 0;
-}
-function paths(accountId, uid, nominationId) {
-  const account = `accounts/${accountId}`;
-  return {
-    actor: `${account}/members/${uid}`,
-    target: `${account}/members/${uid}`,
-    nomination: `${account}/adminNominations/${nominationId}`
-  };
 }
 function requireAdmin(membership, uid, accountId) {
   const normalized = validateCanonicalMembership(membership, uid, accountId);
@@ -32,18 +27,14 @@ function requireAdmin(membership, uid, accountId) {
 
 /** Creates a pending nomination. Only active canonical account admins can propose. */
 export async function createAdminNomination({ db, accountId, actorUid, nominationId, targetUid, role, scopeType, scopeIds, now = () => Date.now() }) {
-  if (!ID_PATTERN.test(accountId ?? "") || !ID_PATTERN.test(actorUid ?? "") || !ID_PATTERN.test(nominationId ?? "") || !validRequest({ targetUid, role, scopeType, scopeIds })) fail("invalid-argument", "Invalid nomination fields.");
-  const p = paths(accountId, actorUid, nominationId);
-  const nominationRef = db.doc(p.nomination);
-  const actorRef = db.doc(p.actor);
+  if (!validId(accountId) || !validId(actorUid) || !validId(nominationId) || !validRequest({ targetUid, role, scopeType, scopeIds })) fail("invalid-argument", "Invalid nomination fields.");
+  const nominationRef = db.doc(`accounts/${accountId}/adminNominations/${nominationId}`);
+  const actorRef = db.doc(`accounts/${accountId}/members/${actorUid}`);
   return db.runTransaction(async tx => {
     const [actorSnap, nominationSnap] = await Promise.all([tx.get(actorRef), tx.get(nominationRef)]);
     requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId);
     if (nominationSnap.exists) fail("already-exists", "Nomination ID already used.");
-    const record = {
-      accountId, nominationId, targetUid, role, scopeType, scopeIds: [...scopeIds],
-      status: "pending", nominatedBy: actorUid, createdAt: now()
-    };
+    const record = { accountId, nominationId, targetUid, role, scopeType, scopeIds: [...scopeIds], status: "pending", nominatedBy: actorUid, createdAt: now() };
     tx.create(nominationRef, record);
     return Object.freeze({ ...record, scopeIds: Object.freeze([...scopeIds]) });
   });
@@ -51,10 +42,9 @@ export async function createAdminNomination({ db, accountId, actorUid, nominatio
 
 /** Approves a pending nomination by a distinct active admin; approval and membership write are atomic. */
 export async function approveAdminNomination({ db, accountId, actorUid, nominationId, now = () => Date.now() }) {
-  if (!ID_PATTERN.test(accountId ?? "") || !ID_PATTERN.test(actorUid ?? "") || !ID_PATTERN.test(nominationId ?? "")) fail("invalid-argument", "Invalid approval selector.");
-  const nominationPath = `accounts/${accountId}/adminNominations/${nominationId}`;
+  if (!validId(accountId) || !validId(actorUid) || !validId(nominationId)) fail("invalid-argument", "Invalid approval selector.");
+  const nominationRef = db.doc(`accounts/${accountId}/adminNominations/${nominationId}`);
   const actorRef = db.doc(`accounts/${accountId}/members/${actorUid}`);
-  const nominationRef = db.doc(nominationPath);
   return db.runTransaction(async tx => {
     const [actorSnap, nominationSnap] = await Promise.all([tx.get(actorRef), tx.get(nominationRef)]);
     const actor = requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId);
@@ -66,14 +56,10 @@ export async function approveAdminNomination({ db, accountId, actorUid, nominati
     const targetRef = db.doc(`accounts/${accountId}/members/${nomination.targetUid}`);
     const targetSnap = await tx.get(targetRef);
     if (targetSnap.exists && targetSnap.data()?.status === "active") fail("already-exists", "Target already has active membership.");
-    const membership = {
-      uid: nomination.targetUid, accountId, status: "active", role: nomination.role,
-      scopeType: nomination.scopeType, scopeIds: [...nomination.scopeIds],
-      grantedBy: actorUid, approvedBy: actor.uid, activatedAt: now()
-    };
+    const membership = { uid: nomination.targetUid, accountId, status: "active", role: nomination.role, scopeType: nomination.scopeType, scopeIds: [...nomination.scopeIds], grantedBy: nomination.nominatedBy, approvedBy: actorUid, activatedAt: now() };
     if (!validateCanonicalMembership(membership, nomination.targetUid, accountId)) fail("failed-precondition", "Proposed membership violates role/scope policy.");
     tx.set(targetRef, membership);
     tx.update(nominationRef, { status: "approved", approvedBy: actorUid, approvedAt: now() });
-    return Object.freeze({ status: "approved", targetUid: nomination.targetUid, role: nomination.role, approvedBy: actorUid });
+    return Object.freeze({ status: "approved", targetUid: nomination.targetUid, role: nomination.role, approvedBy: actor.uid });
   });
 }
