@@ -126,6 +126,7 @@ export function createLocalLearning(options = {}) {
   let applyEnabled = true;
   let closed = false;
   let storageGeneration = 0;
+  const activeTransactions = new Set();
   const channel = typeof globalThis.BroadcastChannel === "function"
     ? new BroadcastChannel("ocr-learning-sync:" + databaseName)
     : null;
@@ -135,7 +136,7 @@ export function createLocalLearning(options = {}) {
     const generation = storageGeneration;
     try {
       const tx = activeDatabase.transaction(STORE, "readonly");
-      const done = transactionDone(tx);
+      const done = trackTransaction(tx);
       const rows = await requestResult(tx.objectStore(STORE).getAll());
       await done;
       // Una lettura completata dopo close/versionchange non deve ripopolare la cache.
@@ -148,11 +149,24 @@ export function createLocalLearning(options = {}) {
       }
     }
   }
+  function trackTransaction(transaction) {
+    activeTransactions.add(transaction);
+    const done = transactionDone(transaction);
+    done.then(
+      () => activeTransactions.delete(transaction),
+      () => activeTransactions.delete(transaction)
+    );
+    return done;
+  }
   function invalidateStorage() {
     storageGeneration += 1;
     records = [];
     applyEnabled = false;
     closed = true;
+    for (const transaction of activeTransactions) {
+      try { transaction.abort(); } catch { /* transazione già conclusa */ }
+    }
+    activeTransactions.clear();
     if (database) database.close();
     database = null;
     channel?.close();
@@ -202,7 +216,7 @@ export function createLocalLearning(options = {}) {
       database.onclose = () => invalidateStorage();
       try {
         const tx = openingDatabase.transaction(STORE, "readonly");
-        const done = transactionDone(tx);
+        const done = trackTransaction(tx);
         const rows = await requestResult(tx.objectStore(STORE).getAll());
         await done;
         if (closed || database !== openingDatabase || storageGeneration !== generation) {
@@ -285,13 +299,15 @@ export function createLocalLearning(options = {}) {
     const activeDatabase = database;
     const generation = storageGeneration;
     const tx = activeDatabase.transaction(STORE, "readwrite");
-    const done = transactionDone(tx);
+    const done = trackTransaction(tx);
     const store = tx.objectStore(STORE);
     const read = store.getAll();
     let duplicate = null;
+    let persistedRows = [];
     let limitReached = false;
     read.onsuccess = () => {
       const persisted = read.result.filter(isValidStoredRule);
+      persistedRows = persisted;
       duplicate = persisted.find(item => item.id === id) || null;
       if (duplicate) return;
       if (persisted.length >= MAX_RULES) {
@@ -302,6 +318,7 @@ export function createLocalLearning(options = {}) {
     };
     await waitForWrite(done);
     assertCurrentStorage(activeDatabase, generation);
+    records = persistedRows;
     if (duplicate) return { ...duplicate, duplicate: true };
     if (limitReached) throw new RangeError("Limite massimo di regole locali raggiunto");
     records = records.filter(item => item.id !== id);
@@ -316,7 +333,7 @@ export function createLocalLearning(options = {}) {
     const activeDatabase = database;
     const generation = storageGeneration;
     const tx = activeDatabase.transaction(STORE, "readwrite");
-    const done = transactionDone(tx);
+    const done = trackTransaction(tx);
     tx.objectStore(STORE).delete(String(id));
     await waitForWrite(done);
     assertCurrentStorage(activeDatabase, generation);
@@ -330,7 +347,7 @@ export function createLocalLearning(options = {}) {
     const activeDatabase = database;
     const generation = storageGeneration;
     const tx = activeDatabase.transaction(STORE, "readwrite");
-    const done = transactionDone(tx);
+    const done = trackTransaction(tx);
     tx.objectStore(STORE).clear();
     await waitForWrite(done);
     assertCurrentStorage(activeDatabase, generation);

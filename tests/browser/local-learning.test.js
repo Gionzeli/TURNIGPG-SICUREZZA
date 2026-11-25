@@ -101,6 +101,21 @@ try {
     await afterRevocation.destroy();
   });
 
+  await run("close annulla una transazione di scrittura ancora pendente", async () => {
+    const abortName = "ocr-learning-abort-" + crypto.randomUUID();
+    const owner = createLocalLearning({ databaseName: abortName });
+    await owner.ready;
+    await owner.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
+    const pending = owner.addAlias({ kind: "payroll", field: "paga_base", alias: "Compenso ordinario" });
+    await Promise.resolve();
+    owner.close();
+    await assert.rejects(() => pending);
+    const verifier = createLocalLearning({ databaseName: abortName });
+    await verifier.ready;
+    assert.equal(verifier.list().length, 1);
+    await verifier.destroy();
+  });
+
   await run("una scrittura già avviata non ripopola la cache dopo close", async () => {
     const pendingName = "ocr-learning-pending-" + crypto.randomUUID();
     const pendingLearning = createLocalLearning({ databaseName: pendingName });
