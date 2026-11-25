@@ -56,7 +56,7 @@ try {
     await reopened.ready;
     assert.equal(reopened.list("payroll").length, 1);
     reopened.setApplyEnabled(false);
-    assert.equal(reopened.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale: 1.450,00");
+    assert.equal(reopened.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale | 1.450,00");
     reopened.setApplyEnabled(true);
     await reopened.removeAlias(reopened.list()[0].id);
     assert.equal(reopened.list().length, 0);
