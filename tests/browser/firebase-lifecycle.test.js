@@ -26,14 +26,16 @@ function fakeAdapter(initialPrincipal = principal()) {
   let listener = null;
   let currentPrincipal = initialPrincipal;
   let principalCalls = 0;
+  let unsubscribeCount = 0;
   return {
     adapter: {
       async getPrincipal() { principalCalls += 1; return currentPrincipal; },
-      subscribe(callback) { listener = callback; return () => { listener = null; }; }
+      subscribe(callback) { listener = callback; return () => { unsubscribeCount += 1; listener = null; }; }
     },
     emit() { listener?.({ authenticated: Boolean(currentPrincipal) }); },
     setPrincipal(value) { currentPrincipal = value; },
-    get principalCalls() { return principalCalls; }
+    get principalCalls() { return principalCalls; },
+    get unsubscribeCount() { return unsubscribeCount; }
   };
 }
 export async function runFirebaseLifecycleTests() {
@@ -149,5 +151,69 @@ export async function runFirebaseLifecycleTests() {
     assert.equal(session.accountContext.getActive(), null);
     session.dispose();
   });
+  await test("dispose permanently closes a local session and all exposed activation paths", async () => {
+    const session = await createDSMCoreSession({ db: fakeDb(), accountId: "synthetic-local-dispose" });
+    assert.equal(session.lifecycle.getStatus().state, "active");
+    const status = await session.dispose();
+    assert.equal(status.state, "disposed");
+    assert.equal(session.lifecycle.getStatus().disposed, true);
+    assert.equal(session.accountContext.getActive(), null);
+    expectDenied(() => session.accountContext.activate({ accountId: "synthetic-reopen", identitySource: "local" }));
+    assert.throws(() => session.lifecycle.capture(), error => error?.code === "DB_ACCOUNT_REQUIRED");
+    await assert.rejects(session.switchLocalAccount("synthetic-reopen"), error => error?.code === "DB_ACCESS_DENIED");
+    await assert.rejects(session.activateFirebase(), error => error?.code === "DB_ACCESS_DENIED");
+    await assert.rejects(session.repositories.profiles.getAll(), error => error?.code === "DB_ACCOUNT_REQUIRED");
+    assert.equal((await session.resumePendingTransition()).state, "disposed");
+    assert.equal((await session.dispose()).state, "disposed");
+  });
+  await test("dispose unsubscribes Firebase and cannot be reversed by later auth events", async () => {
+    const auth = fakeAdapter(principal());
+    const session = await createDSMCoreSession({ db: fakeDb(), firebaseAuthAdapter: auth.adapter });
+    await session.activateFirebase();
+    assert.equal(session.lifecycle.getStatus().state, "active");
+    await session.dispose();
+    assert.equal(session.lifecycle.getStatus().state, "disposed");
+    assert.equal(session.accountContext.getActive(), null);
+    assert.equal(auth.unsubscribeCount, 1);
+    auth.emit();
+    assert.equal(session.lifecycle.getStatus().state, "disposed");
+    await session.dispose();
+    assert.equal(auth.unsubscribeCount, 1);
+  });
+  await test("dispose remains terminal while cleanup is incomplete and retries only cleanup", async () => {
+    const session = await createDSMCoreSession({ db: fakeDb(), accountId: "synthetic-dispose-retry" });
+    let attempts = 0;
+    session.lifecycle.registerDisposable(() => {
+      attempts += 1;
+      if (attempts === 1) throw new Error("synthetic dispose cleanup failure");
+    });
+    await assert.rejects(session.dispose(), error => error?.code === "DB_ACCESS_DENIED");
+    assert.equal(session.lifecycle.getStatus().state, "switching");
+    assert.equal(session.accountContext.getActive(), null);
+    await assert.rejects(session.switchLocalAccount("synthetic-must-not-reactivate"), error => error?.code === "DB_ACCESS_DENIED");
+    const status = await session.resumePendingTransition();
+    assert.equal(status.state, "disposed");
+    assert.equal(attempts, 2);
+    assert.equal(session.accountContext.getActive(), null);
+  });
+  await test("dispose racing an in-flight Firebase activation wins permanently", async () => {
+    const auth = fakeAdapter(principal());
+    const session = await createDSMCoreSession({ db: fakeDb(), firebaseAuthAdapter: auth.adapter });
+    let release;
+    let markStarted;
+    const started = new Promise(resolve => { markStarted = resolve; });
+    const gate = new Promise(resolve => { release = resolve; });
+    session.lifecycle.registerDisposable(async () => { markStarted(); await gate; });
+    const activation = session.activateFirebase();
+    await started;
+    const disposal = session.dispose();
+    release();
+    await assert.rejects(activation, error => error?.code === "DB_ACCESS_DENIED");
+    const status = await disposal;
+    assert.equal(status.state, "disposed");
+    assert.equal(session.accountContext.getActive(), null);
+    assert.equal(auth.unsubscribeCount, 1);
+  });
+
   return passed;
 }

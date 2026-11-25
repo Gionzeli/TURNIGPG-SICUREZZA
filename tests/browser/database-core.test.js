@@ -1,4 +1,5 @@
 import { renderHistoryEvents } from "../../src/ui/history-viewer.js";
+import { runFirebaseLifecycleTests } from "./firebase-lifecycle.test.js";
 import {
   openDSMDatabase, closeDSMDatabase, getDSMDatabaseStatus, createDSMCoreSession,
   createAccountContext, createAccountLifecycleCoordinator, createAccountLifecycleCrossTabBridge, ProfileRepository, ShiftRepository, AbsenceRepository, SettingsRepository, MigrationJobRepository, QuarantineRepository, HistoryRepository, ProfileService, ShiftService, AbsenceService, HistoryService, inspectLegacySnapshot, inspectLegacyExtras, inspectLegacyArchive, inspectLegacyReconciliation, inspectLegacyExport, inspectLegacyShiftChronology, DB_ERROR_CODES
@@ -39,6 +40,11 @@ async function run() {
   catch (error) {
     summary.textContent = `Avvio bloccato: ${error.message}`; summary.dataset.result = "fail"; return;
   }
+  await test("FIREBASE-LIFECYCLE — session adapter and permanent disposal regressions", async () => {
+    const count = await runFirebaseLifecycleTests();
+    assert(count >= 14, `Suite Firebase lifecycle incompleta: ${count} test eseguiti.`);
+  });
+
   const context = createAccountContext();
 
   await test("AUTH-003 — lifecycle invalida risultati stale e svuota viste prima del nuovo account", async () => {

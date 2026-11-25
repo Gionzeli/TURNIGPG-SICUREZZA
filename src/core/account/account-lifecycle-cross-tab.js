@@ -125,12 +125,14 @@ export function createAccountLifecycleCrossTabBridge({ lifecycleCoordinator, cha
       return lifecycleCoordinator.getStatus();
     },
 
-    dispose() {
+    dispose({ terminal = false } = {}) {
       if (disposed) return;
-      if (pendingRemote || pendingToken) {
+      if (!terminal && (pendingRemote || pendingToken)) {
         throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Completare l'invalidazione prima di dismettere il bridge.");
       }
       disposed = true;
+      pendingRemote = false;
+      pendingToken = null;
       channel.removeEventListener("message", onMessage);
       unsubscribeLifecycle();
       lastSequenceBySender.clear();

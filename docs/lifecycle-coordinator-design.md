@@ -36,7 +36,7 @@ Make account changes/logout a UI and operation lifecycle boundary. Il coordinato
 - `capture()` / `isCurrent(capture)`: acquisiscono e verificano account e generazione per scartare risultati obsoleti.
 - `subscribe(listener)`: restituisce una funzione unsubscribe; i listener UI devono rimuovere dati visibili su `transition-start`.
 - `registerDisposable(dispose)`: registra callback di pulizia; gli errori impediscono la riattivazione finché `retryCleanup(token)` non completa.
-- La session factory espone inoltre `switchLocalAccount()`, `logout()` e `resumePendingTransition()`; `dispose()` dismette il solo bridge cross-tab, non equivale a logout.
+- La session factory espone `switchLocalAccount()`, `logout()`, `resumePendingTransition()` e `dispose()`. `dispose()` è terminale: invalida il contesto, impedisce nuove attivazioni, dismette listener/bridge e consente soltanto retry della pulizia se incompleta.
 
 ## Ordering for account switch
 1. Start transition and increment generation (old async results become stale immediately).
@@ -83,3 +83,11 @@ Revisione del 24 novembre 2026 sul branch `dsm-enterprise/core-v1`:
 
 Un eventuale miglioramento futuro può registrare anche le transazioni readonly come disposable. Prima di adottarlo, i test sintetici dovranno verificare separatamente: abort effettivo quando la lettura è ancora attiva; gestione senza errore quando la transazione è già completata; rifiuto del risultato se la generazione cambia; nessun risultato o dato dell'account A consegnato dopo l'attivazione di B. Questa revisione è documentale: non modifica il runtime né amplia l'autorizzazione a intervenire su Firebase, UI operativa o entrypoint.
 
+
+## Contratto di dismissione definitiva della sessione (2026-11-25)
+
+- `session.dispose()` è asincrono, idempotente e terminale. Porta il lifecycle allo stato `disposed`; non è un semplice unsubscribe né un alias del logout reversibile.
+- Il contesto viene invalidato e marcato come dismesso prima di attendere il cleanup. Anche i riferimenti già ottenuti a `accountContext`, `lifecycle`, repository e servizi non possono riattivare o usare la sessione.
+- La sottoscrizione Firebase viene rimossa e il bridge cross-tab viene chiuso dopo l'avvio dell'invalidazione locale.
+- Se un disposable fallisce, `dispose()` rifiuta la Promise e il lifecycle resta non attivo in `switching`. Non sono consentite nuove attivazioni; `dispose()` ripetuto o `resumePendingTransition()` riprovano esclusivamente il cleanup e finalizzano lo stato `disposed`.
+- La dismissione non cancella IndexedDB e non equivale a cancellazione sicura dei dati persistenti. La garanzia riguarda il lifecycle della sessione e le risorse registrate.

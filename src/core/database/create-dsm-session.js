@@ -49,6 +49,13 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
   let pendingTransition = null;
   let authRevision = 0;
   let authChangeTask = Promise.resolve();
+  let disposed = false;
+  let disposeTask = null;
+  let firebaseUnsubscribed = false;
+
+  function assertSessionActive() {
+    if (disposed) throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Sessione DSM dismessa definitivamente.");
+  }
 
   async function clearPendingTransition(pending) {
     if (!pending || pendingTransition !== pending) return lifecycle.getStatus();
@@ -62,11 +69,13 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
   }
 
   async function activateFirebaseAccount() {
+    assertSessionActive();
     if (!firebaseAuthAdapter) {
       throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Adapter Firebase non configurato.");
     }
     const revision = authRevision;
     const principal = await firebaseAuthAdapter.getPrincipal();
+    assertSessionActive();
     if (!principal) {
       if (lifecycle.getStatus().state === "active") await logout();
       return null;
@@ -75,6 +84,7 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
       throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Stato Firebase cambiato durante l'autorizzazione.");
     }
     const token = await lifecycle.beginTransition("switch");
+    assertSessionActive();
     const pending = { token, action: "activate-firebase", principal, authRevision: revision };
     pendingTransition = pending;
     if (revision !== authRevision) {
@@ -92,6 +102,7 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
   }
 
   async function handleAuthStateChange() {
+    if (disposed) return;
     const status = lifecycle.getStatus();
     if (status.state === "active") {
       const token = await lifecycle.beginTransition("logout");
@@ -107,6 +118,7 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
   }
 
   const unsubscribeFirebase = firebaseAuthAdapter?.subscribe(() => {
+    if (disposed) return;
     authRevision += 1;
     // Serialize invalidation. A revision mismatch prevents any pending Firebase
     // principal from being resumed, even if its cleanup had previously failed.
@@ -114,7 +126,9 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
   }) ?? null;
 
   async function activateLocal(nextAccountId, reason) {
+    assertSessionActive();
     const token = await lifecycle.beginTransition(reason);
+    assertSessionActive();
     const pending = { token, action: "activate", accountId: nextAccountId };
     pendingTransition = pending;
     try {
@@ -127,7 +141,9 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
   }
 
   async function logout() {
+    assertSessionActive();
     const token = await lifecycle.beginTransition("logout");
+    assertSessionActive();
     const pending = { token, action: "logout", accountId: null };
     pendingTransition = pending;
     if (!lifecycle.getStatus().cleanupComplete) {
@@ -139,6 +155,11 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
   }
 
   async function resumePendingTransition() {
+    if (disposed) {
+      const status = await lifecycle.dispose();
+      pendingTransition = null;
+      return status;
+    }
     if (!pendingTransition) {
       throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Nessuna transizione da riprendere.");
     }
@@ -181,16 +202,34 @@ export async function createDSMCoreSession({ db, accountId, crossTabChannel, tab
     ? createAccountLifecycleCrossTabBridge({ lifecycleCoordinator: lifecycle, channel: crossTabChannel, tabId })
     : null;
 
+  function disposeSession() {
+    if (disposeTask) return disposeTask;
+    disposed = true;
+    authRevision += 1;
+    if (!firebaseUnsubscribed) {
+      unsubscribeFirebase?.();
+      firebaseUnsubscribed = true;
+    }
+    const task = (async () => {
+      try {
+        const status = await lifecycle.dispose();
+        pendingTransition = null;
+        return status;
+      } finally {
+        crossTabBridge?.dispose({ terminal: true });
+      }
+    })();
+    disposeTask = task;
+    return task.finally(() => { if (disposeTask === task) disposeTask = null; });
+  }
+
   return Object.freeze({
     accountContext,
     lifecycle,
     repositories,
     services,
     crossTabBridge,
-    dispose() {
-      unsubscribeFirebase?.();
-      crossTabBridge?.dispose();
-    },
+    dispose: disposeSession,
     switchLocalAccount(nextAccountId) {
       return activateLocal(nextAccountId, "switch");
     },

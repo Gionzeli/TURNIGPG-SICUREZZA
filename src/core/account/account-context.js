@@ -4,9 +4,11 @@ const ACCOUNT_ID_PATTERN = /^[A-Za-z0-9._:@-]{1,160}$/;
 
 export function createAccountContext() {
   let activeAccount = null;
+  let disposed = false;
 
   return Object.freeze({
     activate({ accountId, identitySource, verifiedAt = new Date().toISOString() } = {}) {
+      if (disposed) throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Contesto account dismesso definitivamente.");
       if (typeof accountId !== "string" || !ACCOUNT_ID_PATTERN.test(accountId)) {
         throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "Identificativo account non valido.");
       }
@@ -19,6 +21,7 @@ export function createAccountContext() {
     },
 
     activateFirebase(principal) {
+      if (disposed) throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Contesto account dismesso definitivamente.");
       // The adapter is the client-side trust boundary; this check prevents accidental
       // use of UI claims or incomplete objects. It is NOT a defense against same-origin
       // malicious code: server authorization must still protect every data operation.
@@ -58,6 +61,11 @@ export function createAccountContext() {
     },
 
     clear() {
+      activeAccount = null;
+    },
+
+    dispose() {
+      disposed = true;
       activeAccount = null;
     }
   });
