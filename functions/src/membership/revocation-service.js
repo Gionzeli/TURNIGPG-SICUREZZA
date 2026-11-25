@@ -41,7 +41,9 @@ export async function revokeMembership({ db, accountId, actorUid, targetUid, eve
     const activeAdminUids = new Set();
     for (const doc of adminsSnap.docs) {
       const data = doc.data();
-      const candidateUid = data?.uid;
+      // The Firestore document ID is the canonical membership UID selector.
+      // A matching uid field alone cannot make a differently keyed document authoritative.
+      const candidateUid = doc.id;
       const canonical = validateCanonicalMembership(data, candidateUid, accountId);
       if (canonical?.role === "admin" && canonical.scopeType === "account" && canonical.scopeIds.length === 0) {
         activeAdminUids.add(candidateUid);

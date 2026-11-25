@@ -115,6 +115,12 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
       db, accountId, actorUid: "adminB", targetUid: "adminA",
       eventId: "audit-revoke-adminA", now: () => 600
     });
+    // A document whose ID differs from its uid field is not a canonical admin.
+    // It must not preserve the last-admin guard after adminA has been revoked.
+    await members.doc("ghostDocument").set({
+      uid: "ghostIdentity", accountId, status: "active", role: "admin",
+      scopeType: "account", scopeIds: []
+    });
     await assert.rejects(
       revokeMembership({
         db, accountId, actorUid: "adminB", targetUid: "adminB",

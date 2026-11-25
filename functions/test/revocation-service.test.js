@@ -64,6 +64,16 @@ test("admin can be revoked if another canonical active admin remains",async()=>{
   assert.equal(store.get("accounts/ac1/members/adminA").status,"revoked");
   assert.equal(store.get("accounts/ac1/members/adminB").status,"active");
 });
+test("admin-shaped document whose ID differs from its uid does not count as remaining admin", async () => {
+  const { db } = fakeDb({
+    "accounts/ac1/members/adminA": admin("adminA"),
+    "accounts/ac1/members/ghostDocument": admin("ghostIdentity")
+  });
+  await assert.rejects(
+    revokeMembership(request({ db, targetUid: "adminA" })),
+    error => error.code === "failed-precondition"
+  );
+});
 test("malformed active admin document does not count as remaining admin",async()=>{
   const {db}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/badAdmin":{uid:"badAdmin",accountId:"ac1",status:"active",role:"admin",scopeType:"site",scopeIds:["s1"]}});
   await assert.rejects(revokeMembership(request({db,targetUid:"adminA"})),e=>e.code==="failed-precondition");
