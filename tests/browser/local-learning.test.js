@@ -153,6 +153,24 @@ try {
     owner.close();
   });
 
+  await run("la cancellazione del database invalida le altre schede via versionchange", async () => {
+    const deletionName = "ocr-learning-cross-tab-delete-" + crypto.randomUUID();
+    const owner = createLocalLearning({ databaseName: deletionName });
+    const deleter = createLocalLearning({ databaseName: deletionName });
+    await Promise.all([owner.ready, deleter.ready]);
+    await owner.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
+    const deadline = Date.now() + 2000;
+    while (deleter.list().length !== 1 && Date.now() < deadline) {
+      await new Promise(resolve => setTimeout(resolve, 20));
+    }
+    assert.equal(deleter.list().length, 1);
+    await deleter.destroy();
+    assert.equal(owner.available, false);
+    assert.equal(owner.list().length, 0);
+    assert.equal(owner.applyEnabled, false);
+    assert.equal(owner.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale | 1.450,00");
+  });
+
   await run("sincronizza revoca alias tra istanze del browser", async () => {
     const syncName = "ocr-learning-sync-" + crypto.randomUUID();
     const first = createLocalLearning({ databaseName: syncName });
