@@ -123,6 +123,52 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     );
     assert.equal((await members.doc("adminB").get()).data().status, "active");
     assert.equal((await audit.doc("audit-revoke-last-admin").get()).exists, false);
+
+    // Malformed pending nomination must not activate a membership.
+    await nominations.doc("malformed-nomination").set({
+      accountId, nominationId: "malformed-nomination", targetUid: "member5",
+      role: "admin", scopeType: "site", scopeIds: ["site1"],
+      status: "pending", nominatedBy: "adminA"
+    });
+    await assert.rejects(
+      approveAdminNomination({
+        db, accountId, actorUid: "adminB", nominationId: "malformed-nomination"
+      }),
+      error => error.code === "failed-precondition"
+    );
+    assert.equal((await nominations.doc("malformed-nomination").get()).data().status, "pending");
+    assert.equal((await members.doc("member5").get()).exists, false);
+
+    // Duplicate audit selectors reject cancellation and revocation without writes.
+    await createAdminNomination({
+      db, accountId, actorUid: "adminB", nominationId: "duplicate-audit-nomination",
+      targetUid: "member6", role: "member", scopeType: "department",
+      scopeIds: ["dept1"]
+    });
+    await audit.doc("audit-duplicate-cancel").set({ type: "pre-existing synthetic event" });
+    await assert.rejects(
+      cancelAdminNomination({
+        db, accountId, actorUid: "adminB",
+        nominationId: "duplicate-audit-nomination",
+        eventId: "audit-duplicate-cancel", reason: "Synthetic duplicate event"
+      }),
+      error => error.code === "already-exists"
+    );
+    assert.equal((await nominations.doc("duplicate-audit-nomination").get()).data().status, "pending");
+
+    await members.doc("member7").set({
+      uid: "member7", accountId, status: "active", role: "member",
+      scopeType: "department", scopeIds: ["dept1"]
+    });
+    await audit.doc("audit-duplicate-revoke").set({ type: "pre-existing synthetic event" });
+    await assert.rejects(
+      revokeMembership({
+        db, accountId, actorUid: "adminB", targetUid: "member7",
+        eventId: "audit-duplicate-revoke"
+      }),
+      error => error.code === "already-exists"
+    );
+    assert.equal((await members.doc("member7").get()).data().status, "active");
   } finally {
     await Promise.all([clear(members), clear(nominations), clear(audit)]);
     await deleteApp(app);
