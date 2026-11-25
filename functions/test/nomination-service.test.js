@@ -107,3 +107,38 @@ test("approval rejects mismatched canonical selectors and expired nominations wi
     assert.equal(store.get(`accounts/ac1/adminNominations/${nominationId}`).status,"pending");
   }
 });
+
+test("approval rejects an invalid trusted clock without changing nomination or membership", async()=> {
+  const nominationId = "invalid-clock";
+  const nomination = {
+    ...baseNom,
+    accountId: "ac1",
+    nominationId,
+    status: "pending",
+    nominatedBy: "adminA",
+    expiresAt: 5000
+  };
+  const {db,store}=fakeDb({
+    "accounts/ac1/members/adminA": admin("adminA"),
+    "accounts/ac1/members/adminB": admin("adminB"),
+    [`accounts/ac1/adminNominations/${nominationId}`]: nomination
+  });
+
+  await assert.rejects(
+    approveAdminNomination({
+      db,
+      accountId: "ac1",
+      actorUid: "adminB",
+      nominationId,
+      now: () => Number.NaN
+    }),
+    error => error.code === "failed-precondition" &&
+      error.message === "Trusted clock returned an invalid approval timestamp."
+  );
+
+  assert.equal(store.has("accounts/ac1/members/newUser"), false);
+  assert.deepEqual(
+    store.get(`accounts/ac1/adminNominations/${nominationId}`),
+    nomination
+  );
+});
