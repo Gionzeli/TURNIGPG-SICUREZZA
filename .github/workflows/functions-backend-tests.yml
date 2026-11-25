@@ -1,4 +1,4 @@
-name: DSM authorization backend unit tests
+name: DSM authorization backend unit and emulator tests
 
 on:
   push:
@@ -15,7 +15,7 @@ permissions:
 jobs:
   membership-service-tests:
     runs-on: ubuntu-24.04
-    timeout-minutes: 10
+    timeout-minutes: 15
     defaults:
       run:
         working-directory: functions
@@ -28,5 +28,5 @@ jobs:
           node-version: 20
       - name: Install isolated backend dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Run backend unit tests
-        run: npm test
+      - name: Run unit and Firestore Emulator integration tests
+        run: npx firebase emulators:exec --only firestore --project demo-dsm-membership --config firebase.json "npm test"
