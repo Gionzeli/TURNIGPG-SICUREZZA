@@ -68,6 +68,61 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     const revocationEvent = await audit.doc("audit-revoke-1").get();
     assert.equal(revoked.data().status, "revoked");
     assert.equal(revocationEvent.data().type, "membership.revoked");
+
+    // Negative authorization: a regular member cannot administer memberships.
+    await members.doc("memberActor").set({
+      uid: "memberActor", accountId, status: "active", role: "member",
+      scopeType: "department", scopeIds: ["dept1"]
+    });
+    await assert.rejects(
+      revokeMembership({
+        db, accountId, actorUid: "memberActor", targetUid: "memberActor",
+        eventId: "audit-member-denied"
+      }),
+      error => error.code === "permission-denied"
+    );
+    await assert.rejects(
+      createAdminNomination({
+        db, accountId, actorUid: "memberActor", nominationId: "member-nomination",
+        targetUid: "member3", role: "member", scopeType: "department",
+        scopeIds: ["dept1"]
+      }),
+      error => error.code === "permission-denied"
+    );
+
+    // Only the original proposer may cancel, even when another admin is active.
+    await createAdminNomination({
+      db, accountId, actorUid: "adminA", nominationId: "cancel-denied",
+      targetUid: "member4", role: "member", scopeType: "department",
+      scopeIds: ["dept1"]
+    });
+    await assert.rejects(
+      cancelAdminNomination({
+        db, accountId, actorUid: "adminB", nominationId: "cancel-denied",
+        eventId: "audit-cancel-denied", reason: "Synthetic negative test"
+      }),
+      error => error.code === "permission-denied"
+    );
+    assert.equal((await nominations.doc("cancel-denied").get()).data().status, "pending");
+
+    // Malformed admin-shaped documents must not bypass the last-admin guard.
+    await members.doc("malformedAdmin").set({
+      uid: "malformedAdmin", accountId, status: "active", role: "admin",
+      scopeType: "site", scopeIds: ["site1"]
+    });
+    await revokeMembership({
+      db, accountId, actorUid: "adminB", targetUid: "adminA",
+      eventId: "audit-revoke-adminA", now: () => 600
+    });
+    await assert.rejects(
+      revokeMembership({
+        db, accountId, actorUid: "adminB", targetUid: "adminB",
+        eventId: "audit-revoke-last-admin", now: () => 700
+      }),
+      error => error.code === "failed-precondition"
+    );
+    assert.equal((await members.doc("adminB").get()).data().status, "active");
+    assert.equal((await audit.doc("audit-revoke-last-admin").get()).exists, false);
   } finally {
     await Promise.all([clear(members), clear(nominations), clear(audit)]);
     await deleteApp(app);
