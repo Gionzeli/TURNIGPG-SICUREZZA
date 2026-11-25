@@ -65,13 +65,16 @@ try {
   });
 
   await run("il parser cedolino applica solo alias espliciti e mantiene il valore numerico", async () => {
+    assert.equal(window.LocalDocAI.learning.available(), true);
+    const direct = window.LocalDocAI.parsePayslip("paga base | 1.450,00", [["paga_base", "Paga base"]], {});
+    assert.equal(direct.paga_base, 1450);
     await window.LocalDocAI.learning.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
     const parsed = window.LocalDocAI.parsePayslip(
       "Retribuzione contrattuale: 1.450,00",
       [["paga_base", "Paga base"]],
       {}
     );
-    assert.equal(parsed.paga_base, 1450);
+    assert.equal(parsed.paga_base, 1450, JSON.stringify(parsed));
     await window.LocalDocAI.learning.clear();
   });
 
