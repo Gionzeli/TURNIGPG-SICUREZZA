@@ -680,6 +680,27 @@ async function run() {
     assert((await profiles.getById(record.id)).data.value === "dopo", "Callback asincrona ha modificato il record.");
   });
 
+  await test("DB-016 — updateWithCurrent non attraversa account con ID coincidente", async () => {
+    const repository = new ProfileRepository({ db, accountContext: context });
+    const sharedId = "synthetic-cross-account-collision";
+    const accountA = await repository.create({ value: "dato privato A" }, { id: sharedId });
+    context.activate({ accountId: "browser-test-account-B", identitySource: "local" });
+    const missing = await repository.updateWithCurrent(sharedId, current => ({
+      ...current.data, value: "tentativo B"
+    }), { expectedRevision: 1 });
+    assert(missing === null, "Account B ha trovato il record appartenente ad A.");
+    let duplicateIdRejected = false;
+    try { await repository.create({ value: "dato B" }, { id: sharedId }); }
+    catch { duplicateIdRejected = true; }
+    assert(duplicateIdRejected, "Il database ha accettato una chiave primaria già usata da A.");
+    context.activate({ accountId: "browser-test-account-A", identitySource: "local" });
+    const persistedA = await repository.getById(sharedId);
+    assert(persistedA?.accountId === "browser-test-account-A" &&
+      persistedA.data.value === "dato privato A" && persistedA.revision === 1,
+      "Il tentativo di aggiornamento da B ha modificato il record di A.");
+    await repository.delete(accountA.id, { expectedRevision: 1 });
+  });
+
   await test("SVC-014 — servizi read-modify-write non eseguono letture separate", async () => {
     const repositories = [new ProfileRepository({ db, accountContext: context }), new ShiftRepository({ db, accountContext: context }), new AbsenceRepository({ db, accountContext: context })];
     const services = [
