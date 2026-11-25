@@ -206,13 +206,30 @@ export function createLocalLearning(options = {}) {
     if (!safeAlias) throw new TypeError("Inserisci solo un'etichetta generica, senza numeri o dati personali");
     const normalizedAlias = fold(safeAlias);
     const id = kind + ":" + field + ":" + normalizedAlias;
-    if (records.some(rule => rule.id === id)) return { ...records.find(rule => rule.id === id), duplicate: true };
-    if (records.length >= MAX_RULES) throw new RangeError("Limite massimo di regole locali raggiunto");
     const rule = { id, kind, field, alias: safeAlias, normalizedAlias, createdAt: new Date().toISOString(), version: 1 };
+    // Il conteggio e il controllo duplicati avvengono nella stessa transazione
+    // readwrite della scrittura: più schede/chiamate non possono superare il limite.
     const tx = database.transaction(STORE, "readwrite");
     const done = transactionDone(tx);
-    tx.objectStore(STORE).put(rule);
+    const store = tx.objectStore(STORE);
+    const read = store.getAll();
+    let duplicate = null;
+    let limitReached = false;
+    read.onsuccess = () => {
+      const persisted = read.result.filter(isValidStoredRule);
+      duplicate = persisted.find(item => item.id === id) || null;
+      records = persisted;
+      if (duplicate) return;
+      if (persisted.length >= MAX_RULES) {
+        limitReached = true;
+        return;
+      }
+      store.put(rule);
+    };
     await done;
+    if (duplicate) return { ...duplicate, duplicate: true };
+    if (limitReached) throw new RangeError("Limite massimo di regole locali raggiunto");
+    records = records.filter(item => item.id !== id);
     records.push(rule);
     return { ...rule };
   }

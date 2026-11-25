@@ -47,6 +47,23 @@ try {
     assert.equal("value" in rule, false);
   });
 
+  await run("il limite di 120 regole è atomico anche con salvataggi concorrenti", async () => {
+    const concurrentName = "ocr-learning-concurrency-" + crypto.randomUUID();
+    const concurrent = createLocalLearning({ databaseName: concurrentName });
+    await concurrent.ready;
+    const words = ["corso", "corsi", "formazione", "formativo", "formativa", "attestato", "abilitazione", "aggiornamento"];
+    const aliases = Array.from({ length: 121 }, (_, i) =>
+      "corso " + words[Math.floor(i / 64)] + " " + words[Math.floor(i / 8) % 8] + " " + words[i % 8]
+    );
+    const outcomes = await Promise.allSettled(aliases.map(alias =>
+      concurrent.addAlias({ kind: "training", field: "title", alias })
+    ));
+    assert.equal(outcomes.filter(item => item.status === "fulfilled").length, 120);
+    assert.equal(outcomes.filter(item => item.status === "rejected").length, 1);
+    assert.equal(concurrent.list().length, 120);
+    await concurrent.destroy();
+  });
+
   await run("applica l'alias solo come etichetta e conserva l'importo OCR", async () => {
     const result = learning.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll");
     assert.equal(result, "paga base | 1.450,00");
