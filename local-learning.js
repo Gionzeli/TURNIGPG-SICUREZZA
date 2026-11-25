@@ -220,11 +220,23 @@ export function createLocalLearning(options = {}) {
       reject(error);
     };
     if (!globalThis.indexedDB) {
+      settled = true;
+      cancelOpening = null;
+      invalidateStorage();
       reject(new Error("IndexedDB non disponibile: apprendimento locale disattivato"));
       return;
     }
     // Usa la versione esistente del database: non tentare downgrade dopo un upgrade.
-    const opening = indexedDB.open(databaseName);
+    let opening;
+    try {
+      opening = indexedDB.open(databaseName);
+    } catch (error) {
+      settled = true;
+      cancelOpening = null;
+      invalidateStorage();
+      reject(error);
+      return;
+    }
     let upgradeError = null;
     opening.onupgradeneeded = () => {
       try {
@@ -279,12 +291,14 @@ export function createLocalLearning(options = {}) {
       if (settled) return;
       settled = true;
       cancelOpening = null;
+      invalidateStorage();
       reject(upgradeError || opening.error || new Error("Archivio apprendimento non apribile"));
     };
     opening.onblocked = () => {
       if (settled) return;
       settled = true;
       cancelOpening = null;
+      invalidateStorage();
       reject(new Error("Archivio apprendimento bloccato da un'altra scheda"));
     };
   });
