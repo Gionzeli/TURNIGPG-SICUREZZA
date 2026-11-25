@@ -380,10 +380,9 @@ export function createLocalLearning(options = {}) {
       invalidateStorage();
     },
     async destroy() {
-      if (database) database.close();
-      database = null;
-      closed = true;
-      channel?.close();
+      // Invalida subito cache, applicazione alias e letture pendenti, anche se
+      // deleteDatabase resta bloccato da connessioni aperte in altre schede.
+      invalidateStorage();
       if (!globalThis.indexedDB) return;
       await new Promise((resolve, reject) => {
         const deletion = indexedDB.deleteDatabase(databaseName);
@@ -391,7 +390,6 @@ export function createLocalLearning(options = {}) {
         deletion.onerror = () => reject(deletion.error || new Error("Archivio non cancellato"));
         deletion.onblocked = () => reject(new Error("Chiusura delle altre schede necessaria per cancellare l'archivio"));
       });
-      records = [];
     }
   };
 }

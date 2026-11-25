@@ -101,6 +101,23 @@ try {
     await afterRevocation.destroy();
   });
 
+  await run("destroy invalida subito cache e alias anche se un'altra scheda blocca la cancellazione", async () => {
+    const destroyName = "ocr-learning-destroy-" + crypto.randomUUID();
+    const owner = createLocalLearning({ databaseName: destroyName });
+    const deleting = createLocalLearning({ databaseName: destroyName });
+    await Promise.all([owner.ready, deleting.ready]);
+    await owner.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
+    // Forza una lettura aggiornata nella seconda istanza prima di chiedere la cancellazione.
+    await new Promise(resolve => setTimeout(resolve, 30));
+    assert.equal(deleting.list().length, 1);
+    await assert.rejects(() => deleting.destroy());
+    assert.equal(deleting.available, false);
+    assert.equal(deleting.list().length, 0);
+    assert.equal(deleting.applyEnabled, false);
+    assert.equal(deleting.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale | 1.450,00");
+    owner.close();
+  });
+
   await run("sincronizza revoca alias tra istanze del browser", async () => {
     const syncName = "ocr-learning-sync-" + crypto.randomUUID();
     const first = createLocalLearning({ databaseName: syncName });
@@ -108,8 +125,9 @@ try {
     await Promise.all([first.ready, second.ready]);
     await first.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
     if (typeof BroadcastChannel !== "function") {
+      second.close();
+      first.close();
       await second.destroy();
-      await first.destroy();
       throw new Error("BroadcastChannel non supportato: test di sincronizzazione non eseguibile");
     }
     const waitFor = async expected => {
