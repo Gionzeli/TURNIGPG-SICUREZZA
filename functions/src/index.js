@@ -10,7 +10,9 @@ initializeApp();
 export const health = onCall(async () => ({
   status: "ok",
   mode: "isolated-scaffold",
-  authorizationImplemented: true,
+  identityAndMembershipResolutionImplemented: true,
+  protectedDataApisImplemented: false,
+  authorizationImplemented: false,
   bootstrapImplemented: false
 }));
 
