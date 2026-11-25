@@ -87,7 +87,7 @@ export async function runFirebaseLifecycleTests() {
     });
     assert.equal(await session.activateFirebase(), null);
     assert.equal(session.lifecycle.getStatus().state, "cleared");
-    session.dispose();
+    await session.dispose();
   });
   await test("Firebase principal is re-resolved before a failed transition is resumed", async () => {
     const auth = fakeAdapter(principal());
@@ -103,7 +103,7 @@ export async function runFirebaseLifecycleTests() {
     await session.resumePendingTransition();
     assert.equal(auth.principalCalls, 2);
     assert.equal(session.lifecycle.getStatus().accountId, "synthetic-account-refreshed");
-    session.dispose();
+    await session.dispose();
   });
   await test("auth revision change prevents resuming a stale Firebase principal", async () => {
     const auth = fakeAdapter(principal());
@@ -121,7 +121,7 @@ export async function runFirebaseLifecycleTests() {
     await session.resumePendingTransition();
     assert.equal(session.lifecycle.getStatus().state, "cleared");
     assert.equal(session.lifecycle.getStatus().accountId, null);
-    session.dispose();
+    await session.dispose();
   });
   await test("auth event during asynchronous cleanup cancels Firebase activation", async () => {
     const auth = fakeAdapter(principal());
@@ -138,7 +138,7 @@ export async function runFirebaseLifecycleTests() {
     await assert.rejects(activation, error => error?.code === "DB_ACCESS_DENIED");
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.equal(session.lifecycle.getStatus().state, "cleared");
-    session.dispose();
+    await session.dispose();
   });
   await test("auth event after activation logs out the active context", async () => {
     const auth = fakeAdapter(principal());
@@ -149,7 +149,7 @@ export async function runFirebaseLifecycleTests() {
     await new Promise(resolve => setTimeout(resolve, 0));
     assert.equal(session.lifecycle.getStatus().state, "cleared");
     assert.equal(session.accountContext.getActive(), null);
-    session.dispose();
+    await session.dispose();
   });
   await test("dispose permanently closes a local session and all exposed activation paths", async () => {
     const session = await createDSMCoreSession({ db: fakeDb(), accountId: "synthetic-local-dispose" });
