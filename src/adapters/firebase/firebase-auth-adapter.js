@@ -1,4 +1,4 @@
-const ACCOUNT_ID_PATTERN = /^[A-Za-z0-9._:@-]{1,160}$/;
+const ACCOUNT_ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const ROLE_PATTERN = /^[A-Za-z0-9._:-]{1,64}$/;
 
 function deny(message) {
@@ -8,12 +8,13 @@ function deny(message) {
 }
 
 function freezePrincipal(authorization, user) {
+  const principal = authorization.principal;
   return Object.freeze({
     uid: user.uid,
     email: typeof user.email === "string" ? user.email : null,
-    accountId: authorization.accountId,
-    role: authorization.role,
-    permissions: Object.freeze([...authorization.permissions]),
+    accountId: principal.accountId,
+    role: principal.role,
+    permissions: Object.freeze([...principal.permissions]),
     expiresAt: authorization.expiresAt,
     identityProvider: "firebase",
     authorizationSource: "server"
@@ -34,11 +35,13 @@ export function createFirebaseAuthAdapter({
   auth,
   onAuthStateChanged,
   resolveAuthorization,
+  getAccountId,
   now = () => Date.now()
 } = {}) {
   if (!auth || typeof auth !== "object" ||
       typeof onAuthStateChanged !== "function" ||
       typeof resolveAuthorization !== "function" ||
+      typeof getAccountId !== "function" ||
       typeof now !== "function") {
     throw new TypeError("Configurazione adapter Firebase non valida.");
   }
@@ -113,11 +116,16 @@ export function createFirebaseAuthAdapter({
     }
 
     let authorization;
+    let selectedAccountId;
     try {
+      selectedAccountId = await getAccountId();
+      if (typeof selectedAccountId !== "string" || !ACCOUNT_ID_PATTERN.test(selectedAccountId)) {
+        throw deny("Selettore account non valido.");
+      }
       authorization = await resolveAuthorization({
+        accountId: selectedAccountId,
         uid: user.uid,
-        idToken,
-        email: typeof user.email === "string" ? user.email : null
+        idToken
       });
     } catch {
       throw deny("Autorizzazione account non disponibile.");
@@ -126,15 +134,17 @@ export function createFirebaseAuthAdapter({
     // A newer auth event wins over every late token/authorization response.
     if (disposed || generation !== capturedGeneration || currentUser !== user) return null;
 
-    if (!authorization || authorization.verifiedBy !== "server" ||
-        authorization.uid !== user.uid ||
-        authorization.status !== "active" ||
-        typeof authorization.accountId !== "string" ||
-        !ACCOUNT_ID_PATTERN.test(authorization.accountId) ||
-        typeof authorization.role !== "string" ||
-        !ROLE_PATTERN.test(authorization.role) ||
-        !Array.isArray(authorization.permissions) ||
-        authorization.permissions.some(permission =>
+    const principal = authorization?.principal;
+    if (!authorization || authorization.authorizationSource !== "server" ||
+        !principal || principal.uid !== user.uid ||
+        (principal.status !== undefined && principal.status !== "active") ||
+        principal.accountId !== selectedAccountId ||
+        typeof principal.accountId !== "string" ||
+        !ACCOUNT_ID_PATTERN.test(principal.accountId) ||
+        typeof principal.role !== "string" ||
+        !ROLE_PATTERN.test(principal.role) ||
+        !Array.isArray(principal.permissions) ||
+        principal.permissions.some(permission =>
           typeof permission !== "string" || permission.length === 0 || permission.length > 128) ||
         !Number.isFinite(authorization.expiresAt) ||
         authorization.expiresAt <= now()) {
