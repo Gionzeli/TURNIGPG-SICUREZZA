@@ -138,9 +138,8 @@ export function createLocalLearning(options = {}) {
       await done;
       records = rows.filter(isValidStoredRule).slice(0, MAX_RULES);
     } catch (error) {
-      // Fail closed: non usare alias potenzialmente revocati se IndexedDB non è leggibile.
-      records = [];
-      applyEnabled = false;
+      // Fail closed anche se la rilettura cross-tab fallisce.
+      invalidateStorage();
     }
   }
   function invalidateStorage() {
