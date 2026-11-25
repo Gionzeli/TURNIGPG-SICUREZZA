@@ -1,0 +1,17 @@
+{
+  "name": "dsm-authorization-backend",
+  "private": true,
+  "description": "Isolated DSM authorization backend scaffold for Firebase Emulator testing only.",
+  "engines": { "node": "20" },
+  "scripts": {
+    "test": "node --test",
+    "emulators": "firebase emulators:start --only functions,firestore --config firebase.json"
+  },
+  "dependencies": {
+    "firebase-admin": "^13.0.0",
+    "firebase-functions": "^6.0.0"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.0.0"
+  }
+}
