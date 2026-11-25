@@ -224,8 +224,12 @@ export function createLocalLearning(options = {}) {
     opening.onsuccess = async () => {
       // onblocked non annulla la richiesta: se arriva un success tardivo, evita di
       // lasciare aperta una connessione dopo che ready è già stato rifiutato.
-      if (settled) {
+      if (settled || closed) {
         opening.result.close();
+        if (!settled) {
+          settled = true;
+          reject(new Error("Archivio apprendimento chiuso durante l'inizializzazione"));
+        }
         return;
       }
       database = opening.result;
