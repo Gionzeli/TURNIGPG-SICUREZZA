@@ -7,7 +7,9 @@ Platform: Firebase Cloud Functions v2, Node.js 20, Firebase Admin SDK.
 ## Canonical membership prototype
 - Canonical membership documents are expected at `accounts/{accountId}/members/{uid}`.
 - The caller's `accountId` is only a selector; UID is derived from a verified, revocation-checked Firebase ID token.
-- The isolated unit suite asserts that the trusted verifier receives `checkRevoked=true` and that a synthetic revocation error is rejected. This is not a Firebase Auth Emulator or end-to-end callable test.
+- Unit tests assert that the trusted verifier receives `checkRevoked=true` and rejects a synthetic revocation error.
+- The Auth + Functions + Firestore Emulator integration test creates a synthetic Auth user, calls the callable with its ID token, verifies server-derived membership, revokes refresh tokens, and asserts the same ID token is rejected. This test runs only when all three emulator host variables are explicitly set; otherwise it is skipped.
+- Emulator behavior is not a substitute for production Firebase project validation or an independent security review.
 - The server derives role permissions. Client-supplied permissions are ignored.
 - Allowed roles: `member`, `manager`, `admin`.
 - `admin` must have account scope and no scope IDs.
@@ -43,5 +45,6 @@ Platform: Firebase Cloud Functions v2, Node.js 20, Firebase Admin SDK.
 - Health endpoint is a smoke check only, not a security health assessment.
 
 ## Local setup
-From this directory: `npm install`, `npm test`, then emulator via `npm run emulators`.
+From this directory: `npm install`, then start all isolated emulators with `npm run emulators`.
+In a second terminal, set `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099`, `FIRESTORE_EMULATOR_HOST=127.0.0.1:8081`, and `DSM_FUNCTIONS_EMULATOR_HOST=127.0.0.1:5001` before running `npm test`. Without these three variables, the Auth/Callable integration test is skipped.
 Do not deploy or connect this scaffold to an existing Firebase project.

@@ -28,5 +28,10 @@ jobs:
           node-version: 20
       - name: Install isolated backend dependencies
         run: npm install --ignore-scripts --no-audit --no-fund
-      - name: Run unit and Firestore Emulator integration tests
-        run: npx firebase emulators:exec --only firestore --project demo-dsm-membership --config firebase.json "npm test"
+      - name: Run unit, Auth/Functions/Firestore Emulator integration tests
+        run: >-
+          npx firebase emulators:exec
+          --only auth,functions,firestore
+          --project demo-dsm-membership
+          --config firebase.json
+          "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 DSM_FUNCTIONS_EMULATOR_HOST=127.0.0.1:5001 GCLOUD_PROJECT=demo-dsm-membership npm test"
