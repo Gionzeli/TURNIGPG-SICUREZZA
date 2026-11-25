@@ -84,7 +84,7 @@ try {
     await Promise.all([first.ready, second.ready]);
     const [one, two] = await Promise.all([
       first.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" }),
-      second.addAlias({ kind: "payroll", field: "paga_base", alias: "Compenso ordinario" })
+      second.addAlias({ kind: "payroll", field: "paga_base", alias: "Compenso mensile" })
     ]);
     const verifier = createLocalLearning({ databaseName: raceName });
     await verifier.ready;
@@ -106,7 +106,7 @@ try {
     const owner = createLocalLearning({ databaseName: abortName });
     await owner.ready;
     await owner.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
-    const pending = owner.addAlias({ kind: "payroll", field: "paga_base", alias: "Compenso ordinario" });
+    const pending = owner.addAlias({ kind: "payroll", field: "paga_base", alias: "Compenso mensile" });
     await Promise.resolve();
     owner.close();
     await assert.rejects(() => pending);
@@ -121,7 +121,7 @@ try {
     const pendingLearning = createLocalLearning({ databaseName: pendingName });
     await pendingLearning.ready;
     await pendingLearning.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
-    const pendingWrite = pendingLearning.addAlias({ kind: "payroll", field: "paga_base", alias: "Compenso ordinario" });
+    const pendingWrite = pendingLearning.addAlias({ kind: "payroll", field: "paga_base", alias: "Compenso mensile" });
     // Lascia che addAlias crei la transazione, ma chiudi prima delle callback IDB.
     await Promise.resolve();
     pendingLearning.close();
