@@ -23,39 +23,40 @@ function fakeDb(seed={}) {
   return {db,store};
 }
 const baseNom={targetUid:"newUser",role:"manager",scopeType:"site",scopeIds:["siteA"]};
+const stepUp = (uid, now = Date.now(), secondFactor = "totp") => ({ uid, emailVerified: true, authTime: Math.floor(now / 1000), secondFactor });
 
 test("creates pending nomination with active canonical admin only", async()=>{
   const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA")});
-  const result=await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"n1",...baseNom,expiresAt:Date.now()+60_000,now:()=>123});
+  const result=await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA",123),nominationId:"n1",...baseNom,now:()=>123});
   assert.equal(result.status,"pending");
   assert.equal(store.get("accounts/ac1/adminNominations/n1").nominatedBy,"adminA");
 });
 test("rejects non-admin proposer and duplicate nomination id",async()=>{
   const {db,store}=fakeDb({"accounts/ac1/members/memberA":{uid:"memberA",accountId:"ac1",status:"active",role:"member",scopeType:"department",scopeIds:["d1"]}});
-  await assert.rejects(createAdminNomination({db,accountId:"ac1",actorUid:"memberA",nominationId:"n1",...baseNom,expiresAt:Date.now()+60_000}),e=>e.code==="permission-denied");
+  await assert.rejects(createAdminNomination({db,accountId:"ac1",actorUid:"memberA",actorIdentity:stepUp("memberA"),nominationId:"n1",...baseNom}),e=>e.code==="permission-denied");
   store.set("accounts/ac1/members/adminA",admin("adminA"));
-  await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"n1",...baseNom,expiresAt:Date.now()+60_000});
-  await assert.rejects(createAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"n1",...baseNom,expiresAt:Date.now()+60_000}),e=>e.code==="already-exists");
+  await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n1",...baseNom});
+  await assert.rejects(createAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n1",...baseNom}),e=>e.code==="already-exists");
 });
 test("approval requires different active admin and atomically activates membership",async()=>{
   const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/adminB":admin("adminB")});
-  await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"n1",...baseNom,expiresAt:Date.now()+60_000});
-  await assert.rejects(approveAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"n1"}),e=>e.code==="permission-denied");
-  const result=await approveAdminNomination({db,accountId:"ac1",actorUid:"adminB",nominationId:"n1",now:()=>456});
+  await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n1",...baseNom});
+  await assert.rejects(approveAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n1"}),e=>e.code==="permission-denied");
+  const result=await approveAdminNomination({db,accountId:"ac1",actorUid:"adminB",actorIdentity:stepUp("adminB",456),nominationId:"n1",now:()=>456});
   assert.equal(result.status,"approved");
   assert.equal(store.get("accounts/ac1/members/newUser").status,"active");
   assert.equal(store.get("accounts/ac1/adminNominations/n1").status,"approved");
 });
 test("approval rejects malformed or stale nomination and does not write membership",async()=>{
   const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/adminB":admin("adminB"),"accounts/ac1/adminNominations/n2":{...baseNom,accountId:"ac1",nominationId:"n2",status:"cancelled",nominatedBy:"adminA"}});
-  await assert.rejects(approveAdminNomination({db,accountId:"ac1",actorUid:"adminB",nominationId:"n2"}),e=>e.code==="failed-precondition");
+  await assert.rejects(approveAdminNomination({db,accountId:"ac1",actorUid:"adminB",actorIdentity:stepUp("adminB"),nominationId:"n2"}),e=>e.code==="failed-precondition");
   assert.equal(store.has("accounts/ac1/members/newUser"),false);
 });
 
 test("proposing active admin can cancel pending nomination with atomic audit",async()=>{
   const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA")});
-  await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",...baseNom,expiresAt:Date.now()+60_000});
-  const result=await cancelAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",eventId:"evt3",reason:"No longer needed",now:()=>789});
+  await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n3",...baseNom});
+  const result=await cancelAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA",789),nominationId:"n3",eventId:"evt3",reason:"No longer needed",now:()=>789});
   const nomination=store.get("accounts/ac1/adminNominations/n3");
   const audit=store.get("accounts/ac1/membershipAudit/evt3");
   assert.equal(result.status,"cancelled");
@@ -67,26 +68,28 @@ test("proposing active admin can cancel pending nomination with atomic audit",as
 });
 test("another active admin cannot cancel a nomination they did not propose",async()=>{
   const {db}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/adminB":admin("adminB"),"accounts/ac1/adminNominations/n3":{...baseNom,accountId:"ac1",nominationId:"n3",status:"pending",nominatedBy:"adminA"}});
-  await assert.rejects(cancelAdminNomination({db,accountId:"ac1",actorUid:"adminB",nominationId:"n3",eventId:"evt3",reason:"Cancel"}),e=>e.code==="permission-denied");
+  await assert.rejects(cancelAdminNomination({db,accountId:"ac1",actorUid:"adminB",actorIdentity:stepUp("adminB"),nominationId:"n3",eventId:"evt3",reason:"Cancel"}),e=>e.code==="permission-denied");
 });
 test("cancellation rejects invalid reason, non-pending and duplicate audit event",async()=>{
   const seed={"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/adminNominations/n3":{...baseNom,accountId:"ac1",nominationId:"n3",status:"pending",nominatedBy:"adminA"}};
   const first=fakeDb(seed);
-  await assert.rejects(cancelAdminNomination({db:first.db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",eventId:"evt3",reason:"   "}),e=>e.code==="invalid-argument");
+  await assert.rejects(cancelAdminNomination({db:first.db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n3",eventId:"evt3",reason:"   "}),e=>e.code==="invalid-argument");
   const duplicate=fakeDb({...seed,"accounts/ac1/membershipAudit/evt3":{type:"existing"}});
-  await assert.rejects(cancelAdminNomination({db:duplicate.db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",eventId:"evt3",reason:"Cancel"}),e=>e.code==="already-exists");
+  await assert.rejects(cancelAdminNomination({db:duplicate.db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n3",eventId:"evt3",reason:"Cancel"}),e=>e.code==="already-exists");
   const closed=fakeDb({...seed,"accounts/ac1/adminNominations/n3":{...seed["accounts/ac1/adminNominations/n3"],status:"approved"}});
-  await assert.rejects(cancelAdminNomination({db:closed.db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",eventId:"evt4",reason:"Cancel"}),e=>e.code==="failed-precondition");
+  await assert.rejects(cancelAdminNomination({db:closed.db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n3",eventId:"evt4",reason:"Cancel"}),e=>e.code==="failed-precondition");
   assert.equal(closed.store.get("accounts/ac1/adminNominations/n3").status,"approved");
 });
 
-test("creation requires a future finite expiry", async()=>{
+test("creation computes a fixed 24-hour expiry from the trusted clock", async()=>{
   const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA")});
-  await assert.rejects(
-    createAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"bad-expiry",...baseNom,expiresAt:1,now:()=>100}),
-    e=>e.code==="invalid-argument"
-  );
-  assert.equal(store.has("accounts/ac1/adminNominations/bad-expiry"),false);
+  const result = await createAdminNomination({
+    db, accountId:"ac1", actorUid:"adminA", actorIdentity:stepUp("adminA",100),
+    nominationId:"fixed-expiry", ...baseNom, expiresAt:1, now:()=>100
+  });
+  assert.equal(result.createdAt,100);
+  assert.equal(result.expiresAt,100 + 24 * 60 * 60 * 1000);
+  assert.equal(store.get("accounts/ac1/adminNominations/fixed-expiry").expiresAt, result.expiresAt);
 });
 
 test("approval rejects mismatched canonical selectors and expired nominations without writes", async()=>{
@@ -100,7 +103,7 @@ test("approval rejects mismatched canonical selectors and expired nominations wi
   const {db,store}=fakeDb(seed);
   for (const nominationId of ["wrong-account","wrong-id","expired"]) {
     await assert.rejects(
-      approveAdminNomination({db,accountId:"ac1",actorUid:"adminB",nominationId,now:()=>1000}),
+      approveAdminNomination({db,accountId:"ac1",actorUid:"adminB",actorIdentity:stepUp("adminB",1000),nominationId,now:()=>1000}),
       e=>e.code==="failed-precondition"
     );
     assert.equal(store.has("accounts/ac1/members/newUser"),false);
@@ -129,11 +132,12 @@ test("approval rejects an invalid trusted clock without changing nomination or m
       db,
       accountId: "ac1",
       actorUid: "adminB",
+      actorIdentity: stepUp("adminB", 0),
       nominationId,
       now: () => Number.NaN
     }),
     error => error.code === "failed-precondition" &&
-      error.message === "Trusted clock returned an invalid approval timestamp."
+      error.message === "Trusted clock returned an invalid authorization timestamp."
   );
 
   assert.equal(store.has("accounts/ac1/members/newUser"), false);
@@ -141,4 +145,41 @@ test("approval rejects an invalid trusted clock without changing nomination or m
     store.get(`accounts/ac1/adminNominations/${nominationId}`),
     nomination
   );
+});
+
+test("nomination proposer and approver fail closed without recent supported MFA", async () => {
+  const {db,store}=fakeDb({
+    "accounts/ac1/members/adminA":admin("adminA"),
+    "accounts/ac1/members/adminB":admin("adminB"),
+    "accounts/ac1/adminNominations/no-mfa":{
+      ...baseNom,accountId:"ac1",nominationId:"no-mfa",status:"pending",
+      nominatedBy:"adminA",expiresAt:Date.now()+60_000
+    }
+  });
+  await assert.rejects(createAdminNomination({
+    db,accountId:"ac1",actorUid:"adminA",
+    actorIdentity:{uid:"adminA",emailVerified:true,authTime:Math.floor(Date.now()/1000),secondFactor:null},
+    nominationId:"blocked-proposal",...baseNom
+  }), error=>error.code==="permission-denied");
+  await assert.rejects(approveAdminNomination({
+    db,accountId:"ac1",actorUid:"adminB",
+    actorIdentity:{uid:"adminB",emailVerified:true,authTime:Math.floor(Date.now()/1000)-301,secondFactor:"phone"},
+    nominationId:"no-mfa"
+  }), error=>error.code==="permission-denied");
+  assert.equal(store.has("accounts/ac1/members/newUser"),false);
+  assert.equal(store.get("accounts/ac1/adminNominations/no-mfa").status,"pending");
+});
+
+test("unknown MFA factor and future auth_time are rejected", async () => {
+  const {db}=fakeDb({"accounts/ac1/members/adminA":admin("adminA")});
+  await assert.rejects(createAdminNomination({
+    db,accountId:"ac1",actorUid:"adminA",
+    actorIdentity:stepUp("adminA",Date.now(),"unknown-factor"),
+    nominationId:"unknown-factor",...baseNom
+  }), error=>error.code==="permission-denied");
+  await assert.rejects(createAdminNomination({
+    db,accountId:"ac1",actorUid:"adminA",
+    actorIdentity:{uid:"adminA",emailVerified:true,authTime:Math.floor(Date.now()/1000)+1,secondFactor:"totp"},
+    nominationId:"future-auth",...baseNom
+  }), error=>error.code==="permission-denied");
 });

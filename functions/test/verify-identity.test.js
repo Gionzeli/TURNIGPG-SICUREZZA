@@ -16,9 +16,9 @@ test("returns immutable UID-only principal derived from verifier claims", async 
   const result = await verifyIdentity("synthetic-token", async (token, revoked) => {
     assert.equal(token, "synthetic-token");
     assert.equal(revoked, true);
-    return { uid: "synthetic-uid-001", email: "test@example.invalid", email_verified: true, role: "client-spoofed" };
+    return { uid: "synthetic-uid-001", email: "test@example.invalid", email_verified: true, auth_time: 123, firebase: { sign_in_second_factor: "totp" }, role: "client-spoofed" };
   });
-  assert.deepEqual(result, { uid: "synthetic-uid-001", email: "test@example.invalid", emailVerified: true });
+  assert.deepEqual(result, { uid: "synthetic-uid-001", email: "test@example.invalid", emailVerified: true, authTime: 123, secondFactor: "totp" });
   assert.equal(Object.isFrozen(result), true);
   assert.equal("role" in result, false);
 });
@@ -64,4 +64,10 @@ test("rejects an expired ID token when the trusted verifier reports expiration",
     error => error.code === "auth/id-token-expired"
   );
   assert.equal(checkRevokedReceived, true);
+});
+
+test("does not infer MFA or recent authentication when verified claims omit them", async () => {
+  const result = await verifyIdentity("synthetic-token", async () => ({ uid: "synthetic-uid-003", email_verified: true }));
+  assert.equal(result.authTime, null);
+  assert.equal(result.secondFactor, null);
 });

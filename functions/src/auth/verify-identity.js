@@ -23,5 +23,5 @@ export async function verifyIdentity(idToken, verifyIdToken) {
     error.code = "unauthenticated";
     throw error;
   }
-  return Object.freeze({ uid: claims.uid, email: claims.email ?? null, emailVerified: true });
+  return Object.freeze({ uid: claims.uid, email: claims.email ?? null, emailVerified: true, authTime: Number.isSafeInteger(claims.auth_time) ? claims.auth_time : null, secondFactor: typeof claims.firebase?.sign_in_second_factor === "string" ? claims.firebase.sign_in_second_factor : null });
 }

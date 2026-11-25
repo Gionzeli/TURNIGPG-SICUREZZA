@@ -3,6 +3,9 @@ import { validateCanonicalMembership } from "./membership-policy.js";
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const ROLES = new Set(["member", "manager", "admin"]);
 const SCOPE_TYPES = new Set(["account", "site", "department"]);
+const MAX_NOMINATION_LIFETIME_MS = 24 * 60 * 60 * 1000;
+const RECENT_AUTH_WINDOW_SECONDS = 5 * 60;
+const ACCEPTED_MFA_FACTORS = new Set(["phone", "totp"]);
 
 function fail(code, message) {
   const error = new Error(message);
@@ -19,29 +22,36 @@ function validRequest({ targetUid, role, scopeType, scopeIds }) {
   if (role === "manager") return scopeType === "site" && scopeIds.length > 0;
   return scopeType !== "account" && scopeIds.length > 0;
 }
-function requireAdmin(membership, uid, accountId) {
+function requireAdmin(membership, uid, accountId, identity, nowMs) {
+  if (!Number.isSafeInteger(nowMs)) fail("failed-precondition", "Trusted clock returned an invalid authorization timestamp.");
+  if (!identity || identity.uid !== uid || identity.emailVerified !== true || !Number.isSafeInteger(identity.authTime)) {
+    fail("permission-denied", "Verified recent MFA authentication required.");
+  }
+  const authAgeSeconds = Math.floor(nowMs / 1000) - identity.authTime;
+  if (authAgeSeconds < 0 || authAgeSeconds > RECENT_AUTH_WINDOW_SECONDS ||
+      !ACCEPTED_MFA_FACTORS.has(identity.secondFactor)) {
+    fail("permission-denied", "Verified recent MFA authentication required.");
+  }
   const normalized = validateCanonicalMembership(membership, uid, accountId);
   if (!normalized || normalized.role !== "admin") fail("permission-denied", "Active account admin required.");
   return normalized;
 }
 
 /**
- * Creates a pending nomination. Only active canonical account admins can propose.
- * expiresAt is a required server-supplied epoch-millisecond deadline. The maximum
- * permitted lifetime remains a policy decision to settle before callable exposure.
+ * Creates a pending nomination. Only active canonical admins with recent MFA
+ * can propose. The 24-hour expiry is computed by the trusted service clock.
  */
-export async function createAdminNomination({ db, accountId, actorUid, nominationId, targetUid, role, scopeType, scopeIds, expiresAt, now = () => Date.now() }) {
+export async function createAdminNomination({ db, accountId, actorUid, actorIdentity, nominationId, targetUid, role, scopeType, scopeIds, now = () => Date.now() }) {
   if (!validId(accountId) || !validId(actorUid) || !validId(nominationId) || !validRequest({ targetUid, role, scopeType, scopeIds })) fail("invalid-argument", "Invalid nomination fields.");
   const nominationRef = db.doc(`accounts/${accountId}/adminNominations/${nominationId}`);
   const actorRef = db.doc(`accounts/${accountId}/members/${actorUid}`);
   return db.runTransaction(async tx => {
     const [actorSnap, nominationSnap] = await Promise.all([tx.get(actorRef), tx.get(nominationRef)]);
-    requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId);
-    if (nominationSnap.exists) fail("already-exists", "Nomination ID already used.");
     const createdAt = now();
-    if (!Number.isSafeInteger(createdAt) || !Number.isSafeInteger(expiresAt) || expiresAt <= createdAt) {
-      fail("invalid-argument", "A finite future nomination expiresAt timestamp is required.");
-    }
+    requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId, actorIdentity, createdAt);
+    if (nominationSnap.exists) fail("already-exists", "Nomination ID already used.");
+    const expiresAt = createdAt + MAX_NOMINATION_LIFETIME_MS;
+    if (!Number.isSafeInteger(expiresAt)) fail("failed-precondition", "Trusted clock returned an invalid nomination expiry.");
     const record = { accountId, nominationId, targetUid, role, scopeType, scopeIds: [...scopeIds], status: "pending", nominatedBy: actorUid, createdAt, expiresAt };
     tx.create(nominationRef, record);
     return Object.freeze({ ...record, scopeIds: Object.freeze([...scopeIds]) });
@@ -49,21 +59,20 @@ export async function createAdminNomination({ db, accountId, actorUid, nominatio
 }
 
 /** Approves a pending, unexpired nomination by a distinct active admin; writes are atomic. */
-export async function approveAdminNomination({ db, accountId, actorUid, nominationId, now = () => Date.now() }) {
+export async function approveAdminNomination({ db, accountId, actorUid, actorIdentity, nominationId, now = () => Date.now() }) {
   if (!validId(accountId) || !validId(actorUid) || !validId(nominationId)) fail("invalid-argument", "Invalid approval selector.");
   const nominationRef = db.doc(`accounts/${accountId}/adminNominations/${nominationId}`);
   const actorRef = db.doc(`accounts/${accountId}/members/${actorUid}`);
   return db.runTransaction(async tx => {
     const [actorSnap, nominationSnap] = await Promise.all([tx.get(actorRef), tx.get(nominationRef)]);
-    const actor = requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId);
+    const approvedAt = now();
+    const actor = requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId, actorIdentity, approvedAt);
     if (!nominationSnap.exists) fail("not-found", "Nomination not found.");
     const nomination = nominationSnap.data();
     if (nomination.status !== "pending") fail("failed-precondition", "Nomination is not pending.");
     if (nomination.accountId !== accountId || nomination.nominationId !== nominationId || !validRequest(nomination)) {
       fail("failed-precondition", "Nomination fields are invalid.");
     }
-    const approvedAt = now();
-    if (!Number.isSafeInteger(approvedAt)) fail("failed-precondition", "Trusted clock returned an invalid approval timestamp.");
     if (!Number.isSafeInteger(nomination.expiresAt) || nomination.expiresAt <= approvedAt) {
       fail("failed-precondition", "Nomination has expired or has an invalid expiry.");
     }
@@ -85,7 +94,7 @@ export async function approveAdminNomination({ db, accountId, actorUid, nominati
  * are committed in one Firestore transaction. The free-text reason must not
  * contain personal, account, or other sensitive data.
  */
-export async function cancelAdminNomination({ db, accountId, actorUid, nominationId, eventId, reason, now = () => Date.now() }) {
+export async function cancelAdminNomination({ db, accountId, actorUid, actorIdentity, nominationId, eventId, reason, now = () => Date.now() }) {
   if (!validId(accountId) || !validId(actorUid) || !validId(nominationId) || !validId(eventId)) {
     fail("invalid-argument", "Invalid cancellation selector.");
   }
@@ -100,7 +109,8 @@ export async function cancelAdminNomination({ db, accountId, actorUid, nominatio
     const [actorSnap, nominationSnap, auditSnap] = await Promise.all([
       tx.get(actorRef), tx.get(nominationRef), tx.get(auditRef)
     ]);
-    requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId);
+    const timestamp = now();
+    requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId, actorIdentity, timestamp);
     if (!nominationSnap.exists) fail("not-found", "Nomination not found.");
     const nomination = nominationSnap.data();
     if (nomination.status !== "pending") fail("failed-precondition", "Nomination is not pending.");
@@ -109,7 +119,6 @@ export async function cancelAdminNomination({ db, accountId, actorUid, nominatio
     }
     if (nomination.nominatedBy !== actorUid) fail("permission-denied", "Only the proposing admin may cancel this nomination.");
     if (auditSnap.exists) fail("already-exists", "Audit event ID already used.");
-    const timestamp = now();
     const audit = {
       eventId, type: "admin_nomination_cancelled", accountId, nominationId,
       actorUid, reason: cleanReason, occurredAt: timestamp
