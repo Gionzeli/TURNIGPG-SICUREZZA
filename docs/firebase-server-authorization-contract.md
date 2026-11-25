@@ -321,3 +321,42 @@ Questa policy non definisce ancora il modello canonico completo delle membership
 - PR #1 deve restare aperta e draft; nessun merge, deploy, migrazione, import o sincronizzazione di dati reali è autorizzato da questo documento.
 
 **Conclusione:** questo file è una specifica da sottoporre a revisione, non un'autorizzazione a implementare o attivare il servizio.
+
+
+## 13. Risoluzione canonica delle risorse account/sede/reparto
+
+**Stato:** contratto logico del resolver isolato; nessun adapter Firestore e nessun percorso documentale approvato.
+
+Il modulo `functions/src/membership/resource-resolver.js` risolve un selettore di risorsa esclusivamente attraverso loader server-side iniettati. Il contratto minimo dei record restituiti dai loader è:
+
+| Record | Campi canonici obbligatori per la risoluzione |
+|---|---|
+| Account | `accountId` |
+| Sede | `accountId`, `siteId` |
+| Reparto | `accountId`, `siteId`, `departmentId` |
+
+I campi identificativi devono corrispondere esattamente ai selettori richiesti. Un reparto è valido solo se il suo `accountId` e il suo `siteId` coincidono con quelli della catena canonica già risolta. Il resolver non usa etichette, nomi visualizzati, ruolo, scope o permessi presenti nel selettore.
+
+### Regole di risoluzione
+
+1. Il principal deve essere già stato autenticato e costruito dal backend; questo modulo non autentica identità né carica membership.
+2. L'account del selettore deve coincidere con `principal.accountId`; l'account canonico viene caricato prima di ogni risorsa discendente.
+3. Una sede viene risolta solo dopo l'account; un reparto solo dopo account e sede.
+4. I record mancanti, malformati, appartenenti a un altro account o collegati a una sede diversa producono `permission-denied` (fail-closed).
+5. Il contesto restituito contiene solo `accountId`, `siteId` e `departmentId`, è congelato e non copia claim dal client.
+6. Dopo la risoluzione, `authorizeResource` applica ruolo, permesso e ambito del principal. L'assegnazione manageriale a una sede continua a comprendere i reparti la cui relazione canonica reparto→sede punta a quella sede, come stabilito nella sezione 9.
+7. I loader devono leggere una fonte autorevole lato server. Non possono derivare record da `request.data`, cache client, UI o documenti controllabili dal chiamante.
+
+### Decisioni ancora necessarie prima di un adapter Firestore
+
+Questo contratto **non** sceglie collezioni, document path, nomi alternativi dei campi, indici, regole di scrittura o procedura di migrazione. In particolare non autorizza ad assumere percorsi come `accounts/{accountId}/sites/{siteId}` o `accounts/{accountId}/sites/{siteId}/departments/{departmentId}`: sono esempi plausibili, non decisioni approvate.
+
+Prima di implementare loader Firestore occorre approvare esplicitamente:
+- percorso canonico e ownership dei documenti account, sede e reparto;
+- unicità e stabilità degli ID e gestione di rinomina, archiviazione e cancellazione;
+- autorità che crea/modifica i legami account→sede e sede→reparto;
+- semantica di trasferimento reparto tra sedi e consistenza atomica durante il trasferimento;
+- modello di lettura server-side e relative regole/permessi, senza cambiare le Firestore Rules operative in questo lavoro;
+- fixture sintetiche dedicate all'emulatore e test negativi cross-account/cross-parent.
+
+Fino a tale approvazione il resolver resta storage-agnostic e non viene collegato a callable, API dati, frontend o runtime operativo. Nessuna migrazione o lettura di dati reali è autorizzata.
