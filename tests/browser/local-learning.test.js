@@ -77,6 +77,27 @@ try {
     assert.equal(learning.normalizeWrittenValue("date", "31/02/2026"), "31/02/2026");
   });
 
+  await run("sincronizza revoca alias tra istanze del browser", async () => {
+    const syncName = "ocr-learning-sync-" + crypto.randomUUID();
+    const first = createLocalLearning({ databaseName: syncName });
+    const second = createLocalLearning({ databaseName: syncName });
+    await Promise.all([first.ready, second.ready]);
+    await first.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
+    if (typeof BroadcastChannel !== "function") {
+      await second.destroy();
+      await first.destroy();
+      return;
+    }
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal(second.list("payroll").length, 1);
+    const id = first.list()[0].id;
+    await first.removeAlias(id);
+    await new Promise(resolve => setTimeout(resolve, 50));
+    assert.equal(second.list("payroll").length, 0);
+    await second.destroy();
+    await first.destroy();
+  });
+
   await run("le regole persistono solo nell'IndexedDB locale e sono revocabili", async () => {
     const reopened = createLocalLearning({ databaseName });
     await reopened.ready;

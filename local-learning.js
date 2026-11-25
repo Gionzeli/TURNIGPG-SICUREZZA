@@ -126,6 +126,27 @@ export function createLocalLearning(options = {}) {
   let records = [];
   let applyEnabled = true;
   let closed = false;
+  const channel = typeof globalThis.BroadcastChannel === "function"
+    ? new BroadcastChannel("ocr-learning-sync:" + databaseName)
+    : null;
+  async function refreshFromDatabase() {
+    if (!database || closed) return;
+    try {
+      const tx = database.transaction(STORE, "readonly");
+      const done = transactionDone(tx);
+      const rows = await requestResult(tx.objectStore(STORE).getAll());
+      await done;
+      records = rows.filter(isValidStoredRule).slice(0, MAX_RULES);
+    } catch (error) {
+      // Un errore di sincronizzazione non interrompe la lettura del documento.
+    }
+  }
+  if (channel) channel.onmessage = event => {
+    if (event?.data?.type === "refresh") refreshFromDatabase();
+  };
+  function announceChange() {
+    try { channel?.postMessage({ type: "refresh" }); } catch { /* canale non disponibile */ }
+  }
 
   const ready = new Promise((resolve, reject) => {
     if (!globalThis.indexedDB) {
@@ -231,6 +252,7 @@ export function createLocalLearning(options = {}) {
     if (limitReached) throw new RangeError("Limite massimo di regole locali raggiunto");
     records = records.filter(item => item.id !== id);
     records.push(rule);
+    announceChange();
     return { ...rule };
   }
 
@@ -242,6 +264,7 @@ export function createLocalLearning(options = {}) {
     tx.objectStore(STORE).delete(String(id));
     await done;
     records = records.filter(rule => rule.id !== id);
+    announceChange();
   }
 
   async function clear() {
@@ -252,6 +275,7 @@ export function createLocalLearning(options = {}) {
     tx.objectStore(STORE).clear();
     await done;
     records = [];
+    announceChange();
   }
 
   function normalizeWrittenValue(type, value) {
@@ -310,11 +334,13 @@ export function createLocalLearning(options = {}) {
       if (database) database.close();
       database = null;
       closed = true;
+      channel?.close();
     },
     async destroy() {
       if (database) database.close();
       database = null;
       closed = true;
+      channel?.close();
       if (!globalThis.indexedDB) return;
       await new Promise((resolve, reject) => {
         const deletion = indexedDB.deleteDatabase(databaseName);
