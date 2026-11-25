@@ -134,6 +134,13 @@ try {
     assert.equal(lifecycle.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale | 1.450,00");
     await assert.rejects(() => lifecycle.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" }));
     upgrade.result.close();
+    // Una nuova istanza deve aprire la versione aggiornata e rileggere i dati persistiti.
+    const recovered = createLocalLearning({ databaseName: lifecycleName });
+    await recovered.ready;
+    assert.equal(recovered.available, true);
+    assert.equal(recovered.list("payroll").length, 1);
+    assert.equal(recovered.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "paga base | 1.450,00");
+    await recovered.destroy();
     await lifecycle.destroy();
   });
 

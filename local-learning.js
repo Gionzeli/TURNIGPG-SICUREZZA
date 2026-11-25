@@ -1,5 +1,4 @@
 const DB_NAME = "turni-gpg-ocr-learning";
-const DB_VERSION = 1;
 const STORE = "rules";
 const MAX_RULES = 120;
 
@@ -162,7 +161,8 @@ export function createLocalLearning(options = {}) {
       reject(new Error("IndexedDB non disponibile: apprendimento locale disattivato"));
       return;
     }
-    const opening = indexedDB.open(databaseName, DB_VERSION);
+    // Usa la versione esistente del database: non tentare downgrade dopo un upgrade.
+    const opening = indexedDB.open(databaseName);
     opening.onupgradeneeded = () => {
       const db = opening.result;
       if (!db.objectStoreNames.contains(STORE)) {
