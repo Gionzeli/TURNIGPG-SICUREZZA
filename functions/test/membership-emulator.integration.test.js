@@ -170,6 +170,39 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
       error => error.code === "already-exists"
     );
     assert.equal((await members.doc("member7").get()).data().status, "active");
+
+    // Concurrent approval attempts against one pending nomination: one winner only.
+    await createAdminNomination({
+      db, accountId, actorUid: "adminB", actorIdentity: verifiedAdminIdentity("adminB", 800), nominationId: "race-approval",
+      targetUid: "raceTarget", role: "member", scopeType: "department",
+      scopeIds: ["dept1"], now: () => 800
+    });
+    const approvalRace = await Promise.allSettled([
+      approveAdminNomination({ db, accountId, actorUid: "adminA", actorIdentity: verifiedAdminIdentity("adminA", 900), nominationId: "race-approval", now: () => 900 }),
+      approveAdminNomination({ db, accountId, actorUid: "adminB", actorIdentity: verifiedAdminIdentity("adminB", 900), nominationId: "race-approval", now: () => 900 })
+    ]);
+    assert.equal(approvalRace.filter(result => result.status === "fulfilled").length, 1);
+    assert.equal(approvalRace.filter(result => result.status === "rejected").length, 1);
+    assert.equal((await members.doc("raceTarget").get()).data().status, "active");
+    assert.equal((await nominations.doc("race-approval").get()).data().status, "approved");
+
+    // Concurrent mutual admin revocations must not leave the account without an admin.
+    const raceAccountId = "race-account";
+    const raceMembers = db.collection(`accounts/${raceAccountId}/members`);
+    const raceAudit = db.collection(`accounts/${raceAccountId}/membershipAudit`);
+    await Promise.all([
+      raceMembers.doc("raceAdminA").set({ uid: "raceAdminA", accountId: raceAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] }),
+      raceMembers.doc("raceAdminB").set({ uid: "raceAdminB", accountId: raceAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] })
+    ]);
+    const revocationRace = await Promise.allSettled([
+      revokeMembership({ db, accountId: raceAccountId, actorUid: "raceAdminA", targetUid: "raceAdminB", eventId: "race-revoke-a", now: () => 1000 }),
+      revokeMembership({ db, accountId: raceAccountId, actorUid: "raceAdminB", targetUid: "raceAdminA", eventId: "race-revoke-b", now: () => 1000 })
+    ]);
+    assert.equal(revocationRace.filter(result => result.status === "fulfilled").length, 1);
+    assert.equal(revocationRace.filter(result => result.status === "rejected").length, 1);
+    const remainingRaceAdmins = await raceMembers.where("role", "==", "admin").where("status", "==", "active").get();
+    assert.equal(remainingRaceAdmins.docs.length, 1);
+    await Promise.all([clear(raceMembers), clear(raceAudit)]);
   } finally {
     await Promise.all([clear(members), clear(nominations), clear(audit)]);
     await deleteApp(app);
