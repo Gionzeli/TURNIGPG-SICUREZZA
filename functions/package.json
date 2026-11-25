@@ -1,6 +1,8 @@
 {
   "name": "dsm-authorization-backend",
   "private": true,
+  "type": "module",
+  "main": "src/index.js",
   "description": "Isolated DSM authorization backend scaffold for Firebase Emulator testing only.",
   "engines": { "node": "20" },
   "scripts": {
