@@ -41,6 +41,18 @@ test("member can access only the assigned department", () => {
   }), error => error.code === "permission-denied");
 });
 
+test("site-scoped member can access resources in the assigned site", () => {
+  const siteMember = { ...member, scopeType: "site", scopeIds: ["siteA"] };
+  assert.equal(authorizeResource({
+    principal: siteMember, permission: "dsm:read:own-scope",
+    resourceContext: resource({ departmentId: null })
+  }).authorized, true);
+  assert.throws(() => authorizeResource({
+    principal: siteMember, permission: "dsm:read:own-scope",
+    resourceContext: resource({ siteId: "siteB", departmentId: null })
+  }), error => error.code === "permission-denied");
+});
+
 test("member cannot use a permission not granted by canonical policy", () => {
   assert.throws(() => authorizeResource({
     principal: member, permission: "dsm:manage:account", resourceContext: resource()
@@ -52,11 +64,25 @@ test("cross-account, malformed, and incomplete resource contexts fail closed", (
     resource({ accountId: "acct2" }),
     resource({ siteId: "../escape" }),
     resource({ siteId: null, departmentId: "deptA" }),
-    { accountId: "acct1", siteId: "siteA", departmentId: "deptA", clientSupplied: true }
+    []
   ]) {
-    if (context.clientSupplied) continue;
     assert.throws(() => authorizeResource({
       principal: manager, permission: "dsm:read:site", resourceContext: context
+    }), error => error.code === "permission-denied");
+  }
+});
+
+test("malformed principals fail closed before scope evaluation", () => {
+  for (const principal of [
+    { ...manager, scopeIds: "siteA" },
+    { ...manager, scopeIds: ["siteA", "../escape"] },
+    { ...manager, scopeIds: ["siteA", "siteA"] },
+    { ...manager, permissions: ["dsm:read:site", null] },
+    { ...manager, scopeType: "account" },
+    []
+  ]) {
+    assert.throws(() => authorizeResource({
+      principal, permission: "dsm:read:site", resourceContext: resource()
     }), error => error.code === "permission-denied");
   }
 });
@@ -73,12 +99,5 @@ test("admin is account-scoped but still requires an allowed permission", () => {
   assert.throws(() => authorizeResource({
     principal: admin, permission: "dsm:manage:memberships",
     resourceContext: resource()
-  }), error => error.code === "permission-denied");
-});
-
-test("malformed principal fails closed", () => {
-  assert.throws(() => authorizeResource({
-    principal: { ...manager, scopeIds: "siteA" },
-    permission: "dsm:read:site", resourceContext: resource()
   }), error => error.code === "permission-denied");
 });

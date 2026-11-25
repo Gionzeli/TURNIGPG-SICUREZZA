@@ -1,4 +1,5 @@
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+const SCOPE_TYPES = new Set(["account", "site", "department"]);
 
 function deny(code = "permission-denied", message = "Resource access denied.") {
   const error = new Error(message);
@@ -12,23 +13,28 @@ function validId(value) {
 /**
  * Pure resource-level authorization.
  *
- * IMPORTANT: resourceContext must be loaded/derived by trusted server code from
- * canonical records. Never pass request.data directly as resourceContext.
- * This function makes no database reads and does not establish that a resource
- * actually exists; callers must resolve it before invoking this policy.
+ * IMPORTANT: principal must be produced by canonical server-side membership
+ * validation, and resourceContext must be loaded/derived by trusted server code
+ * from canonical records. Never pass request.data as either argument.
+ * This function makes no database reads and does not establish resource
+ * existence; callers must resolve both inputs before invoking this policy.
  */
 export function authorizeResource({ principal, permission, resourceContext }) {
-  if (!principal || typeof principal !== "object" ||
+  if (!principal || typeof principal !== "object" || Array.isArray(principal) ||
       !validId(principal.uid) || !validId(principal.accountId) ||
       !["member", "manager", "admin"].includes(principal.role) ||
+      !SCOPE_TYPES.has(principal.scopeType) ||
       !Array.isArray(principal.scopeIds) ||
-      !Array.isArray(principal.permissions)) {
+      principal.scopeIds.some(id => !validId(id)) ||
+      new Set(principal.scopeIds).size !== principal.scopeIds.length ||
+      !Array.isArray(principal.permissions) ||
+      principal.permissions.some(value => typeof value !== "string")) {
     deny("permission-denied", "A canonical principal is required.");
   }
   if (typeof permission !== "string" || !principal.permissions.includes(permission)) {
     deny();
   }
-  if (!resourceContext || typeof resourceContext !== "object" ||
+  if (!resourceContext || typeof resourceContext !== "object" || Array.isArray(resourceContext) ||
       !validId(resourceContext.accountId) ||
       resourceContext.accountId !== principal.accountId) {
     deny();
