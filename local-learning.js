@@ -351,18 +351,36 @@ export function createLocalLearning(options = {}) {
     let duplicate = null;
     let persistedRows = [];
     let limitReached = false;
-    read.onsuccess = () => {
-      const persisted = read.result.filter(isValidStoredRule);
-      persistedRows = persisted;
-      duplicate = persisted.find(item => item.id === id) || null;
-      if (duplicate) return;
-      if (persisted.length >= MAX_RULES) {
-        limitReached = true;
-        return;
-      }
-      store.put(rule);
+    let requestFailure = null;
+    read.onerror = () => {
+      requestFailure = read.error || new Error("Lettura delle regole locali non riuscita");
+      try { tx.abort(); } catch { /* transazione già conclusa */ }
     };
-    await waitForWrite(done);
+    read.onsuccess = () => {
+      try {
+        const persisted = read.result.filter(isValidStoredRule);
+        persistedRows = persisted;
+        duplicate = persisted.find(item => item.id === id) || null;
+        if (duplicate) return;
+        if (persisted.length >= MAX_RULES) {
+          limitReached = true;
+          return;
+        }
+        const write = store.put(rule);
+        write.onerror = () => {
+          requestFailure = write.error || new Error("Scrittura della regola locale non riuscita");
+          // Lascia propagare l'errore alla transazione, che verrà abortita.
+        };
+      } catch (error) {
+        requestFailure = error;
+        try { tx.abort(); } catch { /* transazione già conclusa */ }
+      }
+    };
+    try {
+      await waitForWrite(done);
+    } catch (error) {
+      throw requestFailure || error;
+    }
     assertCurrentStorage(activeDatabase, generation);
     records = persistedRows;
     if (duplicate) return { ...duplicate, duplicate: true };
