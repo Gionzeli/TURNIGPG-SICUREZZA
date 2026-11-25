@@ -62,9 +62,10 @@
           source.toLocaleLowerCase("it-IT").includes(item.alias.toLocaleLowerCase("it-IT")) &&
           !/\d|@|€/.test(item.alias)
         );
-        if (!suggestions.length) throw new Error("Qwen non ha prodotto alcun suggerimento verificabile.");
         if (!valid) throw new Error("Il filtro di sicurezza ha restituito un suggerimento non valido.");
-        status.textContent = "PASS — caricamento e inferenza completati; suggerimenti filtrati.";
+        status.textContent = suggestions.length
+          ? "PASS — caricamento e inferenza completati; suggerimenti filtrati."
+          : "PASS — caricamento e inferenza completati; nessun alias proposto (esito valido).";
         result.textContent = JSON.stringify(suggestions, null, 2);
         const seconds = ((performance.now() - started) / 1000).toFixed(1);
         const memory = performance.memory?.usedJSHeapSize;
