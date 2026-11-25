@@ -1,6 +1,7 @@
 import { authorizeResource } from "./resource-authorization.js";
 
 const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
+const RESOURCE_TYPES = new Set(["account", "site", "department"]);
 
 function deny(message = "Canonical resource could not be resolved.") {
   const error = new Error(message);
@@ -28,7 +29,7 @@ function validRecord(record) {
  * - loadDepartment(accountId, siteId, departmentId)
  *   -> { accountId, siteId, departmentId } | null
  *
- * This adapter is intentionally storage-agnostic because the production
+ * This adapter is intentionally storage-agnostic because production
  * account/site/department document paths have not been approved or defined.
  */
 export async function resolveCanonicalResourceContext({ selector, principal, loaders }) {
@@ -40,26 +41,30 @@ export async function resolveCanonicalResourceContext({ selector, principal, loa
       typeof loaders.loadDepartment !== "function") deny();
 
   const { type, accountId, siteId = null, departmentId = null } = selector;
-  if (!validId(accountId) || accountId !== principal.accountId) deny();
+  if (!RESOURCE_TYPES.has(type) || !validId(accountId) || accountId !== principal.accountId) deny();
+
+  if (type === "account") {
+    if (siteId !== null || departmentId !== null) deny();
+  } else {
+    if (!validId(siteId)) deny();
+    if (type === "site" && departmentId !== null) deny();
+    if (type === "department" && !validId(departmentId)) deny();
+  }
 
   const account = await loaders.loadAccount(accountId);
   if (!validRecord(account) || account.accountId !== accountId) deny();
 
   if (type === "account") {
-    if (siteId !== null || departmentId !== null) deny();
     return Object.freeze({ accountId, siteId: null, departmentId: null });
   }
 
-  if (!validId(siteId)) deny();
   const site = await loaders.loadSite(accountId, siteId);
   if (!validRecord(site) || site.accountId !== accountId || site.siteId !== siteId) deny();
 
   if (type === "site") {
-    if (departmentId !== null) deny();
     return Object.freeze({ accountId, siteId, departmentId: null });
   }
 
-  if (type !== "department" || !validId(departmentId)) deny();
   const department = await loaders.loadDepartment(accountId, siteId, departmentId);
   if (!validRecord(department) ||
       department.accountId !== accountId ||
