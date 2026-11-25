@@ -77,6 +77,28 @@ try {
     assert.equal(learning.normalizeWrittenValue("date", "31/02/2026"), "31/02/2026");
   });
 
+  await run("serializza aggiunte e revoche concorrenti da istanze diverse", async () => {
+    const raceName = "ocr-learning-race-" + crypto.randomUUID();
+    const first = createLocalLearning({ databaseName: raceName });
+    const second = createLocalLearning({ databaseName: raceName });
+    await Promise.all([first.ready, second.ready]);
+    const [one, two] = await Promise.all([
+      first.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" }),
+      second.addAlias({ kind: "payroll", field: "paga_base", alias: "Compenso ordinario" })
+    ]);
+    const verifier = createLocalLearning({ databaseName: raceName });
+    await verifier.ready;
+    assert.equal(verifier.list("payroll").length, 2);
+    await Promise.all([first.removeAlias(one.id), second.removeAlias(two.id)]);
+    const afterRevocation = createLocalLearning({ databaseName: raceName });
+    await afterRevocation.ready;
+    assert.equal(afterRevocation.list("payroll").length, 0);
+    await afterRevocation.destroy();
+    await verifier.destroy();
+    await second.destroy();
+    await first.destroy();
+  });
+
   await run("sincronizza revoca alias tra istanze del browser", async () => {
     const syncName = "ocr-learning-sync-" + crypto.randomUUID();
     const first = createLocalLearning({ databaseName: syncName });
