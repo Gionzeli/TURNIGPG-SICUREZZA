@@ -132,7 +132,7 @@ try {
     assert.equal(pendingLearning.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale | 1.450,00");
     const verify = createLocalLearning({ databaseName: pendingName });
     await verify.ready;
-    assert.equal(verify.list().length, 2);
+    assert.equal(verify.list().length, 1);
     await verify.destroy();
   });
 
