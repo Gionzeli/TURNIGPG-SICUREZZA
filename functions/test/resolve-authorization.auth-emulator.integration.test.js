@@ -70,12 +70,6 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
     const malformedToken = await callAuthorization({ token: "not-a-firebase-id-token" });
     assert.equal((await errorStatus(malformedToken)).status, "UNAUTHENTICATED");
 
-    const malformedSelector = await callAuthorization({ selector: "../other-account" });
-    assert.equal((await errorStatus(malformedSelector)).status, "INVALID_ARGUMENT");
-
-    const missingMembership = await callAuthorization({ selector: `${accountId}-missing` });
-    assert.equal((await errorStatus(missingMembership)).status, "PERMISSION_DENIED");
-
     await members.doc(uid).set({
       uid,
       accountId,
@@ -108,6 +102,13 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
     assert.equal(signIn.ok, true, `Auth Emulator sign-in failed: ${signedIn.error?.message || signIn.status}`);
     idToken = signedIn.idToken;
     assert.equal(typeof idToken, "string");
+
+    // Exercise selector and membership validation with a verified identity.
+    const malformedSelector = await callAuthorization({ selector: "../other-account" });
+    assert.equal((await errorStatus(malformedSelector)).status, "INVALID_ARGUMENT");
+
+    const missingMembership = await callAuthorization({ selector: `${accountId}-missing` });
+    assert.equal((await errorStatus(missingMembership)).status, "PERMISSION_DENIED");
 
     const accepted = await callAuthorization();
     const acceptedBody = await accepted.json();
