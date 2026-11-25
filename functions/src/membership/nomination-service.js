@@ -38,6 +38,9 @@ function requireAdmin(membership, uid, accountId, identity, nowMs) {
 }
 
 /**
+ * INTERNAL SERVICE API: actorIdentity must be the immutable result of verifyIdentity
+ * applied to a bearer token by trusted server code. Never pass request.data or
+ * client-supplied claims here. No callable currently exposes this service.
  * Creates a pending nomination. Only active canonical admins with recent MFA
  * can propose. The 24-hour expiry is computed by the trusted service clock.
  */
@@ -58,7 +61,9 @@ export async function createAdminNomination({ db, accountId, actorUid, actorIden
   });
 }
 
-/** Approves a pending, unexpired nomination by a distinct active admin; writes are atomic. */
+/** INTERNAL SERVICE API: actorIdentity must come from verifyIdentity, never request.data.
+ * Approves a pending, unexpired nomination by a distinct active admin; writes are atomic.
+ */
 export async function approveAdminNomination({ db, accountId, actorUid, actorIdentity, nominationId, now = () => Date.now() }) {
   if (!validId(accountId) || !validId(actorUid) || !validId(nominationId)) fail("invalid-argument", "Invalid approval selector.");
   const nominationRef = db.doc(`accounts/${accountId}/adminNominations/${nominationId}`);
@@ -94,6 +99,7 @@ export async function approveAdminNomination({ db, accountId, actorUid, actorIde
 }
 
 /**
+ * INTERNAL SERVICE API: actorIdentity must come from verifyIdentity, never request.data.
  * Cancels a pending nomination. Policy: only its original proposer, while still
  * an active canonical account admin, may cancel. Cancellation and audit append
  * are committed in one Firestore transaction. The free-text reason must not
