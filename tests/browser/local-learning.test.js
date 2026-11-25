@@ -88,12 +88,17 @@ try {
       await first.destroy();
       return;
     }
-    await new Promise(resolve => setTimeout(resolve, 50));
-    assert.equal(second.list("payroll").length, 1);
+    const waitFor = async expected => {
+      const deadline = Date.now() + 2000;
+      while (second.list("payroll").length !== expected && Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 20));
+      }
+      assert.equal(second.list("payroll").length, expected);
+    };
+    await waitFor(1);
     const id = first.list()[0].id;
     await first.removeAlias(id);
-    await new Promise(resolve => setTimeout(resolve, 50));
-    assert.equal(second.list("payroll").length, 0);
+    await waitFor(0);
     await second.destroy();
     await first.destroy();
   });
