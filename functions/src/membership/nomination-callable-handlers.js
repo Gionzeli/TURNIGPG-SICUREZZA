@@ -14,7 +14,7 @@ function unauthenticated(message) {
 function readBearerToken(request) {
   const authorization = request?.rawRequest?.headers?.authorization;
   if (typeof authorization !== "string") unauthenticated("Bearer ID token required.");
-  const match = /^Bearer ([^\\s]+)$/i.exec(authorization);
+  const match = /^Bearer ([^\s]+)$/i.exec(authorization);
   if (!match) unauthenticated("Bearer ID token required.");
   return match[1];
 }
