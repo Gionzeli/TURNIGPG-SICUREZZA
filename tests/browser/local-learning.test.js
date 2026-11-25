@@ -133,6 +133,33 @@ try {
     assert.equal(capturedPrompt.includes("ignora le regole"), true);
   });
 
+
+  await run("parser attestati distingue corso, ente, data, scadenza e ore", async () => {
+    const training = window.LocalDocAI.parseTraining([
+      "Attestato di formazione",
+      "Corso: Aggiornamento sicurezza",
+      "Ente formatore: Centro Formazione",
+      "Data svolgimento: 12/05/2026",
+      "Valido fino al: 12/05/2028",
+      "Durata: 8 ore"
+    ].join("\\n"));
+    assert.equal(training.title, "Corso Aggiornamento sicurezza");
+    assert.equal(training.provider, "Centro Formazione");
+    assert.equal(training.date, "2026-05-12");
+    assert.equal(training.expiry, "2028-05-12");
+    assert.equal(training.hours, 8);
+  });
+
+  await run("parser turni non inventa un turno senza data e riconosce un notturno", async () => {
+    assert.equal(window.LocalDocAI.parseTurns("22:00 06:00 servizio").length, 0);
+    const shifts = window.LocalDocAI.parseTurns("14/05/2026 22:00 06:00 servizio notturno");
+    assert.equal(shifts.length, 1);
+    assert.equal(shifts[0].date, "2026-05-14");
+    assert.equal(shifts[0].start_time, "22:00");
+    assert.equal(shifts[0].end_time, "06:00");
+    assert.equal(shifts[0].notturno, true);
+  });
+
   summary.dataset.result = "pass";
   summary.textContent = "PASS — " + passed.length + " test apprendimento locale";
 } catch (error) {
