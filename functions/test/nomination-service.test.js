@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { createAdminNomination, approveAdminNomination } from "../src/membership/nomination-service.js";
+import { createAdminNomination, approveAdminNomination, cancelAdminNomination } from "../src/membership/nomination-service.js";
 
 const admin = uid => ({ uid, accountId:"ac1", status:"active", role:"admin", scopeType:"account", scopeIds:[] });
 function fakeDb(seed={}) {
@@ -50,4 +50,32 @@ test("approval rejects malformed or stale nomination and does not write membersh
   const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/adminB":admin("adminB"),"accounts/ac1/adminNominations/n2":{...baseNom,accountId:"ac1",nominationId:"n2",status:"cancelled",nominatedBy:"adminA"}});
   await assert.rejects(approveAdminNomination({db,accountId:"ac1",actorUid:"adminB",nominationId:"n2"}),e=>e.code==="failed-precondition");
   assert.equal(store.has("accounts/ac1/members/newUser"),false);
+});
+
+test("proposing active admin can cancel pending nomination with atomic audit",async()=>{
+  const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA")});
+  await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",...baseNom});
+  const result=await cancelAdminNomination({db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",eventId:"evt3",reason:"No longer needed",now:()=>789});
+  const nomination=store.get("accounts/ac1/adminNominations/n3");
+  const audit=store.get("accounts/ac1/membershipAudit/evt3");
+  assert.equal(result.status,"cancelled");
+  assert.equal(nomination.status,"cancelled");
+  assert.equal(nomination.cancelledBy,"adminA");
+  assert.equal(nomination.cancellationReason,"No longer needed");
+  assert.equal(audit.type,"admin_nomination_cancelled");
+  assert.equal(audit.reason,"No longer needed");
+});
+test("another active admin cannot cancel a nomination they did not propose",async()=>{
+  const {db}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/adminB":admin("adminB"),"accounts/ac1/adminNominations/n3":{...baseNom,accountId:"ac1",nominationId:"n3",status:"pending",nominatedBy:"adminA"}});
+  await assert.rejects(cancelAdminNomination({db,accountId:"ac1",actorUid:"adminB",nominationId:"n3",eventId:"evt3",reason:"Cancel"}),e=>e.code==="permission-denied");
+});
+test("cancellation rejects invalid reason, non-pending and duplicate audit event",async()=>{
+  const seed={"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/adminNominations/n3":{...baseNom,accountId:"ac1",nominationId:"n3",status:"pending",nominatedBy:"adminA"}};
+  const first=fakeDb(seed);
+  await assert.rejects(cancelAdminNomination({db:first.db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",eventId:"evt3",reason:"   "}),e=>e.code==="invalid-argument");
+  const duplicate=fakeDb({...seed,"accounts/ac1/membershipAudit/evt3":{type:"existing"}});
+  await assert.rejects(cancelAdminNomination({db:duplicate.db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",eventId:"evt3",reason:"Cancel"}),e=>e.code==="already-exists");
+  const closed=fakeDb({...seed,"accounts/ac1/adminNominations/n3":{...seed["accounts/ac1/adminNominations/n3"],status:"approved"}});
+  await assert.rejects(cancelAdminNomination({db:closed.db,accountId:"ac1",actorUid:"adminA",nominationId:"n3",eventId:"evt4",reason:"Cancel"}),e=>e.code==="failed-precondition");
+  assert.equal(closed.store.get("accounts/ac1/adminNominations/n3").status,"approved");
 });
