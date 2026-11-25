@@ -5,7 +5,7 @@ import { verifyIdentity } from "./auth/verify-identity.js";
 
 initializeApp();
 
-export const health = onCall({ enforceAppCheck: false }, async () => ({
+export const health = onCall(async () => ({
   status: "ok",
   mode: "isolated-scaffold",
   authorizationImplemented: false
@@ -13,9 +13,14 @@ export const health = onCall({ enforceAppCheck: false }, async () => ({
 
 // Deliberately fail closed: membership and authorization are not implemented yet.
 export const resolveAuthorization = onCall(async (request) => {
-  if (!request.auth) throw new HttpsError("unauthenticated", "Authentication required.");
+  const authorization = request.rawRequest.headers.authorization ?? "";
+  const match = authorization.match(/^Bearer (.+)$/i);
+  if (!match) throw new HttpsError("unauthenticated", "Bearer ID token required.");
+
   try {
-    await verifyIdentity(request.auth.token, async () => request.auth.token);
+    await verifyIdentity(match[1], (token, checkRevoked) =>
+      getAuth().verifyIdToken(token, checkRevoked)
+    );
   } catch {
     throw new HttpsError("unauthenticated", "Identity verification failed.");
   }
