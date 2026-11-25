@@ -1,4 +1,12 @@
-// Lettore documenti locale: estrazione PDF e OCR Tesseract. Nessun modello generativo e nessun upload dei documenti.
+import { createLocalLearning } from "./local-learning.js";
+import { createLocalQwen } from "./local-qwen.js";
+
+const ocrLearning = createLocalLearning();
+let ocrLearningAvailable = true;
+try { await ocrLearning.ready; } catch { ocrLearningAvailable = false; }
+const localQwen = createLocalQwen();
+
+// Lettore locale: OCR PaddleOCR/Tesseract, parser deterministici e suggerimenti Qwen facoltativi. Nessun upload dei documenti.
 let _ocrModule=null;
 async function loadOCR(onProgress){
  if(!window.Tesseract||typeof window.Tesseract.createWorker!=="function"){
@@ -103,7 +111,7 @@ function rowsFromPaddle(items){
    const nextLabel=it.slice(labelEnd+1).find(x=>otherLabelRe.test(x.text));
    const boundary=nextLabel?nextLabel.x0:Infinity;
    const sameRow=it.slice(labelEnd+1).filter(x=>x.x0>=labelX1-2&&x.x0<boundary&&amountRe.test(x.text));
-   if(sameRow.length===1){hints.push(rule.name+": "+sameRow[0].text.trim().replace(/€|\\s/g,""));continue;}
+   if(sameRow.length===1){hints.push(rule.name+": "+sameRow[0].text.trim().replace(/€|\s/g,""));continue;}
    if(sameRow.length>1)continue;
    // Importo nella riga sottostante della stessa tabella: ricerca limitata
    // alla stessa fascia orizzontale e alle righe immediatamente vicine.
@@ -116,7 +124,7 @@ function rowsFromPaddle(items){
     // nella colonna destra: non limitare l'associazione alla larghezza della label.
     // Accetta la riga successiva solo se contiene un unico importo e nessun'altra voce.
     const nums=cells.filter(x=>amountRe.test(x.text));
-    if(nums.length===1){hints.push(rule.name+": "+nums[0].text.trim().replace(/€|\\s/g,""));break;}
+    if(nums.length===1){hints.push(rule.name+": "+nums[0].text.trim().replace(/€|\s/g,""));break;}
     if(nums.length>1)break;
    }
   }
@@ -141,7 +149,7 @@ function rowsFromPaddle(items){
    const amounts=nextCells.filter(x=>amountRe.test(x.text));
    if(!amounts.length)continue;
    if(amounts.length!==2||nextCells.some(x=>!amountRe.test(x.text)))break;
-   labels.forEach((label,index)=>hints.push(label.name+": "+amounts[index].text.trim().replace(/€|\\s/g,"")));
+   labels.forEach((label,index)=>hints.push(label.name+": "+amounts[index].text.trim().replace(/€|\s/g,"")));
    break;
   }
  }
@@ -175,7 +183,7 @@ function labeledValue(lines,aliases,requireCents=false,detail=null){
  const rows=lines.map(x=>norm(String(x||"").replace(/^\s*(?:PAGINA|PAG\.)\s*\d+\s*:?\s*/i,"").replace(/^\s*RIGA\s*\d+\s*:?\s*/i,"").replace(/\u00a0/g," ").replace(/\s*\|\s*/g," ")));
  const valueOf=s=>{const m=String(s||"").match(number);if(!m)return null;const n=italianNumber(m[0]);return n!==null&&n>0?n:null};
  for(const alias of keys){
-  const safeAlias=alias.replace(/[.*+?^${}()|[\]]/g,"\\$&").replace(/\\/g,"\\\\");const label=new RegExp("(^|[^a-z])"+safeAlias.split(/\s+/).join("\\s+")+"(?=$|[^a-z])","i");
+  const safeAlias=alias.replace(/[.*+?^${}()|[\]]/g,"\\$&").replace(/\\/g,"\\\\");const label=new RegExp("(^|[^a-z])"+safeAlias.split(/\s+/).join("\s+")+"(?=$|[^a-z])","i");
   for(let i=0;i<rows.length;i++){
    const hit=label.exec(rows[i]);if(!hit)continue;
    // Quando più etichette precedono tutti gli importi nella stessa riga,
@@ -232,6 +240,12 @@ function findPayrollLabelCandidates(text,customAliases){
  return out.slice(0,12);
 }
 function parsePayslip(text,fields,customAliases){
+ if(ocrLearningAvailable&&ocrLearning.applyEnabled){
+  text=ocrLearning.applyAliases(text,"payroll");
+  const merged={...(customAliases||{})};
+  for(const rule of ocrLearning.list("payroll"))(merged[rule.field]||(merged[rule.field]=[])).push(rule.alias);
+  customAliases=merged;
+ }
  const lines=String(text||"").split(/\r?\n/).map(x=>x.replace(/^RIGA \d+:\s*/i,"").replace(/^Riga \d+:\s*/i,"").replace(/\s*\|\s*/g," ").trim()).filter(Boolean),aliases={
  paga_base:["paga base","minimo tabellare","minimo contrattuale","retribuzione base","retribuzione tabellare","stipendio base","minimo ccnl","minimo contrattuale mensile"],scatti:["scatti","scatti anzianita","scatti di anzianita"],altre_fisse:["superminimo","elemento distinto","indennita fissa","altre voci fisse"],ore_mensili:["ore mensili","orario mensile","ore contrattuali"],ore_turno:["ore turno","durata turno","ore giornaliere"],straordinario_perc:["maggiorazione straordinario","straordinario %","maggiorazione straord"],straordinario_ora:["straordinario euro ora","straordinario orario","compenso straordinario"],notturno_turno:["indennita notturna","maggiorazione notturno","notturno turno"],piantonato_turno:["piantonamento","indennita piantonamento"],domenica_ora:["maggiorazione domenicale","lavoro domenicale","domenica ora"],riposo_non_goduto:["riposo non goduto","riposo lavorato","festivita non goduta"],buono_pasto:["buono pasto","ticket restaurant","ticket"],inps_rate:["aliquota inps","inps %","contributi ivs"],irpef_rate:["aliquota irpef","irpef %","ritenuta irpef"],sindacato:["trattenuta sindacale","sindacato"],cessione:["cessione quinto","cessione del quinto"],altre_trattenute:["altre trattenute","totale trattenute"]};
  // Alcuni PDF/OCR spezzano anche le etichette su righe consecutive
@@ -286,6 +300,7 @@ function fullDate(line){
  m=s.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m){const d=+m[3],mo=+m[2],y=+m[1],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return m[0]}return "";
 }
 function parseTurns(text){
+ if(ocrLearningAvailable&&ocrLearning.applyEnabled)text=ocrLearning.applyAliases(text,"turns");
  const out=[],seen=new Set(),dateRe=/\b(?:\d{1,2}[/. -]\d{1,2}[/. -](?:\d{2}|\d{4})|\d{4}-\d{2}-\d{2})\b/g;
  const timeRe=/\b([01]?\d|2[0-3])\s*[:,.]\s*([0-5]\d)\b/g;
  const lines=String(text||"").replace(/\r/g,"\n").split("\n");let currentDate="",periodStart="";
@@ -315,6 +330,7 @@ function parseTurns(text){
  return out;
 }
 function parseTraining(text){
+ if(ocrLearningAvailable&&ocrLearning.applyEnabled)text=ocrLearning.applyAliases(text,"training");
  const lines=String(text||"").split(/\r?\n/).map(x=>x.replace(/^RIGA \d+:\s*/i,"").replace(/^Riga \d+:\s*/i,"").trim()).filter(Boolean);
  const dateLines=lines.map(x=>({line:x,date:fullDate(x)})).filter(x=>x.date);
  const expiryLine=lines.find(x=>/scadenz|valido fino|da rinnovare|validita fino/i.test(norm(x)))||"";
@@ -326,6 +342,127 @@ function parseTraining(text){
  const providerLine=lines.find(x=>/ente|organizzat|azienda|formatore|istituto/i.test(norm(x)))||"";
  const provider=providerLine.replace(/^.*?(ente|organizzatore|azienda|formatore|istituto)\s*[:\-]?/i,"").slice(0,100);
  const all=lines.join(" "),hm=all.match(/(\d+(?:[,.]\d+)?)\s*(?:ore|h\b)/i);
- return{title:title||(/formazione/.test(norm(all))?"Formazione":""),provider,date,expiry,hours:hm?italianNumber(hm[1]):null};
+ const normalizedTitle=ocrLearning.normalizeWrittenValue("text",title||(/formazione/.test(norm(all))?"Formazione":""));
+ const normalizedProvider=ocrLearning.normalizeWrittenValue("text",provider);
+ return{title:normalizedTitle,provider:normalizedProvider,date:ocrLearning.normalizeWrittenValue("date",date),expiry:ocrLearning.normalizeWrittenValue("date",expiry),hours:hm?italianNumber(hm[1]):null};
 }
-window.LocalDocAI={ocrImages,ocrPayslipImages,parsePayslip,findPayrollLabelCandidates,parseTurns,parseTraining};
+window.LocalDocAI={
+ ocrImages,ocrPayslipImages,parsePayslip,findPayrollLabelCandidates,parseTurns,parseTraining,
+ learning:{
+  available:()=>ocrLearningAvailable,
+  list:kind=>ocrLearningAvailable?ocrLearning.list(kind):[],
+  addAlias:input=>ocrLearningAvailable?ocrLearning.addAlias(input):Promise.reject(new Error("Archivio apprendimento non disponibile")),
+  removeAlias:id=>ocrLearningAvailable?ocrLearning.removeAlias(id):Promise.reject(new Error("Archivio apprendimento non disponibile")),
+  clear:()=>ocrLearningAvailable?ocrLearning.clear():Promise.reject(new Error("Archivio apprendimento non disponibile")),
+  setApplyEnabled:value=>ocrLearningAvailable&&ocrLearning.setApplyEnabled(value),
+  normalizeWrittenValue:(type,value)=>ocrLearning.normalizeWrittenValue(type,value)
+ }
+};
+
+function mountLocalLearningUI(){
+ const anchor=document.getElementById("aistat");
+ if(!anchor||document.getElementById("ocrLearningPanel"))return;
+ const kinds={
+  payroll:{label:"Busta paga",fields:[["paga_base","Paga base"],["scatti","Scatti"],["altre_fisse","Altre voci fisse"],["ore_mensili","Ore mensili"],["ore_turno","Ore turno"],["straordinario_perc","Maggiorazione straordinario"],["straordinario_ora","Compenso straordinario"],["notturno_turno","Indennità notturna"],["piantonato_turno","Piantonamento"],["domenica_ora","Maggiorazione domenicale"],["riposo_non_goduto","Riposo non goduto"],["buono_pasto","Buono pasto"],["inps_rate","Aliquota INPS"],["irpef_rate","Aliquota IRPEF"],["sindacato","Trattenuta sindacale"],["cessione","Cessione del quinto"],["altre_trattenute","Altre trattenute"]]},
+  turns:{label:"Turni",fields:[["turno","Turno"],["riposo","Riposo"],["riposo_compensativo","Riposo compensativo"],["ferie","Ferie"],["permesso","Permesso"],["malattia","Malattia"]]},
+  training:{label:"Formazione",fields:[["title","Titolo corso"],["issuer","Ente"],["date","Data"],["expiry","Scadenza"],["hours","Durata"]]}
+ };
+ const panel=document.createElement("details");
+ panel.id="ocrLearningPanel";
+ panel.className="upc";
+ panel.style.marginTop="10px";
+ const summary=document.createElement("summary");
+ summary.textContent="Modalità apprendimento locale";
+ panel.append(summary);
+ const intro=document.createElement("p");
+ intro.className="hint";
+ intro.textContent="Impara solo etichette generiche e formati. Non salva PDF, foto, testo OCR, importi o dati personali. Le correzioni vengono applicate ai documenti successivi solo tramite i parser e le anteprime già esistenti.";
+ panel.append(intro);
+ const applyLabel=document.createElement("label");
+ const apply=document.createElement("input");apply.type="checkbox";apply.checked=true;apply.disabled=!ocrLearningAvailable;
+ apply.addEventListener("change",()=>ocrLearning.setApplyEnabled(apply.checked));
+ applyLabel.append(apply,document.createTextNode(" Usa le regole locali approvate"));
+ panel.append(applyLabel);
+ const kind=document.createElement("select");
+ Object.entries(kinds).forEach(([value,item])=>{const option=document.createElement("option");option.value=value;option.textContent=item.label;kind.append(option)});
+ const field=document.createElement("select");
+ const updateFields=()=>{field.replaceChildren();for(const [value,label] of kinds[kind.value].fields){const option=document.createElement("option");option.value=value;option.textContent=label;field.append(option)}};
+ kind.addEventListener("change",updateFields);updateFields();
+ const alias=document.createElement("input");alias.type="text";alias.maxLength=48;alias.autocomplete="off";alias.placeholder="Etichetta generica letta dal documento";
+ const save=document.createElement("button");save.type="button";save.textContent="Salva regola";
+ const form=document.createElement("div");form.className="row";form.style.marginTop="8px";
+ form.append(kind,field,alias,save);panel.append(form);
+ const note=document.createElement("p");note.className="hint";note.textContent="Esempio: associa “retribuzione contrattuale” a “Paga base”. Non inserire nomi, codici, date o importi.";
+ panel.append(note);
+ const qwenRow=document.createElement("div");qwenRow.className="row";qwenRow.style.marginTop="8px";
+ const qwenInit=document.createElement("button");qwenInit.type="button";qwenInit.textContent="Prepara Qwen locale";
+ const qwenAutoLabel=document.createElement("label");const qwenAuto=document.createElement("input");qwenAuto.type="checkbox";qwenAuto.disabled=true;
+ qwenAutoLabel.append(qwenAuto,document.createTextNode(" Suggerisci etichette durante la lettura"));
+ qwenRow.append(qwenInit,qwenAutoLabel);panel.append(qwenRow);
+ const qwenStatus=document.createElement("p");qwenStatus.className="hint";qwenStatus.textContent="Qwen è facoltativo. Al primo avvio scarica i pesi del modello; l'inferenza resta sul dispositivo.";
+ panel.append(qwenStatus);
+ const suggestions=document.createElement("div");suggestions.className="hint";panel.append(suggestions);
+ const status=document.createElement("p");status.className="hint";status.setAttribute("role","status");panel.append(status);
+ const rules=document.createElement("div");panel.append(rules);
+ const clear=document.createElement("button");clear.type="button";clear.textContent="Cancella tutte le regole apprese";clear.className="ic";panel.append(clear);
+ anchor.parentElement?.after(panel);
+ let lastKind="payroll";
+ const fieldLabel=(k,f)=>kinds[k]?.fields.find(x=>x[0]===f)?.[1]||f;
+ const renderRules=()=>{
+  rules.replaceChildren();
+  if(!ocrLearningAvailable){status.textContent="Archivio locale non disponibile: la modalità apprendimento è disattivata.";return}
+  const all=ocrLearning.list();
+  if(!all.length){const empty=document.createElement("p");empty.className="hint";empty.textContent="Nessuna regola appresa. Puoi aggiungere un'etichetta corretta o approvare un suggerimento Qwen.";rules.append(empty);return}
+  for(const rule of all){
+   const row=document.createElement("div");row.className="row";row.style.justifyContent="space-between";
+   const text=document.createElement("span");text.textContent=rule.alias+" → "+fieldLabel(rule.kind,rule.field);
+   const remove=document.createElement("button");remove.type="button";remove.className="ic";remove.textContent="Rimuovi";
+   remove.addEventListener("click",async()=>{try{await ocrLearning.removeAlias(rule.id);renderRules();status.textContent="Regola rimossa."}catch{status.textContent="Non sono riuscito a rimuovere la regola."}});
+   row.append(text,remove);rules.append(row);
+  }
+ };
+ save.addEventListener("click",async()=>{
+  try{await ocrLearning.addAlias({kind:kind.value,field:field.value,alias:alias.value});alias.value="";status.textContent="Regola salvata solo in IndexedDB su questo dispositivo.";renderRules()}
+  catch(error){status.textContent=error?.message||"Etichetta non valida."}
+ });
+ clear.addEventListener("click",async()=>{
+  if(!confirm("Cancellare tutte le regole generiche apprese su questo dispositivo?"))return;
+  try{await ocrLearning.clear();suggestions.replaceChildren();status.textContent="Regole locali cancellate.";renderRules()}
+  catch{status.textContent="Non sono riuscito a cancellare l'archivio locale."}
+ });
+ qwenInit.addEventListener("click",async()=>{
+  qwenInit.disabled=true;qwenStatus.textContent="Avvio Qwen locale…";
+  try{const result=await localQwen.init(message=>{qwenStatus.textContent=message});qwenStatus.textContent="Qwen pronto su "+result.backend+". Il testo dei documenti viene elaborato localmente.";qwenAuto.disabled=false;qwenInit.textContent="Qwen locale pronto"}
+  catch(error){qwenStatus.textContent="Qwen non disponibile: "+String(error?.message||error).slice(0,160);qwenInit.disabled=false}
+ });
+ const originalRead=window.readDocumentText;
+ if(typeof originalRead==="function"&&!originalRead.__ocrLearningWrapped){
+  const wrappedRead=async function(file,readerStatus,documentKind){
+   const text=await originalRead.apply(this,arguments);
+   lastKind=documentKind==="p"?"payroll":documentKind==="t"?"turns":"training";
+   suggestions.replaceChildren();
+   if(qwenAuto.checked&&localQwen.ready){
+    try{
+     const proposed=await localQwen.suggestAliases(text,lastKind,message=>{qwenStatus.textContent=message});
+     if(proposed.length){
+      const heading=document.createElement("p");heading.textContent="Etichette candidate da verificare (nessuna viene salvata automaticamente):";suggestions.append(heading);
+      for(const item of proposed){
+       const row=document.createElement("div");row.className="row";row.style.justifyContent="space-between";
+       const label=document.createElement("span");label.textContent=item.alias+" → "+fieldLabel(item.kind,item.field);
+       const accept=document.createElement("button");accept.type="button";accept.textContent="Approva";
+       accept.addEventListener("click",async()=>{try{await ocrLearning.addAlias(item);accept.disabled=true;accept.textContent="Salvata";renderRules()}catch(error){status.textContent=error?.message||"Suggerimento non salvato"}});
+       row.append(label,accept);suggestions.append(row);
+      }
+     }else{suggestions.textContent="Qwen non ha trovato etichette generiche nuove e verificabili."}
+    }catch(error){qwenStatus.textContent="Suggerimenti non disponibili: "+String(error?.message||error).slice(0,140)}
+   }
+   return text;
+  };
+  wrappedRead.__ocrLearningWrapped=true;
+  window.readDocumentText=wrappedRead;
+ }
+ renderRules();
+}
+if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",mountLocalLearningUI,{once:true});
+else mountLocalLearningUI();
+

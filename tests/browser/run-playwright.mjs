@@ -128,6 +128,22 @@ try {
   await crossTabContext.close();
   console.log("PASS — real BroadcastChannel invalidation between two same-origin browser pages");
 
+  const learningPage = await browser.newPage();
+  const learningErrors = [];
+  const learningRequests = [];
+  learningPage.on("pageerror", error => learningErrors.push(error.message));
+  learningPage.on("request", request => learningRequests.push(request.url()));
+  await learningPage.goto("http://127.0.0.1:8000/tests/browser/local-learning.html", { waitUntil: "load" });
+  await learningPage.waitForFunction(() => document.querySelector("#summary")?.dataset.result === "pass" ||
+    document.querySelector("#summary")?.dataset.result === "fail", null, { timeout: 10000 });
+  assert.equal(await learningPage.locator("#summary").getAttribute("data-result"), "pass",
+    await learningPage.locator("#summary").textContent());
+  assert.equal(learningErrors.length, 0, learningErrors.join("; "));
+  assert.ok(learningRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "La modalità apprendimento ha effettuato richieste esterne.");
+  console.log(await learningPage.locator("#summary").textContent());
+  await learningPage.close();
+
   const reportPage = await browser.newPage();
   const reportErrors = [];
   const requestedUrls = [];
