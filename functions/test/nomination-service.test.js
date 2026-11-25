@@ -66,6 +66,31 @@ test("proposing active admin can cancel pending nomination with atomic audit",as
   assert.equal(audit.type,"admin_nomination_cancelled");
   assert.equal(audit.reason,"No longer needed");
 });
+test("cancellation requires the same verified recent MFA identity as the actor", async () => {
+  const nominationId = "cancel-step-up";
+  const seed = {
+    "accounts/ac1/members/adminA": admin("adminA"),
+    [`accounts/ac1/adminNominations/${nominationId}`]: {
+      ...baseNom, accountId: "ac1", nominationId, status: "pending", nominatedBy: "adminA"
+    }
+  };
+  const {db,store} = fakeDb(seed);
+  const common = {
+    db, accountId: "ac1", actorUid: "adminA", nominationId,
+    eventId: "cancel-step-up-event", reason: "Synthetic negative case", now: () => 10_000
+  };
+  await assert.rejects(cancelAdminNomination({
+    ...common,
+    actorIdentity: { uid: "adminA", emailVerified: true, authTime: 10, secondFactor: null }
+  }), error => error.code === "permission-denied");
+  await assert.rejects(cancelAdminNomination({
+    ...common,
+    actorIdentity: stepUp("different-admin", 10_000)
+  }), error => error.code === "permission-denied");
+  assert.equal(store.get(`accounts/ac1/adminNominations/${nominationId}`).status, "pending");
+  assert.equal(store.has("accounts/ac1/membershipAudit/cancel-step-up-event"), false);
+});
+
 test("another active admin cannot cancel a nomination they did not propose",async()=>{
   const {db}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/adminB":admin("adminB"),"accounts/ac1/adminNominations/n3":{...baseNom,accountId:"ac1",nominationId:"n3",status:"pending",nominatedBy:"adminA"}});
   await assert.rejects(cancelAdminNomination({db,accountId:"ac1",actorUid:"adminB",actorIdentity:stepUp("adminB"),nominationId:"n3",eventId:"evt3",reason:"Cancel"}),e=>e.code==="permission-denied");
