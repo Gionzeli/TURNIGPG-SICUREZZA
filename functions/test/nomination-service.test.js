@@ -40,8 +40,8 @@ test("rejects non-admin proposer and duplicate nomination id",async()=>{
 });
 test("approval requires different active admin and atomically activates membership",async()=>{
   const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/adminB":admin("adminB")});
-  await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n1",...baseNom});
-  await assert.rejects(approveAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n1"}),e=>e.code==="permission-denied");
+  await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA",123),nominationId:"n1",...baseNom,now:()=>123});
+  await assert.rejects(approveAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA",123),nominationId:"n1",now:()=>123}),e=>e.code==="permission-denied");
   const result=await approveAdminNomination({db,accountId:"ac1",actorUid:"adminB",actorIdentity:stepUp("adminB",456),nominationId:"n1",now:()=>456});
   assert.equal(result.status,"approved");
   assert.equal(store.get("accounts/ac1/members/newUser").status,"active");
