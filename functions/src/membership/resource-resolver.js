@@ -11,7 +11,13 @@ function deny(message = "Canonical resource could not be resolved.") {
 function validId(value) {
   return typeof value === "string" && ID_PATTERN.test(value);
 }
-async function loadCanonical(loader, args) {\n  try {\n    return await loader(...args);\n  } catch {\n    deny();\n  }\n}\nfunction validRecord(record) {
+async function loadCanonical(loader, args) {
+  try {
+    return await loader(...args);
+  } catch {
+    deny();
+  }
+}\nfunction validRecord(record) {
   return Boolean(record && typeof record === "object" && !Array.isArray(record));
 }
 
