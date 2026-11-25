@@ -136,21 +136,24 @@ try {
     await verify.destroy();
   });
 
-  await run("destroy invalida subito cache e alias anche se un'altra scheda blocca la cancellazione", async () => {
+  await run("destroy invalida subito cache e alias se una connessione esterna blocca la cancellazione", async () => {
     const destroyName = "ocr-learning-destroy-" + crypto.randomUUID();
-    const owner = createLocalLearning({ databaseName: destroyName });
     const deleting = createLocalLearning({ databaseName: destroyName });
-    await Promise.all([owner.ready, deleting.ready]);
-    await owner.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
-    // Forza una lettura aggiornata nella seconda istanza prima di chiedere la cancellazione.
-    await new Promise(resolve => setTimeout(resolve, 30));
-    assert.equal(deleting.list().length, 1);
+    await deleting.ready;
+    await deleting.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
+    // Connessione raw senza handler versionchange: simula una scheda legacy bloccante.
+    const blockerRequest = indexedDB.open(destroyName);
+    const blocker = await new Promise((resolve, reject) => {
+      blockerRequest.onsuccess = () => resolve(blockerRequest.result);
+      blockerRequest.onerror = () => reject(blockerRequest.error);
+    });
     await assert.rejects(() => deleting.destroy());
     assert.equal(deleting.available, false);
     assert.equal(deleting.list().length, 0);
     assert.equal(deleting.applyEnabled, false);
     assert.equal(deleting.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale | 1.450,00");
-    owner.close();
+    blocker.close();
+    await new Promise(resolve => setTimeout(resolve, 30));
   });
 
   await run("la cancellazione del database invalida le altre schede via versionchange", async () => {
@@ -169,6 +172,38 @@ try {
     assert.equal(owner.list().length, 0);
     assert.equal(owner.applyEnabled, false);
     assert.equal(owner.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale | 1.450,00");
+  });
+
+  await run("BroadcastChannel non disponibile non impedisce la persistenza locale", async () => {
+    const original = globalThis.BroadcastChannel;
+    try {
+      globalThis.BroadcastChannel = class { constructor() { throw new Error("canale non consentito"); } };
+      const degraded = createLocalLearning({ databaseName: "ocr-learning-no-channel-" + crypto.randomUUID() });
+      await degraded.ready;
+      assert.equal(degraded.available, true);
+      assert.equal(degraded.syncChannelAvailable, false);
+      await degraded.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
+      assert.equal(degraded.list().length, 1);
+      await degraded.destroy();
+    } finally { globalThis.BroadcastChannel = original; }
+  });
+
+  await run("un errore postMessage disattiva la sincronizzazione senza annullare la scrittura", async () => {
+    const original = globalThis.BroadcastChannel;
+    try {
+      globalThis.BroadcastChannel = class {
+        constructor() { this.onmessage = null; }
+        postMessage() { throw new Error("canale interrotto"); }
+        close() {}
+      };
+      const degraded = createLocalLearning({ databaseName: "ocr-learning-post-failure-" + crypto.randomUUID() });
+      await degraded.ready;
+      assert.equal(degraded.syncChannelAvailable, true);
+      await degraded.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
+      assert.equal(degraded.list().length, 1);
+      assert.equal(degraded.syncChannelAvailable, false);
+      await degraded.destroy();
+    } finally { globalThis.BroadcastChannel = original; }
   });
 
   await run("sincronizza revoca alias tra istanze del browser", async () => {

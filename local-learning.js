@@ -127,9 +127,20 @@ export function createLocalLearning(options = {}) {
   let closed = false;
   let storageGeneration = 0;
   const activeTransactions = new Set();
-  const channel = typeof globalThis.BroadcastChannel === "function"
-    ? new BroadcastChannel("ocr-learning-sync:" + databaseName)
-    : null;
+  let channel = null;
+  let syncChannelAvailable = false;
+  try {
+    if (typeof globalThis.BroadcastChannel === "function") {
+      channel = new BroadcastChannel("ocr-learning-sync:" + databaseName);
+      channel.onmessage = event => {
+        if (event?.data?.type === "refresh" && !closed) refreshFromDatabase();
+      };
+      syncChannelAvailable = true;
+    }
+  } catch {
+    try { channel?.close(); } catch { /* canale non inizializzato */ }
+    channel = null;
+  }
   async function refreshFromDatabase() {
     if (!database || closed) return;
     const activeDatabase = database;
@@ -169,7 +180,9 @@ export function createLocalLearning(options = {}) {
     activeTransactions.clear();
     if (database) database.close();
     database = null;
-    channel?.close();
+    try { channel?.close(); } catch { /* canale già chiuso */ }
+    channel = null;
+    syncChannelAvailable = false;
   }
   async function waitForWrite(done) {
     try {
@@ -180,11 +193,17 @@ export function createLocalLearning(options = {}) {
       throw error;
     }
   }
-  if (channel) channel.onmessage = event => {
-    if (event?.data?.type === "refresh" && !closed) refreshFromDatabase();
-  };
   function announceChange() {
-    try { channel?.postMessage({ type: "refresh" }); } catch { /* canale non disponibile */ }
+    if (!channel || !syncChannelAvailable) return false;
+    try {
+      channel.postMessage({ type: "refresh" });
+      return true;
+    } catch {
+      syncChannelAvailable = false;
+      try { channel.close(); } catch { /* canale già chiuso */ }
+      channel = null;
+      return false;
+    }
   }
 
   const ready = new Promise((resolve, reject) => {
@@ -404,7 +423,8 @@ export function createLocalLearning(options = {}) {
     clear,
     applyAliases,
     normalizeWrittenValue,
-    setApplyEnabled(value) { applyEnabled = value === true; },
+    setApplyEnabled(value) { applyEnabled = value === true && !closed && !!database; },
+    get syncChannelAvailable() { return syncChannelAvailable && !!channel; },
     get applyEnabled() { return applyEnabled; },
     get available() { return !!database && !closed; },
     close() {
