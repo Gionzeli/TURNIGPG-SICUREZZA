@@ -39,7 +39,7 @@ try {
   });
 
   await run("applica l'alias solo come etichetta e conserva l'importo OCR", async () => {
-    const result = learning.applyAliases("Retribuzione contrattuale: 1.450,00", "payroll");
+    const result = learning.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll");
     assert.equal(result, "paga base: 1.450,00");
   });
 
