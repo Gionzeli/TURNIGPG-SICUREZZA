@@ -1,0 +1,32 @@
+name: DSM authorization backend unit tests
+
+on:
+  push:
+    branches:
+      - dsm-enterprise/core-v1
+    paths:
+      - "functions/**"
+      - ".github/workflows/functions-backend-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  membership-service-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Install isolated backend dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run backend unit tests
+        run: npm test
