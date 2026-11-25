@@ -227,6 +227,37 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     }
     await Promise.all([clear(raceCancelMembers), clear(raceCancelNominations), clear(raceCancelAudit)]);
 
+    // Approval racing with revocation of the approving admin must never
+    // authorize using a membership that has already been revoked.
+    const raceApprovalRevocationAccountId = "race-approval-revocation-account";
+    const raceApprovalRevocationMembers = db.collection(`accounts/${raceApprovalRevocationAccountId}/members`);
+    const raceApprovalRevocationNominations = db.collection(`accounts/${raceApprovalRevocationAccountId}/adminNominations`);
+    await Promise.all([
+      raceApprovalRevocationMembers.doc("raceApprovalRevocationProposer").set({ uid: "raceApprovalRevocationProposer", accountId: raceApprovalRevocationAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] }),
+      raceApprovalRevocationMembers.doc("raceApprovalRevocationApprover").set({ uid: "raceApprovalRevocationApprover", accountId: raceApprovalRevocationAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] })
+    ]);
+    await createAdminNomination({
+      db, accountId: raceApprovalRevocationAccountId, actorUid: "raceApprovalRevocationProposer", actorIdentity: verifiedAdminIdentity("raceApprovalRevocationProposer", 1200), nominationId: "race-approval-revocation",
+      targetUid: "raceApprovalRevocationTarget", role: "member", scopeType: "department", scopeIds: ["dept1"], now: () => 1200
+    });
+    const approvalRevocationRace = await Promise.allSettled([
+      approveAdminNomination({ db, accountId: raceApprovalRevocationAccountId, actorUid: "raceApprovalRevocationApprover", actorIdentity: verifiedAdminIdentity("raceApprovalRevocationApprover", 1300), nominationId: "race-approval-revocation", now: () => 1300 }),
+      revokeMembership({ db, accountId: raceApprovalRevocationAccountId, actorUid: "raceApprovalRevocationProposer", targetUid: "raceApprovalRevocationApprover", eventId: "race-approval-revoke-event", now: () => 1300 })
+    ]);
+    assert.equal(approvalRevocationRace[1].status, "fulfilled");
+    const approvalRevocationNomination = (await raceApprovalRevocationNominations.doc("race-approval-revocation").get()).data();
+    const approvalRevocationTarget = await raceApprovalRevocationMembers.doc("raceApprovalRevocationTarget").get();
+    assert.equal((await raceApprovalRevocationMembers.doc("raceApprovalRevocationApprover").get()).data().status, "revoked");
+    if (approvalRevocationRace[0].status === "fulfilled") {
+      assert.equal(approvalRevocationNomination.status, "approved");
+      assert.equal(approvalRevocationTarget.data().status, "active");
+    } else {
+      assert.equal(approvalRevocationNomination.status, "pending");
+      assert.equal(approvalRevocationTarget.exists, false);
+      assert.equal(approvalRevocationRace[0].reason.code, "permission-denied");
+    }
+    await Promise.all([clear(raceApprovalRevocationMembers), clear(raceApprovalRevocationNominations), clear(db.collection(`accounts/${raceApprovalRevocationAccountId}/membershipAudit`))]);
+
     // Concurrent mutual admin revocations must not leave the account without an admin.
     const raceAccountId = "race-account";
     const raceMembers = db.collection(`accounts/${raceAccountId}/members`);
