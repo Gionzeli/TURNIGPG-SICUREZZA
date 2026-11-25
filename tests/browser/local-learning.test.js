@@ -93,10 +93,12 @@ try {
     const afterRevocation = createLocalLearning({ databaseName: raceName });
     await afterRevocation.ready;
     assert.equal(afterRevocation.list("payroll").length, 0);
+    // Chiudi tutte le connessioni prima di deleteDatabase: altrimenti il cleanup
+    // può restare bloccato dalle altre istanze ancora aperte.
+    first.close();
+    second.close();
+    verifier.close();
     await afterRevocation.destroy();
-    await verifier.destroy();
-    await second.destroy();
-    await first.destroy();
   });
 
   await run("sincronizza revoca alias tra istanze del browser", async () => {
