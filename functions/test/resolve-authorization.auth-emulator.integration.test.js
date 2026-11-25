@@ -23,6 +23,8 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
   const members = db.collection(`accounts/${accountId}/members`);
   let uid;
   let idToken;
+  const email = `dsm-emulator-${uidSuffix}@example.invalid`;
+  const password = `Synthetic-${randomUUID()}-9a!`;
 
   async function callAuthorization({ token = idToken, selector = accountId, includeAuthorization = true } = {}) {
     const headers = { "content-type": "application/json" };
@@ -49,8 +51,8 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
-          email: `dsm-emulator-${uidSuffix}@example.invalid`,
-          password: `Synthetic-${randomUUID()}-9a!`,
+          email,
+          password,
           returnSecureToken: true
         })
       }
@@ -83,6 +85,29 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
       scopeIds: ["synthetic-department"],
       permissions: ["dsm:manage:account"]
     });
+
+    // A valid token and active membership are still insufficient until
+    // the email_verified claim is true in the server-verified ID token.
+    const unverifiedEmail = await callAuthorization();
+    assert.equal(
+      (await errorStatus(unverifiedEmail)).status,
+      "UNAUTHENTICATED",
+      "An unverified email must not obtain a callable principal."
+    );
+
+    await auth.updateUser(uid, { emailVerified: true });
+    const signIn = await fetch(
+      `http://${authEmulator}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake-api-key`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, password, returnSecureToken: true })
+      }
+    );
+    const signedIn = await signIn.json();
+    assert.equal(signIn.ok, true, `Auth Emulator sign-in failed: ${signedIn.error?.message || signIn.status}`);
+    idToken = signedIn.idToken;
+    assert.equal(typeof idToken, "string");
 
     const accepted = await callAuthorization();
     const acceptedBody = await accepted.json();

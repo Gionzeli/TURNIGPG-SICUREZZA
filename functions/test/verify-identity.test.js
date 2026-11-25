@@ -23,6 +23,17 @@ test("returns immutable UID-only principal derived from verifier claims", async 
   assert.equal("role" in result, false);
 });
 
+test("rejects an identity whose verified-email claim is false", async () => {
+  await assert.rejects(
+    () => verifyIdentity("synthetic-unverified-token", async () => ({
+      uid: "synthetic-uid-002",
+      email: "unverified@example.invalid",
+      email_verified: false
+    })),
+    { code: "unauthenticated" }
+  );
+});
+
 test("rejects malformed verifier claims", async () => {
   await assert.rejects(() => verifyIdentity("synthetic-token", async () => ({ email: "x" })), { code: "unauthenticated" });
 });

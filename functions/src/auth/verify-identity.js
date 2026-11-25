@@ -18,5 +18,10 @@ export async function verifyIdentity(idToken, verifyIdToken) {
     error.code = "unauthenticated";
     throw error;
   }
-  return Object.freeze({ uid: claims.uid, email: claims.email ?? null, emailVerified: claims.email_verified === true });
+  if (claims.email_verified !== true) {
+    const error = new Error("Verified email required");
+    error.code = "unauthenticated";
+    throw error;
+  }
+  return Object.freeze({ uid: claims.uid, email: claims.email ?? null, emailVerified: true });
 }
