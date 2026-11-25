@@ -210,3 +210,42 @@ test("rejects malformed principal identity before invoking any loader", async ()
   }), error => error.code === "permission-denied");
   assert.deepEqual(calls, []);
 });
+
+test("denies malformed canonical site records before department lookup", async () => {
+  const selector = {
+    type: "department", accountId: "acct1", siteId: "siteA", departmentId: "deptA"
+  };
+  const malformedSiteRecords = [
+    null,
+    {},
+    { accountId: "acct1" },
+    { accountId: "acct1", siteId: "site-other" },
+    { accountId: "acct-other", siteId: "siteA" }
+  ];
+
+  for (const siteRecord of malformedSiteRecords) {
+    const observed = [];
+    const malformedSiteLoaders = {
+      async loadAccount(accountId) {
+        observed.push(["account", accountId]);
+        return records.account;
+      },
+      async loadSite(accountId, siteId) {
+        observed.push(["site", accountId, siteId]);
+        return siteRecord;
+      },
+      async loadDepartment(accountId, siteId, departmentId) {
+        observed.push(["department", accountId, siteId, departmentId]);
+        return records.department;
+      }
+    };
+
+    await assert.rejects(resolveCanonicalResourceContext({
+      principal, selector, loaders: malformedSiteLoaders
+    }), error => error.code === "permission-denied");
+    assert.deepEqual(observed, [
+      ["account", "acct1"],
+      ["site", "acct1", "siteA"]
+    ]);
+  }
+});
