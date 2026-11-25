@@ -1,3 +1,5 @@
+import { isSafeLearningAlias } from "./local-learning.js";
+
 const DEFAULT_MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
 
 const TARGETS = Object.freeze({
@@ -52,6 +54,7 @@ function safeLabel(value, source, kind, field) {
   const label = value.normalize("NFC").replace(/\s+/g, " ").trim();
   if (label.length < 3 || label.length > 48 || !/[\p{L}]{3}/u.test(label)) return null;
   if (!/^[\p{L}][\p{L}\s'’.-]*[\p{L}]$/u.test(label) || /\d|@|€|https?:/i.test(label)) return null;
+  if (!isSafeLearningAlias(kind, field, label)) return null;
   if (/\b(?:codice fiscale|matricola|nome e cognome|iban|telefono|email|indirizzo)\b/i.test(label)) return null;
   const normalizedSource = fold(source);
   const normalizedLabel = fold(label);

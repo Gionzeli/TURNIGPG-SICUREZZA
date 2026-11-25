@@ -1,5 +1,5 @@
 import "../../local-reader.js";
-import { createLocalLearning } from "../../local-learning.js";
+import { createLocalLearning, isSafeLearningAlias } from "../../local-learning.js";
 
 const summary = document.querySelector("#summary");
 const results = document.querySelector("#results");
@@ -26,6 +26,14 @@ try {
     await assert.rejects(() => learning.addAlias({ kind: "payroll", field: "paga_base", alias: "Codice fiscale 123456" }));
     await assert.rejects(() => learning.addAlias({ kind: "payroll", field: "paga_base", alias: "nome@example.com" }));
     await assert.rejects(() => learning.addAlias({ kind: "payroll", field: "paga_base", alias: "Matricola" }));
+  });
+
+  await run("blocca nomi personali mescolati a parole chiave plausibili", async () => {
+    await assert.rejects(() => learning.addAlias({ kind: "payroll", field: "paga_base", alias: "Mario Rossi paga base" }));
+    await assert.rejects(() => learning.addAlias({ kind: "training", field: "title", alias: "Mario Rossi corso" }));
+    assert.equal(isSafeLearningAlias("payroll", "paga_base", "Retribuzione contrattuale"), true);
+    assert.equal(isSafeLearningAlias("payroll", "paga_base", "Mario Rossi paga base"), false);
+    assert.equal(isSafeLearningAlias("training", "title", "Mario Rossi corso"), false);
   });
 
   await run("salva solo una regola generica, senza testo o valori del documento", async () => {

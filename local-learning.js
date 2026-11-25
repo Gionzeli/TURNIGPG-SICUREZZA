@@ -47,14 +47,61 @@ const fold = value => String(value ?? "")
   .replace(/\s+/g, " ")
   .trim();
 
-function sanitizeAlias(value) {
+
+const GENERIC_ALIAS_WORDS = Object.freeze({
+  payroll: Object.freeze({
+    paga_base: "paga base retribuzione contrattuale minimo tabellare stipendio compenso mensile lordo lorda",
+    scatti: "scatto scatti anzianita maturazione maturati progressione periodici",
+    altre_fisse: "superminimo indennita elemento aggiuntivo fisso fissa retributivo compenso",
+    ore_mensili: "ore mensili orario contrattuale lavoro mensilita",
+    ore_turno: "ore turno durata servizio giornaliere",
+    straordinario_perc: "straordinario maggiorazione percentuale aliquota",
+    straordinario_ora: "straordinario compenso orario paga",
+    notturno_turno: "notturna notturno indennita turno",
+    piantonato_turno: "piantonamento piantonato indennita turno",
+    domenica_ora: "domenicale domenica festiva festivita maggiorazione",
+    riposo_non_goduto: "riposo goduto non indennita",
+    buono_pasto: "buono pasto ticket mensa",
+    inps_rate: "inps aliquota contributi contributiva",
+    irpef_rate: "irpef aliquota ritenuta fiscale",
+    sindacato: "sindacale sindacato trattenuta",
+    cessione: "cessione quinto prestito",
+    altre_trattenute: "altre trattenute deduzioni"
+  }),
+  turns: Object.freeze({
+    turno: "turno servizio orario",
+    riposo: "riposo",
+    riposo_compensativo: "riposo compensativo recupero",
+    ferie: "ferie",
+    permesso: "permesso permessi",
+    malattia: "malattia assenza"
+  }),
+  training: Object.freeze({
+    title: "corso corsi formazione formativo formativa attestato attestati abilitazione aggiornamento",
+    issuer: "ente organizzatore azienda formatore istituto",
+    date: "data giorno svolgimento",
+    expiry: "scadenza validita valido rinnovo",
+    hours: "ore durata formative"
+  })
+});
+const CONNECTOR_WORDS = new Set(["di", "del", "della", "delle", "dei", "da", "per", "al", "alla", "e"]);
+
+export function isSafeLearningAlias(kind, field, value) {
+  if (!Object.prototype.hasOwnProperty.call(GENERIC_ALIAS_WORDS, kind) ||
+      !Object.prototype.hasOwnProperty.call(GENERIC_ALIAS_WORDS[kind], field)) return false;
   const alias = String(value ?? "").normalize("NFC").replace(/\s+/g, " ").trim();
-  if (alias.length < 3 || alias.length > 48) return null;
-  if (!/[\p{L}]{3}/u.test(alias)) return null;
-  if (!/^[\p{L}][\p{L}\s'’.-]*[\p{L}]$/u.test(alias)) return null;
-  if (/\d|@|https?:|€|\b(?:iban|codice fiscale|codicefiscale|matricola|telefono|cellulare|email|e-mail|indirizzo|nome e cognome)\b/i.test(alias)) return null;
-  if (alias.split(/\s+/).length > 6) return null;
-  return alias;
+  if (alias.length < 3 || alias.length > 48 ||
+      !/^[\p{L}][\p{L}\s'’.-]*[\p{L}]$/u.test(alias)) return false;
+  if (/\d|@|https?:|€|\b(?:iban|codice fiscale|codicefiscale|matricola|telefono|cellulare|email|e-mail|indirizzo|nome e cognome)\b/i.test(alias)) return false;
+  if (alias.split(/\s+/).length > 6) return false;
+  const allowed = new Set(GENERIC_ALIAS_WORDS[kind][field].split(/\s+/).concat([...CONNECTOR_WORDS]));
+  const words = fold(alias).match(/[\p{L}]+/gu) || [];
+  return words.length > 0 && words.every(word => allowed.has(word));
+}
+
+function sanitizeAlias(kind, field, value) {
+  const alias = String(value ?? "").normalize("NFC").replace(/\s+/g, " ").trim();
+  return isSafeLearningAlias(kind, field, alias) ? alias : null;
 }
 
 function requestResult(request) {
@@ -121,7 +168,7 @@ export function createLocalLearning(options = {}) {
       Object.prototype.hasOwnProperty.call(TARGETS, rule.kind) &&
       Object.prototype.hasOwnProperty.call(TARGETS[rule.kind], rule.field) &&
       typeof rule.alias === "string" &&
-      sanitizeAlias(rule.alias) === rule.alias;
+      sanitizeAlias(rule.kind, rule.field, rule.alias) === rule.alias;
   }
 
   function assertOpen() {
@@ -155,7 +202,7 @@ export function createLocalLearning(options = {}) {
         !Object.prototype.hasOwnProperty.call(TARGETS[kind], field)) {
       throw new TypeError("Campo di apprendimento non consentito");
     }
-    const safeAlias = sanitizeAlias(alias);
+    const safeAlias = sanitizeAlias(kind, field, alias);
     if (!safeAlias) throw new TypeError("Inserisci solo un'etichetta generica, senza numeri o dati personali");
     const normalizedAlias = fold(safeAlias);
     const id = kind + ":" + field + ":" + normalizedAlias;
