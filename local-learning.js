@@ -125,23 +125,31 @@ export function createLocalLearning(options = {}) {
   let records = [];
   let applyEnabled = true;
   let closed = false;
+  let storageGeneration = 0;
   const channel = typeof globalThis.BroadcastChannel === "function"
     ? new BroadcastChannel("ocr-learning-sync:" + databaseName)
     : null;
   async function refreshFromDatabase() {
     if (!database || closed) return;
+    const activeDatabase = database;
+    const generation = storageGeneration;
     try {
-      const tx = database.transaction(STORE, "readonly");
+      const tx = activeDatabase.transaction(STORE, "readonly");
       const done = transactionDone(tx);
       const rows = await requestResult(tx.objectStore(STORE).getAll());
       await done;
+      // Una lettura completata dopo close/versionchange non deve ripopolare la cache.
+      if (closed || database !== activeDatabase || storageGeneration !== generation) return;
       records = rows.filter(isValidStoredRule).slice(0, MAX_RULES);
     } catch (error) {
-      // Fail closed anche se la rilettura cross-tab fallisce.
-      invalidateStorage();
+      // Non invalidare una nuova generazione per un errore appartenente alla vecchia.
+      if (!closed && database === activeDatabase && storageGeneration === generation) {
+        invalidateStorage();
+      }
     }
   }
   function invalidateStorage() {
+    storageGeneration += 1;
     records = [];
     applyEnabled = false;
     closed = true;
@@ -188,13 +196,18 @@ export function createLocalLearning(options = {}) {
         return;
       }
       database = opening.result;
+      const openingDatabase = database;
+      const generation = storageGeneration;
       database.onversionchange = () => invalidateStorage();
       database.onclose = () => invalidateStorage();
       try {
-        const tx = database.transaction(STORE, "readonly");
+        const tx = openingDatabase.transaction(STORE, "readonly");
         const done = transactionDone(tx);
         const rows = await requestResult(tx.objectStore(STORE).getAll());
         await done;
+        if (closed || database !== openingDatabase || storageGeneration !== generation) {
+          throw new Error("Archivio apprendimento invalidato durante l'inizializzazione");
+        }
         records = rows.filter(isValidStoredRule).slice(0, MAX_RULES);
         settled = true;
         resolve();
