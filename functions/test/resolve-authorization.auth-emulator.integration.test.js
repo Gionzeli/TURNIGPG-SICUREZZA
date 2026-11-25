@@ -92,6 +92,24 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
     assert.equal(acceptedBody.result?.principal?.role, "member");
     assert.deepEqual(acceptedBody.result?.principal?.permissions, ["dsm:read:own-scope"]);
 
+    await auth.updateUser(uid, { disabled: true });
+    const disabledUser = await callAuthorization();
+    assert.equal(
+      (await errorStatus(disabledUser)).status,
+      "UNAUTHENTICATED",
+      "A disabled Auth user must not retain callable access."
+    );
+    await auth.updateUser(uid, { disabled: false });
+
+    await members.doc(uid).update({ status: "revoked" });
+    const inactiveMembership = await callAuthorization();
+    assert.equal(
+      (await errorStatus(inactiveMembership)).status,
+      "PERMISSION_DENIED",
+      "A disabled membership must not retain callable access."
+    );
+    await members.doc(uid).update({ status: "active" });
+
     // Ensure the ID token's auth_time predates the revocation timestamp by at least one second.
     await new Promise(resolve => setTimeout(resolve, 1100));
     await auth.revokeRefreshTokens(uid);
