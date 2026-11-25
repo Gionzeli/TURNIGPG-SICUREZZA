@@ -48,13 +48,11 @@ Quando ti viene preparata una nuova versione:
 - **Nessun limite di utilizzo** per turni, calcoli, calendario, backup cifrato, PIN e guida.
 - **Modalità locale**: se Firebase non è configurato (`firebase-config.js` con `enabled: false`), l'app resta personale e salva i dati nel browser.
 - **Modalità collaboratori Firebase**: imposta la configurazione in `firebase-config.js`, pubblica `firestore.rules` e attiva `enabled: true`. L'accesso è solo email/password, con verifica email e approvazione dell'amministratore `zelanogianfranco@gmail.com`. Ogni account ha i propri dati e riceve notifiche interne all'app.
-- **Lettura automatica di busta paga e turni**: usa Gemini gratuito di Google. Ognuno crea la sua chiave gratis (senza carta) su
-  https://aistudio.google.com/apikey e la incolla in *Busta paga › Lettura automatica*.
-  Con il piano gratuito Google può usare i contenuti inviati per migliorare i suoi servizi: se non ti sta bene, inserisci i dati a mano.
+- **Lettura automatica di busta paga, turni e attestati**: usa estrazione PDF e OCR sul dispositivo (PaddleOCR/Tesseract), con parser locali e anteprima da confermare. Non richiede una chiave Gemini. La modalità di apprendimento conserva solo etichette generiche approvate nel browser. Qwen 2.5 0.5B è un aiuto facoltativo: va preparato esplicitamente, scarica modello e componenti da Hugging Face/jsDelivr e genera suggerimenti sul dispositivo; non è necessario per la lettura ordinaria.
 
 ## Privacy
 In modalità locale, turni, busta paga e impostazioni restano nel browser del telefono. In modalità Firebase, turni e parametri sono archiviati nel documento privato dell'account; il profilo/PIN resta sul dispositivo. La prima migrazione dei dati locali chiede conferma e non cancella l'archivio originale. L'app non ha pubblicità né strumenti di tracciamento.
-Solo se usi la lettura automatica, il file viene inviato a Google Gemini con la tua chiave.
+La lettura automatica standard elabora PDF, immagini e testo con componenti locali: il documento e il testo OCR non vengono inviati a Gemini o a un servizio di inferenza AI remoto. Il browser deve comunque scaricare librerie e modelli OCR; se attivi Qwen, scarica anche i relativi componenti e pesi da Hugging Face/jsDelivr, mentre l'inferenza resta sul dispositivo. I dati riconosciuti vengono mostrati in anteprima prima del salvataggio. Le regole di apprendimento sono conservate in IndexedDB locale e non contengono documenti, testo OCR o importi.
 
 
 ## Configurazione Firebase
