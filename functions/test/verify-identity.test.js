@@ -40,3 +40,17 @@ test("rejects a revoked token when the trusted verifier reports revocation", asy
   );
   assert.equal(checkRevokedReceived, true);
 });
+
+test("rejects an expired ID token when the trusted verifier reports expiration", async () => {
+  let checkRevokedReceived = false;
+  await assert.rejects(
+    () => verifyIdentity("synthetic-expired-token", async (_token, checkRevoked) => {
+      checkRevokedReceived = checkRevoked;
+      const error = new Error("Synthetic expired ID token");
+      error.code = "auth/id-token-expired";
+      throw error;
+    }),
+    error => error.code === "auth/id-token-expired"
+  );
+  assert.equal(checkRevokedReceived, true);
+});
