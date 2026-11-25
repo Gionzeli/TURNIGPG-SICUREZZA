@@ -157,6 +157,7 @@ export function createLocalLearning(options = {}) {
   }
 
   const ready = new Promise((resolve, reject) => {
+    let settled = false;
     if (!globalThis.indexedDB) {
       reject(new Error("IndexedDB non disponibile: apprendimento locale disattivato"));
       return;
@@ -171,6 +172,12 @@ export function createLocalLearning(options = {}) {
       }
     };
     opening.onsuccess = async () => {
+      // onblocked non annulla la richiesta: se arriva un success tardivo, evita di
+      // lasciare aperta una connessione dopo che ready è già stato rifiutato.
+      if (settled) {
+        opening.result.close();
+        return;
+      }
       database = opening.result;
       database.onversionchange = () => invalidateStorage();
       database.onclose = () => invalidateStorage();
@@ -180,13 +187,24 @@ export function createLocalLearning(options = {}) {
         const rows = await requestResult(tx.objectStore(STORE).getAll());
         await done;
         records = rows.filter(isValidStoredRule).slice(0, MAX_RULES);
+        settled = true;
         resolve();
       } catch (error) {
+        invalidateStorage();
+        settled = true;
         reject(error);
       }
     };
-    opening.onerror = () => reject(opening.error || new Error("Archivio apprendimento non apribile"));
-    opening.onblocked = () => reject(new Error("Archivio apprendimento bloccato da un'altra scheda"));
+    opening.onerror = () => {
+      if (settled) return;
+      settled = true;
+      reject(opening.error || new Error("Archivio apprendimento non apribile"));
+    };
+    opening.onblocked = () => {
+      if (settled) return;
+      settled = true;
+      reject(new Error("Archivio apprendimento bloccato da un'altra scheda"));
+    };
   });
 
   function isValidStoredRule(rule) {
