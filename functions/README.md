@@ -24,7 +24,7 @@ Platform: Firebase Cloud Functions v2, Node.js 20, Firebase Admin SDK.
 - Approval and target membership activation occur in one Firestore transaction.
 - Target active membership already present is rejected; no implicit role replacement.
 - Nomination lifetime is fixed by the trusted service clock at 24 hours; callers cannot choose or extend the expiry. Approval revalidates the stored creation and expiry timestamps and rejects legacy, malformed, future-created, expired, or overlong records.
-- Proposer, approver, and proposer-cancellation require a Firebase-verified identity with `auth_time` no more than 5 minutes old and a verified `firebase.sign_in_second_factor` of `phone` or `totp`; missing, unknown, future, or stale claims fail closed.
+- Proposer, approver, and proposer-cancellation require a Firebase-verified identity with `auth_time` no more than 5 minutes old and a verified `firebase.sign_in_second_factor === "totp"`; phone/SMS, missing, unknown, future, or stale claims fail closed.
 - The Firebase ID token verifier supplies these claims only after signature and revocation checks; token refresh alone does not renew `auth_time`.
 - The nomination service functions are internal server modules, not callable endpoints. Any future callable must extract the bearer token, invoke `verifyIdentity(token, getAuth().verifyIdToken)` with revocation checking, and pass that returned frozen identity to the service. Never pass `request.data.actorIdentity`, client-provided claims, or a client-selected `actorUid`; `actorUid` must equal the verified identity UID. Do not expose these operations until that trusted wrapper and endpoint-specific authorization tests exist.
 - Nomination IDs are caller selectors and must be unique.

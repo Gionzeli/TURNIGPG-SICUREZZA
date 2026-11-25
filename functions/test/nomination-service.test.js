@@ -195,6 +195,24 @@ test("nomination proposer and approver fail closed without recent supported MFA"
   assert.equal(store.get("accounts/ac1/adminNominations/no-mfa").status,"pending");
 });
 
+
+test("recent phone MFA is rejected because nomination policy requires TOTP", async () => {
+  const nowMs = Date.now();
+  const { db, store } = fakeDb({
+    "accounts/ac1/members/adminA": admin("adminA")
+  });
+  await assert.rejects(createAdminNomination({
+    db,
+    accountId: "ac1",
+    actorUid: "adminA",
+    actorIdentity: stepUp("adminA", nowMs, "phone"),
+    nominationId: "phone-factor-denied",
+    ...baseNom,
+    now: () => nowMs
+  }), error => error.code === "permission-denied");
+  assert.equal(store.has("accounts/ac1/adminNominations/phone-factor-denied"), false);
+});
+
 test("unknown MFA factor and future auth_time are rejected", async () => {
   const {db}=fakeDb({"accounts/ac1/members/adminA":admin("adminA")});
   await assert.rejects(createAdminNomination({

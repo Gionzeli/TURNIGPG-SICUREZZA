@@ -5,7 +5,7 @@ const ROLES = new Set(["member", "manager", "admin"]);
 const SCOPE_TYPES = new Set(["account", "site", "department"]);
 const MAX_NOMINATION_LIFETIME_MS = 24 * 60 * 60 * 1000;
 const RECENT_AUTH_WINDOW_SECONDS = 5 * 60;
-const ACCEPTED_MFA_FACTORS = new Set(["phone", "totp"]);
+const REQUIRED_MFA_FACTOR = "totp";
 
 function fail(code, message) {
   const error = new Error(message);
@@ -29,7 +29,7 @@ function requireAdmin(membership, uid, accountId, identity, nowMs) {
   }
   const authAgeSeconds = Math.floor(nowMs / 1000) - identity.authTime;
   if (authAgeSeconds < 0 || authAgeSeconds > RECENT_AUTH_WINDOW_SECONDS ||
-      !ACCEPTED_MFA_FACTORS.has(identity.secondFactor)) {
+      identity.secondFactor !== REQUIRED_MFA_FACTOR) {
     fail("permission-denied", "Verified recent MFA authentication required.");
   }
   const normalized = validateCanonicalMembership(membership, uid, accountId);
