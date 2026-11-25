@@ -39,6 +39,7 @@ function syntheticUser(uid = "synthetic-user-1", options = {}) {
 }
 
 function activeAuthorization(uid, overrides = {}) {
+  const { expiresAt = 2_000_000_000_000, ...principalOverrides } = overrides;
   return {
     authorizationSource: "server",
     principal: {
@@ -47,9 +48,9 @@ function activeAuthorization(uid, overrides = {}) {
       status: "active",
       role: "member",
       permissions: ["shifts:read"],
-      ...overrides
+      ...principalOverrides
     },
-    expiresAt: 2_000_000_000_000
+    expiresAt
   };
 }
 
@@ -192,6 +193,7 @@ export async function runFirebaseAuthAdapterTests() {
     let release;
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth, onAuthStateChanged: fake.onAuthStateChanged,
+      getAccountId: async () => "synthetic-account-1",
       resolveAuthorization: ({ uid }) => uid === firstUser.uid
         ? new Promise(resolve => { release = () => resolve(activeAuthorization(uid)); })
         : Promise.resolve(activeAuthorization(uid))
