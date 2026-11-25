@@ -34,7 +34,7 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     await createAdminNomination({
       db, accountId, actorUid: "adminA", nominationId: "approve-1",
       targetUid: "manager1", role: "manager", scopeType: "site",
-      scopeIds: ["site1"], now: () => 100
+      scopeIds: ["site1"], expiresAt: 10_000, now: () => 100
     });
     await approveAdminNomination({
       db, accountId, actorUid: "adminB", nominationId: "approve-1", now: () => 200
@@ -48,7 +48,7 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     await createAdminNomination({
       db, accountId, actorUid: "adminA", nominationId: "cancel-1",
       targetUid: "member2", role: "member", scopeType: "department",
-      scopeIds: ["dept1"], now: () => 300
+      scopeIds: ["dept1"], expiresAt: 10_000, now: () => 300
     });
     await cancelAdminNomination({
       db, accountId, actorUid: "adminA", nominationId: "cancel-1",
@@ -85,7 +85,7 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
       createAdminNomination({
         db, accountId, actorUid: "memberActor", nominationId: "member-nomination",
         targetUid: "member3", role: "member", scopeType: "department",
-        scopeIds: ["dept1"]
+        scopeIds: ["dept1"], expiresAt: Date.now() + 60_000
       }),
       error => error.code === "permission-denied"
     );
@@ -143,7 +143,7 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     await createAdminNomination({
       db, accountId, actorUid: "adminB", nominationId: "duplicate-audit-nomination",
       targetUid: "member6", role: "member", scopeType: "department",
-      scopeIds: ["dept1"]
+      scopeIds: ["dept1"], expiresAt: Date.now() + 60_000
     });
     await audit.doc("audit-duplicate-cancel").set({ type: "pre-existing synthetic event" });
     await assert.rejects(
