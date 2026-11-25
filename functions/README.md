@@ -30,13 +30,13 @@ Platform: Firebase Cloud Functions v2, Node.js 20, Firebase Admin SDK.
 - Nomination IDs are caller selectors and must be unique.
 - Only the original proposing admin, while still an active canonical admin, may cancel their pending nomination.
 - Cancellation requires a trimmed 1–500 character reason; do not put personal or sensitive data in the reason.
-- Cancellation status and its audit event are written in one Firestore transaction; audit event IDs are caller-supplied unique selectors.
+- Cancellation status and its audit event are written in one Firestore transaction; audit event IDs are caller-supplied unique selectors and duplicates are rejected. This is not idempotent replay: retrying a completed cancellation does not return its original result.
 - No admin bootstrap is implemented.
 
 ## Membership revocation prototype
 - Only a canonical active account admin can revoke a canonical active membership.
 - Revocation and an append-only-by-service audit event are written in the same Firestore transaction.
-- Audit event IDs are caller-supplied idempotency selectors; duplicates are rejected.
+- Audit event IDs are caller-supplied unique selectors; duplicates are rejected. This is not idempotent replay: retrying a completed revocation does not return its original result.
 - The last canonical active account admin cannot be revoked. Malformed admin documents do not count.
 - This is not an immutable audit ledger: privileged server code can still alter Firestore documents.
 - The service is not yet exposed as a callable endpoint and is not production-ready.

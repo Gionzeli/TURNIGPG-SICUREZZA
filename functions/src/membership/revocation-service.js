@@ -11,7 +11,7 @@ function validId(value) { return typeof value === "string" && ID_PATTERN.test(va
 /**
  * Revokes an active canonical membership and appends an audit event atomically.
  * actorUid must come from a verified, revocation-checked identity token.
- * eventId is a caller-supplied idempotency selector, not an authority claim.
+ * eventId is a caller-supplied unique event selector, not an idempotency key or authority claim; duplicate IDs are rejected.
  */
 export async function revokeMembership({ db, accountId, actorUid, targetUid, eventId, now = () => Date.now() }) {
   if (!validId(accountId) || !validId(actorUid) || !validId(targetUid) || !validId(eventId)) {
