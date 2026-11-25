@@ -344,10 +344,20 @@ export function createLocalLearning(options = {}) {
     // readwrite della scrittura: più schede/chiamate non possono superare il limite.
     const activeDatabase = database;
     const generation = storageGeneration;
-    const tx = activeDatabase.transaction(STORE, "readwrite");
-    const done = trackTransaction(tx);
-    const store = tx.objectStore(STORE);
-    const read = store.getAll();
+    let tx;
+    let done;
+    let store;
+    let read;
+    try {
+      tx = activeDatabase.transaction(STORE, "readwrite");
+      done = trackTransaction(tx);
+      store = tx.objectStore(STORE);
+      read = store.getAll();
+    } catch (error) {
+      // Un errore sincrono prima delle callback rende incerto lo stato dello storage.
+      invalidateStorage();
+      throw error;
+    }
     let duplicate = null;
     let persistedRows = [];
     let limitReached = false;
