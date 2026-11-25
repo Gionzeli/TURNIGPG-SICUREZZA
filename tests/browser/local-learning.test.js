@@ -125,6 +125,8 @@ try {
     // Lascia che addAlias crei la transazione, ma chiudi prima delle callback IDB.
     await Promise.resolve();
     pendingLearning.close();
+    pendingLearning.setApplyEnabled(true);
+    assert.equal(pendingLearning.applyEnabled, false);
     await assert.rejects(() => pendingWrite);
     assert.equal(pendingLearning.available, false);
     assert.equal(pendingLearning.list().length, 0);

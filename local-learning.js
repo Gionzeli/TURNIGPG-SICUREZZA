@@ -288,7 +288,7 @@ export function createLocalLearning(options = {}) {
 
   function applyAliases(text, kind) {
     const source = String(text ?? "");
-    if (!applyEnabled || !TARGETS[kind]) return source;
+    if (closed || !applyEnabled || !TARGETS[kind]) return source;
     let result = source;
     const applicable = records
       .filter(rule => rule.kind === kind)
