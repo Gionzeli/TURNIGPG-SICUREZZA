@@ -158,15 +158,23 @@ export class BaseRepository {
   }
 
   async update(id, changes, options = {}) {
+    validateData(changes);
+    return this.updateWithCurrent(id, current => ({ ...current.data, ...changes }), options);
+  }
+
+  // Read, transform, validate and persist one record under one lifecycle
+  // capture and one IndexedDB readwrite transaction.
+  async updateWithCurrent(id, transform, options = {}) {
     const lifecycleCapture = this._captureLifecycle();
     const { accountId } = requireAccountContext(this.accountContext);
     validateId(id);
-    validateData(changes);
+    if (typeof transform !== "function") {
+      throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "La trasformazione del record deve essere una funzione.");
+    }
     const expectedRevision = options.expectedRevision;
     if (expectedRevision !== undefined && (!Number.isSafeInteger(expectedRevision) || expectedRevision < 1)) {
       throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "expectedRevision deve essere un intero positivo.");
     }
-
     const entityType = historyEntityType(this.storeName);
     const storeNames = entityType ? [this.storeName, "history"] : [this.storeName];
     const transaction = this.db.transaction(storeNames, "readwrite");
@@ -177,7 +185,6 @@ export class BaseRepository {
     const request = store.index("accountId_id").get([accountId, id]);
     let updated = null;
     let operationError = null;
-
     request.onsuccess = () => {
       if (lifecycleCapture && !this.lifecycleCoordinator.isCurrent(lifecycleCapture)) {
         operationError = new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Operazione invalidata dal cambio account.");
@@ -191,22 +198,27 @@ export class BaseRepository {
         abortTransaction(transaction);
         return;
       }
-      updated = {
-        ...current,
-        updatedAt: this.clock(),
-        revision: current.revision + 1,
-        data: { ...current.data, ...changes }
-      };
-      store.put(updated);
-      if (historyStore) {
-        historyStore.add(createHistoryRecord({
+      try {
+        const nextData = transform(current);
+        if (!nextData || typeof nextData !== "object" || Array.isArray(nextData) ||
+            typeof nextData.then === "function") {
+          throw new DatabaseError(DB_ERROR_CODES.VALIDATION_FAILED, "La trasformazione deve restituire sincronicamente un oggetto dati.");
+        }
+        validateData(nextData);
+        if (lifecycleCapture && !this.lifecycleCoordinator.isCurrent(lifecycleCapture)) {
+          throw new DatabaseError(DB_ERROR_CODES.ACCESS_DENIED, "Operazione invalidata dal cambio account.");
+        }
+        updated = { ...current, updatedAt: this.clock(), revision: current.revision + 1, data: { ...nextData } };
+        store.put(updated);
+        if (historyStore) historyStore.add(createHistoryRecord({
           accountId, entityType, entityId: id, action: "update",
-          previousRevision: current.revision, newRevision: updated.revision,
-          now: updated.updatedAt
+          previousRevision: current.revision, newRevision: updated.revision, now: updated.updatedAt
         }));
+      } catch (error) {
+        operationError = error;
+        abortTransaction(transaction);
       }
     };
-
     try {
       await done;
       this._assertLifecycleCurrent(lifecycleCapture);

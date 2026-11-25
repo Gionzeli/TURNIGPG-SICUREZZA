@@ -61,23 +61,15 @@ export class QuarantineRepository extends BaseRepository {
   }
 
   async updateItem(id, changes, options = {}) {
-    // On update, "pending" is a valid explicit transition only when unchanged.
-    const status = changes?.resolutionStatus;
-    if (status !== undefined && !RESOLUTION_STATUSES.has(status)) {
-      throw validationError("Stato di revisione non riconosciuto.");
-    }
-    const current = status === undefined ? null : await this.getItem(id);
-    if (status !== undefined && !current) return null;
-    if (status !== undefined && status !== current.data.resolutionStatus &&
-        !ITEM_TRANSITIONS.get(current.data.resolutionStatus)?.has(status)) {
-      throw validationError("Transizione di quarantena non consentita: il rilascio richiede un futuro processo di migrazione.");
-    }
-    const validationPayload = { ...changes };
-    validateItemDataForUpdate(validationPayload);
-    return this.update(id, changes, {
-      ...options,
-      ...(status !== undefined ? { expectedRevision: options.expectedRevision ?? current.revision } : {})
-    });
+    validateItemDataForUpdate(changes);
+    return this.updateWithCurrent(id, current => {
+      const status = changes?.resolutionStatus;
+      if (status !== undefined && status !== current.data.resolutionStatus &&
+          !ITEM_TRANSITIONS.get(current.data.resolutionStatus)?.has(status)) {
+        throw validationError("Transizione di quarantena non consentita: il rilascio richiede un futuro processo di migrazione.");
+      }
+      return { ...current.data, ...changes };
+    }, options);
   }
 
   getItem(id) { return this.getById(id); }

@@ -669,6 +669,52 @@ async function run() {
     assert(await profiles.getById(record.id) === null, "Record ancora presente dopo delete valido.");
   });
 
+  await test("DB-015 — updateWithCurrent trasforma sincronicamente e rifiuta callback async", async () => {
+    const record = await profiles.create({ value: "prima" });
+    const updated = await profiles.updateWithCurrent(record.id, current => ({ ...current.data, value: "dopo" }), { expectedRevision: 1 });
+    assert(updated.revision === 2 && updated.data.value === "dopo", "Trasformazione atomica non persistita.");
+    let caught;
+    try { await profiles.updateWithCurrent(record.id, async current => ({ ...current.data, value: "vietato" }), { expectedRevision: 2 }); }
+    catch (error) { caught = error; }
+    assert(caught?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Callback asincrona accettata.");
+    assert((await profiles.getById(record.id)).data.value === "dopo", "Callback asincrona ha modificato il record.");
+  });
+
+  await test("SVC-014 — servizi read-modify-write non eseguono letture separate", async () => {
+    const repositories = [new ProfileRepository({ db, accountContext: context }), new ShiftRepository({ db, accountContext: context }), new AbsenceRepository({ db, accountContext: context })];
+    const services = [
+      [new ProfileService({ repository: repositories[0] }), { params: { paga_base: 100 }, profile: {} }, { profile: { role: "A" } }],
+      [new ShiftService({ repository: repositories[1] }), { date: "2026-11-24", type: "turno", hours: 8 }, { post: "Sede A" }],
+      [new AbsenceService({ repository: repositories[2] }), { kind: "ferie", startDate: "2026-12-01", endDate: "2026-12-02" }, { endDate: "2026-12-03" }]
+    ];
+    for (const [service, initial, patch] of services) {
+      const record = await service.create(initial), repository = service.repository, originalGet = repository.getById;
+      repository.getById = async () => { throw new Error("lettura separata non ammessa"); };
+      let updated;
+      try { updated = await service.update(record.id, patch, { expectedRevision: 1 }); }
+      finally { repository.getById = originalGet; }
+      assert(updated?.revision === 2, "Il servizio non ha aggiornato tramite transazione unica.");
+    }
+  });
+
+  await test("MIG-001 — transizione job validata nella transazione di aggiornamento", async () => {
+    const repository = new MigrationJobRepository({ db, accountContext: context }), job = await repository.createJob();
+    const updated = await repository.updateJob(job.id, { status: "review-required" }, { expectedRevision: 1 });
+    assert(updated?.data.status === "review-required" && updated.revision === 2, "Transizione valida rifiutata.");
+    let invalid; try { await repository.updateJob(job.id, { status: "completed" }, { expectedRevision: 2 }); } catch (error) { invalid = error; }
+    assert(invalid?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Transizione job non consentita accettata.");
+    assert((await repository.getJob(job.id)).data.status === "review-required", "Transizione non valida persistita.");
+  });
+
+  await test("QUAR-001 — transizione quarantena validata nella transazione di aggiornamento", async () => {
+    const repository = new QuarantineRepository({ db, accountContext: context }), item = await repository.createItem({ itemType: "shift", sourceIndex: 0, reason: "manual-review" });
+    const updated = await repository.updateItem(item.id, { resolutionStatus: "reviewed" }, { expectedRevision: 1 });
+    assert(updated?.data.resolutionStatus === "reviewed" && updated.revision === 2, "Transizione valida rifiutata.");
+    let invalid; try { await repository.updateItem(item.id, { resolutionStatus: "released" }, { expectedRevision: 2 }); } catch (error) { invalid = error; }
+    assert(invalid?.code === DB_ERROR_CODES.VALIDATION_FAILED, "Rilascio quarantena non consentito accettato.");
+    assert((await repository.getItem(item.id)).data.resolutionStatus === "reviewed", "Transizione non valida persistita.");
+  });
+
   await test("ABS-001 — assenze separate, validate e registrate nello storico", async () => {
     const repository = new AbsenceRepository({ db, accountContext: context });
     const service = new AbsenceService({ repository });

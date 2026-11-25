@@ -45,9 +45,9 @@ export class ShiftService {
 
   async update(id, changes, options = {}) {
     const expectedRevision = validateExpectedRevision(options);
-    const current = await this.repository.getById(id);
-    if (!current) return null;
-    return this.repository.update(id, normalizeShift({ ...current.data, ...requirePlainObject(changes, "Modifiche turno") }), { expectedRevision });
+    const patch = requirePlainObject(changes, "Modifiche turno");
+    return this.repository.updateWithCurrent(id, current =>
+      normalizeShift({ ...current.data, ...patch }), { expectedRevision });
   }
 
   async delete(id, options = {}) {

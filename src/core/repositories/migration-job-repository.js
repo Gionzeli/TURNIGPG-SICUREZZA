@@ -66,15 +66,13 @@ export class MigrationJobRepository extends BaseRepository {
 
   async updateJob(id, changes, options = {}) {
     validateJobData(changes, { partial: true });
-    if (changes.status === undefined) return this.update(id, changes, options);
-    const current = await this.getJob(id);
-    if (!current) return null;
-    if (changes.status === current.data.status) return this.update(id, changes, { ...options, expectedRevision: options.expectedRevision ?? current.revision });
-    const allowed = JOB_TRANSITIONS.get(current.data.status);
-    if (!allowed?.has(changes.status)) {
-      throw validationError("Transizione di stato del job non consentita in modalità sola lettura.");
-    }
-    return this.update(id, changes, { ...options, expectedRevision: options.expectedRevision ?? current.revision });
+    return this.updateWithCurrent(id, current => {
+      if (changes.status !== undefined && changes.status !== current.data.status) {
+        const allowed = JOB_TRANSITIONS.get(current.data.status);
+        if (!allowed?.has(changes.status)) throw validationError("Transizione di stato del job non consentita in modalità sola lettura.");
+      }
+      return { ...current.data, ...changes };
+    }, options);
   }
 
   getJob(id) { return this.getById(id); }

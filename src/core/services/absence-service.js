@@ -100,13 +100,9 @@ export class AbsenceService {
 
   async update(id, changes, options = {}) {
     const expectedRevision = validateExpectedRevision(options);
-    const current = await this.repository.getById(id);
-    if (!current) return null;
-    return this.repository.update(
-      id,
-      normalizeAbsence({ ...current.data, ...requirePlainObject(changes, "Modifiche assenza") }),
-      { expectedRevision }
-    );
+    const patch = requirePlainObject(changes, "Modifiche assenza");
+    return this.repository.updateWithCurrent(id, current =>
+      normalizeAbsence({ ...current.data, ...patch }), { expectedRevision });
   }
 
   async delete(id, options = {}) {

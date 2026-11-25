@@ -79,13 +79,10 @@ export class ProfileService {
       }
     }
     if (profilePatch.effective_date) validateDate(profilePatch.effective_date, "Data di decorrenza");
-    const current = await this.repository.getById(id);
-    if (!current) return null;
-    const merged = {
+    return this.repository.updateWithCurrent(id, current => normalizeProfileData({
       params: { ...current.data.params, ...paramsPatch },
       profile: { ...current.data.profile, ...profilePatch }
-    };
-    return this.repository.update(id, normalizeProfileData(merged), { expectedRevision });
+    }), { expectedRevision });
   }
 
   async delete(id, options = {}) {
