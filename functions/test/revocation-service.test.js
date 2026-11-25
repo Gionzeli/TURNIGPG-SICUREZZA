@@ -69,9 +69,9 @@ test("malformed active admin document does not count as remaining admin",async()
   await assert.rejects(revokeMembership(request({db,targetUid:"adminA"})),e=>e.code==="failed-precondition");
 });
 test("duplicate audit event ID is rejected",async()=>{
-  const {db}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/m1":member("m1"),"accounts/ac1/membershipAudit/evt1":{type:"other"}});
+  const {db,store}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/m1":member("m1"),"accounts/ac1/membershipAudit/evt1":{type:"other"}});
   await assert.rejects(revokeMembership(request({db})),e=>e.code==="already-exists");
-  assert.equal(storeValue(db),undefined);
+  assert.equal(store.get("accounts/ac1/members/m1").status,"active");
 });
 test("rejects malformed selector",async()=>{
   const {db}=fakeDb();
