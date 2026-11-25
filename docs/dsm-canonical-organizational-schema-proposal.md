@@ -168,3 +168,36 @@ This proposal intentionally does not decide:
 ## 9. Explicit non-authorization
 
 This file is a review proposal only. It does not approve Firestore paths, indexes, security rules, data migration, production credentials, Firebase project changes, deployment, or real-data access. Do not create Firestore loaders until the schema owner approves the path and field contract. Do not wire protected data APIs until their server-side authorization tests pass.
+
+
+## 10. Gap analysis against the current backend (verified at proposal revision)
+
+This section distinguishes existing behavior from requirements that remain unimplemented. It is not a claim that the proposed schema is already active.
+
+| Area | Present in repository | Still required before protected data APIs |
+|---|---|---|
+| Identity | `verifyIdentity` verifies the Firebase ID token through Admin Auth with revocation checking in the callable resolver. | Reuse the verified identity in every protected endpoint; never trust a UID in request data. |
+| Membership | `resolveAuthorization` reads `accounts/{accountId}/members/{uid}`; `validateCanonicalMembership` checks UID, account, active status, role, scope type and unique scope IDs. | Define membership lifecycle/expiry and any multi-account account-selection UX without trusting the selector as authority. |
+| Permissions | `membership-policy.js` derives a fixed permission list from role. | Review and approve the complete permission matrix before exposing mutations or reads. |
+| Resource identity | `resource-resolver.js` accepts injected loaders and validates account/site/department IDs and parent links. | No Firestore loaders exist. The proposed paths and fields must be approved before implementing them. |
+| Resource lifecycle | Current resolver checks record identity and parent relationships only. | Loaders/resolver must reject archived accounts, sites and departments; reject departments with archived or missing parent sites; and apply the same checks to both reads and writes. |
+| Resource authorization | `authorizeResource` applies role, permission and scope to an already-resolved context. | Compose it into every protected server operation after canonical loading; never authorize using browser-cached contexts. |
+| Callable surface | `resolveAuthorization` resolves identity and membership and returns a short-lived principal. | This is not a protected data API and does not by itself protect DSM data. Implement each data endpoint with per-operation checks. |
+| Data access | No protected DSM data API is exported by the current Functions entry point. | Specify the actual data operations, query boundaries, write invariants, audit events and failure semantics before implementation. |
+
+### Mandatory resolver lifecycle contract for the proposed schema
+
+Before any Firestore adapter is considered complete, the canonical loader contracts must include and validate `status` for account, site and department records. The resolver must require:
+- account status `active` before resolving any descendant;
+- site status `active` before resolving a site or department;
+- department status `active` before authorizing a department;
+- the department's current `siteId` to equal the canonical active site being resolved;
+- fail-closed behavior for missing, unknown or malformed status values.
+
+These checks must be repeated at the server boundary for every protected operation. A successful call to `resolveAuthorization`, a five-minute client principal expiry, a previously resolved resource context, or a cached browser state is not a substitute for current resource and membership checks.
+
+### Test ownership and CI status
+
+The resource resolver unit tests currently use injected in-memory synthetic records. They prove the pure resolver contract, not Firestore path correctness, production rules, or deployed access control. The backend emulator workflow is configured to run on changes under `functions/**` or by manual workflow dispatch. A docs-only commit does not trigger that workflow automatically. Browser and Firestore Rules emulator workflows are separate checks and do not substitute for backend Functions emulator tests.
+
+No production data, deployed Firebase project, or live user identity is required or permitted for this proposal review.
