@@ -29,7 +29,19 @@ Questa architettura evita l'upload applicativo dei documenti e l'inferenza remot
 
 **Limite della catena di fornitura:** il lettore carica librerie OCR e il motore Transformers.js da CDN; il codice JavaScript scaricato viene eseguito nel contesto della pagina e, come ogni codice con quei privilegi, potrebbe tecnicamente accedere al testo OCR in memoria o alla pagina. Il flusso applicativo non invia intenzionalmente i documenti a un servizio remoto, ma questa scelta non equivale a una garanzia crittografica che il codice di terze parti non possa farlo. Per documenti ad alta riservatezza, non abilitare Qwen e usare una distribuzione con dipendenze verificate e servite da infrastruttura controllata, insieme a una Content Security Policy restrittiva. Anche il caricamento iniziale delle librerie OCR esterne va incluso nella valutazione.
 
-## Test
+## Prova manuale dell'inferenza reale
+
+La pagina `tests/browser/qwen-smoke.html` esegue un controllo separato dalla CI ordinaria e usa esclusivamente una fixture sintetica. Per provarla, avviare un server statico dalla radice del repository (ad esempio `python3 -m http.server 8000`) e aprire `http://localhost:8000/tests/browser/qwen-smoke.html` in un browser aggiornato. Premere **Avvia prova reale** e attendere il download iniziale del modello Q4 (circa 786 MB).
+
+La pagina mostra:
+- se il modello si carica e quale backend viene scelto (WebGPU o WASM);
+- se l'inferenza termina senza errore;
+- il tempo totale e, quando disponibile, l'heap JavaScript esposto dal browser;
+- soltanto suggerimenti che superano il filtro locale per campo e contenuto.
+
+Un risultato vuoto può essere valido: il modello non è obbligato a proporre alias. Un errore di memoria, WebGPU o rete va registrato come prova fallita su quel dispositivo; non va aggirato usando documenti reali o disabilitando i filtri. La pagina non fa parte dell'app operativa e non viene eseguita automaticamente dalla CI perché il download del modello è molto grande e dipende dall'hardware.
+
+## Test automatici
 
 La fixture `tests/browser/local-learning.html` verifica con dati sintetici:
 - rifiuto di alias contenenti numeri e indicatori di dati identificativi;
