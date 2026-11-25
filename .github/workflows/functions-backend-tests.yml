@@ -1,0 +1,37 @@
+name: DSM authorization backend unit and emulator tests
+
+on:
+  push:
+    branches:
+      - dsm-enterprise/core-v1
+    paths:
+      - "functions/**"
+      - ".github/workflows/functions-backend-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  membership-service-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: functions
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 20
+      - name: Install isolated backend dependencies
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Run unit, Auth/Functions/Firestore Emulator integration tests
+        run: >-
+          npx firebase emulators:exec
+          --only auth,functions,firestore
+          --project demo-dsm-membership
+          --config firebase.json
+          "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 DSM_FUNCTIONS_EMULATOR_HOST=127.0.0.1:5001 GCLOUD_PROJECT=demo-dsm-membership npm test"

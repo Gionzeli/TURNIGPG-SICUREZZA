@@ -1,0 +1,278 @@
+import { inspectLegacyReconciliation, inspectLegacyExport, inspectLegacySnapshot, inspectLegacyExtras } from "../src/core/legacy/legacy-read-adapter.js";
+
+const fileInput = document.querySelector("#files");
+const analyzeButton = document.querySelector("#analyze");
+const downloadButton = document.querySelector("#download");
+const statusNode = document.querySelector("#status");
+const errorNode = document.querySelector("#error");
+const reportNode = document.querySelector("#report");
+let safeReport = null;
+let privatePreview = null;
+const PROFILE_LABELS = { ccnl: "CCNL", section: "Sezione", level: "Livello", role: "Ruolo", effective_date: "Decorrenza" };
+const PARAM_LABELS = {
+  paga_base: "Paga base", scatti: "Scatti", altre_fisse: "Altre voci fisse",
+  ore_mensili: "Ore mensili", ore_turno: "Ore turno",
+  straordinario_perc: "Percentuale straordinario", straordinario_ora: "Straordinario orario",
+  notturno_turno: "Indennità notturna per turno", piantonato_turno: "Piantonato per turno",
+  domenica_ora: "Indennità domenicale oraria", riposo_non_goduto: "Riposo non goduto",
+  buono_pasto: "Buono pasto", inps_rate: "Aliquota INPS", irpef_rate: "Aliquota IRPEF",
+  sindacato: "Sindacato", cessione: "Cessione", altre_trattenute: "Altre trattenute"
+};
+
+const text = (node, value) => { node.textContent = String(value); };
+const element = (tag, value) => {
+  const node = document.createElement(tag);
+  if (value !== undefined) text(node, value);
+  return node;
+};
+const table = (headers, rows) => {
+  const wrapper = element("div");
+  const tableNode = element("table");
+  const head = element("thead");
+  const headRow = element("tr");
+  for (const title of headers) headRow.append(element("th", title));
+  head.append(headRow);
+  const body = element("tbody");
+  for (const row of rows) {
+    const tr = element("tr");
+    for (const value of row) tr.append(element("td", value ?? "—"));
+    body.append(tr);
+  }
+  tableNode.append(head, body);
+  wrapper.append(tableNode);
+  return wrapper;
+};
+const clear = node => { node.replaceChildren(); };
+// Reasons and warnings can contain arbitrary legacy field names or values.
+// Keep only generic labels in both the visible report and its downloadable form.
+const safeReason = () => "Elemento da verificare localmente.";
+const safeWarning = () => "Avviso da verificare localmente.";
+const safeField = () => "campo da verificare";
+const safeSection = () => "sezione da verificare";
+const MAX_FILES = 100;
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+const MAX_TOTAL_BYTES = 50 * 1024 * 1024;
+
+function getFileSelectionError(files) {
+  if (files.length < 1) return "Seleziona almeno un export JSON.";
+  if (files.length > MAX_FILES) return "Limite superato: massimo 100 file.";
+  if (files.some(file => file.size > MAX_FILE_BYTES)) return "Un file supera il limite di 10 MB.";
+  if (files.reduce((total, file) => total + file.size, 0) > MAX_TOTAL_BYTES) {
+    return "Dimensione complessiva superata: massimo 50 MB per tutti i file.";
+  }
+  return "";
+}
+
+fileInput.addEventListener("change", () => {
+  const files = [...fileInput.files];
+  const selectionError = getFileSelectionError(files);
+  analyzeButton.disabled = Boolean(selectionError);
+  errorNode.textContent = "";
+  reportNode.hidden = true;
+  safeReport = null;
+  if (!files.length) text(statusNode, "In attesa dei file.");
+  else if (selectionError) text(statusNode, selectionError);
+  else text(statusNode, files.length + " file selezionati. Nessun file è stato ancora letto.");
+});
+
+analyzeButton.addEventListener("click", async () => {
+  const files = [...fileInput.files];
+  privatePreview = null;
+  renderPrivatePreview(null);
+  const selectionError = getFileSelectionError(files);
+  if (selectionError) {
+    analyzeButton.disabled = true;
+    text(statusNode, selectionError);
+    return;
+  }
+  analyzeButton.disabled = true;
+  errorNode.textContent = "";
+  text(statusNode, "Analisi locale in corso…");
+  try {
+    // Never copy user-controlled filenames into the visible or downloadable report.
+    // Stable generic labels preserve source traceability without leaking personal filenames.
+    const candidates = await Promise.all(files.map(async (file, index) => ({
+      source: `Export ${index + 1}`,
+      rawJson: await file.text()
+    })));
+    let result;
+    if (candidates.length > 1) {
+      const reconciled = inspectLegacyReconciliation(candidates);
+      // The reconciliation adapter intentionally exposes aggregate-only DTOs.
+      // Keep the report at the same privacy level: no field names, record IDs,
+      // source filenames, raw reasons, or per-record quarantine details.
+      const genericRows = (count, value) => Array.from({ length: count }, () => value);
+      result = {
+        mode: reconciled.mode,
+        sourceCount: reconciled.sourceCount,
+        migrationReadiness: reconciled.migrationReadiness,
+        sources: reconciled.sources.map(item => ({
+          source: `Export ${item.sourceNumber}`,
+          shiftsTotal: item.shiftsTotal,
+          shiftsReady: item.shiftsReady,
+          shiftsQuarantined: item.shiftsQuarantined,
+          profileValid: item.profileValid,
+          profileErrors: item.profileErrors,
+          extrasPresent: item.extrasPresent,
+          extraSkills: item.extraSkills,
+          extraSkillsQuarantined: item.extraSkillsQuarantined,
+          extraTemplates: item.extraTemplates,
+          extraTemplatesQuarantined: item.extraTemplatesQuarantined,
+          extraMonthlyValues: item.extraMonthlyValues,
+          warnings: item.warningCount,
+          importable: item.importable
+        })),
+        profileConflicts: genericRows(reconciled.conflicts.profileDifferences, {
+          section: "Profilo", field: "Differenze aggregate", sources: ["Fonti multiple"]
+        }),
+        extraConflicts: genericRows(reconciled.conflicts.extraDifferences, {
+          field: "Differenze aggregate", sources: ["Fonti multiple"]
+        }),
+        identicalGroups: reconciled.conflicts.identicalShiftGroups,
+        idConflictGroups: reconciled.conflicts.shiftIdConflicts,
+        possibleDuplicateGroups: genericRows(reconciled.conflicts.possibleDuplicateGroups, {
+          reason: safeReason(), copies: []
+        }),
+        quarantine: reconciled.quarantine,
+        quarantinedShifts: genericRows(reconciled.quarantine.shifts, {
+          source: "Fonti multiple", index: "—", reason: safeReason()
+        }),
+        quarantinedTemplates: genericRows(reconciled.quarantine.templates, {
+          source: "Fonti multiple", index: "—", reason: safeReason()
+        }),
+        quarantinedSkills: genericRows(reconciled.quarantine.skills, {
+          source: "Fonti multiple", index: "—", reason: safeReason()
+        }),
+        warnings: genericRows(reconciled.warningCount, safeWarning()),
+        writesPerformed: reconciled.writesPerformed,
+        automaticMergePerformed: reconciled.automaticMergePerformed,
+        totals: {
+          shiftsReady: reconciled.totals.shiftsReady,
+          identicalGroups: reconciled.totals.identicalGroups,
+          idConflictGroups: reconciled.totals.idConflictGroups,
+          possibleDuplicateGroups: reconciled.totals.possibleDuplicateGroups,
+          profileConflictFields: reconciled.totals.profileConflictCount,
+          extraConflictFields: reconciled.totals.extraConflictCount,
+          sourcesWithWarnings: reconciled.totals.sourcesWithWarnings
+        }
+      };
+    } else {
+      const candidate = candidates[0];
+      const parsed = JSON.parse(candidate.rawJson);
+      privatePreview = { profile: parsed.profile, params: parsed.params };
+      const exportPreview = inspectLegacyExport(candidate.rawJson);
+      const snapshot = inspectLegacySnapshot(JSON.stringify({ params: parsed.params, profile: parsed.profile, shifts: parsed.shifts }));
+      const extras = parsed.extra === undefined ? null : inspectLegacyExtras(JSON.stringify(parsed.extra));
+      const sourceSummary = {
+        source: candidate.source, shiftsTotal: snapshot.shifts.total,
+        shiftsReady: snapshot.shifts.ready.length, shiftsQuarantined: snapshot.shifts.quarantined.length,
+        profileValid: snapshot.profile.valid, profileErrors: snapshot.profile.errors.length,
+        extrasPresent: Boolean(extras), extraSkills: extras?.data.skills.length ?? null,
+        extraSkillsQuarantined: extras?.skillsQuarantined.length ?? null,
+        extraTemplates: extras?.data.templates.length ?? null,
+        extraTemplatesQuarantined: extras?.templatesQuarantined.length ?? null,
+        extraMonthlyValues: extras ? Object.keys(extras.data.real).length : null,
+        warnings: exportPreview.warnings.length,
+        importable: snapshot.importable && (!extras || (extras.warnings.length === 0 && extras.templatesQuarantined.length === 0 && extras.skillsQuarantined.length === 0))
+      };
+      const quarantinedShifts = snapshot.shifts.quarantined.map(item => ({ source: candidate.source, index: item.index, reason: safeReason(item.reason) }));
+      const quarantinedTemplates = (extras?.templatesQuarantined ?? []).map(item => ({ source: candidate.source, index: item.index, reason: safeReason(item.reason) }));
+      const quarantinedSkills = (extras?.skillsQuarantined ?? []).map(item => ({ source: candidate.source, index: item.index, reason: safeReason(item.reason) }));
+      const reviewRequired = !sourceSummary.importable || exportPreview.warnings.length > 0;
+      result = {
+        mode: "read-only-single-export-preview", sourceCount: 1,
+        migrationReadiness: { status: reviewRequired ? "review-required" : "no-conflicts-detected", reviewRequired, automaticImportAllowed: false },
+        sources: [sourceSummary],
+        totals: { shiftsReady: sourceSummary.shiftsReady, identicalGroups: 0, idConflictGroups: 0, possibleDuplicateGroups: 0, profileConflictFields: 0, extraConflictFields: 0, sourcesWithWarnings: sourceSummary.warnings > 0 ? 1 : 0 },
+        profileConflicts: [], extraConflicts: [], identicalGroups: 0, idConflictGroups: 0, possibleDuplicateGroups: [],
+        quarantine: { shifts: quarantinedShifts.length, templates: quarantinedTemplates.length, skills: quarantinedSkills.length },
+        quarantinedShifts, quarantinedTemplates, quarantinedSkills,
+        warnings: exportPreview.warnings.map(message => candidate.source + ": " + safeWarning(message)),
+        writesPerformed: false, automaticMergePerformed: false
+      };
+    }
+    safeReport = { generatedAt: new Date().toISOString(), ...result };
+    render(safeReport);
+    renderPrivatePreview(privatePreview);
+    reportNode.hidden = false;
+    text(statusNode, "Analisi completata. I file originali non sono stati modificati.");
+  } catch (error) {
+    reportNode.hidden = true;
+    safeReport = null;
+    text(errorNode, "Analisi non riuscita: JSON non valido o struttura non conforme. Verifica i file selezionati; nessun contenuto è stato modificato.");
+    text(statusNode, "Analisi non completata.");
+  } finally {
+    analyzeButton.disabled = false;
+  }
+});
+
+function renderPrivatePreview(preview) {
+  const panel = document.querySelector("#private-preview");
+  panel.hidden = !preview;
+  if (!preview) return;
+  const profileHost = document.querySelector("#profile-preview");
+  const paramsHost = document.querySelector("#params-preview");
+  clear(profileHost); clear(paramsHost);
+  const makeRows = (data, labels) => Object.entries(labels).map(([key, label]) =>
+    [label, data?.[key] === undefined || data[key] === "" ? "Non presente" : String(data[key])]);
+  profileHost.append(table(["Voce", "Valore"], makeRows(preview.profile, PROFILE_LABELS)));
+  paramsHost.append(table(["Parametro", "Valore"], makeRows(preview.params, PARAM_LABELS)));
+}
+function render(report) {
+  const ready = report.migrationReadiness;
+  text(document.querySelector("#readiness"),
+    ready.reviewRequired
+      ? "Revisione necessaria: sono presenti differenze, avvisi o elementi da verificare."
+      : "Nessun conflitto rilevato dai controlli eseguiti. Non equivale ad autorizzazione all'importazione.");
+  text(document.querySelector("#totals"),
+    `Fonti: ${report.sourceCount} · Turni validi esaminati: ${report.totals.shiftsReady} · Conflitti profilo: ${report.totals.profileConflictFields} · Conflitti extra: ${report.totals.extraConflictFields} · Duplicati possibili: ${report.totals.possibleDuplicateGroups}`);
+
+  const sourceRows = report.sources.map(item => [
+    item.source, item.shiftsTotal, item.shiftsReady, item.shiftsQuarantined,
+    item.profileValid ? "Valido" : "Da verificare",
+    item.extraTemplates ?? "—", item.extraTemplatesQuarantined ?? "—",
+    item.extraSkills ?? "—", item.extraSkillsQuarantined ?? "—",
+    item.extraMonthlyValues ?? "—", item.warnings, item.importable ? "Sì" : "No"
+  ]);
+  const sourceHost = document.querySelector("#sources");
+  clear(sourceHost);
+  sourceHost.append(table(["File", "Turni", "Pronti", "In quarantena", "Profilo", "Modelli", "Modelli in quarantena", "Formazione", "Formazione in quarantena", "Valori mensili", "Avvisi", "Importabile*"], sourceRows));
+  sourceHost.append(element("p", "*Indicatore tecnico preliminare; non costituisce autorizzazione all'importazione."));
+
+  const conflictHost = document.querySelector("#conflicts");
+  clear(conflictHost);
+  const conflictRows = [
+    ...report.profileConflicts.map(item => ["Profilo / " + item.section, item.field, item.sources.join(", ")]),
+    ...report.extraConflicts.map(item => ["Extra", item.field, item.sources.join(", ")])
+  ];
+  conflictHost.append(conflictRows.length
+    ? table(["Categoria", "Campo", "Fonti coinvolte"], conflictRows)
+    : element("p", "Nessun conflitto di campi rilevato."));
+
+  const quarantineHost = document.querySelector("#quarantine");
+  clear(quarantineHost);
+  const quarantineRows = [
+    ...report.quarantinedShifts.map(item => ["Turno", item.source, item.index, safeReason(item.reason)]),
+    ...report.quarantinedTemplates.map(item => ["Modello", item.source, item.index, safeReason(item.reason)]),
+    ...report.quarantinedSkills.map(item => ["Formazione", item.source, item.index, safeReason(item.reason)])
+  ];
+  quarantineHost.append(quarantineRows.length
+    ? table(["Tipo", "Fonte", "Indice", "Motivo"], quarantineRows)
+    : element("p", "Nessun elemento in quarantena."));
+
+  const warningsHost = document.querySelector("#warnings");
+  clear(warningsHost);
+  if (!report.warnings.length) warningsHost.append(element("li", "Nessun avviso."));
+  else for (const warning of report.warnings) warningsHost.append(element("li", safeWarning(warning)));
+}
+
+downloadButton.addEventListener("click", () => {
+  if (!safeReport) return;
+  const blob = new Blob([JSON.stringify(safeReport, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = element("a");
+  link.href = url;
+  link.download = "dsm-legacy-report-summary.json";
+  link.click();
+  URL.revokeObjectURL(url);
+});

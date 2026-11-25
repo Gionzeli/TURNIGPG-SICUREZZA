@@ -1,0 +1,30 @@
+name: Firebase rules emulator tests
+
+on:
+  push:
+    branches:
+      - dsm-enterprise/core-v1
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  firestore-rules-emulator:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Setup Node
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: 22
+      - name: Install test dependencies
+        working-directory: tests/firebase-emulator
+        run: npm install --ignore-scripts --no-audit --no-fund
+      - name: Stage the repository Firestore rules in the emulator project
+        run: cp firestore.rules tests/firebase-emulator/firestore.rules
+      - name: Run rules tests in local emulator only
+        working-directory: tests/firebase-emulator
+        run: npx --yes firebase-tools@14.12.1 emulators:exec --only firestore --project demo-dsm-rules "npm test"

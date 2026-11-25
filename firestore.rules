@@ -1,0 +1,52 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null && request.auth.token.email_verified == true; }
+    function isAdmin() {
+      return signedIn()
+        && request.auth.token.email == "zelanogianfranco@gmail.com";
+    }
+    function isOwner(uid) { return signedIn() && request.auth.uid == uid; }
+
+    match /accessRequests/{uid} {
+      allow create: if request.auth != null && request.auth.uid == uid
+        && request.resource.data.uid == uid
+        && request.resource.data.email == request.auth.token.email
+        && request.resource.data.status == "pending"
+        && request.resource.data.keys().hasOnly(["uid","email","name","role","note","status","createdAt"]);
+      allow read: if isOwner(uid) || isAdmin();
+      allow update: if isAdmin()
+        || (isOwner(uid)
+          && request.resource.data.uid == uid
+          && request.resource.data.email == request.auth.token.email
+          && request.resource.data.status == "pending"
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["name","role","note","status","createdAt"]));
+      allow delete: if isAdmin() || isOwner(uid);
+    }
+
+    match /members/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /privateData/{uid} {
+      allow read, create, update, delete: if false;
+    }
+
+    match /notifications/{uid}/items/{notificationId} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isAdmin();
+      allow update: if isOwner(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["read"])
+        && request.resource.data.read is bool;
+      allow delete: if isAdmin();
+    }
+
+    match /updates/{updateId} {
+      allow read: if signedIn();
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /{document=**} { allow read, write: if false; }
+  }
+}
