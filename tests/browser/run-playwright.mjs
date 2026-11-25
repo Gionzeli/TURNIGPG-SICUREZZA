@@ -47,10 +47,19 @@ try {
     fixturePolicy.includes("connect-src 'none'") &&
     fixturePolicy.includes("form-action 'none'"),
     "La fixture IndexedDB non applica la Content Security Policy restrittiva.");
-  await page.waitForFunction(() => {
-    const summary = document.querySelector("#summary");
-    return summary?.dataset.result === "pass" || summary?.dataset.result === "fail";
-  }, null, { timeout: 30000 });
+  try {
+    await page.waitForFunction(() => {
+      const summary = document.querySelector("#summary");
+      return summary?.dataset.result === "pass" || summary?.dataset.result === "fail";
+    }, null, { timeout: 30000 });
+  } catch (error) {
+    console.error("IndexedDB browser fixture diagnostics:", {
+      pageErrors,
+      summary: await page.locator("#summary").textContent().catch(() => null),
+      results: await page.locator("#results li").allTextContents().catch(() => [])
+    });
+    throw error;
+  }
 
   const result = await page.locator("#summary").textContent();
   const status = await page.locator("#summary").getAttribute("data-result");
