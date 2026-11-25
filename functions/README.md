@@ -21,7 +21,7 @@ Platform: Firebase Cloud Functions v2, Node.js 20, Firebase Admin SDK.
 - Approval and target membership activation occur in one Firestore transaction.
 - Target active membership already present is rejected; no implicit role replacement.
 - Nomination IDs are caller selectors and must be unique.
-- No admin bootstrap, nomination cancellation, membership revocation, last-admin safeguard, or audit stream is implemented yet.
+- No admin bootstrap, nomination cancellation, or audit stream is implemented yet. Membership revocation is a prototype service with an active-admin safeguard.
 
 ## Safety boundaries
 - This directory is isolated and not connected to the operational DSM app.
