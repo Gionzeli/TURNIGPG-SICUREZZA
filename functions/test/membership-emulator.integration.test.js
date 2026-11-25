@@ -94,7 +94,7 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     await createAdminNomination({
       db, accountId, actorUid: "adminA", nominationId: "cancel-denied",
       targetUid: "member4", role: "member", scopeType: "department",
-      scopeIds: ["dept1"]
+      scopeIds: ["dept1"], expiresAt: Date.now() + 60_000
     });
     await assert.rejects(
       cancelAdminNomination({

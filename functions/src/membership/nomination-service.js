@@ -25,8 +25,12 @@ function requireAdmin(membership, uid, accountId) {
   return normalized;
 }
 
-/** Creates a pending nomination. Only active canonical account admins can propose. */
-export async function createAdminNomination({ db, accountId, actorUid, nominationId, targetUid, role, scopeType, scopeIds, now = () => Date.now() }) {
+/**
+ * Creates a pending nomination. Only active canonical account admins can propose.
+ * expiresAt is a required server-supplied epoch-millisecond deadline. The maximum
+ * permitted lifetime remains a policy decision to settle before callable exposure.
+ */
+export async function createAdminNomination({ db, accountId, actorUid, nominationId, targetUid, role, scopeType, scopeIds, expiresAt, now = () => Date.now() }) {
   if (!validId(accountId) || !validId(actorUid) || !validId(nominationId) || !validRequest({ targetUid, role, scopeType, scopeIds })) fail("invalid-argument", "Invalid nomination fields.");
   const nominationRef = db.doc(`accounts/${accountId}/adminNominations/${nominationId}`);
   const actorRef = db.doc(`accounts/${accountId}/members/${actorUid}`);
@@ -34,13 +38,17 @@ export async function createAdminNomination({ db, accountId, actorUid, nominatio
     const [actorSnap, nominationSnap] = await Promise.all([tx.get(actorRef), tx.get(nominationRef)]);
     requireAdmin(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId);
     if (nominationSnap.exists) fail("already-exists", "Nomination ID already used.");
-    const record = { accountId, nominationId, targetUid, role, scopeType, scopeIds: [...scopeIds], status: "pending", nominatedBy: actorUid, createdAt: now() };
+    const createdAt = now();
+    if (!Number.isSafeInteger(createdAt) || !Number.isSafeInteger(expiresAt) || expiresAt <= createdAt) {
+      fail("invalid-argument", "A finite future nomination expiresAt timestamp is required.");
+    }
+    const record = { accountId, nominationId, targetUid, role, scopeType, scopeIds: [...scopeIds], status: "pending", nominatedBy: actorUid, createdAt, expiresAt };
     tx.create(nominationRef, record);
     return Object.freeze({ ...record, scopeIds: Object.freeze([...scopeIds]) });
   });
 }
 
-/** Approves a pending nomination by a distinct active admin; approval and membership write are atomic. */
+/** Approves a pending, unexpired nomination by a distinct active admin; writes are atomic. */
 export async function approveAdminNomination({ db, accountId, actorUid, nominationId, now = () => Date.now() }) {
   if (!validId(accountId) || !validId(actorUid) || !validId(nominationId)) fail("invalid-argument", "Invalid approval selector.");
   const nominationRef = db.doc(`accounts/${accountId}/adminNominations/${nominationId}`);
@@ -51,15 +59,21 @@ export async function approveAdminNomination({ db, accountId, actorUid, nominati
     if (!nominationSnap.exists) fail("not-found", "Nomination not found.");
     const nomination = nominationSnap.data();
     if (nomination.status !== "pending") fail("failed-precondition", "Nomination is not pending.");
+    if (nomination.accountId !== accountId || nomination.nominationId !== nominationId || !validRequest(nomination)) {
+      fail("failed-precondition", "Nomination fields are invalid.");
+    }
+    const approvedAt = now();
+    if (!Number.isSafeInteger(nomination.expiresAt) || nomination.expiresAt <= approvedAt) {
+      fail("failed-precondition", "Nomination has expired or has an invalid expiry.");
+    }
     if (nomination.nominatedBy === actorUid) fail("permission-denied", "A different admin must approve.");
-    if (!validRequest(nomination)) fail("failed-precondition", "Nomination fields are invalid.");
     const targetRef = db.doc(`accounts/${accountId}/members/${nomination.targetUid}`);
     const targetSnap = await tx.get(targetRef);
     if (targetSnap.exists && targetSnap.data()?.status === "active") fail("already-exists", "Target already has active membership.");
-    const membership = { uid: nomination.targetUid, accountId, status: "active", role: nomination.role, scopeType: nomination.scopeType, scopeIds: [...nomination.scopeIds], grantedBy: nomination.nominatedBy, approvedBy: actorUid, activatedAt: now() };
+    const membership = { uid: nomination.targetUid, accountId, status: "active", role: nomination.role, scopeType: nomination.scopeType, scopeIds: [...nomination.scopeIds], grantedBy: nomination.nominatedBy, approvedBy: actorUid, activatedAt: approvedAt };
     if (!validateCanonicalMembership(membership, nomination.targetUid, accountId)) fail("failed-precondition", "Proposed membership violates role/scope policy.");
     tx.set(targetRef, membership);
-    tx.update(nominationRef, { status: "approved", approvedBy: actorUid, approvedAt: now() });
+    tx.update(nominationRef, { status: "approved", approvedBy: actorUid, approvedAt });
     return Object.freeze({ status: "approved", targetUid: nomination.targetUid, role: nomination.role, approvedBy: actor.uid });
   });
 }
