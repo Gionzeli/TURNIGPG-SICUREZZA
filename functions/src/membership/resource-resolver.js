@@ -11,7 +11,7 @@ function deny(message = "Canonical resource could not be resolved.") {
 function validId(value) {
   return typeof value === "string" && ID_PATTERN.test(value);
 }
-function validRecord(record) {
+async function loadCanonical(loader, args) {\n  try {\n    return await loader(...args);\n  } catch {\n    deny();\n  }\n}\nfunction validRecord(record) {
   return Boolean(record && typeof record === "object" && !Array.isArray(record));
 }
 
@@ -51,21 +51,21 @@ export async function resolveCanonicalResourceContext({ selector, principal, loa
     if (type === "department" && !validId(departmentId)) deny();
   }
 
-  const account = await loaders.loadAccount(accountId);
+  const account = await loadCanonical(loaders.loadAccount, [accountId]);
   if (!validRecord(account) || account.accountId !== accountId) deny();
 
   if (type === "account") {
     return Object.freeze({ accountId, siteId: null, departmentId: null });
   }
 
-  const site = await loaders.loadSite(accountId, siteId);
+  const site = await loadCanonical(loaders.loadSite, [accountId, siteId]);
   if (!validRecord(site) || site.accountId !== accountId || site.siteId !== siteId) deny();
 
   if (type === "site") {
     return Object.freeze({ accountId, siteId, departmentId: null });
   }
 
-  const department = await loaders.loadDepartment(accountId, siteId, departmentId);
+  const department = await loadCanonical(loaders.loadDepartment, [accountId, siteId, departmentId]);
   if (!validRecord(department) ||
       department.accountId !== accountId ||
       department.siteId !== siteId ||
