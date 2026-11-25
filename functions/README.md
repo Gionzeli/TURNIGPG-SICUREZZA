@@ -7,6 +7,7 @@ Platform: Firebase Cloud Functions v2, Node.js 20, Firebase Admin SDK.
 ## Canonical membership prototype
 - Canonical membership documents are expected at `accounts/{accountId}/members/{uid}`.
 - The caller's `accountId` is only a selector; UID is derived from a verified, revocation-checked Firebase ID token.
+- The isolated unit suite asserts that the trusted verifier receives `checkRevoked=true` and that a synthetic revocation error is rejected. This is not a Firebase Auth Emulator or end-to-end callable test.
 - The server derives role permissions. Client-supplied permissions are ignored.
 - Allowed roles: `member`, `manager`, `admin`.
 - `admin` must have account scope and no scope IDs.

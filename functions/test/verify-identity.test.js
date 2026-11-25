@@ -26,3 +26,17 @@ test("returns immutable UID-only principal derived from verifier claims", async 
 test("rejects malformed verifier claims", async () => {
   await assert.rejects(() => verifyIdentity("synthetic-token", async () => ({ email: "x" })), { code: "unauthenticated" });
 });
+
+test("rejects a revoked token when the trusted verifier reports revocation", async () => {
+  let checkRevokedReceived = false;
+  await assert.rejects(
+    () => verifyIdentity("synthetic-revoked-token", async (_token, checkRevoked) => {
+      checkRevokedReceived = checkRevoked;
+      const error = new Error("Synthetic revoked token");
+      error.code = "auth/id-token-revoked";
+      throw error;
+    }),
+    error => error.code === "auth/id-token-revoked"
+  );
+  assert.equal(checkRevokedReceived, true);
+});
