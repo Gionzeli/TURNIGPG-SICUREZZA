@@ -242,6 +242,12 @@ export function createLocalLearning(options = {}) {
     if (closed || !database) throw new Error("Archivio apprendimento non disponibile");
   }
 
+  function assertCurrentStorage(activeDatabase, generation) {
+    if (closed || database !== activeDatabase || storageGeneration !== generation) {
+      throw new Error("Operazione annullata: archivio apprendimento invalidato");
+    }
+  }
+
   function list(kind) {
     const selected = records.filter(rule => !kind || rule.kind === kind);
     return selected.map(rule => ({ ...rule }));
@@ -276,7 +282,9 @@ export function createLocalLearning(options = {}) {
     const rule = { id, kind, field, alias: safeAlias, normalizedAlias, createdAt: new Date().toISOString(), version: 1 };
     // Il conteggio e il controllo duplicati avvengono nella stessa transazione
     // readwrite della scrittura: più schede/chiamate non possono superare il limite.
-    const tx = database.transaction(STORE, "readwrite");
+    const activeDatabase = database;
+    const generation = storageGeneration;
+    const tx = activeDatabase.transaction(STORE, "readwrite");
     const done = transactionDone(tx);
     const store = tx.objectStore(STORE);
     const read = store.getAll();
@@ -285,7 +293,6 @@ export function createLocalLearning(options = {}) {
     read.onsuccess = () => {
       const persisted = read.result.filter(isValidStoredRule);
       duplicate = persisted.find(item => item.id === id) || null;
-      records = persisted;
       if (duplicate) return;
       if (persisted.length >= MAX_RULES) {
         limitReached = true;
@@ -294,6 +301,7 @@ export function createLocalLearning(options = {}) {
       store.put(rule);
     };
     await waitForWrite(done);
+    assertCurrentStorage(activeDatabase, generation);
     if (duplicate) return { ...duplicate, duplicate: true };
     if (limitReached) throw new RangeError("Limite massimo di regole locali raggiunto");
     records = records.filter(item => item.id !== id);
@@ -305,10 +313,13 @@ export function createLocalLearning(options = {}) {
   async function removeAlias(id) {
     await ready;
     assertOpen();
-    const tx = database.transaction(STORE, "readwrite");
+    const activeDatabase = database;
+    const generation = storageGeneration;
+    const tx = activeDatabase.transaction(STORE, "readwrite");
     const done = transactionDone(tx);
     tx.objectStore(STORE).delete(String(id));
     await waitForWrite(done);
+    assertCurrentStorage(activeDatabase, generation);
     records = records.filter(rule => rule.id !== id);
     announceChange();
   }
@@ -316,10 +327,13 @@ export function createLocalLearning(options = {}) {
   async function clear() {
     await ready;
     assertOpen();
-    const tx = database.transaction(STORE, "readwrite");
+    const activeDatabase = database;
+    const generation = storageGeneration;
+    const tx = activeDatabase.transaction(STORE, "readwrite");
     const done = transactionDone(tx);
     tx.objectStore(STORE).clear();
     await waitForWrite(done);
+    assertCurrentStorage(activeDatabase, generation);
     records = [];
     announceChange();
   }

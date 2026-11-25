@@ -101,6 +101,26 @@ try {
     await afterRevocation.destroy();
   });
 
+  await run("una scrittura già avviata non ripopola la cache dopo close", async () => {
+    const pendingName = "ocr-learning-pending-" + crypto.randomUUID();
+    const pendingLearning = createLocalLearning({ databaseName: pendingName });
+    await pendingLearning.ready;
+    await pendingLearning.addAlias({ kind: "payroll", field: "paga_base", alias: "Retribuzione contrattuale" });
+    const pendingWrite = pendingLearning.addAlias({ kind: "payroll", field: "paga_base", alias: "Compenso ordinario" });
+    // Lascia che addAlias crei la transazione, ma chiudi prima delle callback IDB.
+    await Promise.resolve();
+    pendingLearning.close();
+    await assert.rejects(() => pendingWrite);
+    assert.equal(pendingLearning.available, false);
+    assert.equal(pendingLearning.list().length, 0);
+    assert.equal(pendingLearning.applyEnabled, false);
+    assert.equal(pendingLearning.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale | 1.450,00");
+    const verify = createLocalLearning({ databaseName: pendingName });
+    await verify.ready;
+    assert.equal(verify.list().length, 2);
+    await verify.destroy();
+  });
+
   await run("destroy invalida subito cache e alias anche se un'altra scheda blocca la cancellazione", async () => {
     const destroyName = "ocr-learning-destroy-" + crypto.randomUUID();
     const owner = createLocalLearning({ databaseName: destroyName });
