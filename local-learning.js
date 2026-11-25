@@ -149,6 +149,15 @@ export function createLocalLearning(options = {}) {
     database = null;
     channel?.close();
   }
+  async function waitForWrite(done) {
+    try {
+      await done;
+    } catch (error) {
+      // Una transazione fallita può lasciare la cache non più affidabile.
+      invalidateStorage();
+      throw error;
+    }
+  }
   if (channel) channel.onmessage = event => {
     if (event?.data?.type === "refresh" && !closed) refreshFromDatabase();
   };
@@ -271,7 +280,7 @@ export function createLocalLearning(options = {}) {
       }
       store.put(rule);
     };
-    await done;
+    await waitForWrite(done);
     if (duplicate) return { ...duplicate, duplicate: true };
     if (limitReached) throw new RangeError("Limite massimo di regole locali raggiunto");
     records = records.filter(item => item.id !== id);
@@ -286,7 +295,7 @@ export function createLocalLearning(options = {}) {
     const tx = database.transaction(STORE, "readwrite");
     const done = transactionDone(tx);
     tx.objectStore(STORE).delete(String(id));
-    await done;
+    await waitForWrite(done);
     records = records.filter(rule => rule.id !== id);
     announceChange();
   }
@@ -297,7 +306,7 @@ export function createLocalLearning(options = {}) {
     const tx = database.transaction(STORE, "readwrite");
     const done = transactionDone(tx);
     tx.objectStore(STORE).clear();
-    await done;
+    await waitForWrite(done);
     records = [];
     announceChange();
   }
