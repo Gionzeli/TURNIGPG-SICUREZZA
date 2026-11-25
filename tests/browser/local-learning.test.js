@@ -40,7 +40,7 @@ try {
 
   await run("applica l'alias solo come etichetta e conserva l'importo OCR", async () => {
     const result = learning.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll");
-    assert.equal(result, "paga base: 1.450,00");
+    assert.equal(result, "paga base | 1.450,00");
   });
 
   await run("normalizza la scrittura di date, orari e importi senza generare valori", async () => {
@@ -56,7 +56,7 @@ try {
     await reopened.ready;
     assert.equal(reopened.list("payroll").length, 1);
     reopened.setApplyEnabled(false);
-    assert.equal(reopened.applyAliases("Retribuzione contrattuale: 1.450,00", "payroll"), "Retribuzione contrattuale: 1.450,00");
+    assert.equal(reopened.applyAliases("Retribuzione contrattuale | 1.450,00", "payroll"), "Retribuzione contrattuale: 1.450,00");
     reopened.setApplyEnabled(true);
     await reopened.removeAlias(reopened.list()[0].id);
     assert.equal(reopened.list().length, 0);
