@@ -172,19 +172,27 @@ test("Firestore Emulator: nomination approval, cancellation and membership revoc
     assert.equal((await members.doc("member7").get()).data().status, "active");
 
     // Concurrent approval attempts against one pending nomination: one winner only.
+    const raceApprovalAccountId = "race-approval-account";
+    const raceApprovalMembers = db.collection(`accounts/${raceApprovalAccountId}/members`);
+    const raceApprovalNominations = db.collection(`accounts/${raceApprovalAccountId}/adminNominations`);
+    await Promise.all([
+      raceApprovalMembers.doc("raceApprovalAdminA").set({ uid: "raceApprovalAdminA", accountId: raceApprovalAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] }),
+      raceApprovalMembers.doc("raceApprovalAdminB").set({ uid: "raceApprovalAdminB", accountId: raceApprovalAccountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] })
+    ]);
     await createAdminNomination({
-      db, accountId, actorUid: "adminB", actorIdentity: verifiedAdminIdentity("adminB", 800), nominationId: "race-approval",
+      db, accountId: raceApprovalAccountId, actorUid: "raceApprovalAdminA", actorIdentity: verifiedAdminIdentity("raceApprovalAdminA", 800), nominationId: "race-approval",
       targetUid: "raceTarget", role: "member", scopeType: "department",
       scopeIds: ["dept1"], now: () => 800
     });
     const approvalRace = await Promise.allSettled([
-      approveAdminNomination({ db, accountId, actorUid: "adminA", actorIdentity: verifiedAdminIdentity("adminA", 900), nominationId: "race-approval", now: () => 900 }),
-      approveAdminNomination({ db, accountId, actorUid: "adminB", actorIdentity: verifiedAdminIdentity("adminB", 900), nominationId: "race-approval", now: () => 900 })
+      approveAdminNomination({ db, accountId: raceApprovalAccountId, actorUid: "raceApprovalAdminA", actorIdentity: verifiedAdminIdentity("raceApprovalAdminA", 900), nominationId: "race-approval", now: () => 900 }),
+      approveAdminNomination({ db, accountId: raceApprovalAccountId, actorUid: "raceApprovalAdminB", actorIdentity: verifiedAdminIdentity("raceApprovalAdminB", 900), nominationId: "race-approval", now: () => 900 })
     ]);
     assert.equal(approvalRace.filter(result => result.status === "fulfilled").length, 1);
     assert.equal(approvalRace.filter(result => result.status === "rejected").length, 1);
-    assert.equal((await members.doc("raceTarget").get()).data().status, "active");
-    assert.equal((await nominations.doc("race-approval").get()).data().status, "approved");
+    assert.equal((await raceApprovalMembers.doc("raceTarget").get()).data().status, "active");
+    assert.equal((await raceApprovalNominations.doc("race-approval").get()).data().status, "approved");
+    await Promise.all([clear(raceApprovalMembers), clear(raceApprovalNominations)]);
 
     // Concurrent mutual admin revocations must not leave the account without an admin.
     const raceAccountId = "race-account";
