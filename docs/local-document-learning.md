@@ -6,6 +6,7 @@
 - Tesseract italiano/inglese resta il fallback locale e il percorso OCR per turni e immagini.
 - L'estrazione PDF testuale e i parser deterministici restano prioritari quando il testo è già disponibile.
 - Qwen 2.5 0.5B Instruct è un assistente opzionale: può proporre etichette generiche mancanti, ma non scrive importi, date o dati personali e non modifica il risultato OCR.
+- Il repository del modello è fissato alla revisione Hugging Face `cc5cc01a65cc3ff17bdb73a7de33d879f62599b0`, non al ramo mobile `main`, per rendere ripetibile il contenuto scaricato. La variante Q4 richiesta dal runtime ha un file di pesi di circa 786 MB: il primo avvio richiede quindi un download consistente e spazio cache sul dispositivo.
 - Ogni alias proposto da Qwen deve essere presente nel testo OCR, essere associato a un campo consentito e venire approvato esplicitamente dall'utente prima di essere salvato.
 - Le regole approvate vengono applicate ai successivi documenti per normalizzare etichette. I parser esistenti continuano a validare importi, date, orari e struttura; la conferma dell'utente resta obbligatoria.
 - La scrittura dei dati riconosciuti resta deterministica: date ISO, orari HH:mm, importi in formato italiano e testo ripulito. Qwen non genera né completa valori mancanti.
@@ -36,4 +37,5 @@ La fixture `tests/browser/local-learning.html` verifica con dati sintetici:
 - applicazione dell'alias senza cambiare l'importo OCR;
 - normalizzazione deterministica di data, orario, importo e testo;
 - disattivazione e cancellazione delle regole;
-- integrazione sintetica con i parser cedolino e turni e presenza della UI di apprendimento.
+- integrazione sintetica con i parser cedolino e turni e presenza della UI di apprendimento;
+- verifica che Transformers.js riceva la revisione Hugging Face fissata.

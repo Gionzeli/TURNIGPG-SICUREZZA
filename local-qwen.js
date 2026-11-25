@@ -1,6 +1,7 @@
 import { isSafeLearningAlias } from "./local-learning.js";
 
 const DEFAULT_MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
+const MODEL_REVISION = "cc5cc01a65cc3ff17bdb73a7de33d879f62599b0";
 
 const TARGETS = Object.freeze({
   payroll: ["paga_base", "scatti", "altre_fisse", "ore_mensili", "ore_turno", "straordinario_perc", "straordinario_ora", "notturno_turno", "piantonato_turno", "domenica_ora", "riposo_non_goduto", "buono_pasto", "inps_rate", "irpef_rate", "sindacato", "cessione", "altre_trattenute"],
@@ -90,6 +91,7 @@ export function createLocalQwen(options = {}) {
           try {
             onProgress?.("Preparazione Qwen sul dispositivo (" + mode.label + ")…");
             generator = await pipeline("text-generation", modelId, {
+              revision: MODEL_REVISION,
               device: mode.device,
               dtype: "q4",
               progress_callback(progress) {
