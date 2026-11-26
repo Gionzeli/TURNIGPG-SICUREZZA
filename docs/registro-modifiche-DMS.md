@@ -434,3 +434,8 @@ Rafforzata la boundary update/delete: l'Employee restituito dall'authorizer deve
 ## 2026-11-27 — Normalizzazione update turno
 
 Corretto l'update dei turni per validare esclusivamente i campi di dominio modificabili, senza passare i metadati server (account, owner, placement, revisioni e audit timestamps) nel validatore del payload. Il test Emulator esercita ora aggiornamento riuscito e attacco con authorizer che restituisce un Employee diverso dall'owner storico.
+
+
+## 2026-11-27 — Correzione test idempotenza audit assenze
+
+La CI ha evidenziato un'asserzione errata nel test: una seconda lettura con un nuovo eventId è legittima e deve essere auditata. Il test ora ripete lo stesso eventId e verifica il rifiuto del duplicato, coerentemente con l'idempotenza dell'audit. Nessuna modifica alla policy o al servizio.

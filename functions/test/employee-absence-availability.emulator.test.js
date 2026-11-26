@@ -37,7 +37,7 @@ test("Firestore Emulator: manager absence view returns date availability only an
     assert.equal(auditSnap.type, "employee.absence.availability.read");
     assert.equal(JSON.stringify(auditSnap).includes("malattia"), false);
     assert.equal(JSON.stringify(auditSnap).includes("synthetic-diagnosis"), false);
-    await assert.rejects(service.read({ accountId, actorUid: "manager-1", actorIdentity: { uid: "manager-1" }, employeeId, startDate: "2026-02-02", endDate: "2026-02-06", eventId: "read-2" }), e => e.code === "already-exists" || e.code === "permission-denied");
+    await assert.rejects(service.read({ accountId, actorUid: "manager-1", actorIdentity: { uid: "manager-1" }, employeeId, startDate: "2026-02-02", endDate: "2026-02-06", eventId: "read-1" }), e => e.code === "already-exists");
   } finally {
     const snapshots = await Promise.all([records.get(), audit.get()]);
     await Promise.all(snapshots.flatMap(s => s.docs.map(d => d.ref.delete())));
