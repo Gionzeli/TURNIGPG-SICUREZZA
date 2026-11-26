@@ -134,3 +134,6 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 
  
 - The Employee domain authorization primitive validates canonical principal structure on both self and delegated paths, including role/scope/permission structure. Delegated placement intervals require real canonical ISO calendar dates and a strictly increasing end date when bounded. This remains a pure policy helper: trusted transactional loaders must still enforce lifecycle and select the placement valid at the protected operation's effective date.
+
+ 
+- Corrected the Employee authorization guard to actually invoke strict principal validation; fixed the ISO date regex and enforce real calendar dates and increasing placement intervals in delegated mode. Negative tests exercise malformed principals and invalid date ranges.

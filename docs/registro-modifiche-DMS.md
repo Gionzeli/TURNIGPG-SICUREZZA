@@ -459,3 +459,8 @@ Aggiunto `employee-domain-authorization.js`: modalità self richiede binding UID
 ## 2026-11-27 — Validazione rigorosa principal e intervalli placement
 
 Rafforzata la primitive Employee domain authorization: il principal deve avere ruolo, scope, array di scope ID univoci e permission strutturalmente validi anche nel percorso self; i placement delegati richiedono date ISO calendariali reali e intervalli non vuoti/non invertiti. Aggiunti test negativi per ruoli sconosciuti, scope duplicati, permission malformate, date impossibili e intervalli invertiti. La verifica resta una policy pura: non sostituisce loader canonici, controllo lifecycle o autorizzazione temporale rispetto alla data della singola operazione.
+
+ 
+## 2026-11-27 — Correzione effettiva validazione principal e date Employee
+
+Risolta una discrepanza individuata nella verifica del commit precedente: la validazione strutturale del principal non era collegata al guard effettivo e il pattern data conteneva un escape errato. Ora il guard invoca validPrincipal in entrambi i percorsi e i placement delegati verificano date calendario reali e intervalli validi. I test negativi aggiunti coprono questi casi. La verifica rimane una primitive pura e non sostituisce loader canonici/lifecycle.

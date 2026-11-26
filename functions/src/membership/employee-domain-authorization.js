@@ -7,7 +7,7 @@ const ROLES = new Set(["member", "manager", "admin"]);
 const SCOPE_TYPES = new Set(["account", "site", "department"]);
 
 function validDate(value) {
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const [year, month, day] = value.split("-").map(Number);
   const date = new Date(Date.UTC(year, month - 1, day));
   return date.getUTCFullYear() === year &&
@@ -43,9 +43,8 @@ export function authorizeEmployeeDomainOperation({
   principal, permission, accessMode, employeeBinding = null,
   employeeId, placement = null
 }) {
-  if (!principal || typeof principal !== "object" || Array.isArray(principal) ||
-      !validId(principal.uid) || !validId(principal.accountId) ||
-      typeof permission !== "string" || !principal.permissions?.includes(permission) ||
+  if (!validPrincipal(principal) ||
+      typeof permission !== "string" || !principal.permissions.includes(permission) ||
       !MODES.has(accessMode) || !validId(employeeId)) deny();
 
   if (accessMode === "self") {
@@ -64,8 +63,9 @@ export function authorizeEmployeeDomainOperation({
       placement.employeeId !== employeeId ||
       !validId(placement.placementId) || !validId(placement.siteId) ||
       !validId(placement.departmentId) ||
-      typeof placement.validFrom !== "string" ||
-      (placement.validUntil !== null && typeof placement.validUntil !== "string")) deny();
+      !validDate(placement.validFrom) ||
+      (placement.validUntil !== null &&
+        (!validDate(placement.validUntil) || placement.validUntil <= placement.validFrom))) deny();
 
   const resource = authorizeResource({
     principal, permission,
