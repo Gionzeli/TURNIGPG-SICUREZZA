@@ -301,3 +301,8 @@ Rafforzato `tests/storage-harness/domain-model.mjs`: il trasferimento valida il 
 ## Workflow CI dedicato al harness Employee sintetico — 2026-11-26
 
 Aggiunto `.github/workflows/employee-storage-harness.yml`, limitato a `tests/storage-harness/**` e al proprio file workflow. Esegue `node --test tests/storage-harness/*.test.mjs` su Node 20, senza installare pacchetti, usare emulatori, servizi cloud, credenziali o dati reali. Si attiva su pull request verso `main`, push sul branch `dsm-enterprise/core-v1` e dispatch manuale; permesso GitHub limitato a `contents: read`. Un eventuale esito positivo dimostrerà soltanto il comportamento dei modelli in-memory documentati, non le garanzie Firestore/PostgreSQL o la sicurezza runtime. L'esecuzione sul nuovo SHA deve essere verificata separatamente.
+
+
+## Estensione harness: deleghe manager, payroll write/export e report assenze — 2026-11-26
+
+Aggiunti esempi e test puramente in-memory per: delega manager legata a Employee, sede/reparto e data del placement, con permessi distinti per read/create/update/delete; separazione di `payroll:write` e `payroll:export` senza implicazioni da `payroll:read`, con eventi audit sintetici; proiezione report assenze priva di categoria, motivazione, note, raggruppamenti e conteggi per categoria. I casi sono modelli didattici e non autorizzazioni runtime: non verificano identità manager reale, persistenza, atomicità datastore, attribuzione audit trusted o assenza di ogni possibile inferenza da dati temporali. Nessun adapter DB, schema, endpoint, Rules, migrazione, wiring, dato reale o deploy modificato. Il runner CI sul nuovo SHA deve essere verificato prima di dichiarare i test superati.

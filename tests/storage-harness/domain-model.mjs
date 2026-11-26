@@ -15,7 +15,8 @@ export function createDomainFixture() {
     ],
     placements: [], shifts: [], payroll: [], absences: [], bindings: [
       { accountId: "acct-a", uid: "uid-1", employeeId: "emp-1", status: "active" }
-    ], audit: []
+    ],
+    delegations: [], audit: []
   };
 }
 
@@ -93,6 +94,60 @@ export function payrollView(state, { accountId, employeeId, permissions = [] }) 
 }
 
 export function managerAbsenceView(state, { accountId, employeeId }) {
+  return state.absences.filter(x => x.accountId === accountId && x.employeeId === employeeId)
+    .map(x => ({ unavailable: true, start: x.start, end: x.end }));
+}
+
+
+// Synthetic policy examples only; these do not enforce authorization in an application.
+export function authorizeManagerShift(state, {
+  accountId, managerUid, employeeId, siteId, departmentId, date, operation
+}) {
+  const allowedOperations = new Set(["read", "create", "update", "delete"]);
+  if (!allowedOperations.has(operation)) fail("permission-denied");
+  const permission = `shift:${operation}`;
+  const delegation = state.delegations.find(x =>
+    x.accountId === accountId && x.managerUid === managerUid &&
+    x.employeeId === employeeId && x.status === "active" &&
+    x.permissions?.includes(permission) &&
+    x.siteId === siteId && x.departmentId === departmentId);
+  const employee = state.employees.find(x =>
+    x.accountId === accountId && x.employeeId === employeeId && x.status === "active");
+  const org = state.org.find(x => x.accountId === accountId &&
+    x.siteId === siteId && x.departmentId === departmentId && x.status === "active");
+  let placement;
+  try { placement = placementAt(state, accountId, employeeId, date); }
+  catch { fail("permission-denied"); }
+  if (!delegation || !employee || !org ||
+      placement.siteId !== siteId || placement.departmentId !== departmentId) fail("permission-denied");
+  return true;
+}
+
+export function writePayrollRecord(state, {
+  accountId, employeeId, recordId, period, amount, actorUid, permissions = []
+}) {
+  if (!permissions.includes("payroll:write")) fail("permission-denied");
+  if (![accountId, employeeId, recordId, period, actorUid].every(x => typeof x === "string" && x.length > 0) ||
+      typeof amount !== "number" || !Number.isFinite(amount)) fail("invalid-payroll-record");
+  const index = state.payroll.findIndex(x =>
+    x.accountId === accountId && x.employeeId === employeeId && x.recordId === recordId);
+  const record = { accountId, employeeId, recordId, period, amount };
+  if (index < 0) state.payroll.push(record);
+  else state.payroll[index] = record;
+  state.audit.push({ actorUid, action: "payroll-write", accountId, employeeId, recordId });
+  return { period, amount };
+}
+
+export function exportPayroll(state, { accountId, employeeId, actorUid, permissions = [] }) {
+  if (!permissions.includes("payroll:export")) fail("permission-denied");
+  const rows = state.payroll.filter(x => x.accountId === accountId && x.employeeId === employeeId)
+    .map(x => ({ period: x.period, amount: x.amount }));
+  state.audit.push({ actorUid, action: "payroll-export", accountId, employeeId, recordCount: rows.length });
+  return rows;
+}
+
+export function managerAbsenceReport(state, { accountId, employeeId }) {
+  // No category filters, category groupings, or category-derived counts are exposed.
   return state.absences.filter(x => x.accountId === accountId && x.employeeId === employeeId)
     .map(x => ({ unavailable: true, start: x.start, end: x.end }));
 }

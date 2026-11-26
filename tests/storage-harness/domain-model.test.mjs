@@ -2,7 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   createDomainFixture, addPlacement, placementAt, addHistoricalShift,
-  transferEmployee, revokeBinding, authorizeNewOperation, payrollView, managerAbsenceView
+  transferEmployee, revokeBinding, authorizeNewOperation, payrollView, managerAbsenceView,
+  authorizeManagerShift, writePayrollRecord, exportPayroll, managerAbsenceReport
 } from "./domain-model.mjs";
 
 function placedFixture() {
@@ -107,4 +108,55 @@ test("operation scope must match the Employee placement at the operation date", 
     accountId:"acct-a", uid:"uid-1", employeeId:"emp-1",
     siteId:"site-1", departmentId:"dept-1", date:"2026-06-01"
   }), { code:"permission-denied" });
+});
+
+
+test("manager delegation is operation-specific and placement-scoped", () => {
+  const s = placedFixture();
+  s.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", status:"active",
+    permissions:["shift:read", "shift:update"] });
+  const baseArgs = { accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01" };
+  assert.equal(authorizeManagerShift(s, { ...baseArgs, operation:"read" }), true);
+  assert.equal(authorizeManagerShift(s, { ...baseArgs, operation:"update" }), true);
+  assert.throws(() => authorizeManagerShift(s, { ...baseArgs, operation:"delete" }), { code:"permission-denied" });
+  assert.throws(() => authorizeManagerShift(s, { ...baseArgs, operation:"create", siteId:"site-2", departmentId:"dept-2" }), { code:"permission-denied" });
+  assert.throws(() => authorizeManagerShift(s, { ...baseArgs, operation:"admin" }), { code:"permission-denied" });
+  s.delegations[0].status = "revoked";
+  assert.throws(() => authorizeManagerShift(s, { ...baseArgs, operation:"read" }), { code:"permission-denied" });
+});
+
+test("payroll write and export are separate explicit permissions and are audited", () => {
+  const s = createDomainFixture();
+  const baseArgs = { accountId:"acct-a", employeeId:"emp-1", recordId:"pay-1",
+    period:"2026-01", amount:123.45, actorUid:"manager-1" };
+  assert.throws(() => writePayrollRecord(s, { ...baseArgs, permissions:["payroll:read"] }), { code:"permission-denied" });
+  assert.deepEqual(writePayrollRecord(s, { ...baseArgs, permissions:["payroll:write"] }),
+    { period:"2026-01", amount:123.45 });
+  assert.throws(() => exportPayroll(s, { accountId:"acct-a", employeeId:"emp-1",
+    actorUid:"manager-1", permissions:["payroll:read"] }), { code:"permission-denied" });
+  assert.deepEqual(exportPayroll(s, { accountId:"acct-a", employeeId:"emp-1",
+    actorUid:"manager-1", permissions:["payroll:export"] }), [{ period:"2026-01", amount:123.45 }]);
+  assert.deepEqual(s.audit.map(x => x.action), ["payroll-write", "payroll-export"]);
+  assert.ok(s.audit.every(x => x.actorUid === "manager-1"));
+});
+
+test("absence reporting has no health-category filters, groupings, or derived category counts", () => {
+  const s = createDomainFixture();
+  s.absences.push(
+    { accountId:"acct-a", employeeId:"emp-1", start:"2026-02-01", end:"2026-02-03",
+      kind:"malattia", reason:"synthetic-diagnosis", notes:"synthetic-medical-note" },
+    { accountId:"acct-a", employeeId:"emp-1", start:"2026-02-10", end:"2026-02-10",
+      kind:"ferie", reason:"synthetic-holiday-reason" }
+  );
+  const report = managerAbsenceReport(s, { accountId:"acct-a", employeeId:"emp-1" });
+  assert.deepEqual(report, [
+    { unavailable:true, start:"2026-02-01", end:"2026-02-03" },
+    { unavailable:true, start:"2026-02-10", end:"2026-02-10" }
+  ]);
+  const serialized = JSON.stringify(report);
+  for (const forbidden of ["malattia", "ferie", "synthetic-diagnosis", "synthetic-medical-note", "kind", "reason", "count"]) {
+    assert.equal(serialized.includes(forbidden), false);
+  }
 });
