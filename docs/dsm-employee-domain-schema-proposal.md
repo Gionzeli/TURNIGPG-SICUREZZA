@@ -1,6 +1,6 @@
 # DSM employee-domain schema — proposta per revisione
 
-**Stato:** proposta architetturale non approvata; non implementata e non operativa.
+**Stato:** direzione di dominio approvata limitatamente alla separazione Employee/payroll e alla compatibilità dell'identificatore; proposta non operativa per tutto il resto.
 **Riferimento:** branch `dsm-enterprise/core-v1`, modello A UID Firebase → dipendente approvato solo come policy isolata.
 **Ambito:** entità dipendente canonica, dati contrattuali/retributivi separati, riferimenti di turni e assenze.
 **Vincoli:** esempi esclusivamente sintetici; nessuna scelta definitiva di percorso Firestore, Rules, indice, migrazione, provisioning o deploy.
@@ -15,7 +15,7 @@ Introdurre un'identità di lavoro stabile per ogni rapporto dipendente nell'acco
 
 La proposta raccomanda un'entità dipendente canonica separata dai dati payroll. Il binding del modello A dovrebbe risolvere l'UID verificato verso questa identità canonica, non usare email, nome, codice fiscale, UID scelto dal client o un record IndexedDB come prova di proprietà.
 
-**Nota di compatibilità:** il modulo isolato attuale usa il campo logico `profileId`. Prima di implementare un loader, il responsabile dello schema deve decidere se `profileId` diventa l'ID stabile dell'entità dipendente proposta oppure se il contratto del modulo viene rinominato/adattato a `employeeId`. Non effettuare una conversione implicita.
+**Decisione approvata il 2026-11-26:** il campo logico `profileId` del binding A identifica l'entità canonica `Employee` e ne rappresenta l'ID stabile (`employeeId` nel dominio). Il nome `profileId` resta invariato nel contratto del modulo di policy isolato per compatibilità; il loader dovrà mapparlo esplicitamente all'ID Employee. Questa scelta non rende il binding operativo e non approva percorsi Firestore, cardinalità, provisioning, lifecycle o migrazione.
 
 ## 2. Entità logiche proposte
 
@@ -153,8 +153,8 @@ Questo documento non autorizza alcuna lettura, importazione o migrazione di dati
 
 | ID | Decisione | Default prudenziale proposto, non approvato |
 |---|---|---|
-| EMP-01 | Employee separato dal profilo/payroll? | Sì: entità identitaria minimale e dominio terms/payroll separato. |
-| EMP-02 | Semantica di `profileId` nel binding A | Farlo coincidere con Employee ID oppure aggiornare il contratto prima del loader. |
+| EMP-01 | Employee separato dal profilo/payroll? | **APPROVATO:** sì, entità identitaria minimale e dominio terms/payroll separato. |
+| EMP-02 | Semantica di `profileId` nel binding A | **APPROVATO:** `profileId` identifica l'Employee canonico; mapping esplicito a `employeeId`, senza rinominare il contratto isolato. |
 | EMP-03 | Cardinalità UID↔Employee | Una sola associazione attiva per account in entrambe le direzioni fino a diversa approvazione. |
 | EMP-04 | Placement multiplo e storico | Storico append-only o versionato; un solo placement attivo salvo policy multi-site esplicita. |
 | EMP-05 | Shift ownership | Ogni turno collegato a Employee; delega manager con permission dedicata. |
@@ -166,7 +166,7 @@ Questo documento non autorizza alcuna lettura, importazione o migrazione di dati
 
 ## 9. Sequenza di implementazione dopo approvazione
 
-1. Approvare EMP-01…EMP-10 e allineare LINK-01…LINK-10.
+1. EMP-01 ed EMP-02 sono approvati; decidere separatamente EMP-03…EMP-10 e allineare le decisioni LINK pertinenti.
 2. Stabilire il contratto ID Employee e la compatibilità con `profileId` del binding isolato.
 3. Approvare il modello lifecycle e placement insieme a ORG-01/02.
 4. Definire DTO/permissions separati per employee, payroll, shifts e absences.
@@ -178,4 +178,4 @@ Questo documento non autorizza alcuna lettura, importazione o migrazione di dati
 
 ## 10. Non autorizzazione esplicita
 
-Questa proposta non approva percorsi Firestore, schema definitivo, cardinalità, provisioning, migrazioni, Rules, endpoint, UI, accesso a dati reali, credenziali o deploy. Non modifica il runtime e non rende attivo il binding A. PR #1 deve restare Draft fino alle decisioni e verifiche separate.
+Questa decisione approva soltanto la separazione concettuale Employee/payroll (EMP-01) e la semantica compatibile di `profileId` (EMP-02). Non approva percorsi Firestore, schema fisico definitivo, cardinalità, placement, lifecycle, provisioning, migrazioni, Rules, endpoint, UI, accesso a dati reali, credenziali o deploy. Non modifica il runtime e non rende attivo il binding A. PR #1 deve restare Draft fino alle decisioni e verifiche separate.

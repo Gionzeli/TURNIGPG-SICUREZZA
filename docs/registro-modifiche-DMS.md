@@ -108,3 +108,16 @@ EMP-01…EMP-10 coprono separazione Employee/payroll, compatibilità `profileId`
 - Sul precedente HEAD `ae72c20ba12a5417ff6ecb8ca7e623d490dd96c8`, i workflow `indexeddb-browser-tests` e `firestore-rules-emulator` risultano `success`.
 - Questo commit contiene solo documentazione: non attiva necessariamente il workflow backend Functions; non attribuire a questo SHA test del backend non eseguiti.
 - Nessuna modifica runtime, Firestore Rules, `main`, deploy, migrazione o dato reale.
+
+
+## 2026-11-26 — Approvazione limitata EMP-01 / EMP-02
+
+**Decisione esplicita dell'utente:** approvata la separazione proposta e la compatibilità in cui l'attuale `profileId` del binding A identifica l'entità Employee.
+
+- **EMP-01 — APPROVATO:** Employee è un'entità identitaria minimale, distinta dai dati contrattuali/retributivi (terms/payroll), che restano in un dominio separato con permessi dedicati.
+- **EMP-02 — APPROVATO:** il valore logico `profileId` già previsto dal contratto isolato del binding A identifica l'ID stabile dell'Employee canonico. Nel dominio Employee tale identificatore è denominato `employeeId`; il mapping è esplicito nel loader, senza rinominare ora il contratto del modulo di policy.
+- La decisione non implica che esista già un archivio Employee canonico né autorizza a usare IndexedDB come fonte attendibile.
+- Restano **non approvati** EMP-03…EMP-10: cardinalità UID↔Employee, placement e storia, ownership/delega turni, privacy/DTO assenze, permessi payroll, lifecycle, provisioning/prova identità e percorsi/tecnologia backend.
+- Non sono autorizzati loader concreti, endpoint, Rules, migrazioni, accesso a dati reali o deploy. Nessuna modifica runtime effettuata.
+
+**HEAD di partenza:** `82ac016947c19abf68378cb3cd92d04adc0a51be`. PR #1 verificata aperta, Draft, non merged, base `main`. CI sul nuovo commit documentale da verificare separatamente.
