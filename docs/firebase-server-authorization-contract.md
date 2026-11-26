@@ -1,6 +1,6 @@
 # Contratto di autorizzazione server-side Firebase per DSM
 
-**Stato:** proposta architetturale e piano di test; endpoint non implementato.
+**Stato:** contratto architetturale e piano di test; callable isolata `resolveAuthorization` implementata come risoluzione identità/membership, ma endpoint HTTP proposto e API dati protette non implementati.
 **Ambito:** progettazione documentale, solo fixture e identità sintetiche.
 **Riferimento codice:** branch `dsm-enterprise/core-v1`, commit di partenza `f93c4ab93f6e14e3baea17744721145bba45581b`.
 **Decisione:** nessuna connessione all'app Firebase operativa, nessun deploy, nessun dato reale.
@@ -314,14 +314,18 @@ Questa policy non definisce ancora il modello canonico completo delle membership
 ## 12. Stato e limitazioni attuali
 
 - Esiste un adapter browser isolato che richiede a `resolveAuthorization` un oggetto con `verifiedBy`, `uid`, `status`, `accountId`, `role`, `permissions` ed `expiresAt`; la risposta viene validata sintatticamente e convertita in principal congelato.
-- I test browser correnti usano resolver sintetici. Non dimostrano che un server reale verifichi token, revoca o membership.
-- Non esiste in questo lavoro un endpoint server, un backend di autorizzazione, una membership canonica approvata o API dati protette.
+- Nel backend Functions isolato esiste anche una callable `resolveAuthorization`, esportata da `functions/src/index.js`. Il callable verifica il Bearer ID token tramite Firebase Admin con controllo di revoca, richiede email verificata, risolve la membership server-side per l'account selezionato e restituisce il principal con lease breve. È una funzione di risoluzione identità/membership, non un'API per leggere o modificare dati DSM.
+- Il callable non equivale all'endpoint HTTP `POST /v1/dsm/authorization/resolve` descritto nella sezione 2: quel path resta una proposta e non è implementato come route HTTP.
+- La risoluzione della membership usa il modello attualmente presente nel prototipo isolato; non rende approvato lo schema organizzativo canonico definitivo, né sostituisce le decisioni aperte su identità dipendente, ownership individuale, lifecycle account/sede/reparto e matrice dei permessi.
+- I test browser correnti usano resolver sintetici per il percorso adapter/lifecycle: non dimostrano da soli la verifica server-side del token o della membership. I test backend storici includono test sintetici della callable `resolveAuthorization`; non costituiscono un test Auth/Functions end-to-end con identità reali.
+- Non sono implementate API DSM protette per leggere o modificare profili, turni, assenze o altri dati. Non è presente un adapter Firestore canonico per caricare le risorse organizzative; i moduli di risoluzione risorsa restano isolati e basati su loader iniettati. Il controllo autorizzativo autonomo per ogni API dati resta quindi un gate distinto e non superato.
+- Gli handler nomination restano non esposti e non collegati a callable `onCall`; la loro presenza nel prototipo non attiva un flusso di nomina.
+- Il valore `authorizationImplemented: false` restituito da `health` va letto nel contesto dello scaffold: indica che non è implementato il livello di autorizzazione delle API dati protette. Non nega l'esistenza del callable di risoluzione identità/membership; `protectedDataApisImplemented` resta `false`.
 - L'adapter non deve essere configurato con un resolver client-side basato su Firestore/UI o con un mock fuori dai test.
 - L'applicazione Firebase operativa, `firebase-client.js`, `firebase-ui-v3-13.js`, `firestore.rules`, `index.html` e la production composition root restano fuori ambito.
 - PR #1 deve restare aperta e draft; nessun merge, deploy, migrazione, import o sincronizzazione di dati reali è autorizzato da questo documento.
 
-**Conclusione:** questo file è una specifica da sottoporre a revisione, non un'autorizzazione a implementare o attivare il servizio.
-
+**Conclusione:** il callable isolato implementa soltanto la risoluzione di identità e membership. Questo contratto resta una specifica per la futura autorizzazione delle API dati, non un'autorizzazione a implementare, collegare o attivare tali API.
 
 ## 13. Risoluzione canonica delle risorse account/sede/reparto
 
