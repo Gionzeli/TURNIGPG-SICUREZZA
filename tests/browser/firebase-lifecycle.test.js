@@ -180,6 +180,53 @@ export async function runFirebaseLifecycleTests() {
     assert.equal(session.lifecycle.getStatus().state, "cleared");
     await session.dispose();
   });
+  await test("auth event during asynchronous cleanup failure retries safely and never restores the old Firebase identity", async () => {
+    const auth = fakeAdapter(principal());
+    const session = await createDSMCoreSession({ db: fakeDb(), firebaseAuthAdapter: auth.adapter });
+    await session.activateFirebase();
+    assert.equal(session.accountContext.getActive()?.uid, "synthetic-firebase-user");
+
+    let cleanupCalls = 0;
+    let releaseCleanup;
+    let markCleanupStarted;
+    const cleanupStarted = new Promise(resolve => { markCleanupStarted = resolve; });
+    const cleanupGate = new Promise(resolve => { releaseCleanup = resolve; });
+    session.lifecycle.registerDisposable(async () => {
+      cleanupCalls += 1;
+      if (cleanupCalls === 1) {
+        markCleanupStarted();
+        await cleanupGate;
+        throw new Error("synthetic first cleanup failure");
+      }
+    });
+
+    // Simulate a Firebase sign-out while lifecycle cleanup is still pending.
+    auth.setPrincipal(null);
+    const previousIdentity = session.accountContext.getActive();
+    auth.emit();
+    await cleanupStarted;
+    assert.equal(session.lifecycle.getStatus().state, "switching");
+    assert.equal(session.accountContext.getActive(), null);
+    assert.throws(() => session.lifecycle.capture(), error => error?.code === "DB_ACCOUNT_REQUIRED");
+
+    releaseCleanup();
+    // Let the serialized Auth observer finish recording its failed cleanup.
+    await new Promise(resolve => setTimeout(resolve, 0));
+    assert.equal(session.lifecycle.getStatus().state, "switching");
+    assert.equal(session.lifecycle.getStatus().cleanupComplete, false);
+    assert.equal(session.accountContext.getActive(), null);
+
+    const status = await session.resumePendingTransition();
+    assert.equal(status.state, "cleared");
+    assert.equal(status.cleanupComplete, true);
+    assert.equal(cleanupCalls, 2);
+    assert.equal(session.accountContext.getActive(), null);
+    assert.throws(() => session.lifecycle.capture(), error => error?.code === "DB_ACCOUNT_REQUIRED");
+    assert.equal(session.lifecycle.isCurrent({ accountId: previousIdentity.accountId, generation: 1 }), false);
+    assert.equal(await session.activateFirebase(), null);
+    assert.equal(session.accountContext.getActive(), null);
+    await session.dispose();
+  });
   await test("auth event after activation logs out the active context", async () => {
     const auth = fakeAdapter(principal());
     const session = await createDSMCoreSession({ db: fakeDb(), firebaseAuthAdapter: auth.adapter });
