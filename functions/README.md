@@ -140,3 +140,5 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 
  
 - Employee authorization additionally enforces the existing membership role/scope combinations (account-scoped admin with no scope IDs; site-scoped manager; site- or department-scoped member, each with non-empty unique scope IDs). This does not expand role permissions or expose new endpoints.
+
+- Employee domain authorization rejects empty/whitespace/duplicate permission entries and malformed self-binding object/profile IDs; these are structural guards, not a replacement for trusted canonical membership/binding loaders.

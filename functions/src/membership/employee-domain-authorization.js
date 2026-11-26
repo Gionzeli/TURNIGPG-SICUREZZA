@@ -24,7 +24,8 @@ function validPrincipal(principal) {
       (principal.role === "manager" && principal.scopeType === "site" && principal.scopeIds.length > 0) ||
       (principal.role === "member" && ["site", "department"].includes(principal.scopeType) && principal.scopeIds.length > 0)) &&
     Array.isArray(principal.permissions) &&
-    principal.permissions.every(value => typeof value === "string"));
+    principal.permissions.every(value => typeof value === "string" && value.trim().length > 0) &&
+    new Set(principal.permissions).size === principal.permissions.length);
 }
 
 function deny(message = "Employee data access denied.") {
@@ -51,9 +52,10 @@ export function authorizeEmployeeDomainOperation({
       !MODES.has(accessMode) || !validId(employeeId)) deny();
 
   if (accessMode === "self") {
-    if (!employeeBinding || employeeBinding.uid !== principal.uid ||
+    if (!employeeBinding || typeof employeeBinding !== "object" || Array.isArray(employeeBinding) ||
+        employeeBinding.uid !== principal.uid ||
         employeeBinding.accountId !== principal.accountId ||
-        employeeBinding.profileId !== employeeId ||
+        employeeBinding.profileId !== employeeId || !validId(employeeBinding.profileId) ||
         employeeBinding.status !== "active" ||
         !Number.isSafeInteger(employeeBinding.revision) || employeeBinding.revision < 1) deny();
     return Object.freeze({

@@ -469,3 +469,8 @@ Risolta una discrepanza individuata nella verifica del commit precedente: la val
 ## 2026-11-27 — Coerenza ruolo/scope nel principal Employee
 
 La primitive Employee verifica ora anche le combinazioni ruolo/scope già previste dalla policy membership esistente: admin account senza scope ID, manager site-scoped con almeno un ID, member site/department-scoped con almeno un ID. Aggiunti casi negativi per combinazioni incoerenti. Nessun nuovo privilegio o endpoint è stato introdotto.
+
+ 
+## 2026-11-27 — Hardening shape di permessi e binding personale
+
+La primitive Employee ora rifiuta permessi vuoti, composti da soli spazi o duplicati. Nel percorso personale il binding deve essere un oggetto e il suo profileId deve rispettare il formato ID canonico oltre a coincidere con Employee richiesto. Aggiunti test negativi. Nessun endpoint esposto.

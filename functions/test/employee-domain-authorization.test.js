@@ -140,3 +140,30 @@ test("principal role and organizational scope combinations must match membership
     }), e => e.code === "permission-denied");
   }
 });
+
+
+test("empty, whitespace-only and duplicate permissions fail closed", () => {
+  for (const principal of [
+    { ...selfPrincipal, permissions: [""] },
+    { ...selfPrincipal, permissions: ["   "] },
+    { ...selfPrincipal, permissions: ["dsm:read:shifts:self", "dsm:read:shifts:self"] }
+  ]) {
+    assert.throws(() => authorizeEmployeeDomainOperation({
+      principal, permission: "dsm:read:shifts:self",
+      accessMode: "self", employeeBinding: binding, employeeId: "employee-1"
+    }), e => e.code === "permission-denied");
+  }
+});
+
+test("self binding must be a canonical object with a valid Employee id", () => {
+  for (const employeeBinding of [
+    [],
+    { ...binding, profileId: "../employee" },
+    { ...binding, profileId: "" }
+  ]) {
+    assert.throws(() => authorizeEmployeeDomainOperation({
+      principal: selfPrincipal, permission: "dsm:read:shifts:self",
+      accessMode: "self", employeeBinding, employeeId: "employee-1"
+    }), e => e.code === "permission-denied");
+  }
+});
