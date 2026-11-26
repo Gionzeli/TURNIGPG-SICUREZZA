@@ -2,8 +2,8 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { revokeMembership } from "../src/membership/revocation-service.js";
 
-const admin = uid => ({uid,accountId:"ac1",status:"active",role:"admin",scopeType:"account",scopeIds:[]});
-const member = uid => ({uid,accountId:"ac1",status:"active",role:"member",scopeType:"department",scopeIds:["d1"]});
+const admin = uid => ({uid,accountId:"ac1",status:"active",validFrom:new Date(0),validUntil:null,role:"admin",scopeType:"account",scopeIds:[]});
+const member = uid => ({uid,accountId:"ac1",status:"active",validFrom:new Date(0),validUntil:null,role:"member",scopeType:"department",scopeIds:["d1"]});
 function fakeDb(seed={}) {
   const store=new Map(Object.entries(seed));
   const db={
@@ -75,7 +75,7 @@ test("admin-shaped document whose ID differs from its uid does not count as rema
   );
 });
 test("malformed active admin document does not count as remaining admin",async()=>{
-  const {db}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/badAdmin":{uid:"badAdmin",accountId:"ac1",status:"active",role:"admin",scopeType:"site",scopeIds:["s1"]}});
+  const {db}=fakeDb({"accounts/ac1/members/adminA":admin("adminA"),"accounts/ac1/members/badAdmin":{uid:"badAdmin",accountId:"ac1",status:"active",validFrom:new Date(0),validUntil:null,role:"admin",scopeType:"site",scopeIds:["s1"]}});
   await assert.rejects(revokeMembership(request({db,targetUid:"adminA"})),e=>e.code==="failed-precondition");
 });
 test("duplicate audit event ID is rejected",async()=>{

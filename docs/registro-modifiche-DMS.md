@@ -493,3 +493,8 @@ Aggiunti loader server-only sui percorsi approvati `accounts/{accountId}`, `site
 Il validatore membership ora richiede validFrom Timestamp/Date, validUntil Timestamp/Date o null, status active e intervallo corrente secondo clock server. Suspended, revoked, date mancanti/malformate/future/expired negano. Il permesso `dsm:transfer:departments` è derivato per manager scoped alle sedi; payroll e salute restano fuori dalla matrice base. La nomina crea membership effective-dated; revoca usa lo stesso timestamp server per la decisione. Aggiornate fixture sintetiche Emulator.
 
 - Hardening aggiuntivo: il loader richiede `schemaVersion` positiva sull'account; test Emulator verifica due trasferimenti concorrenti con la stessa versione (un solo vincitore), audit e rifiuto della destinazione archiviata.
+
+
+## 2026-11-27 — Allineamento fixture membership al lifecycle approvato
+
+La prima esecuzione backend dopo l'introduzione dei campi effective-dated ha evidenziato fixture storiche prive di `validFrom`/`validUntil`. Il validatore ha correttamente negato tali membership. Aggiornate le fixture sintetiche dei test unitari ed Emulator con timestamp espliciti; nessun rilassamento della policy runtime.

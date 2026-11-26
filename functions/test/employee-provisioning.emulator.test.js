@@ -14,7 +14,7 @@ test("Firestore Emulator: Employee provisioning requires two admins and atomical
   const db = getFirestore(app);
   const accountId = "synthetic-provisioning-account";
   const admin = uid => ({
-    uid, accountId, status: "active", role: "admin", scopeType: "account", scopeIds: []
+    uid, accountId, status: "active", validFrom: new Date(0), validUntil: null, role: "admin", scopeType: "account", scopeIds: []
   });
   const account = db.doc(`accounts/${accountId}`);
   const proposer = db.doc(`accounts/${accountId}/members/admin-proposer`);
@@ -30,7 +30,7 @@ test("Firestore Emulator: Employee provisioning requires two admins and atomical
       account.set({ accountId, status: "active" }),
       proposer.set(admin("admin-proposer")),
       approver.set(admin("admin-approver")),
-      member.set({ uid: "member-target", accountId, status: "active", role: "member", scopeType: "department", scopeIds: ["dept-1"] })
+      member.set({ uid: "member-target", accountId, status: "active", validFrom: new Date(0), validUntil: null, role: "member", scopeType: "department", scopeIds: ["dept-1"] })
     ]);
     await proposeEmployeeProvisioning({
       db, accountId, actorUid: "admin-proposer",

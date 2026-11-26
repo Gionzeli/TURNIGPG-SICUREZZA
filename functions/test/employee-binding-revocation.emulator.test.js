@@ -11,7 +11,7 @@ const identity = (uid, nowMs) => ({ uid, emailVerified: true, authTime: Math.flo
 test("Firestore Emulator: Employee binding revocation updates both mirrors, control revision and audit atomically", { skip: !enabled }, async () => {
   const app = initializeApp({ projectId: "demo-dsm-membership" }, "employee-binding-revocation");
   const db = getFirestore(app), accountId = "synthetic-revoke-account";
-  const admin = uid => ({ uid, accountId, status: "active", role: "admin", scopeType: "account", scopeIds: [] });
+  const admin = uid => ({ uid, accountId, status: "active", validFrom: new Date(0), validUntil: null, role: "admin", scopeType: "account", scopeIds: [] });
   const account = db.doc("accounts/" + accountId);
   const employee = db.doc("accounts/" + accountId + "/employees/employee-1");
   const byUid = db.doc("accounts/" + accountId + "/employeeBindingsByUid/member-1");
@@ -22,7 +22,7 @@ test("Firestore Emulator: Employee binding revocation updates both mirrors, cont
       account.set({ accountId, status: "active" }),
       db.doc("accounts/" + accountId + "/members/admin-a").set(admin("admin-a")),
       db.doc("accounts/" + accountId + "/members/admin-b").set(admin("admin-b")),
-      db.doc("accounts/" + accountId + "/members/member-1").set({ uid: "member-1", accountId, status: "active", role: "member", scopeType: "department", scopeIds: ["dept-1"] })
+      db.doc("accounts/" + accountId + "/members/member-1").set({ uid: "member-1", accountId, status: "active", validFrom: new Date(0), validUntil: null, role: "member", scopeType: "department", scopeIds: ["dept-1"] })
     ]);
     await proposeEmployeeProvisioning({ db, accountId, actorUid: "admin-a", actorIdentity: identity("admin-a", 1000), proposalId: "proposal-1", targetUid: "member-1", employeeId: "employee-1", verificationRef: "manual-check-1", now: () => 1000 });
     await approveEmployeeProvisioning({ db, accountId, actorUid: "admin-b", actorIdentity: identity("admin-b", 2000), proposalId: "proposal-1", now: () => 2000 });
