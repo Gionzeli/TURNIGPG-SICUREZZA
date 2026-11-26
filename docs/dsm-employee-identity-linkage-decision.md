@@ -135,3 +135,18 @@ All fixtures must be synthetic and run against Firebase Auth/Firestore emulators
 ## 7. Explicit non-authorization
 
 This brief does not approve a Firestore path or schema, does not implement binding or endpoints, does not authorize changes to root `firestore.rules`, Firebase operational configuration, the production UI/composition root, or production data. It does not establish that local IndexedDB is private or tamper-resistant. The PR must remain open and Draft pending review.
+
+
+## 8. Decisione registrata — modello A approvato
+
+**Decisione:** approvato il modello A, binding separato e backend-owned tra UID Firebase verificato e profilo dipendente.
+
+**Contratto logico adottato per il nucleo isolato:** `accounts/{accountId}/employeeBindings/{uid}`, con campi `uid`, `accountId`, `profileId`, `status`, `revision` e metadati temporali gestiti dal backend. Il modulo di policy non effettua direttamente I/O Firestore: riceve esclusivamente loader server-side iniettati. Nessun `profileId` fornito dal client viene accettato come selettore dell'identità personale.
+
+**Semantica fail-closed implementata:** il binding deve corrispondere all'UID verificato e all'account della membership, avere stato `active`, `profileId` valido e revisione intera positiva; il loader del profilo deve confermare lo stesso account e profilo e lo stato attivo. Per questa prima policy il ruolo ammesso è `member` con `dsm:read:own-scope`. Manager e admin non ottengono accesso tramite questa funzione: i loro flussi organizzativi restano distinti.
+
+**Limiti espliciti della decisione:** l'approvazione del modello A non approva ancora una fonte Firestore canonica per i profili, un flusso di provisioning/revoca/riassegnazione, cardinalità multiple UID↔dipendente, né API dati protette. I profili esistenti sono ancora locali in IndexedDB; pertanto non sono stati creati loader Firestore concreti, Rules, callable endpoint, migrazioni o collegamenti client. La funzione è un nucleo di policy testabile, non un'autorizzazione attualmente attiva in produzione.
+
+**Test aggiunti:** binding valido; UID/account discordanti; binding assente/revocato/malformato/revisione invalida; profilo assente/inattivo/cross-account; ruolo/permesso non ammesso; errore loader; assenza di lookup del profilo dopo binding non valido; impossibilità di selezionare un profilo tramite input del chiamante.
+
+Questa decisione sostituisce lo stato “candidate models — not selected” della sezione 3 e l'indicazione “do not implement until approved” della sezione 7 limitatamente al modulo puro e ai test descritti. Tutti i limiti e le non-autorizzazioni qui sopra restano validi.
