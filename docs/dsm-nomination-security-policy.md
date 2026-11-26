@@ -14,7 +14,7 @@
 
 ## Verifica del codice presente sul branch
 
-Riferimento ispezionato: branch `dsm-enterprise/core-v1`, HEAD `d2185599af1f25919c675e6b76ac4ceb2d77ec4d`.
+Riferimento ispezionato: branch `dsm-enterprise/core-v1`, HEAD `453fda5e4e4b5cbddabe6e1574c58992080b5e17`.
 
 - `functions/src/auth/verify-identity.js` esegue la verifica token con il verifier iniettato dal chiamante e restituisce UID, email verificata, `auth_time` (solo intero sicuro) e `firebase.sign_in_second_factor`.
 - `functions/src/membership/nomination-service.js` applica un gate comune a create/approve/cancel: identità corrispondente all'attore, email verificata, `auth_time` non futuro e non più vecchio di 300 secondi, fattore esattamente `totp`, clock server intero sicuro e membership admin attiva.
@@ -28,9 +28,11 @@ Riferimento ispezionato: branch `dsm-enterprise/core-v1`, HEAD `d2185599af1f2591
 - I test di `nomination-callable-handlers` usano verifier e servizi mockati: verificano derivazione dell'attore e controllo revoca, ma non costituiscono un test Auth/Functions end-to-end.
 - `membership-emulator.integration.test.js` esercita i servizi direttamente con Firestore Emulator e identità sintetiche; non verifica il claim MFA emesso dall'Auth Emulator.
 - La documentazione Firebase Admin descrive `DecodedIdToken.auth_time` e il claim opzionale `firebase.sign_in_second_factor`, il cui factor ID è quello del secondo fattore usato per il login: https://firebase.google.com/docs/reference/admin/node/firebase-admin.auth.decodedidtoken
-- La documentazione Auth Emulator descrive i flussi MFA SMS: https://firebase.google.com/docs/emulator-suite/connect_auth . Non abbiamo evidenza nel repository che un flusso TOTP reale/emulato produca il claim atteso e lo renda verificabile tramite la versione Admin SDK effettivamente installata.
+- La documentazione Identity Platform conferma che TOTP è un fattore MFA supportato e che Firebase Admin Node.js SDK 11.6.0+ lo supporta: https://docs.cloud.google.com/identity-platform/docs/admin/enabling-totp-mfa . Il backend dichiara `firebase-admin ^13.0.0`, quindi il requisito minimo di versione è soddisfatto; il repository non contiene un lockfile per `functions`, perciò questa è la versione range dichiarata, non una versione risolta e bloccata.
+- La documentazione ufficiale Auth Emulator descrive MFA SMS, ma non TOTP: https://firebase.google.com/docs/emulator-suite/connect_auth . Inoltre, il README ufficiale del Firebase JS SDK specifica che i test d'integrazione TOTP vengono eseguiti solo contro il backend di produzione perché TOTP non è ancora supportato dall'emulatore: https://github.com/firebase/firebase-js-sdk/blob/main/packages/auth/README.md . Questo conferma che la pipeline locale Auth Emulator configurata nel repository non può produrre da sola la prova TOTP richiesta.
+- Il backend dichiara `firebase-tools 14.12.1` e il workflow `.github/workflows/functions-backend-tests.yml` usa Auth, Functions e Firestore Emulator. Non è stato eseguito alcun test contro un progetto Firebase reale o credenziali reali.
 
-**Gate ancora aperto:** prima di esporre una callable nomination, dimostrare con un test d'integrazione server-side supportato che un accesso MFA TOTP produce `firebase.sign_in_second_factor === "totp"` nel risultato di `verifyIdToken(..., true)`. Se questo non è dimostrabile nel contesto supportato, mantenere il flusso bloccato; non degradare a SMS e non simulare la prova con un mock.
+**Gate ancora aperto:** prima di esporre una callable nomination, dimostrare con un test d'integrazione server-side supportato che un accesso MFA TOTP produce `firebase.sign_in_second_factor === "totp"` nel risultato di `verifyIdToken(..., true)`. La suite Auth Emulator standard non supporta questo test. L'unico percorso documentato dal Firebase JS SDK per i test TOTP è un progetto backend di test; richiede quindi un ambiente Identity Platform dedicato e credenziali/procedure di test controllate. Tale ambiente non è stato autorizzato né configurato in questo audit. Fino ad allora, mantenere il flusso bloccato; non degradare a SMS e non simulare la prova con un mock o un JWT costruito.
 
 ## Stato operativo
 
