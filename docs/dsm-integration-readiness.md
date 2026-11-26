@@ -80,3 +80,15 @@ The two successful workflows above establish that the browser IndexedDB suite an
 - Restano bloccanti le decisioni di schema canonico account/sede/reparto, il collegamento autorevole UID↔dipendente, la semantica own-scope, la matrice di permessi per operazione e la policy di membership multi-account/validità.
 - Nessuna modifica a `main`, root `firestore.rules`, configurazione Firebase operativa, entrypoint o composizione UI protetti; nessun accesso a dati reali, import, sincronizzazione o deploy.
 - Prossimo passo sicuro: completare le decisioni di dominio e, dopo approvazione, implementare loader e API protette isolate con test Auth/Functions/Firestore Emulator sintetici. Fino ad allora il core resta non operativo e la PR resta Draft.
+
+
+## Correzione evidenza CI — HEAD 554d964a (2026-11-26)
+
+- HEAD del branch verificato: `554d964a9e9b15851c837d5c6f610039d9f4e5f4`; PR #1 aperta, Draft e non unita.
+- Browser / Playwright: [run 45768799621](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45768799621), `completed/success`; log del job: 97 test superati, 0 falliti, oltre alle verifiche Playwright dedicate riportate nel riepilogo della PR.
+- Firestore Rules Emulator: [run 45768799648](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45768799648), `completed/success`; 38 test superati, 0 falliti, 0 saltati.
+- I check-runs `indexeddb-browser-tests` e `firestore-rules-emulator` risultano entrambi `completed/success` sullo SHA esatto `554d964a`. Non risultano altre esecuzioni per questo SHA.
+- La pipeline Functions/Auth/Firestore Emulator non è stata eseguita su questo SHA: il commit modifica solo documentazione e il workflow si attiva su `functions/**` o sul proprio file YAML. Il workflow dichiara anche `workflow_dispatch`, ma non è disponibile un'azione autorizzata nell'integrazione GitHub corrente per invocarlo manualmente. Nessun risultato backend storico viene presentato come prova sullo SHA corrente.
+- Esiste un test d'integrazione Firestore Emulator per nomination e revoche (`functions/test/membership-emulator.integration.test.js`), ma la sua presenza nel repository non prova che sia stato eseguito sullo SHA corrente.
+- Nessun file operativo o protetto è stato modificato per forzare l'avvio della pipeline. Nessun merge, deploy, modifica a `main`, regole Firestore operative o configurazione Firebase operativa.
+- Nota di coerenza: la sezione precedente datata 2026-11-26 riportava ancora HEAD `7c613019`; i dati sopra sono la rettifica riferita all'HEAD effettivo `554d964a`.
