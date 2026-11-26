@@ -102,3 +102,12 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - Transfers close the prior interval and create the next placement with audit in one transaction.
 - Trusted organization and actor authorization loaders are injected and must read canonical records inside the same transaction. No callable is exposed until the organization document paths and actor permission contract are explicitly implemented.
 - Emulator tests use synthetic loaders and do not validate real organizational authorization.
+
+
+## Employee shift transaction service (internal)
+- `employee-shift-service.js` writes Employee shifts only to `accounts/{accountId}/employeeShifts/{shiftId}`.
+- Employee ID and placement/site/department context are derived from trusted server callbacks, never from shift payload fields.
+- Create, update and delete are distinct authorization operations; update/delete require optimistic revision checks. Delete is a soft-delete preserving the historical record and audit trail.
+- Shift date is immutable in this service; moving a shift date requires a separate approved workflow so historical placement context cannot be silently rewritten.
+- The injected authorization callback MUST verify the revocation-checked actor, canonical membership, active Employee binding for self-service OR exact manager delegation and `shift:<operation>` permission, lifecycle and historical scope inside the supplied transaction. The placement loader must return exactly one placement valid on the shift date.
+- No callable endpoint is exposed: canonical delegation document paths and a trusted authorization adapter must be implemented and tested before exposure. Emulator test uses synthetic callbacks and validates persistence/revision/audit only, not real permission enforcement.

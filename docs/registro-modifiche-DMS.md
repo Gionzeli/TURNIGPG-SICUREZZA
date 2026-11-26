@@ -414,3 +414,8 @@ Aggiunto test Firestore Emulator end-to-end sintetico che crea il binding tramit
 ## 2026-11-26 — Placement Employee e trasferimento atomico
 
 Aggiunto servizio interno Firestore per creazione del placement iniziale e trasferimento con intervalli semiaperti [validFrom, validUntil), controllo revisioni su employeeControl, rilevamento overlap e ambiguità, lifecycle account/Employee/sede/reparto e audit nella stessa transazione. I loader di autorizzazione attore e organizzazione sono iniettati e devono leggere fonti canoniche nella stessa transazione; non viene esposto alcun endpoint perché il contratto fisico dei documenti organizzativi e i permessi per modificare placement non sono ancora stabiliti. Test Emulator sintetico verifica creazione, trasferimento, confine storico e overlap negato.
+
+
+## 2026-11-27 — Servizio transazionale turni Employee
+
+Aggiunto servizio interno Firestore per create/update/delete dei turni canonici Employee. L'Employee ID e il contesto placement/sede/reparto sono ottenuti esclusivamente da callback server-side; payload client con campi extra respinto. Create/update/delete hanno autorizzazione distinta, revisione ottimistica e audit atomico; delete è soft-delete per preservare lo storico. La data turno è immutabile per non riscrivere il contesto storico. I callback di autorizzazione e risoluzione placement devono leggere membership, binding/deleghe, lifecycle e placement storico nella stessa transazione; non esposto callable finché il contratto canonico deleghe/permessi non è implementato. Test Emulator sintetico copre persistenza, contesto server-side, revisione obsoleta, audit e delete negato.
