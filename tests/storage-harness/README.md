@@ -18,6 +18,9 @@ It exercises a narrow common invariant set: active UID↔Employee one-to-one bin
 
 These are **not Firestore or PostgreSQL adapters**. No Firebase SDK, SQL engine, emulator, cloud project, network, credentials, schema, collection, table, index, RLS, Security Rules, or production code is used. Both models implement simplified in-memory semantics. A passing result demonstrates only that the reference-model tests behave as expected; it does not establish the actual transaction, uniqueness, isolation, durability, query, contention, cost, or security properties of either database.
 
-The current model does not implement placement intervals, historical shift context, membership revocation, lifecycle, payroll DTOs, absence aggregation, pagination, query plans, crash recovery, or datastore restart/reload. Those require separately approved model extensions and, ultimately, tests against an explicitly approved isolated datastore environment.
+The extended pure domain model now includes illustrative tests for half-open placement intervals and historical shift context, binding revocation, active Employee/organization checks, payroll deny-by-default, and manager absence DTO minimization. These are deterministic in-memory policy examples only; they do not simulate datastore transactions, query execution, persistence, pagination, crash recovery, or restart/reload. They do not implement manager delegation or full payroll write/export authorization.
 
 No real identifiers or personal data are used. All identifiers are fixed synthetic labels.
+
+
+Additional tests: `node --test tests/storage-harness/*.test.mjs` also exercises `domain-model.test.mjs`. The domain policy functions are deliberately separate from both datastore-shaped models so no test result can be mistaken for proof of Firestore/PostgreSQL behavior.

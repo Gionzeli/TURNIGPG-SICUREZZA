@@ -286,3 +286,8 @@ Aggiunto `docs/dsm-employee-storage-test-protocol.md` con 20 scenari sintetici T
 ## Harness sintetico autorizzato — 2026-11-26
 
 Su autorizzazione esplicita è stato aggiunto `tests/storage-harness/` con due modelli in-memory semplificati (Firestore optimistic-transaction model e PostgreSQL serialized-transaction model), test Node `node:test` e README. Il perimetro copre binding UID↔Employee 1:1 entro account, retry idempotente/conflittuale e rollback in caso di errore audit. Non sono adapter reali e non provano garanzie effettive Firestore/PostgreSQL. Nessun SDK/driver, emulator, cloud project, network, credenziale, schema fisico, collection, tabella, indice, Rules o codice applicativo è coinvolto. Harness aggiunto ma non eseguito in questo ambiente; nessun risultato di test dichiarato. Estensioni per placement, revoca, lifecycle, payroll, assenze e crash recovery restano da fare e richiedono successiva verifica. Nessun deploy.
+
+
+## Estensione harness sintetico — 2026-11-26
+
+Aggiunti `tests/storage-harness/domain-model.mjs` e `domain-model.test.mjs`. Copertura aggiuntiva puramente in-memory: intervalli placement non sovrapposti, trasferimento e contesto storico turno, placement ambiguo, revoca binding, lifecycle Employee/risorse, payroll deny-by-default e minimizzazione vista manager assenze. Le funzioni sono isolate dai modelli transazionali e non costituiscono test Firestore/PostgreSQL né prove di persistenza, concorrenza datastore, query, crash recovery o security enforcement. Restano esclusi payroll write/export, deleghe manager, aggregati/report ed esecuzione effettiva del test runner. Nessun runtime, schema, endpoint, Rules, migration o deploy modificato.
