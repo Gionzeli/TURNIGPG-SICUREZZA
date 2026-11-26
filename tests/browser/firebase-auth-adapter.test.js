@@ -218,7 +218,7 @@ export async function runFirebaseAuthAdapterTests() {
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth,
       onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountSelectionSnapshot: async () => ({ accountId: selectedAccountId, revision: selectionRevision }),
+      getAccountSelectionSnapshot: async () => selection,
       resolveAuthorization: ({ uid, accountId }) => new Promise(resolve => {
         resolverStarted();
         release = () => resolve(activeAuthorization(uid, { accountId }));
@@ -236,8 +236,7 @@ export async function runFirebaseAuthAdapterTests() {
   await test("account selection ABA change is detected by monotonic revision", async () => {
     const user = syntheticUser("synthetic-account-aba");
     const fake = fakeAuth(user);
-    let selectedAccountId = "synthetic-account-A";
-    let selectionRevision = 10;
+    const selection = { accountId: "synthetic-account-A", revision: 10 };
     let release;
     let resolverStarted;
     const started = new Promise(resolve => { resolverStarted = resolve; });
@@ -252,10 +251,10 @@ export async function runFirebaseAuthAdapterTests() {
     });
     const pending = adapter.getPrincipal();
     await started;
-    selectedAccountId = "synthetic-account-B";
-    selectionRevision += 1;
-    selectedAccountId = "synthetic-account-A";
-    selectionRevision += 1;
+    selection.accountId = "synthetic-account-B";
+    selection.revision += 1;
+    selection.accountId = "synthetic-account-A";
+    selection.revision += 1;
     release();
     assert.equal(await pending, null);
     adapter.dispose();

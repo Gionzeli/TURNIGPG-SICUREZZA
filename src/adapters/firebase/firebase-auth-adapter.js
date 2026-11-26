@@ -118,13 +118,18 @@ export function createFirebaseAuthAdapter({
     let authorization;
     let selectedAccount;
     try {
-      selectedAccount = await getAccountSelectionSnapshot();
-      if (!selectedAccount || typeof selectedAccount !== "object" ||
-          typeof selectedAccount.accountId !== "string" ||
-          !ACCOUNT_ID_PATTERN.test(selectedAccount.accountId) ||
-          !Number.isSafeInteger(selectedAccount.revision) || selectedAccount.revision < 0) {
+      const snapshot = await getAccountSelectionSnapshot();
+      if (!snapshot || typeof snapshot !== "object" ||
+          typeof snapshot.accountId !== "string" ||
+          !ACCOUNT_ID_PATTERN.test(snapshot.accountId) ||
+          !Number.isSafeInteger(snapshot.revision) || snapshot.revision < 0) {
         throw deny("Snapshot selezione account non valido.");
       }
+      // Copy primitive values: providers may reuse and mutate their snapshot object.
+      selectedAccount = Object.freeze({
+        accountId: snapshot.accountId,
+        revision: snapshot.revision
+      });
       authorization = await resolveAuthorization({
         accountId: selectedAccount.accountId,
         uid: user.uid,
