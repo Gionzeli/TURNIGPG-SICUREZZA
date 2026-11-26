@@ -102,3 +102,14 @@ The two successful workflows above establish that the browser IndexedDB suite an
 - La copertura end-to-end riguarda `resolveAuthorization` soltanto. I test `nomination-callable-handlers.test.js` sono test unitari con verifier e servizi mockati: `createNominationHandlers()` non è collegato a `onCall` né esportato da `functions/src/index.js`. Le operazioni callable di nomination non sono quindi esposte o verificate end-to-end.
 - Il test `membership-emulator.integration.test.js` esercita direttamente i servizi membership con Firestore Emulator e identità admin sintetiche; non sostituisce un test Auth/Functions end-to-end per le nomination.
 - PR #1 resta aperta e Draft; nessun merge, deploy o modifica a `main`. I test usano esclusivamente identità e dati sintetici.
+
+## Verifica documentale e CI — HEAD 8730f018 (2026-11-26)
+
+- HEAD del branch verificato: `8730f018e7e43e1696addf76aaeef44a8ff4370f`; PR #1 aperta, Draft e non unita.
+- Browser / Playwright: [run 45770546305](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45770546305), `completed/success`; riepilogo PR: 97 test IndexedDB superati, 0 falliti, più 22 test di apprendimento locale e verifiche browser dedicate.
+- Firestore Rules Emulator: [run 45770546331](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45770546331), `completed/success`; 38 test superati, 0 falliti, 0 saltati.
+- I check-runs `indexeddb-browser-tests` e `firestore-rules-emulator` sono entrambi `completed/success` sullo SHA esatto `8730f018e7e43e1696addf76aaeef44a8ff4370f`; al momento del controllo non risultano run CI attive su questo SHA.
+- La pipeline backend Functions/Auth/Firestore Emulator non è stata eseguita su questo SHA. La run backend `45712537972` resta evidenza storica sul commit `f1974e7214ef2205bbf2804ce891c7dbd310637e`, non una verifica sul presente HEAD.
+- I test di autorizzazione risolvono l'ambito account/sede/reparto; non provano il collegamento UID↔dipendente né la proprietà individuale di profili, turni o assenze. Le API protette DSM restano non implementate.
+- Questa sezione aggiorna il riferimento HEAD delle evidenze precedenti; i log storici non vengono riscritti né reinterpretati come test sul commit corrente.
+- Nessuna modifica a `main`, root `firestore.rules`, configurazione Firebase operativa, entrypoint o composizione UI protetti. Nessun dato reale, merge o deploy. PR mantenuta aperta e Draft.
