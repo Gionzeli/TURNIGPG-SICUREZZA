@@ -258,3 +258,14 @@ L'approvazione riguarda le invarianti, non il calendario completo delle transizi
 ## Approvazione EMP-09 — 2026-11-26
 
 L'utente ha approvato integralmente la policy di provisioning manuale e verifica identità fuori banda: nessun matching automatico; proposta e approvazione da attori distinti; precondizioni e cardinalità EMP-03 verificate; unicità e revisioni protette atomicamente; revoca esplicita prima di eventuale nuovo binding; audit minimizzato e fail-closed. La procedura non deve copiare documenti d'identità o dati personali superflui. Approvata la policy, non schema fisico/path, ambiente Identity Platform, callable, endpoint, Rules, migrazione, wiring o deploy. Il provisioning Employee non è implementato.
+
+
+## Approvazione EMP-10 — confine storage-agnostic — 2026-11-26
+
+L'utente ha approvato il mantenimento del dominio Employee storage-agnostic fino a una decisione separata del responsabile dello schema. I percorsi Firestore di membership, nomination e audit non vengono riutilizzati né assunti come schema Employee per analogia.
+
+Prima di scegliere storage fisico e percorsi è richiesta una specifica comparativa che dimostri isolamento account, unicità bidirezionale, atomicità/concorrenza, revisioni, lifecycle/revoche, placement e storico, audit attribuibile, protezione payroll e dati sanitari, query/indici, confini di accesso e testabilità. Tecnologia, collection/path, documenti, indici e persistenza richiederanno una decisione esplicita successiva del responsabile dello schema.
+
+L'approvazione non autorizza loader, endpoint/callable, Rules, migrazioni, provisioning operativo, wiring, dati reali o deploy. Nessuna modifica runtime è stata effettuata.
+
+**HEAD di partenza:** `0993ef82bbb046d10ea8e996716678643ea6af36`. PR #1 verificata aperta, Draft, non merged, base `main` prima della scrittura.

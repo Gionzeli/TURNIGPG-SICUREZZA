@@ -316,3 +316,14 @@ L'approvazione definisce le invarianti di dominio e sicurezza, non un calendario
 9. Fail-closed in assenza di verifica/approvazione, identità revocata, Employee non attivo, stato incoerente o errore di persistenza.
 
 L'approvazione definisce la policy, non la sua implementazione. Non sceglie percorsi Firestore o archivio fisico, non autorizza un ambiente Identity Platform di test, endpoint/callable, Rules, migrazioni, provisioning operativo, wiring applicativo o deploy. Restano validi i gate di sicurezza già documentati per il prototipo nomination: nessuna esposizione finché la verifica TOTP reale non è dimostrata con test server-side supportato.
+
+
+## 19. Approvazione esplicita EMP-10 — confine storage-agnostic
+
+**Stato: APPROVATO dall'utente il 2026-11-26.** Fino a una decisione separata del responsabile dello schema, il dominio Employee resta storage-agnostic. I percorsi Firestore già presenti per membership, nomination e audit non costituiscono, per analogia, uno schema Employee e non possono essere assunti come archivio canonico.
+
+Prima di scegliere lo storage fisico o i percorsi dovrà essere prodotta una specifica tecnica comparativa, basata sulle operazioni e sui requisiti approvati, che dimostri almeno: isolamento per account; unicità bidirezionale e atomicità delle associazioni; controllo revisioni e concorrenza; lifecycle e revoche; placement e contesto storico; audit attribuibile; separazione e minimizzazione di payroll e dati sanitari; query, indici e confini di accesso; testabilità dei casi negativi.
+
+La scelta di tecnologia, collection/path, documenti, indici e strategia di persistenza richiede una decisione esplicita successiva del responsabile dello schema. Le policy EMP-01…EMP-09 e la presente decisione non selezionano alcun archivio fisico.
+
+Questa approvazione è esclusivamente architetturale/documentale. Non autorizza loader concreti, endpoint/callable, Rules, migrazioni, provisioning operativo, wiring applicativo, accesso a dati reali o deploy. Nessuna modifica runtime è stata effettuata. Restano validi i gate TOTP già documentati per il prototipo nomination.
