@@ -290,3 +290,44 @@ test("payroll read/export audit entries include actor and operation permission",
     ["payroll-export", "payroll:export", "manager-1"]
   ]);
 });
+
+
+test("account, site, and department lifecycle independently deny new placement and protected access", () => {
+  const args = { accountId:"acct-a", uid:"uid-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01" };
+  const managerArgs = { accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01",
+    now:"2026-02-01T12:00:00Z", operation:"read" };
+  const inactiveStates = ["suspended", "archived", "unknown", undefined];
+
+  for (const status of inactiveStates) {
+    const s = placedFixture();
+    if (status === undefined) delete s.accounts[0].status;
+    else s.accounts[0].status = status;
+    s.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+      siteId:"site-1", departmentId:"dept-1", status:"active",
+      expiresAt:"2026-03-01T00:00:00Z", permissions:["shift:read"] });
+    assert.throws(() => authorizeNewOperation(s, args), { code:"permission-denied" });
+    assert.throws(() => authorizeManagerShift(s, managerArgs), { code:"permission-denied" });
+    assert.throws(() => addPlacement(s, { accountId:"acct-a", employeeId:"emp-1",
+      siteId:"site-2", departmentId:"dept-2", start:"2026-07-01" }), { code:"account-not-active" });
+  }
+
+  for (const field of ["status", "siteStatus", "departmentStatus"]) {
+    for (const status of inactiveStates) {
+      const s = placedFixture();
+      if (status === undefined) delete s.org[0][field];
+      else s.org[0][field] = status;
+      s.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+        siteId:"site-1", departmentId:"dept-1", status:"active",
+        expiresAt:"2026-03-01T00:00:00Z", permissions:["shift:read"] });
+      assert.throws(() => authorizeNewOperation(s, args), { code:"permission-denied" });
+      assert.throws(() => authorizeManagerShift(s, managerArgs), { code:"permission-denied" });
+      assert.throws(() => addPlacement(s, { accountId:"acct-a", employeeId:"emp-1",
+        siteId:"site-1", departmentId:"dept-1", start:"2026-07-01" }), { code:"org-not-active" });
+    }
+  }
+  const duplicateAccount = placedFixture();
+  duplicateAccount.accounts.push({ accountId:"acct-a", status:"active" });
+  assert.throws(() => authorizeNewOperation(duplicateAccount, args), { code:"permission-denied" });
+});

@@ -51,3 +51,7 @@ The in-memory model now requires a valid explicit expiry timestamp for manager s
 ### Manager organization-scope lifecycle
 
 Manager shift authorization in the synthetic model now requires exactly one matching active organization scope for the account, site, and department. Missing, suspended, archived, unknown, or duplicate matching scope records deny access. This is a fail-closed reference-model check only; it does not establish canonical organization lifecycle enforcement in application services or Firebase Rules.
+
+
+### Account/site/department lifecycle guard (synthetic)
+The in-memory domain model now requires exactly one active account record and exactly one matching organizational record whose organization, site, and department statuses are all explicitly `active`. Missing, duplicate, suspended, archived, and unknown lifecycle values deny placement creation and protected employee/manager shift operations. These checks are illustrative test logic only; they do not add runtime enforcement or validate a real identity, database, Firestore Rules, or server API.

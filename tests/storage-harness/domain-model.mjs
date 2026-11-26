@@ -8,10 +8,11 @@ const overlaps = (a, b) => a.start < (b.end ?? "9999-12-31") &&
 
 export function createDomainFixture() {
   return {
+    accounts: [{ accountId: "acct-a", status: "active" }],
     employees: [{ accountId: "acct-a", employeeId: "emp-1", status: "active" }],
     org: [
-      { accountId: "acct-a", siteId: "site-1", departmentId: "dept-1", status: "active" },
-      { accountId: "acct-a", siteId: "site-2", departmentId: "dept-2", status: "active" }
+      { accountId: "acct-a", siteId: "site-1", departmentId: "dept-1", status: "active", siteStatus: "active", departmentStatus: "active" },
+      { accountId: "acct-a", siteId: "site-2", departmentId: "dept-2", status: "active", siteStatus: "active", departmentStatus: "active" }
     ],
     placements: [], shifts: [], payroll: [], absences: [], bindings: [
       { accountId: "acct-a", uid: "uid-1", employeeId: "emp-1", status: "active" }
@@ -20,13 +21,24 @@ export function createDomainFixture() {
   };
 }
 
+function accountIsActive(state, accountId) {
+  const matches = (state.accounts ?? []).filter(x => x.accountId === accountId && x.status === "active");
+  return matches.length === 1;
+}
+
+function activeOrgMatches(state, accountId, siteId, departmentId) {
+  return state.org.filter(x => x.accountId === accountId && x.siteId === siteId &&
+    x.departmentId === departmentId && x.status === "active" &&
+    x.siteStatus === "active" && x.departmentStatus === "active");
+}
+
 function validatePlacement(state, placement, excluded = null) {
   const { accountId, employeeId, siteId, departmentId, start, end = null } = placement;
   if (![accountId, employeeId, siteId, departmentId].every(x => typeof x === "string" && x.length > 0) ||
       !validDate(start) || (end !== null && (!validDate(end) || end <= start))) fail("invalid-placement");
+  if (!accountIsActive(state, accountId)) fail("account-not-active");
   if (!state.employees.some(x => x.accountId === accountId && x.employeeId === employeeId && x.status === "active")) fail("employee-not-active");
-  if (!state.org.some(x => x.accountId === accountId && x.siteId === siteId &&
-      x.departmentId === departmentId && x.status === "active")) fail("org-not-active");
+  if (activeOrgMatches(state, accountId, siteId, departmentId).length !== 1) fail("org-not-active");
   const candidate = { accountId, employeeId, siteId, departmentId, start, end };
   if (state.placements.some(x => x !== excluded && x.accountId === accountId &&
       x.employeeId === employeeId && overlaps(x, candidate))) fail("placement-overlap");
@@ -77,13 +89,12 @@ export function authorizeNewOperation(state, { accountId, uid, employeeId, siteI
   const binding = state.bindings.find(x => x.accountId === accountId && x.uid === uid &&
     x.employeeId === employeeId && x.status === "active");
   const employee = state.employees.find(x => x.accountId === accountId && x.employeeId === employeeId);
-  const org = state.org.find(x => x.accountId === accountId && x.siteId === siteId &&
-    x.departmentId === departmentId && x.status === "active");
+  const orgMatches = activeOrgMatches(state, accountId, siteId, departmentId);
   let placement;
   try { placement = placementAt(state, accountId, employeeId, date); }
   catch { fail("permission-denied"); }
-  if (!binding || !employee || employee.status !== "active" || !org ||
-      placement.siteId !== siteId || placement.departmentId !== departmentId) fail("permission-denied");
+  if (!accountIsActive(state, accountId) || !binding || !employee || employee.status !== "active" ||
+      orgMatches.length !== 1 || placement.siteId !== siteId || placement.departmentId !== departmentId) fail("permission-denied");
   return true;
 }
 
@@ -142,12 +153,11 @@ export function authorizeManagerShift(state, {
     Date.parse(x.expiresAt) > Date.parse(now));
   const employee = state.employees.find(x =>
     x.accountId === accountId && x.employeeId === employeeId && x.status === "active");
-  const orgMatches = state.org.filter(x => x.accountId === accountId &&
-    x.siteId === siteId && x.departmentId === departmentId && x.status === "active");
+  const orgMatches = activeOrgMatches(state, accountId, siteId, departmentId);
   let placement;
   try { placement = placementAt(state, accountId, employeeId, date); }
   catch { fail("permission-denied"); }
-  if (!delegation || !employee || orgMatches.length !== 1 ||
+  if (!accountIsActive(state, accountId) || !delegation || !employee || orgMatches.length !== 1 ||
       placement.siteId !== siteId || placement.departmentId !== departmentId) fail("permission-denied");
   return true;
 }

@@ -335,3 +335,8 @@ Payroll read/write/export nel modello sintetico richiede ora Employee con status
 ## 2026-11-26 — Harness: lifecycle dello scope organizzativo manager
 
 Il modello sintetico di autorizzazione turni manager richiede ora esattamente un record organizzativo corrispondente e attivo per account, sede e reparto. Test negativi coprono scope sospeso, archiviato, sconosciuto, mancante o duplicato. Corretti anche i test cross-account/cross-Employee affinché forniscano un timestamp valido e raggiungano davvero i controlli di isolamento, anziché fallire prima per parametro mancante. Solo harness in-memory; nessuna modifica runtime, Rules, schema, storage, endpoint, provisioning o deploy.
+
+
+## 2026-11-26 — Harness: lifecycle indipendente di account, sede e reparto
+
+Esteso il modello in-memory per richiedere esattamente un account attivo e un record organizzativo univoco con stato esplicito `active` per organizzazione, sede e reparto. Aggiunti casi negativi per stati sospeso, archiviato, sconosciuto e mancante, oltre a duplicazione account. I test verificano il deny su creazione placement, operazioni Employee e accesso manager ai turni. È copertura sintetica del solo harness: non implementa enforcement runtime, non modifica schema/storage/Rules/API e non prova stati trusted o persistenza reale. Nessun dato reale, credenziale, deploy o merge.
