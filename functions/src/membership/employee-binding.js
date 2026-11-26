@@ -32,7 +32,8 @@ export function validateEmployeeBinding(binding, expectedUid, expectedAccountId)
  * Resolve a member's one employee identity from trusted backend loaders.
  *
  * loadBinding(accountId, verifiedUid) must read the backend-owned
- * accounts/{accountId}/employeeBindings/{uid} record.
+ * backend-owned binding record selected by the approved storage adapter.
+ * Any concrete storage path is intentionally unspecified until EMP-10/schema approval.
  * loadActiveProfile(accountId, profileId) must return a canonical lifecycle
  * projection only when that profile exists in the same account and is active:
  * { accountId, profileId, active: true }.

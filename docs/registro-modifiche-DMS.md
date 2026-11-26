@@ -147,3 +147,12 @@ Raccomandazioni proposte, **non approvate**:
 Nessuna implementazione runtime o migrazione effettuata. Nessuna delle raccomandazioni EMP-03…EMP-10 è considerata approvata.
 
 **CI sul commit `20881c3aca2f8d64fffb8336f3fc526860cf9af7`:** `firestore-rules-emulator` = success; `indexeddb-browser-tests` = in_progress al momento del controllo. Non sono presenti risultati Functions su questo commit documentale.
+
+
+## 2026-11-26 — Chiarimento non operativo del contratto di binding
+
+**HEAD esaminato:** `89da6e06cdea77d4324a554eb425e4ac8f6beff2`.
+
+Il commento in `functions/src/membership/employee-binding.js` citava un percorso Firestore esemplificativo per `loadBinding`. È stato reso esplicitamente storage-agnostic: il loader deve leggere un record backend-owned, ma il percorso concreto dipende dalla decisione EMP-10/schema, ancora non approvata.
+
+La modifica riguarda solo il commento. Nessun path Firestore è stato scelto; nessuna logica runtime, test, Rules, endpoint, migrazione o provisioning è stata modificata. EMP-03…EMP-10 restano non approvate.
