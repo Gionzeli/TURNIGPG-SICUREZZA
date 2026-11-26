@@ -159,7 +159,7 @@ Questo documento non autorizza alcuna lettura, importazione o migrazione di dati
 | EMP-04 | Placement multiplo e storico | **APPROVATO:** un solo placement organizzativo attivo per Employee; trasferimenti storicizzati, intervalli non sovrapposti e contesto storico dei turni preservato. |
 | EMP-05 | Shift ownership | **APPROVATO:** ownership Employee canonica assegnata/verificata dal backend; self-service limitato ai propri turni; delega manager con permission esplicita e scope verificato alla data del turno. |
 | EMP-06 | Absence privacy | **APPROVATO:** vista ordinaria minimizzata; nessuna categoria sanitaria in DTO, riepiloghi, filtri o export; accesso eccezionale separato e auditato. |
-| EMP-07 | Payroll permissions | Dominio e permission separati; nessun grant implicito da ruolo. |
+| EMP-07 | Payroll permissions | **APPROVATO:** accesso negato per default; permission distinte per lettura, modifica ed esportazione; nessun grant implicito dal ruolo. |
 | EMP-08 | Lifecycle | Stati, transizioni, cessazione e accesso storico da approvare. |
 | EMP-09 | Provisioning e identity proof | Procedura amministrativa verificata fuori banda, auditata e revocabile. |
 | EMP-10 | Percorsi e tecnologia | Nessun path Firestore scelto finché schema owner non approva. |
@@ -264,3 +264,21 @@ Invarianti approvate:
 - il dipendente può consultare i propri dati secondo le regole di accesso personali da definire.
 
 L'approvazione definisce la policy di privacy, non la sua implementazione. Non approva schema fisico/path, storage, lifecycle, provisioning, loader, endpoint, Rules, migrazioni, wiring, accesso a dati reali o deploy. L'attuale `AbsenceService` locale restituisce ancora il campo `kind` (incluso `malattia`) e i riepiloghi lo aggregano; non esiste un DTO manager backend protetto. Nessuna modifica runtime è stata autorizzata o effettuata.
+
+
+## 16. Approvazione esplicita EMP-07 — 2026-11-26
+
+**Decisione esplicita dell'utente:** approvata la policy di protezione dei dati contrattuali/retributivi (payroll).
+
+Invarianti approvate:
+- l'accesso payroll è negato per impostazione predefinita; il ruolo manager o admin, da solo, non concede accesso;
+- il dipendente può consultare esclusivamente i propri dati retributivi tramite identità Employee verificata, secondo le regole di accesso personali;
+- la lettura delegata richiede la permission esplicita `payroll:read` e uno scope autorizzato;
+- la modifica richiede la permission distinta `payroll:write`;
+- l'esportazione richiede la permission distinta `payroll:export`; lettura, modifica ed esportazione non si implicano reciprocamente;
+- accessi, modifiche ed esportazioni devono essere attribuibili all'attore e registrati in audit;
+- identità, permesso, scope o dato mancanti, ambigui o incoerenti comportano rifiuto fail-closed.
+
+L'approvazione definisce la policy, non la sua implementazione. L'audit del codice sul commit `9685df21ece56722b4711897bcf8b6a8b3d0abbb` ha rilevato che `ProfileService` conserva parametri retributivi in IndexedDB e non applica autorizzazioni payroll proprie; non esiste un archivio payroll canonico o un'API backend protetta che applichi queste permission. La policy non rende quindi i dati attuali protetti né autorizza a considerarli accessibili in sicurezza.
+
+Non sono approvati schema fisico/path, storage, loader, endpoint, Rules, migrazioni, wiring applicativo, dati reali o deploy. Nessuna modifica runtime è stata autorizzata o effettuata.

@@ -217,3 +217,22 @@ L'approvazione riguarda la policy, non l'implementazione. Non approva schema fis
 L'approvazione riguarda la policy, non l'implementazione. L'attuale `AbsenceService` locale conserva e restituisce `kind` (incluso `malattia`) e `summarizeRange()` aggrega per categoria; non esiste un DTO manager backend protetto. Non sono approvati schema/path, lifecycle, loader, endpoint, Rules, migrazioni, wiring, dati reali o deploy. Nessuna modifica runtime effettuata.
 
 **HEAD di partenza:** `600b9b8ac6a1a331448677d39e5ad2468a046452`. PR #1 verificata aperta, Draft, non merged, base `main`.
+
+
+## 2026-11-26 — Approvazione esplicita EMP-07 (protezione payroll)
+
+**Decisione esplicita dell'utente:** approvata la policy di accesso ai dati contrattuali/retributivi.
+
+- Accesso payroll negato per default; il ruolo manager/admin non concede privilegi impliciti.
+- Il dipendente può consultare soltanto i propri dati tramite identità Employee verificata, secondo le regole personali da definire.
+- Lettura delegata: `payroll:read` esplicita e scope autorizzato.
+- Modifica: `payroll:write` separata.
+- Esportazione: `payroll:export` separata. Le tre permission non si implicano reciprocamente.
+- Ogni accesso, modifica ed esportazione deve essere attribuibile all'attore e registrato in audit.
+- Identità, permesso, scope o dato mancanti/ambigui/incoerenti comportano rifiuto fail-closed.
+
+L'approvazione riguarda la policy, non l'implementazione. L'audit di `ProfileService` ha rilevato che i parametri retributivi sono attualmente conservati nel profilo locale IndexedDB e che il servizio non applica autorizzazioni payroll proprie; non esistono ancora archivio payroll canonico e API backend protette. Nessuna protezione runtime è quindi da considerarsi attiva.
+
+Non sono approvati schema/path, storage, loader, endpoint, Rules, migrazioni, wiring, accesso a dati reali o deploy. Nessuna modifica runtime effettuata.
+
+**HEAD di partenza:** `9685df21ece56722b4711897bcf8b6a8b3d0abbb`. PR #1 verificata aperta, Draft, non merged, base `main`.
