@@ -57,3 +57,10 @@ Platform: Firebase Cloud Functions v2, Node.js 20, Firebase Admin SDK.
 From this directory: `npm install`, then start all isolated emulators with `npm run emulators`.
 In a second terminal, set `FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099`, `FIRESTORE_EMULATOR_HOST=127.0.0.1:8081`, and `DSM_FUNCTIONS_EMULATOR_HOST=127.0.0.1:5001` before running `npm test`. Without these three variables, the Auth/Callable integration test is skipped.
 Do not deploy or connect this scaffold to an existing Firebase project.
+
+
+## Employee canonical storage decision (2026-11-26)
+- Firestore is selected for the isolated Employee backend prototype; see `docs/dsm-employee-firestore-decision.md` for the physical model and transaction invariants.
+- Canonical Employee paths are tenant-scoped under `accounts/{accountId}`; binding uses mirrored UID and Employee reservation documents in a single Firestore transaction.
+- `profileId` in the existing policy contract maps explicitly to canonical `employeeId`.
+- This selection authorizes implementation and Emulator tests only. Do not connect this scaffold to a real Firebase project, deploy, import real data, or wire the operational UI.

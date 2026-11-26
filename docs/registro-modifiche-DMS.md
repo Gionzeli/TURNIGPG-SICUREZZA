@@ -375,3 +375,8 @@ Rafforzato il solo modello sintetico: per ogni account è richiesta esattamente 
 ## 2026-11-26 — Harness: Employee canonico duplicato fail-closed
 
 Aggiunto un controllo sintetico che richiede esattamente un record Employee attivo per account e identificativo Employee. Placement, operazioni personali, accesso manager ai turni e payroll negano in caso di record canonici duplicati. Test in-memory; non dimostra unicità persistente o protezione da concorrenza. Nessuna modifica runtime, schema, storage, endpoint, Rules, provisioning, wiring, dati reali o deploy.
+
+
+## 2026-11-26 — Decisione storage canonico Employee: Firestore
+
+L'utente ha autorizzato la scelta e l'implementazione dello storage. Selezionato Firestore per continuità con Functions/Admin SDK e disponibilità dell'Emulator; PostgreSQL resta alternativa se le prove di contesa/query/atomicità non soddisfano i requisiti. Definiti percorsi tenant-scoped per Employee, binding bidirezionale, placement, controllo revisioni, turni, assenze, payroll e audit in `docs/dsm-employee-firestore-decision.md`. `profileId` viene mappato esplicitamente a `employeeId`. Prossimo incremento: adapter server-side e test Emulator. Nessun progetto Firebase reale, credenziali, dati reali, deploy, merge, main o wiring UI.

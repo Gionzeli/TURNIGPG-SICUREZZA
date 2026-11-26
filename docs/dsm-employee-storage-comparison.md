@@ -1,6 +1,6 @@
 # Confronto tecnico degli storage candidati per il dominio Employee
 
-**Stato:** specifica comparativa preliminare; nessuna tecnologia o schema fisico selezionato.
+**Stato:** Firestore selezionato dall'utente il 2026-11-26 per il backend canonico Employee; modello fisico documentato in `docs/dsm-employee-firestore-decision.md`.
 **Decisione di riferimento:** EMP-10 approvata il 2026-11-26 (confine storage-agnostic).
 **Branch:** `dsm-enterprise/core-v1`; valutazione basata sul codice e sui documenti presenti all'HEAD di audit.
 **Dati:** nessun dato reale; nessuna prova di carico o benchmark economico eseguito.
@@ -9,7 +9,7 @@
 
 Questa specifica valuta i candidati per un futuro archivio backend canonico Employee e per le relazioni collegate (binding UID, placement, turni, assenze, termini/payroll e audit). Non sceglie collection, path, tabelle, colonne, indici o servizi cloud.
 
-Le policy di dominio EMP-01…EMP-09 sono requisiti approvati. EMP-10 stabilisce che la tecnologia e i percorsi fisici richiedono una decisione separata del responsabile dello schema. Questa comparazione non modifica tale confine.
+Le policy di dominio EMP-01…EMP-09 sono requisiti approvati. EMP-10 stabilisce che la tecnologia e i percorsi fisici richiedono una decisione separata del responsabile dello schema. L'utente ha successivamente autorizzato esplicitamente la scelta e l'implementazione dello storage (2026-11-26); la decisione è registrata nel documento dedicato.
 
 ## 2. Evidenze verificate nel repository
 
@@ -137,3 +137,10 @@ Prima di selezionare tecnologia e schema fisico occorre produrre:
 ## 8. Non autorizzazione esplicita
 
 Questa specifica è un confronto architetturale documentale. Non approva Firestore, PostgreSQL, percorsi, collection, tabelle, documenti, indici, Rules, driver, migrazioni, provisioning, loader, endpoint/callable, wiring, accesso a dati reali, credenziali o deploy. Non introduce benchmark o garanzie non testate. EMP-10 resta in vigore: la scelta fisica richiede una decisione separata del responsabile dello schema.
+
+
+## 9. Esito della decisione — 2026-11-26
+
+Firestore è selezionato come archivio canonico Employee per la prima implementazione, subordinatamente ai gate tecnici descritti nel documento `docs/dsm-employee-firestore-decision.md`. La scelta si basa sulla continuità con Firebase Admin SDK, Functions e Firestore Emulator già presenti. PostgreSQL resta un'alternativa futura se i test di contesa, query o vincoli non soddisfano i requisiti. IndexedDB resta escluso come authority.
+
+La selezione non implica deploy, uso di un progetto Firebase reale, importazione dati o collegamento all'UI operativa. Ogni API che usa Admin SDK deve applicare esplicitamente autenticazione, revoca, membership, binding, lifecycle, permessi e scope perché Admin SDK bypassa Firestore Rules.
