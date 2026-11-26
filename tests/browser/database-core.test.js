@@ -58,7 +58,7 @@ async function run() {
     assert(activated.identitySource === "firebase", "Identità Firebase non preservata.");
     let invalidRejected = false;
     try {
-      firebaseContext.activateFirebase(Object.freeze({ ...principal, accountId: "synthetic#team" });
+      firebaseContext.activateFirebase(Object.freeze({ ...principal, accountId: "synthetic#team" }));
     } catch (error) {
       invalidRejected = error?.code === DB_ERROR_CODES.ACCESS_DENIED;
     }
