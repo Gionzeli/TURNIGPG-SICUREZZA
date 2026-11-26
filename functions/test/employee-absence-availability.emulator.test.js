@@ -10,17 +10,27 @@ test("Firestore Emulator: manager absence view returns date availability only an
   const account = db.doc("accounts/" + accountId);
   const records = db.collection("accounts/" + accountId + "/employeeAbsences");
   const audit = db.collection("accounts/" + accountId + "/employeeAudit");
+  let authorizationMode = "allow";
   const service = createManagerAbsenceAvailabilityService({
     db, now: () => 5000,
     authorizeManagerAvailability: async (_tx, args) => {
       assert.equal(args.permission, "absence:read:availability");
       assert.equal(args.operation, "read-availability");
       assert.equal(args.actorUid, "manager-1");
+      if (authorizationMode === "deny") return { employeeId, placementIds: [] };
+      if (authorizationMode === "wrong-employee") return { employeeId: "another-employee", placementIds: ["placement-in-scope"] };
       return { employeeId, placementIds: ["placement-in-scope"] };
     }
   });
   try {
     await account.set({ accountId, status: "active" });
+    authorizationMode = "deny";
+    await assert.rejects(service.read({ accountId, actorUid: "manager-1", actorIdentity: { uid: "manager-1" }, employeeId, startDate: "2026-02-01", endDate: "2026-02-02", eventId: "denied-1" }), e => e.code === "permission-denied");
+    assert.equal((await audit.doc("absence-availability-denied-1").get()).exists, false);
+    authorizationMode = "wrong-employee";
+    await assert.rejects(service.read({ accountId, actorUid: "manager-1", actorIdentity: { uid: "manager-1" }, employeeId, startDate: "2026-02-01", endDate: "2026-02-02", eventId: "wrong-employee-1" }), e => e.code === "permission-denied");
+    assert.equal((await audit.doc("absence-availability-wrong-employee-1").get()).exists, false);
+    authorizationMode = "allow";
     await Promise.all([
       records.doc("absence-health").set({ accountId, employeeId, placementId: "placement-in-scope", status: "active", kind: "malattia", startDate: "2026-02-01", endDate: "2026-02-03", reason: "synthetic-diagnosis", notes: "synthetic-private-note", documentPath: "private/medical.pdf" }),
       records.doc("absence-vacation").set({ accountId, employeeId, placementId: "placement-in-scope", status: "active", kind: "ferie", startDate: "2026-02-05", endDate: "2026-02-07" }),

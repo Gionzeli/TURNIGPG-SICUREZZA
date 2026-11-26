@@ -444,3 +444,8 @@ La CI ha evidenziato un'asserzione errata nel test: una seconda lettura con un n
 ## 2026-11-27 — Hardening placement e binding Employee
 
 Il servizio placement ora richiede entrambe le riserve UID↔Employee attive e coerenti con employeeControl.bindingRevision nella stessa transazione. Ogni record placement storico viene validato (account/employee/doc ID, site/department, date e revisioni) prima di valutare intervalli; dati malformati bloccano la mutazione. La creazione iniziale è consentita solo con storico vuoto. Test Emulator aggiunti per binding mirror mancante/incoerente, storico malformato e seconda creazione iniziale. I loader organizzativi e autorizzativi restano iniettati e non equivalgono a un adapter manager/member di produzione.
+
+
+## 2026-11-27 — Test fail-closed per vista assenze manager
+
+Esteso il test Emulator della disponibilità assenze con casi di authorizer che nega la permission/scope e che restituisce un Employee diverso dal target. Entrambi devono fallire senza creare audit né restituire intervalli. I test di successo continuano a verificare DTO privo di categorie e dettagli sanitari.
