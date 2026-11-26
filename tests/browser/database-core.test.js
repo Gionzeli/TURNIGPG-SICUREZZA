@@ -41,6 +41,30 @@ async function run() {
   }
   const context = createAccountContext();
 
+  await test("AUTH-008 — account context accetta account ID con underscore dal principal Firebase", async () => {
+    const firebaseContext = createAccountContext();
+    const principal = Object.freeze({
+      uid: "synthetic_user_08",
+      accountId: "synthetic_team_08",
+      role: "member",
+      permissions: Object.freeze([]),
+      expiresAt: Date.now() + 60000,
+      identityProvider: "firebase",
+      authorizationSource: "server"
+    });
+    const activated = firebaseContext.activateFirebase(principal);
+    assert(activated.accountId === "synthetic_team_08",
+      "Account ID con underscore accettato dall'adapter ma rifiutato dal context.");
+    assert(activated.identitySource === "firebase", "Identità Firebase non preservata.");
+    let invalidRejected = false;
+    try {
+      firebaseContext.activateFirebase(Object.freeze({ ...principal, accountId: "synthetic#team" });
+    } catch (error) {
+      invalidRejected = error?.code === DB_ERROR_CODES.ACCESS_DENIED;
+    }
+    assert(invalidRejected, "Account ID con caratteri fuori pattern è stato accettato.");
+  });
+
   await test("AUTH-003 — lifecycle invalida risultati stale e svuota viste prima del nuovo account", async () => {
     const lifecycleContext = createAccountContext();
     const lifecycle = createAccountLifecycleCoordinator({ accountContext: lifecycleContext });

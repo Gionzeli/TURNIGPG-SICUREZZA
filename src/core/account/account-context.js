@@ -1,6 +1,6 @@
 import { DatabaseError, DB_ERROR_CODES } from "../database/database-errors.js";
 
-const ACCOUNT_ID_PATTERN = /^[A-Za-z0-9._:@-]{1,160}$/;
+const ACCOUNT_ID_PATTERN = /^[A-Za-z0-9._:@_-]{1,160}$/;
 
 export function createAccountContext() {
   let activeAccount = null;
