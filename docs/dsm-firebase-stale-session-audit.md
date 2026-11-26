@@ -2,11 +2,12 @@
 
 Audit date: 2026-11-26
 Branch: `dsm-enterprise/core-v1`
-Reviewed HEAD: `3e9ab83f3e568200b8d9a43894f9ff9d368d6bd2`
+Code-reviewed HEAD: `3e9ab83f3e568200b8d9a43894f9ff9d368d6bd2`
+Documentation/CI status refreshed against branch HEAD: `c6eb9e8f900888bf6d78427af381e1339353e2a8`
 
 ## Scope and method
 
-Read-only inspection of the Firebase auth adapter, standalone renewal coordinator, DSM session factory, account context/lifecycle, and browser renewal tests. Synthetic test fixtures only; no Firebase credentials or real accounts. This is a code-path audit, not a penetration test.
+Read-only inspection of the Firebase auth adapter, standalone renewal coordinator, DSM session factory, account context/lifecycle, and browser renewal tests. Synthetic test fixtures only; no Firebase credentials or real accounts. This is a code-path audit, not a penetration test. The code-path conclusions below refer to the explicitly identified code-reviewed HEAD; the later HEAD contains documentation-only updates.
 
 ## Confirmed behavior
 
@@ -43,14 +44,18 @@ The browser renewal test file contains synthetic cases for renewal coalescing, i
 
 These tests cover the standalone coordinator, not real Firebase Auth/Functions, real revocation, or the production composition root.
 
-## CI evidence on reviewed HEAD
+## CI evidence
 
-The exact reviewed HEAD `3e9ab83f3e568200b8d9a43894f9ff9d368d6bd2` passed both GitHub Actions workflows:
+**Latest verified branch HEAD:** `c6eb9e8f900888bf6d78427af381e1339353e2a8` (documentation-only commit relative to the code-reviewed HEAD above).
 
-- Browser / Playwright [run 45811655238](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45811655238): success; browser test log reports 97 passing tests and 0 failures.
-- Firestore Rules Emulator [run 45811655333](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45811655333): success; 38 passing tests, 0 failures, 0 skipped, executed against the local emulator.
+- Browser / Playwright [run 45812444547](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45812444547): **success** on the exact latest HEAD; browser job completed. The workflow covers browser-local tests and synthetic fixtures.
+- Firestore Rules Emulator [run 45812444681](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45812444681): **success** on the exact latest HEAD; 38 tests passed, 0 failed, 0 skipped.
 
-These are synthetic/browser-local and emulator tests. They do not establish real Firebase Auth/Functions integration, production revocation behavior, or protected DSM data API enforcement.
+For historical comparison, the code-reviewed HEAD `3e9ab83f3e568200b8d9a43894f9ff9d368d6bd2` also passed:
+- Browser / Playwright [run 45811655238](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45811655238): success; 97 passing tests and 0 failures.
+- Firestore Rules Emulator [run 45811655333](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45811655333): success; 38 passing tests, 0 failures, 0 skipped.
+
+These are synthetic/browser-local and emulator tests. They do not establish real Firebase Auth/Functions integration, production revocation behavior, or protected DSM data API enforcement. No backend Functions/Auth/Firestore Emulator pipeline result is claimed for the latest HEAD.
 
 ## Next safe step
 
