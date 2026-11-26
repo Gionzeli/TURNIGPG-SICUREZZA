@@ -53,7 +53,7 @@ test("inactive Employee or organization blocks new operations", () => {
   s.employees[0].status = "active";
   s.org[0].status = "archived";
   assert.throws(() => authorizeNewOperation(s, {
-    accountId:"acct-a", uid:"uid-1", employeeId:"emp-1", siteId:"site-1", departmentId:"dept-1"
+    accountId:"acct-a", uid:"uid-1", employeeId:"emp-1", siteId:"site-1", departmentId:"dept-1", date:"2026-02-01"
   }), { code:"permission-denied" });
 });
 

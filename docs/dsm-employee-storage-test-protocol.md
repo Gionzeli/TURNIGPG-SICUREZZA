@@ -116,3 +116,8 @@ Questo documento è un protocollo, non un risultato di test. Nessun test Firesto
 ## 10. Estensione del modello sintetico (non datastore)
 
 È stato aggiunto `tests/storage-harness/domain-model.mjs` con prove pure in memoria per: intervalli di placement half-open e non sovrapposti, trasferimento con conservazione del contesto turno storico, rifiuto su placement mancante/ambiguo, revoca binding, lifecycle Employee/risorse organizzative, payroll deny-by-default e minimizzazione del DTO manager delle assenze. Sono esempi di policy deterministiche, non prove di persistenza, concorrenza datastore, query, recupero crash o sicurezza effettiva. Le permission payroll write/export, deleghe manager, report/aggregati e crash recovery restano fuori copertura.
+
+
+## 11. Controlli aggiuntivi del modello di dominio in-memory
+
+L'estensione corrente del modello verifica anche che il trasferimento sia atomico rispetto alla validazione: se il placement di destinazione non è valido, il placement precedente resta invariato. Verifica inoltre che un'operazione sia autorizzata solo se sede e reparto coincidono con il placement dell'Employee alla data dell'operazione, inclusi i confini temporali del trasferimento. Sono test del modello sintetico, non prove del comportamento di un datastore o dell'enforcement server-side nell'applicazione.

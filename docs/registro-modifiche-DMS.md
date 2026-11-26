@@ -291,3 +291,8 @@ Su autorizzazione esplicita è stato aggiunto `tests/storage-harness/` con due m
 ## Estensione harness sintetico — 2026-11-26
 
 Aggiunti `tests/storage-harness/domain-model.mjs` e `domain-model.test.mjs`. Copertura aggiuntiva puramente in-memory: intervalli placement non sovrapposti, trasferimento e contesto storico turno, placement ambiguo, revoca binding, lifecycle Employee/risorse, payroll deny-by-default e minimizzazione vista manager assenze. Le funzioni sono isolate dai modelli transazionali e non costituiscono test Firestore/PostgreSQL né prove di persistenza, concorrenza datastore, query, crash recovery o security enforcement. Restano esclusi payroll write/export, deleghe manager, aggregati/report ed esecuzione effettiva del test runner. Nessun runtime, schema, endpoint, Rules, migration o deploy modificato.
+
+
+## Correzione del modello sintetico: atomicità trasferimento e scope temporale — 2026-11-26
+
+Rafforzato `tests/storage-harness/domain-model.mjs`: il trasferimento valida il placement di destinazione prima di modificare quello corrente; le operazioni protette richiedono che sede/reparto coincidano con il placement valido alla data specificata. Aggiunti test per rollback logico del trasferimento fallito e accesso negato fuori dal placement temporale. Corretto il fixture test lifecycle per fornire esplicitamente la data di autorizzazione. Queste prove restano in-memory e non dimostrano atomicità o enforcement nei datastore/runtime reali. Test runner non eseguito; nessun esito di CI dichiarato. Nessuna modifica runtime, schema, Rules, endpoint, migrazione o deploy.
