@@ -67,3 +67,6 @@ Additional domain tests exercise immediate manager-delegation revocation, fail-c
 
 ### Ambiguous manager delegations (synthetic)
 Manager authorization in the reference model now denies when more than one active, unexpired delegation matches the same account, manager, Employee, site, department, and operation. It does not select an arbitrary matching grant. A focused test covers this duplicate-grant case. This is a harness policy example, not a runtime authorization change.
+
+
+The duplicate-grant ambiguity case also distinguishes genuinely competing grants from irrelevant records: an expired matching grant and a current grant for a different operation do not invalidate one unique current grant for the requested operation. This is a regression check for the synthetic model only.

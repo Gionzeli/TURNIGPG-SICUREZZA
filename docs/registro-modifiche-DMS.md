@@ -355,3 +355,8 @@ Aggiunti test puramente in-memory per la revoca effettiva di una delega manager 
 ## 2026-11-26 — Harness: deleghe manager duplicate e ambigue
 
 Rafforzato il modello in-memory: l'autorizzazione manager non seleziona più la prima delega corrispondente quando esistono più concessioni attive, valide e identiche per account, manager, Employee, sito, reparto e operazione; in tale situazione nega l'accesso. Aggiunto test dedicato e aggiornata la documentazione del solo harness. Nessuna modifica al runtime, schema, storage, endpoint, Rules, provisioning o deploy.
+
+
+## 2026-11-26 — Harness: ambiguità limitata alle deleghe effettivamente valide
+
+Aggiunto un test negativo/positivo di confine: una delega scaduta e una delega valida per un'altra operazione non rendono ambigua l'unica concessione corrente per l'operazione richiesta. La regola di deny resta applicata quando più concessioni attive, non scadute e corrispondenti alla stessa operazione competono. Solo modello sintetico in-memory; nessuna modifica runtime, schema, storage, Rules, endpoint, provisioning, wiring o deploy.

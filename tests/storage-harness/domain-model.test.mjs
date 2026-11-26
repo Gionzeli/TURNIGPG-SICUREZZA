@@ -394,3 +394,21 @@ test("manager authorization fails closed when multiple active delegations match 
     now:"2026-02-01T12:00:00Z", operation:"read"
   }), { code:"permission-denied" });
 });
+
+
+test("manager authorization ignores expired or operation-mismatched duplicate grants", () => {
+  const s = placedFixture();
+  const grant = { accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", status:"active",
+    expiresAt:"2026-03-01T00:00:00Z", permissions:["shift:read"] };
+  s.delegations.push(
+    { ...grant },
+    { ...grant, expiresAt:"2026-02-01T11:59:59Z" },
+    { ...grant, permissions:["shift:create"] }
+  );
+  assert.equal(authorizeManagerShift(s, {
+    accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01",
+    now:"2026-02-01T12:00:00Z", operation:"read"
+  }), true);
+});
