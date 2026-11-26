@@ -296,3 +296,8 @@ Aggiunti `tests/storage-harness/domain-model.mjs` e `domain-model.test.mjs`. Cop
 ## Correzione del modello sintetico: atomicità trasferimento e scope temporale — 2026-11-26
 
 Rafforzato `tests/storage-harness/domain-model.mjs`: il trasferimento valida il placement di destinazione prima di modificare quello corrente; le operazioni protette richiedono che sede/reparto coincidano con il placement valido alla data specificata. Aggiunti test per rollback logico del trasferimento fallito e accesso negato fuori dal placement temporale. Corretto il fixture test lifecycle per fornire esplicitamente la data di autorizzazione. Queste prove restano in-memory e non dimostrano atomicità o enforcement nei datastore/runtime reali. Test runner non eseguito; nessun esito di CI dichiarato. Nessuna modifica runtime, schema, Rules, endpoint, migrazione o deploy.
+
+
+## Workflow CI dedicato al harness Employee sintetico — 2026-11-26
+
+Aggiunto `.github/workflows/employee-storage-harness.yml`, limitato a `tests/storage-harness/**` e al proprio file workflow. Esegue `node --test tests/storage-harness/*.test.mjs` su Node 20, senza installare pacchetti, usare emulatori, servizi cloud, credenziali o dati reali. Si attiva su pull request verso `main`, push sul branch `dsm-enterprise/core-v1` e dispatch manuale; permesso GitHub limitato a `contents: read`. Un eventuale esito positivo dimostrerà soltanto il comportamento dei modelli in-memory documentati, non le garanzie Firestore/PostgreSQL o la sicurezza runtime. L'esecuzione sul nuovo SHA deve essere verificata separatamente.

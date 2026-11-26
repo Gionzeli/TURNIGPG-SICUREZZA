@@ -24,3 +24,14 @@ No real identifiers or personal data are used. All identifiers are fixed synthet
 
 
 Additional tests: `node --test tests/storage-harness/*.test.mjs` also exercises `domain-model.test.mjs`. The domain policy functions are deliberately separate from both datastore-shaped models so no test result can be mistaken for proof of Firestore/PostgreSQL behavior.
+
+
+## Continuous integration
+
+The dedicated GitHub Actions workflow runs this command on Node 20 when these harness files change in the feature branch or in a pull request targeting `main`:
+
+```sh
+node --test tests/storage-harness/*.test.mjs
+```
+
+It installs no project dependencies and does not start Firebase emulators or contact a datastore. A green workflow validates only these in-memory reference-model tests; it is not evidence for Firestore/PostgreSQL guarantees or application authorization.
