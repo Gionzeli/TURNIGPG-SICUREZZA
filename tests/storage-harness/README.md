@@ -74,3 +74,7 @@ The duplicate-grant ambiguity case also distinguishes genuinely competing grants
 
 ### Ambiguous Employee bindings (synthetic)
 The Employee operation reference model now requires exactly one active binding for the account/UID/Employee tuple. Duplicate active matches deny access rather than selecting the first record; revoked historical duplicates do not count as active grants. This is an in-memory regression check only and does not implement or prove canonical binding uniqueness in a server or datastore.
+
+
+### Bidirectional active Employee binding uniqueness (synthetic)
+The reference model now requires exactly one active binding per UID and exactly one active UID per Employee, scoped to the same account. A UID linked to two Employees or an Employee linked to two UIDs is denied; an identical UID or Employee value in a different account does not create a cross-account collision. This is an in-memory policy regression test only, not persistent uniqueness or server-side enforcement.

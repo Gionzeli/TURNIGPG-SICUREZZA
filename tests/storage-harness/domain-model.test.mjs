@@ -425,3 +425,26 @@ test("Employee authorization fails closed on duplicate active bindings but ignor
   revoked.bindings.push({ ...revoked.bindings[0], status:"revoked" });
   assert.equal(authorizeNewOperation(revoked, args), true);
 });
+
+
+test("Employee binding enforces active one-to-one identity in both directions within an account", () => {
+  const args = { accountId:"acct-a", uid:"uid-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01" };
+
+  const uidBoundToTwoEmployees = placedFixture();
+  uidBoundToTwoEmployees.bindings.push({ accountId:"acct-a", uid:"uid-1",
+    employeeId:"emp-2", status:"active" });
+  assert.throws(() => authorizeNewOperation(uidBoundToTwoEmployees, args),
+    { code:"permission-denied" });
+
+  const employeeBoundToTwoUids = placedFixture();
+  employeeBoundToTwoUids.bindings.push({ accountId:"acct-a", uid:"uid-2",
+    employeeId:"emp-1", status:"active" });
+  assert.throws(() => authorizeNewOperation(employeeBoundToTwoUids, args),
+    { code:"permission-denied" });
+
+  const otherAccount = placedFixture();
+  otherAccount.bindings.push({ accountId:"acct-b", uid:"uid-1",
+    employeeId:"emp-2", status:"active" });
+  assert.equal(authorizeNewOperation(otherAccount, args), true);
+});

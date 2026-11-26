@@ -365,3 +365,8 @@ Aggiunto un test negativo/positivo di confine: una delega scaduta e una delega v
 ## 2026-11-26 — Harness: binding Employee duplicate fail-closed
 
 Rafforzato il solo modello sintetico delle operazioni Employee: richiede esattamente una binding attiva per la tupla account/UID/Employee; più binding attive corrispondenti negano l'accesso senza selezione implicita. Le copie storiche revocate non vengono conteggiate come concessioni attive. Aggiunto test per entrambi i casi. Nessuna modifica runtime, schema, storage, endpoint, Rules, provisioning, wiring o deploy; non è prova di unicità canonica persistente.
+
+
+## 2026-11-26 — Harness: unicità bidirezionale binding Employee
+
+Rafforzato il solo modello sintetico: per ogni account è richiesta esattamente una binding attiva per UID e una per Employee, e le due devono essere la stessa associazione. Aggiunti test per UID associato a due Employee, Employee associato a due UID e isolamento tra account. Non dimostra unicità persistente, transazioni concorrenti o enforcement server-side. Nessuna modifica runtime, schema, storage, endpoint, Rules, provisioning, wiring, dati reali o deploy.
