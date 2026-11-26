@@ -299,3 +299,20 @@ Invarianti approvate:
 - Le transizioni di stato devono essere tracciate lato server con attore, motivazione e decorrenza. Le mutazioni critiche devono essere atomiche e protette da conflitti concorrenti.
 
 L'approvazione definisce le invarianti di dominio e sicurezza, non un calendario completo delle transizioni né lo schema fisico. Non approva percorsi Firestore, loader, endpoint, Rules, migrazioni, provisioning, wiring applicativo, accesso a dati reali o deploy. L'audit sul commit `322f42cb47fbb1f20ca86b4d054799c812018d8b` ha rilevato che il resolver organizzativo non verifica lo stato attivo di account/sede/reparto e che il lifecycle Employee canonico non è ancora integrato. Nessuna modifica runtime è stata autorizzata o effettuata.
+
+
+## 18. Approvazione esplicita EMP-09 — provisioning e verifica identità
+
+**Stato: APPROVATO dall'utente il 2026-11-26.** Sono approvate integralmente le seguenti regole:
+
+1. Provisioning manuale; nessuna associazione automatica basata su email, nome, codice fiscale, importazioni o dati del browser.
+2. Verifica fuori banda della corrispondenza persona–Employee tramite procedura organizzativa indipendente da Firebase; i soli dati anagrafici non costituiscono prova.
+3. Proposta e approvazione da soggetti autorizzati distinti; il proponente non approva la propria operazione.
+4. Precondizioni: account, Employee e identità validi; rispetto della cardinalità attiva 1:1 EMP-03.
+5. Operazioni atomiche con controllo revisioni e unicità in entrambe le direzioni; duplicati e conflitti sono rifiutati.
+6. Nessuna sovrascrittura silenziosa del binding: revoca autorizzata e auditata della precedente associazione prima della nuova; conflitti bloccanti.
+7. Audit di attori, Employee, UID interessato, operazione, codice motivazione, timestamp server e revisioni precedenti/successive; esclusi token, credenziali e dati payroll.
+8. La procedura di verifica non copia documenti d'identità o dati personali superflui nell'audit o nel binding.
+9. Fail-closed in assenza di verifica/approvazione, identità revocata, Employee non attivo, stato incoerente o errore di persistenza.
+
+L'approvazione definisce la policy, non la sua implementazione. Non sceglie percorsi Firestore o archivio fisico, non autorizza un ambiente Identity Platform di test, endpoint/callable, Rules, migrazioni, provisioning operativo, wiring applicativo o deploy. Restano validi i gate di sicurezza già documentati per il prototipo nomination: nessuna esposizione finché la verifica TOTP reale non è dimostrata con test server-side supportato.

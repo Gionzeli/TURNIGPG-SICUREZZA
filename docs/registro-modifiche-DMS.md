@@ -253,3 +253,8 @@ Non sono approvati schema/path, storage, loader, endpoint, Rules, migrazioni, wi
 L'approvazione riguarda le invarianti, non il calendario completo delle transizioni o lo schema fisico. Non autorizza path Firestore, loader, endpoint, Rules, migrazioni, provisioning, wiring, dati reali o deploy. L'audit ha confermato che il resolver organizzativo non controlla ancora gli stati active di account/sede/reparto e che il lifecycle Employee canonico non è integrato. Nessuna modifica runtime effettuata.
 
 **HEAD di partenza:** `322f42cb47fbb1f20ca86b4d054799c812018d8b`. PR #1 verificata aperta, Draft, non merged, base `main`.
+
+
+## Approvazione EMP-09 — 2026-11-26
+
+L'utente ha approvato integralmente la policy di provisioning manuale e verifica identità fuori banda: nessun matching automatico; proposta e approvazione da attori distinti; precondizioni e cardinalità EMP-03 verificate; unicità e revisioni protette atomicamente; revoca esplicita prima di eventuale nuovo binding; audit minimizzato e fail-closed. La procedura non deve copiare documenti d'identità o dati personali superflui. Approvata la policy, non schema fisico/path, ambiente Identity Platform, callable, endpoint, Rules, migrazione, wiring o deploy. Il provisioning Employee non è implementato.
