@@ -409,3 +409,8 @@ Aggiunta revoca esplicita del binding Employee: amministratore canonico attivo c
 ## 2026-11-26 — Test Emulator revoca binding Employee
 
 Aggiunto test Firestore Emulator end-to-end sintetico che crea il binding tramite proposta e approvazione distinte, poi revoca entrambe le prenotazioni UID/Employee, incrementa il controllo revisione e verifica l'evento audit. Il test verifica anche il rifiuto della seconda revoca. Nessun test TOTP reale, progetto reale o deploy.
+
+
+## 2026-11-26 — Placement Employee e trasferimento atomico
+
+Aggiunto servizio interno Firestore per creazione del placement iniziale e trasferimento con intervalli semiaperti [validFrom, validUntil), controllo revisioni su employeeControl, rilevamento overlap e ambiguità, lifecycle account/Employee/sede/reparto e audit nella stessa transazione. I loader di autorizzazione attore e organizzazione sono iniettati e devono leggere fonti canoniche nella stessa transazione; non viene esposto alcun endpoint perché il contratto fisico dei documenti organizzativi e i permessi per modificare placement non sono ancora stabiliti. Test Emulator sintetico verifica creazione, trasferimento, confine storico e overlap negato.

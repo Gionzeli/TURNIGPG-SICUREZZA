@@ -94,3 +94,11 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - TOTP assurance still requires validation against an approved non-production Firebase Auth configuration before deployment.
 
 - Emulator integration test covers two-person provisioning followed by audited, mirrored binding revocation and revision increment.
+
+
+## Employee placements (internal transaction service)
+- Initial placement and transfer use Employee-scoped Firestore history and the serialized employeeControl placement revision.
+- Intervals are half-open [validFrom, validUntil); overlap, ambiguous transfer boundary, missing lifecycle, stale/malformed control and excessive history fail closed.
+- Transfers close the prior interval and create the next placement with audit in one transaction.
+- Trusted organization and actor authorization loaders are injected and must read canonical records inside the same transaction. No callable is exposed until the organization document paths and actor permission contract are explicitly implemented.
+- Emulator tests use synthetic loaders and do not validate real organizational authorization.
