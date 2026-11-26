@@ -78,3 +78,10 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - Approval requires a verified recent TOTP identity, active account, active proposer and target member; Employee creation, mirrored UID/Employee reservations, proposal transition and audit are atomic.
 - Duplicate Employee/UID reservations deny; no silent overwrite or rebinding.
 - The service is not yet exposed as a callable. Emulator tests use synthetic verified-identity fixtures and do not establish real Firebase TOTP assurance.
+
+
+## Employee provisioning callable endpoints
+- `proposeEmployeeProvisioning` and `approveEmployeeProvisioning` are callable endpoints backed by revocation-checked Firebase ID token verification.
+- Actor UID, verified-email state, auth time and second-factor claim are derived from the verified token; client-supplied actor fields are ignored.
+- Service authorization still requires active canonical admin membership, recent TOTP claim, distinct proposer/approver and the Firestore transaction invariants.
+- Unit tests exercise the callable composition boundary with synthetic verifier claims. They do not prove that a deployed Firebase Auth tenant issues/validates TOTP claims as expected. Do not deploy or treat real MFA assurance as verified until that integration is independently validated in an approved non-production Firebase project.

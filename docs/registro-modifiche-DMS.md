@@ -395,3 +395,8 @@ Il loader Firestore ora verifica nella stessa transazione che il documento accou
 ## 2026-11-26 — Provisioning Employee manuale a doppia approvazione
 
 Aggiunto servizio Firestore transazionale per proposta e approvazione Employee. Richiede account attivo, amministratori canonici attivi con identità TOTP recente verificata dal backend, proponente e approvatore distinti, membro target già attivo e ticket opaco di verifica manuale. L'approvazione crea Employee, due prenotazioni binding UID/Employee, transizione proposta e audit nella stessa transazione; duplicati e rebinding vengono rifiutati. Aggiunto test Emulator sintetico per happy path, self-approval negata e collisione UID. Il servizio è interno, non esposto come callable; il test usa identity fixture sintetiche e non prova il flusso TOTP Firebase reale.
+
+
+## 2026-11-26 — Callable Employee provisioning protette
+
+Collegati al composition root Functions gli endpoint callable di proposta e approvazione Employee. L'identità amministrativa è ricavata esclusivamente da ID token Firebase verificato con controllo revoca; UID, email verificata, auth time e secondo fattore non sono accettati dal payload client. Errori di policy sono tradotti in HttpsError senza esporre errori interni. Aggiunti test unitari della boundary callable con verifier sintetico. Questo non dimostra ancora l'emissione/validazione reale del claim TOTP in Firebase Auth e non autorizza deploy.
