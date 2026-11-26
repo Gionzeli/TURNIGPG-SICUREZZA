@@ -507,3 +507,8 @@ La prima esecuzione backend dopo l'introduzione dei campi effective-dated ha evi
 
 - Corretto l'allineamento della matrice: anche l'admin account-scoped riceve il permesso esplicito `dsm:transfer:departments`; il manager continua a richiedere scope su entrambe le sedi. Aggiornato il test unitario.
 - Resa più resiliente l'installazione Playwright CI: installa Chromium senza invocare apt/system-deps esterni, il cui repository Microsoft ha restituito HTTP 403 nell'ultima run. Le librerie native saranno verificate dal test browser.
+
+
+## 2026-11-27 — Creazione e archiviazione organizzativa controllata
+
+Aggiunto servizio interno per creare site e department con ID Firestore auto-generati server-side, parent validation e audit atomico. Aggiunti archiviazione site/department riservata ad admin con permessi dedicati: blocca dipartimenti attivi, placement Employee correnti e membership/scope ancora attivi. Nessun endpoint callable esposto; il chiamante deve derivare actorUid da token revocation-checked.

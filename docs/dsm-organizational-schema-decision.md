@@ -48,13 +48,13 @@ Permessi derivati esclusivamente dal server; campi permissions client/stored non
 |---|---|---|
 | member | `dsm:read:own-scope` | Solo dati propri collegati a binding Employee attivo. Nessuna gestione organizzativa, payroll o dati salute. |
 | manager | `dsm:read:site`, `dsm:manage:site`, `dsm:manage:departments`, `dsm:transfer:departments` | Solo site assegnati; dipartimenti autorizzati via relazione corrente; nessun account-wide, membership, payroll o contenuto sanitario. |
-| admin | `dsm:read:account`, `dsm:manage:account`, `dsm:manage:memberships`, `dsm:manage:admin-nominations`, `dsm:transfer:departments` | Scope account. Non implica payroll, dati sanitari o export. |
+| admin | `dsm:read:account`, `dsm:manage:account`, `dsm:manage:memberships`, `dsm:manage:admin-nominations`, `dsm:transfer:departments`, `dsm:archive:site`, `dsm:archive:department` | Scope account. Non implica payroll, dati sanitari o export. |
 
 Semantica:
 - `read`: sola lettura del dominio indicato.
 - `manage:site` / `manage:departments`: creazione e aggiornamento ordinario entro lo scope; non sostituisce l'autorizzazione esplicita per archive/transfer.
 - `transfer:departments`: trasferimento tra site dello stesso account. Un manager deve avere scope sia sulla sede sorgente sia sulla destinazione; admin deve avere account scope.
-- Archiviazione di account/site/department è operazione distinta, con controllo di dipendenze e audit; non è implicata da un generico update.
+- Archiviazione site/department è operazione distinta, riservata ad admin con permessi `dsm:archive:site` / `dsm:archive:department`, controllo dipendenze e audit; non è implicata da un generico update. Archiviazione account non esposta: richiede processo separato di chiusura e revoca globale.
 - Payroll read/write/export restano deny-by-default: nessun ruolo base li riceve.
 - Assenze manager ordinarie espongono solo disponibilità e date; categoria sanitaria, motivo, note e documenti sono esclusi.
 

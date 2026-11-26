@@ -151,3 +151,10 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - These services are not callable exports. The caller must inject canonical membership authorization; client payloads are not an authorization source. Emulator tests use synthetic documents only.
 
 - Membership policy is effective-dated: only `status: active` with valid Firestore Timestamp/Date `validFrom` and null/future `validUntil` is accepted. Missing or malformed lifecycle fields fail closed. Manager permission set includes the distinct `dsm:transfer:departments`; payroll remains ungranted.
+
+
+### Organization mutations (internal only)
+
+- `organization-mutation-service.js` creates sites/departments with server-generated Firestore IDs and atomic audit.
+- Site/department archival requires dedicated admin permissions and refuses active dependencies (departments, Employee placements, or active membership scopes).
+- These are internal service primitives, not callable exports. No account archive, production wiring, Rules change, migration or deployment is included.

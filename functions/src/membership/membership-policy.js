@@ -5,7 +5,7 @@ const SCOPE_TYPES = new Set(["account", "site", "department"]);
 const PERMISSIONS = Object.freeze({
   member: ["dsm:read:own-scope"],
   manager: ["dsm:read:site", "dsm:manage:site", "dsm:manage:departments", "dsm:transfer:departments"],
-  admin: ["dsm:read:account", "dsm:manage:account", "dsm:manage:memberships", "dsm:manage:admin-nominations", "dsm:transfer:departments"]
+  admin: ["dsm:read:account", "dsm:manage:account", "dsm:manage:memberships", "dsm:manage:admin-nominations", "dsm:transfer:departments", "dsm:archive:site", "dsm:archive:department"]
 });
 function validId(value) { return typeof value === "string" && ID_PATTERN.test(value); }
 function timestampMillis(value) {
