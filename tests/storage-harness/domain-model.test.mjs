@@ -115,9 +115,9 @@ test("manager delegation is operation-specific and placement-scoped", () => {
   const s = placedFixture();
   s.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
     siteId:"site-1", departmentId:"dept-1", status:"active",
-    permissions:["shift:read", "shift:update"] });
+    expiresAt:"2026-03-01T00:00:00Z", permissions:["shift:read", "shift:update"] });
   const baseArgs = { accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
-    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01" };
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", now:"2026-02-01T12:00:00Z" };
   assert.equal(authorizeManagerShift(s, { ...baseArgs, operation:"read" }), true);
   assert.equal(authorizeManagerShift(s, { ...baseArgs, operation:"update" }), true);
   assert.throws(() => authorizeManagerShift(s, { ...baseArgs, operation:"delete" }), { code:"permission-denied" });
@@ -171,9 +171,9 @@ test("account and Employee isolation deny cross-tenant and cross-Employee manage
   s.org.push({ accountId:"acct-b", siteId:"site-1", departmentId:"dept-1", status:"active" });
   addPlacement(s, { accountId:"acct-b", employeeId:"emp-1", siteId:"site-1", departmentId:"dept-1", start:"2026-01-01" });
   s.delegations.push({ accountId:"acct-a", managerUid:"manager-a", employeeId:"emp-1",
-    siteId:"site-1", departmentId:"dept-1", status:"active", permissions:["shift:read"] });
+    siteId:"site-1", departmentId:"dept-1", status:"active", expiresAt:"2027-01-01T00:00:00Z", permissions:["shift:read"] });
   assert.equal(authorizeManagerShift(s, { accountId:"acct-a", managerUid:"manager-a", employeeId:"emp-1",
-    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read" }), true);
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read", now:"2026-02-01T12:00:00Z" }), true);
   assert.throws(() => authorizeManagerShift(s, { accountId:"acct-b", managerUid:"manager-a", employeeId:"emp-1",
     siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read" }), { code:"permission-denied" });
   assert.throws(() => authorizeManagerShift(s, { accountId:"acct-a", managerUid:"manager-a", employeeId:"emp-2",
