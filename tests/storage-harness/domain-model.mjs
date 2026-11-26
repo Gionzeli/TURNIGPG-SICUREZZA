@@ -142,12 +142,12 @@ export function authorizeManagerShift(state, {
     Date.parse(x.expiresAt) > Date.parse(now));
   const employee = state.employees.find(x =>
     x.accountId === accountId && x.employeeId === employeeId && x.status === "active");
-  const org = state.org.find(x => x.accountId === accountId &&
+  const orgMatches = state.org.filter(x => x.accountId === accountId &&
     x.siteId === siteId && x.departmentId === departmentId && x.status === "active");
   let placement;
   try { placement = placementAt(state, accountId, employeeId, date); }
   catch { fail("permission-denied"); }
-  if (!delegation || !employee || !org ||
+  if (!delegation || !employee || orgMatches.length !== 1 ||
       placement.siteId !== siteId || placement.departmentId !== departmentId) fail("permission-denied");
   return true;
 }

@@ -46,3 +46,8 @@ The synthetic payroll read and export examples now stage an audit entry (actor, 
 ### Manager delegation expiry and revocation
 
 The in-memory model now requires a valid explicit expiry timestamp for manager shift delegation and checks expiry against an explicit operation timestamp. Revocation is modeled as an audited change: audit staging must succeed before status is changed. Tests cover just-before expiry, at expiry, after expiry, immediate revocation, and audit staging failure. This is not wired into callable endpoints or a persistent authorization system.
+
+
+### Manager organization-scope lifecycle
+
+Manager shift authorization in the synthetic model now requires exactly one matching active organization scope for the account, site, and department. Missing, suspended, archived, unknown, or duplicate matching scope records deny access. This is a fail-closed reference-model check only; it does not establish canonical organization lifecycle enforcement in application services or Firebase Rules.

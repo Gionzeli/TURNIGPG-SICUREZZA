@@ -330,3 +330,8 @@ Payroll read/write/export nel modello sintetico richiede ora Employee con status
 **Modello sintetico:** le deleghe manager per le operazioni sui turni richiedono una scadenza esplicita; una delega scaduta non autorizza. La revoca seleziona una sola delega attiva e prepara prima l'audit; se l'audit non può essere predisposto, la delega resta attiva. Sono inclusi attore e motivo sintetico nel record di revoca.
 
 **Test aggiunti:** prima dell'istante di scadenza, al momento esatto e dopo; revoca immediata; audit fail-closed della revoca. Modello in-memory, non endpoint o persistence reali.
+
+
+## 2026-11-26 — Harness: lifecycle dello scope organizzativo manager
+
+Il modello sintetico di autorizzazione turni manager richiede ora esattamente un record organizzativo corrispondente e attivo per account, sede e reparto. Test negativi coprono scope sospeso, archiviato, sconosciuto, mancante o duplicato. Corretti anche i test cross-account/cross-Employee affinché forniscano un timestamp valido e raggiungano davvero i controlli di isolamento, anziché fallire prima per parametro mancante. Solo harness in-memory; nessuna modifica runtime, Rules, schema, storage, endpoint, provisioning o deploy.

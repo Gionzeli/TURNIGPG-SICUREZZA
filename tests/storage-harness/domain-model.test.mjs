@@ -127,6 +127,32 @@ test("manager delegation is operation-specific and placement-scoped", () => {
   assert.throws(() => authorizeManagerShift(s, { ...baseArgs, operation:"read" }), { code:"permission-denied" });
 });
 
+
+test("manager shift access fails closed for inactive, missing, or ambiguous organization scope", () => {
+  const args = { accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", now:"2026-02-01T12:00:00Z", operation:"read" };
+  for (const status of ["suspended", "archived", "unknown"]) {
+    const s = placedFixture();
+    s.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+      siteId:"site-1", departmentId:"dept-1", status:"active", expiresAt:"2026-03-01T00:00:00Z",
+      permissions:["shift:read"] });
+    s.org[0].status = status;
+    assert.throws(() => authorizeManagerShift(s, args), { code:"permission-denied" });
+  }
+  const missing = placedFixture();
+  missing.org = [];
+  missing.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", status:"active", expiresAt:"2026-03-01T00:00:00Z",
+    permissions:["shift:read"] });
+  assert.throws(() => authorizeManagerShift(missing, args), { code:"permission-denied" });
+  const ambiguous = placedFixture();
+  ambiguous.org.push({ ...ambiguous.org[0] });
+  ambiguous.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", status:"active", expiresAt:"2026-03-01T00:00:00Z",
+    permissions:["shift:read"] });
+  assert.throws(() => authorizeManagerShift(ambiguous, args), { code:"permission-denied" });
+});
+
 test("payroll write and export are separate explicit permissions and are audited", () => {
   const s = createDomainFixture();
   const baseArgs = { accountId:"acct-a", employeeId:"emp-1", recordId:"pay-1",
@@ -175,7 +201,7 @@ test("account and Employee isolation deny cross-tenant and cross-Employee manage
   assert.equal(authorizeManagerShift(s, { accountId:"acct-a", managerUid:"manager-a", employeeId:"emp-1",
     siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read", now:"2026-02-01T12:00:00Z" }), true);
   assert.throws(() => authorizeManagerShift(s, { accountId:"acct-b", managerUid:"manager-a", employeeId:"emp-1",
-    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read" }), { code:"permission-denied" });
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read", now:"2026-02-01T12:00:00Z" }), { code:"permission-denied" });
   assert.throws(() => authorizeManagerShift(s, { accountId:"acct-a", managerUid:"manager-a", employeeId:"emp-2",
     siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read" }), { code:"permission-denied" });
 });
