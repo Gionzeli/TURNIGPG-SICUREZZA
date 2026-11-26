@@ -218,7 +218,7 @@ export async function runFirebaseAuthAdapterTests() {
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth,
       onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountSelectionSnapshot: async () => selection,
+      getAccountSelectionSnapshot: async () => ({ accountId: selectedAccountId, revision: selectionRevision }),
       resolveAuthorization: ({ uid, accountId }) => new Promise(resolve => {
         resolverStarted();
         release = () => resolve(activeAuthorization(uid, { accountId }));
