@@ -19,15 +19,21 @@ export function createDomainFixture() {
   };
 }
 
-export function addPlacement(state, placement) {
+function validatePlacement(state, placement, excluded = null) {
   const { accountId, employeeId, siteId, departmentId, start, end = null } = placement;
-  if (![accountId, employeeId, siteId, departmentId].every(x => typeof x === "string") ||
+  if (![accountId, employeeId, siteId, departmentId].every(x => typeof x === "string" && x.length > 0) ||
       !validDate(start) || (end !== null && (!validDate(end) || end <= start))) fail("invalid-placement");
   if (!state.employees.some(x => x.accountId === accountId && x.employeeId === employeeId && x.status === "active")) fail("employee-not-active");
   if (!state.org.some(x => x.accountId === accountId && x.siteId === siteId &&
       x.departmentId === departmentId && x.status === "active")) fail("org-not-active");
   const candidate = { accountId, employeeId, siteId, departmentId, start, end };
-  if (state.placements.some(x => x.accountId === accountId && x.employeeId === employeeId && overlaps(x, candidate))) fail("placement-overlap");
+  if (state.placements.some(x => x !== excluded && x.accountId === accountId &&
+      x.employeeId === employeeId && overlaps(x, candidate))) fail("placement-overlap");
+  return candidate;
+}
+
+export function addPlacement(state, placement) {
+  const candidate = validatePlacement(state, placement);
   state.placements.push(candidate);
   return candidate;
 }
@@ -51,8 +57,12 @@ export function transferEmployee(state, { accountId, employeeId, siteId, departm
   if (!validDate(effectiveDate)) fail("invalid-date");
   const current = placementAt(state, accountId, employeeId, effectiveDate);
   if (current.start === effectiveDate) fail("ambiguous-transfer-boundary");
+  // Validate every precondition before changing the old interval.
+  const next = validatePlacement(state,
+    { accountId, employeeId, siteId, departmentId, start: effectiveDate }, current);
   current.end = effectiveDate;
-  return addPlacement(state, { accountId, employeeId, siteId, departmentId, start: effectiveDate });
+  state.placements.push(next);
+  return next;
 }
 
 export function revokeBinding(state, accountId, uid) {
@@ -62,13 +72,17 @@ export function revokeBinding(state, accountId, uid) {
   state.audit.push({ actor: "synthetic-server-actor", action: "binding-revoked", accountId, uid });
 }
 
-export function authorizeNewOperation(state, { accountId, uid, employeeId, siteId, departmentId }) {
+export function authorizeNewOperation(state, { accountId, uid, employeeId, siteId, departmentId, date }) {
   const binding = state.bindings.find(x => x.accountId === accountId && x.uid === uid &&
     x.employeeId === employeeId && x.status === "active");
   const employee = state.employees.find(x => x.accountId === accountId && x.employeeId === employeeId);
   const org = state.org.find(x => x.accountId === accountId && x.siteId === siteId &&
-    x.departmentId === departmentId);
-  if (!binding || !employee || employee.status !== "active" || !org || org.status !== "active") fail("permission-denied");
+    x.departmentId === departmentId && x.status === "active");
+  let placement;
+  try { placement = placementAt(state, accountId, employeeId, date); }
+  catch { fail("permission-denied"); }
+  if (!binding || !employee || employee.status !== "active" || !org ||
+      placement.siteId !== siteId || placement.departmentId !== departmentId) fail("permission-denied");
   return true;
 }
 
