@@ -16,7 +16,9 @@ Questa è una revisione statica preliminare dei moduli elencati, non un penetrat
 
 `createDSMCoreSession({ db, accountId })` attiva un contesto locale usando l'ID fornito dal chiamante. `createAccountContext.activate()` accetta intenzionalmente soltanto `identitySource: "local"`; non verifica sessioni, token o principal. Di conseguenza un accountId non dimostra l'identità dell'utente e l'indice `accountId` protegge soltanto l'organizzazione dei record nell'applicazione client.
 
-**Azione richiesta:** progettare un adapter di autenticazione verificato e un modello di autorizzazione prima dell'integrazione. Il principal dovrà provenire da un componente fidato; non accettare UID, flag o timestamp forniti da UI, URL o storage locale.
+**Stato aggiornato:** esiste ora un adapter Firebase isolato che chiede al backend un principal e controlla la coerenza con UID, account selezionato e revisione della selezione. Il callable `resolveAuthorization` verifica il bearer token (inclusa la revoca) e legge la membership canonica. Tuttavia l'adapter non è collegato alla sessione/composition root DSM e il backend dichiara esplicitamente che le API dati protette e l'autorizzazione delle operazioni non sono implementate. La restituzione di un principal non autorizza quindi alcuna lettura/scrittura reale del core.
+
+**Azione richiesta:** prima dell'integrazione, progettare API dati server-side che ri-verifichino identità, membership e scope per ogni operazione, con test negativi per UID/accountId arbitrari. Il principal dovrà provenire da un componente fidato; non accettare UID, flag o timestamp forniti da UI, URL o storage locale.
 
 ### SEC-02 — IndexedDB non è un confine di sicurezza
 **Gravità: alta per dati reali.**
@@ -90,3 +92,16 @@ La PR #1 è stata ricontrollata sul commit `9e635e2b0718ee3bdad050de88083d440f76
 Questi risultati attestano soltanto le suite automatizzate eseguite con fixture e ambiente emulatoriale. Non attestano un adapter Firebase DSM, l'autenticazione o autorizzazione di utenti reali, l'integrazione operativa, né una certificazione di sicurezza.
 
 La PR #1 risulta aperta, in draft e non unita al momento dell'aggiornamento. Il suo HEAD verificato è `9e635e2b0718ee3bdad050de88083d440f768ff8`. Il core resta isolato: nessun collegamento a `index.html`, nessuna modifica al runtime Firebase o alle Firestore Rules, nessuna importazione/sincronizzazione di dati reali. I rilievi SEC-01–SEC-05 e tutti i gate obbligatori sopra restano invariati; il superamento CI non li chiude.
+
+
+## Aggiornamento revisione e CI — 26 novembre 2026
+
+La verifica è stata ripetuta sul branch `dsm-enterprise/core-v1`, HEAD `81bcb9d0cf0ad2eff584854af6bee1c51591e980`; la PR #1 è aperta, Draft e non unita.
+
+- **Browser IndexedDB / Playwright:** [workflow 45764015583](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45764015583) — success; 97 test superati, 0 falliti, incluso AUTH-008.
+- **Firestore Rules Emulator:** [workflow 45764015688](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45764015688) — success; 38 test superati, 0 falliti.
+- **Backend Auth/Functions/Firestore Emulator:** [workflow 45712537972](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45712537972) — success; 63 test superati, 0 falliti e 0 saltati sul commit `f1974e7214ef2205bbf2804ce891c7dbd310637e`. Il confronto Git tra quel commit e l'HEAD corrente mostra che nessun file `functions/**` è cambiato nell'intervallo; il risultato è quindi applicabile al codice backend attuale, ma il workflow non ha eseguito un checkout dell'HEAD corrente.
+
+La suite backend include il test emulatoriale del callable `resolveAuthorization`: verifica bearer mancante/malformato, email non verificata, selettore malformato, membership assente/inattiva, utente disabilitato e token revocato. La membership viene letta dal percorso server-owned `accounts/{accountId}/members/{uid}`; il callable usa Firebase Admin e non dipende dalle regole Firestore client per tale lettura.
+
+Questi risultati sono test automatizzati su emulatori e dati sintetici, non un test di penetrazione né una verifica di integrazione end-to-end con l'app operativa. Restano bloccanti l'assenza di API dati DSM protette, l'integrazione dell'adapter nella sessione DSM, la protezione dei dati IndexedDB, il ciclo di vita delle chiavi e un audit remoto con integrità, ove richiesto. Mantenere la PR in bozza; non usare dati reali e non collegare il core all'entrypoint operativo.
