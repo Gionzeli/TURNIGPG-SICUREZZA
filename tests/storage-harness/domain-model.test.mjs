@@ -132,12 +132,15 @@ test("payroll write and export are separate explicit permissions and are audited
   const baseArgs = { accountId:"acct-a", employeeId:"emp-1", recordId:"pay-1",
     period:"2026-01", amount:123.45, actorUid:"manager-1" };
   assert.throws(() => writePayrollRecord(s, { ...baseArgs, permissions:["payroll:read"] }), { code:"permission-denied" });
-  assert.deepEqual(writePayrollRecord(s, { ...baseArgs, permissions:["payroll:write"] }),
+  assert.throws(() => writePayrollRecord(s, { ...baseArgs, permissions:["payroll:write"], authorizedEmployeeIds:["emp-2"] }), { code:"permission-denied" });
+  assert.deepEqual(writePayrollRecord(s, { ...baseArgs, permissions:["payroll:write"], authorizedEmployeeIds:["emp-1"] }),
     { period:"2026-01", amount:123.45 });
   assert.throws(() => exportPayroll(s, { accountId:"acct-a", employeeId:"emp-1",
-    actorUid:"manager-1", permissions:["payroll:read"] }), { code:"permission-denied" });
+    actorUid:"manager-1", permissions:["payroll:read"], authorizedEmployeeIds:["emp-1"] }), { code:"permission-denied" });
+  assert.throws(() => exportPayroll(s, { accountId:"acct-a", employeeId:"emp-1",
+    actorUid:"manager-1", permissions:["payroll:export"], authorizedEmployeeIds:["emp-2"] }), { code:"permission-denied" });
   assert.deepEqual(exportPayroll(s, { accountId:"acct-a", employeeId:"emp-1",
-    actorUid:"manager-1", permissions:["payroll:export"] }), [{ period:"2026-01", amount:123.45 }]);
+    actorUid:"manager-1", permissions:["payroll:export"], authorizedEmployeeIds:["emp-1"] }), [{ period:"2026-01", amount:123.45 }]);
   assert.deepEqual(s.audit.map(x => x.action), ["payroll-write", "payroll-export"]);
   assert.ok(s.audit.every(x => x.actorUid === "manager-1"));
 });
@@ -159,4 +162,51 @@ test("absence reporting has no health-category filters, groupings, or derived ca
   for (const forbidden of ["malattia", "ferie", "synthetic-diagnosis", "synthetic-medical-note", "kind", "reason", "count"]) {
     assert.equal(serialized.includes(forbidden), false);
   }
+});
+
+
+test("account and Employee isolation deny cross-tenant and cross-Employee manager access", () => {
+  const s = placedFixture();
+  s.employees.push({ accountId:"acct-b", employeeId:"emp-1", status:"active" });
+  s.org.push({ accountId:"acct-b", siteId:"site-1", departmentId:"dept-1", status:"active" });
+  addPlacement(s, { accountId:"acct-b", employeeId:"emp-1", siteId:"site-1", departmentId:"dept-1", start:"2026-01-01" });
+  s.delegations.push({ accountId:"acct-a", managerUid:"manager-a", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", status:"active", permissions:["shift:read"] });
+  assert.equal(authorizeManagerShift(s, { accountId:"acct-a", managerUid:"manager-a", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read" }), true);
+  assert.throws(() => authorizeManagerShift(s, { accountId:"acct-b", managerUid:"manager-a", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read" }), { code:"permission-denied" });
+  assert.throws(() => authorizeManagerShift(s, { accountId:"acct-a", managerUid:"manager-a", employeeId:"emp-2",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", operation:"read" }), { code:"permission-denied" });
+});
+
+test("payroll authorization requires both exact permission and explicit Employee scope", () => {
+  const s = createDomainFixture();
+  s.employees.push({ accountId:"acct-a", employeeId:"emp-2", status:"active" });
+  s.payroll.push(
+    { accountId:"acct-a", employeeId:"emp-1", period:"2026-01", amount:100 },
+    { accountId:"acct-a", employeeId:"emp-2", period:"2026-01", amount:200 },
+    { accountId:"acct-b", employeeId:"emp-1", period:"2026-01", amount:300 }
+  );
+  assert.deepEqual(payrollView(s, { accountId:"acct-a", employeeId:"emp-1", permissions:["payroll:read"] }),
+    [{ period:"2026-01", amount:100 }]);
+  assert.throws(() => writePayrollRecord(s, { accountId:"acct-a", employeeId:"emp-2",
+    recordId:"pay-2", period:"2026-02", amount:222, actorUid:"manager-a",
+    permissions:["payroll:write"], authorizedEmployeeIds:["emp-1"] }), { code:"permission-denied" });
+  assert.throws(() => exportPayroll(s, { accountId:"acct-a", employeeId:"emp-2",
+    actorUid:"manager-a", permissions:["payroll:export"], authorizedEmployeeIds:["emp-1"] }), { code:"permission-denied" });
+  assert.deepEqual(exportPayroll(s, { accountId:"acct-a", employeeId:"emp-1",
+    actorUid:"manager-a", permissions:["payroll:export"], authorizedEmployeeIds:["emp-1"] }),
+    [{ period:"2026-01", amount:100 }]);
+  assert.equal(s.audit.at(-1).accountId, "acct-a");
+});
+
+test("payroll write prepares audit before publishing data mutation", () => {
+  const s = createDomainFixture();
+  const before = structuredClone(s.payroll);
+  s.audit = null;
+  assert.throws(() => writePayrollRecord(s, { accountId:"acct-a", employeeId:"emp-1",
+    recordId:"pay-1", period:"2026-01", amount:10, actorUid:"actor",
+    permissions:["payroll:write"], authorizedEmployeeIds:["emp-1"] }));
+  assert.deepEqual(s.payroll, before);
 });

@@ -306,3 +306,8 @@ Aggiunto `.github/workflows/employee-storage-harness.yml`, limitato a `tests/sto
 ## Estensione harness: deleghe manager, payroll write/export e report assenze — 2026-11-26
 
 Aggiunti esempi e test puramente in-memory per: delega manager legata a Employee, sede/reparto e data del placement, con permessi distinti per read/create/update/delete; separazione di `payroll:write` e `payroll:export` senza implicazioni da `payroll:read`, con eventi audit sintetici; proiezione report assenze priva di categoria, motivazione, note, raggruppamenti e conteggi per categoria. I casi sono modelli didattici e non autorizzazioni runtime: non verificano identità manager reale, persistenza, atomicità datastore, attribuzione audit trusted o assenza di ogni possibile inferenza da dati temporali. Nessun adapter DB, schema, endpoint, Rules, migrazione, wiring, dato reale o deploy modificato. Il runner CI sul nuovo SHA deve essere verificato prima di dichiarare i test superati.
+
+
+## Estensione harness: isolamento account/Employee e scope payroll — 2026-11-26
+
+Aggiunti test negativi sintetici per deleghe manager cross-account e cross-Employee, e per payroll con permission esatta ma Employee fuori dallo scope esplicito. Le funzioni payroll richiedono ora anche una lista `authorizedEmployeeIds` e preparano le nuove strutture dati/audit prima di pubblicare la mutazione in-memory. Aggiunto test che un errore nella preparazione dell'audit non lascia la scrittura payroll applicata. Questi esempi non dimostrano che lo scope o l'attore siano derivati da fonti trusted, né atomicità/durabilità datastore; non sono enforcement runtime. Nessuna modifica a schema, storage, endpoint, Rules, migrazioni, provisioning, wiring, dati reali o deploy. CI sul nuovo SHA da verificare.

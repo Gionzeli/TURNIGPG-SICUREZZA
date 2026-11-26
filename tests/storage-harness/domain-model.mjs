@@ -124,25 +124,32 @@ export function authorizeManagerShift(state, {
 }
 
 export function writePayrollRecord(state, {
-  accountId, employeeId, recordId, period, amount, actorUid, permissions = []
+  accountId, employeeId, recordId, period, amount, actorUid, permissions = [], authorizedEmployeeIds = []
 }) {
-  if (!permissions.includes("payroll:write")) fail("permission-denied");
+  if (!permissions.includes("payroll:write") || !authorizedEmployeeIds.includes(employeeId)) fail("permission-denied");
   if (![accountId, employeeId, recordId, period, actorUid].every(x => typeof x === "string" && x.length > 0) ||
       typeof amount !== "number" || !Number.isFinite(amount)) fail("invalid-payroll-record");
   const index = state.payroll.findIndex(x =>
     x.accountId === accountId && x.employeeId === employeeId && x.recordId === recordId);
+  const nextPayroll = state.payroll.slice();
   const record = { accountId, employeeId, recordId, period, amount };
-  if (index < 0) state.payroll.push(record);
-  else state.payroll[index] = record;
-  state.audit.push({ actorUid, action: "payroll-write", accountId, employeeId, recordId });
+  if (index < 0) nextPayroll.push(record);
+  else nextPayroll[index] = record;
+  const nextAudit = state.audit.concat({ actorUid, action: "payroll-write", accountId, employeeId, recordId });
+  // Prepare both replacement arrays before publishing either mutation.
+  state.payroll = nextPayroll;
+  state.audit = nextAudit;
   return { period, amount };
 }
 
-export function exportPayroll(state, { accountId, employeeId, actorUid, permissions = [] }) {
-  if (!permissions.includes("payroll:export")) fail("permission-denied");
+export function exportPayroll(state, {
+  accountId, employeeId, actorUid, permissions = [], authorizedEmployeeIds = []
+}) {
+  if (!permissions.includes("payroll:export") || !authorizedEmployeeIds.includes(employeeId)) fail("permission-denied");
   const rows = state.payroll.filter(x => x.accountId === accountId && x.employeeId === employeeId)
     .map(x => ({ period: x.period, amount: x.amount }));
-  state.audit.push({ actorUid, action: "payroll-export", accountId, employeeId, recordCount: rows.length });
+  const nextAudit = state.audit.concat({ actorUid, action: "payroll-export", accountId, employeeId, recordCount: rows.length });
+  state.audit = nextAudit;
   return rows;
 }
 
