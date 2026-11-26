@@ -474,3 +474,10 @@ La primitive Employee verifica ora anche le combinazioni ruolo/scope già previs
 ## 2026-11-27 — Hardening shape di permessi e binding personale
 
 La primitive Employee ora rifiuta permessi vuoti, composti da soli spazi o duplicati. Nel percorso personale il binding deve essere un oggetto e il suo profileId deve rispettare il formato ID canonico oltre a coincidere con Employee richiesto. Aggiunti test negativi. Nessun endpoint esposto.
+
+
+## 2026-11-27 — Approvazione ORG-01–ORG-10
+
+L'utente ha approvato esplicitamente tutte le decisioni organizzative e i default prudenziali. Registrata la decisione vincolante in `docs/dsm-organizational-schema-decision.md`: gerarchia Firestore flat account/sites/departments; lifecycle active/archived; membership effective-dated e revocabile; multi-account con selector non autorevole; scope multipli; matrice per operazione; trasferimento reparto atomico; ID server-side immutabili; audit append-only senza TTL automatico fino a policy di retention; API dati con autenticazione, revoca e autorizzazione server-side a ogni chiamata.
+
+**Ambito:** implementazione isolata e Firebase Emulator con dati sintetici. Restano esclusi dati reali, credenziali, Rules operative, migrazioni, deploy, merge e main. Il bootstrap del primo admin resta processo separato e non attivato.

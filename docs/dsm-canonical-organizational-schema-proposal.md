@@ -1,6 +1,6 @@
 # DSM canonical organizational schema — proposal for review
 
-**Status:** proposal only; not an approved production schema and not implemented.
+**Status:** schema and organizational defaults approved by the user on 2026-11-27 for isolated implementation and Emulator tests only. Not a production deployment authorization.
 **Scope:** account, site, department and membership records for isolated backend design.
 **Data:** synthetic examples only.
 **Protected surfaces:** no changes to root `firestore.rules`, Firebase operational configuration, client composition roots, `index.html`, secrets, or production data.
@@ -201,3 +201,10 @@ These checks must be repeated at the server boundary for every protected operati
 The resource resolver unit tests currently use injected in-memory synthetic records. They prove the pure resolver contract, not Firestore path correctness, production rules, or deployed access control. The backend emulator workflow is configured to run on changes under `functions/**` or by manual workflow dispatch. A docs-only commit does not trigger that workflow automatically. Browser and Firestore Rules emulator workflows are separate checks and do not substitute for backend Functions emulator tests.
 
 No production data, deployed Firebase project, or live user identity is required or permitted for this proposal review.
+
+
+## 14. Approval resolution — 2026-11-27
+
+The user explicitly approved ORG-01 through ORG-10 and the prudential defaults in the decision register. The binding implementation contract is `dsm-organizational-schema-decision.md`. This approval resolves the open design decisions for isolated code and synthetic Emulator tests, including canonical flat Firestore paths, active/archived lifecycle, effective-dated membership, account selection, multi-scope assignments, operation-specific permission boundaries, transactional department transfer, server-generated immutable IDs, append-only audit and server-side API authorization.
+
+This approval does **not** authorize production Firebase access, real-data migration/import, credentials, deployment, operational Firestore Rules changes, application production wiring, merge, or changes to `main`. The proposed bootstrap for the first administrator remains a separate controlled process and is not implemented or activated by this approval.

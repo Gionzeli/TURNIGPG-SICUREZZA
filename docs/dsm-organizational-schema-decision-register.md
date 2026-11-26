@@ -1,10 +1,10 @@
 # Registro decisioni per lo schema organizzativo DSM
 
-**Stato:** documento di revisione, non approvazione operativa.
+**Stato:** ORG-01–ORG-10 approvate dall'utente il 2026-11-27; vedere `dsm-organizational-schema-decision.md`.
 **Ambito:** confronto tra codice attuale, contratti documentali e decisioni ancora necessarie.
 **Riferimento:** branch `dsm-enterprise/core-v1`; nessuna modifica a Firebase operativo, Rules, migrazioni o deploy.
 
-Questo registro evita di confondere i comportamenti già codificati con le scelte di prodotto ancora da approvare. Le proposte di percorso in `dsm-canonical-organizational-schema-proposal.md` restano non operative fino all'approvazione dello schema owner.
+Questo registro evita di confondere i comportamenti già codificati con le scelte di prodotto ancora da approvare. I percorsi e i default del documento `dsm-organizational-schema-decision.md` sono approvati per implementazione isolata ed Emulator; non per produzione.
 
 ## 1. Fatti verificati nel codice attuale
 
@@ -75,6 +75,10 @@ Il repository non documenta ancora la UX e la policy per l'utente con membership
 6. Si inventariano e implementano le API dati una per una, con controlli server-side per ogni operazione.
 7. Si eseguono i test backend Functions/Auth/Firestore Emulator sul commit esatto e si revisionano i risultati prima di qualunque decisione di rilascio.
 
-## 6. Non autorizzazione
+## 6. Stato dopo approvazione
 
-Questo documento non approva percorsi Firestore, campi definitivi, indici, Rules, migrazioni, accesso a dati reali, credenziali, deploy o modifiche all'app di produzione. Non creare loader o endpoint dati sulla sola base dei default proposti qui. La PR deve restare aperta e draft finché le decisioni non sono revisionate.
+ORG-01–ORG-10 sono approvate per codice isolato e test Emulator. La decisione vincolante e i dettagli sono in `dsm-organizational-schema-decision.md`. I vecchi default sono stati risolti: gerarchia flat, lifecycle attivo/archiviato, membership effective-dated, multi-account con account selector non autorevole, scope multipli, matrice per operazione, trasferimento transazionale, ID server-side, audit append-only senza TTL automatico e API protette con verifica server-side per ogni chiamata.
+
+## 7. Non autorizzazione
+
+L'approvazione non autorizza percorsi o modifiche al progetto Firebase operativo, Rules operative, migrazioni, accesso a dati reali, credenziali, deploy o modifiche all'app di produzione. I loader approvati possono essere implementati solo nel backend isolato e testati su Emulator. La PR deve restare aperta e draft finché le decisioni non sono revisionate.
