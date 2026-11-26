@@ -2,7 +2,7 @@
 
 Audit date: 2026-11-26
 Branch: `dsm-enterprise/core-v1`
-Reviewed HEAD: `add61980053585878f3e24a1a100143a9c91d386`
+Reviewed HEAD: `3e9ab83f3e568200b8d9a43894f9ff9d368d6bd2`
 
 ## Scope and method
 
@@ -28,8 +28,10 @@ Therefore:
 
 ## Race / stale authorization conclusions
 
-The inspected guards cover the resolver-response races in the adapter/coordinator and the stale pending-activation resume path. The following end-to-end scenarios remain unverified:
-1. Auth event occurs while a transition is in progress and cleanup is delayed/fails; assert resources stay inaccessible and cleanup can be retried without resuming stale identity.
+The inspected guards cover the resolver-response races in the adapter/coordinator and the stale pending-activation resume path. The browser lifecycle suite already covers two important pieces independently: an auth event during asynchronous transition cleanup cancels activation, and an auth-revision change prevents a pending stale Firebase principal from being resumed. It also separately covers cleanup failure followed by retry. The specific combined sequence — auth event during asynchronous cleanup, first cleanup attempt fails, retry completes, and the prior identity remains unusable — is **not directly asserted by one end-to-end session test**.
+
+The following end-to-end scenarios therefore remain unverified:
+1. The combined auth-event + asynchronous cleanup failure + retry sequence described above.
 2. Account-selection revision changes during resolver and during lifecycle transition; verify stale principal never activates.
 3. Membership revocation or site/department transfer between server resolution and a protected data request. No protected server data API exists to enforce the final request-time check yet.
 4. Automatic renewal integration with session, cleanup failure, disposal, and tab lifecycle.
@@ -40,6 +42,15 @@ The inspected guards cover the resolver-response races in the adapter/coordinato
 The browser renewal test file contains synthetic cases for renewal coalescing, identity change during resolve, explicit invalidation while old resolve remains pending, identity change without explicit invalidation, resolver denial, malformed/expired/mismatched response, expiry-minus-lead timer scheduling, timer-cancel cleanup failure, partial installer failure, and dispose preventing late installation.
 
 These tests cover the standalone coordinator, not real Firebase Auth/Functions, real revocation, or the production composition root.
+
+## CI evidence on reviewed HEAD
+
+The exact reviewed HEAD `3e9ab83f3e568200b8d9a43894f9ff9d368d6bd2` passed both GitHub Actions workflows:
+
+- Browser / Playwright [run 45811655238](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45811655238): success; browser test log reports 97 passing tests and 0 failures.
+- Firestore Rules Emulator [run 45811655333](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45811655333): success; 38 passing tests, 0 failures, 0 skipped, executed against the local emulator.
+
+These are synthetic/browser-local and emulator tests. They do not establish real Firebase Auth/Functions integration, production revocation behavior, or protected DSM data API enforcement.
 
 ## Next safe step
 
