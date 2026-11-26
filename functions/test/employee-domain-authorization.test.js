@@ -123,3 +123,20 @@ test("principal shape and placement interval dates are strictly validated", () =
     }), e => e.code === "permission-denied");
   }
 });
+
+ 
+test("principal role and organizational scope combinations must match membership policy", () => {
+  const invalid = [
+    { ...selfPrincipal, role: "manager", scopeType: "department" },
+    { ...manager, scopeType: "account", scopeIds: [] },
+    { ...manager, scopeIds: [] },
+    { uid: "admin-2", accountId: "acct-1", role: "admin", scopeType: "account",
+      scopeIds: ["site-1"], permissions: ["dsm:read:account"] }
+  ];
+  for (const principal of invalid) {
+    assert.throws(() => authorizeEmployeeDomainOperation({
+      principal, permission: principal.permissions[0],
+      accessMode: "self", employeeBinding: binding, employeeId: "employee-1"
+    }), e => e.code === "permission-denied");
+  }
+});

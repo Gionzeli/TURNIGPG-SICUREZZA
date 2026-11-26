@@ -464,3 +464,8 @@ Rafforzata la primitive Employee domain authorization: il principal deve avere r
 ## 2026-11-27 — Correzione effettiva validazione principal e date Employee
 
 Risolta una discrepanza individuata nella verifica del commit precedente: la validazione strutturale del principal non era collegata al guard effettivo e il pattern data conteneva un escape errato. Ora il guard invoca validPrincipal in entrambi i percorsi e i placement delegati verificano date calendario reali e intervalli validi. I test negativi aggiunti coprono questi casi. La verifica rimane una primitive pura e non sostituisce loader canonici/lifecycle.
+
+ 
+## 2026-11-27 — Coerenza ruolo/scope nel principal Employee
+
+La primitive Employee verifica ora anche le combinazioni ruolo/scope già previste dalla policy membership esistente: admin account senza scope ID, manager site-scoped con almeno un ID, member site/department-scoped con almeno un ID. Aggiunti casi negativi per combinazioni incoerenti. Nessun nuovo privilegio o endpoint è stato introdotto.

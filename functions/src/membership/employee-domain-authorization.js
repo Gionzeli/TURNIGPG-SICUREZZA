@@ -20,6 +20,9 @@ function validPrincipal(principal) {
     ROLES.has(principal.role) && SCOPE_TYPES.has(principal.scopeType) &&
     Array.isArray(principal.scopeIds) && principal.scopeIds.every(validId) &&
     new Set(principal.scopeIds).size === principal.scopeIds.length &&
+    ((principal.role === "admin" && principal.scopeType === "account" && principal.scopeIds.length === 0) ||
+      (principal.role === "manager" && principal.scopeType === "site" && principal.scopeIds.length > 0) ||
+      (principal.role === "member" && ["site", "department"].includes(principal.scopeType) && principal.scopeIds.length > 0)) &&
     Array.isArray(principal.permissions) &&
     principal.permissions.every(value => typeof value === "string"));
 }

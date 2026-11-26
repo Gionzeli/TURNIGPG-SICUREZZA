@@ -137,3 +137,6 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 
  
 - Corrected the Employee authorization guard to actually invoke strict principal validation; fixed the ISO date regex and enforce real calendar dates and increasing placement intervals in delegated mode. Negative tests exercise malformed principals and invalid date ranges.
+
+ 
+- Employee authorization additionally enforces the existing membership role/scope combinations (account-scoped admin with no scope IDs; site-scoped manager; site- or department-scoped member, each with non-empty unique scope IDs). This does not expand role permissions or expose new endpoints.
