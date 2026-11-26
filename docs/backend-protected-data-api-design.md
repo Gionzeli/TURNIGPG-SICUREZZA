@@ -31,14 +31,15 @@ This is a candidate minimum surface, not an implementation contract. Final field
 
 | Resource/action | Candidate permission | Mandatory server checks |
 | --- | --- | --- |
-| Read profile / shifts / absences | `dsm:read:own-scope`, `dsm:read:site`, or `dsm:read:account` | Account equality; resource site/department belongs to membership scope; member may read only explicitly assigned own-scope records |
+| Read own profile / shifts / absences | Explicit self permissions, to be approved per domain | Require a backend-owned binding from the verified UID to the canonical employee; the target record's canonical employee link must match that binding; validate account and active resource hierarchy; apply a domain-specific field allowlist. Organizational scope alone is not ownership. |
+| Read delegated team projections | Explicit site/department permissions, to be approved per domain | Require current canonical organizational scope and a domain-specific projection/field allowlist. Do not expose payroll or sensitive absence detail by default. This is delegated team access, not self-record ownership. |
 | Create/update/delete scoped records | `dsm:manage:site` or `dsm:manage:account` | Scope containment; strict DTO allowlist; expected revision; immutable ownership/account fields |
 | Manage departments | `dsm:manage:departments` | Manager scope contains target site; prevent cross-site references |
 | Manage memberships | `dsm:manage:memberships` | Admin-only; target UID differs from caller unless a separately approved break-glass flow exists; no self-promotion |
 | Read audit history | New explicit audit-read permission to be approved | Account and scope filtering; bounded pagination; no client-supplied audit actor |
 | Write audit history | Server-generated only | Actor UID, account, action, target, timestamp and request correlation derived server-side |
 
-Do not silently infer own-scope semantics from a role label. The current membership policy grants `dsm:read:own-scope` to members but does not yet define the authoritative mapping from a person to individual DSM records. That mapping is a prerequisite, not a client-side convention.
+Do not silently infer individual ownership from a role label or organizational scope. The current membership policy grants `dsm:read:own-scope` to members, but the current authorizer evaluates it against site/department scope IDs; it does not resolve an employee binding. Treat this permission as organizational containment only, not as permission to read an individual employee's own records. No self-record endpoint may be exposed until the authoritative UID-to-employee binding and each domain's owner relationship are approved and enforced. Delegated team access must use separate, explicitly approved domain permissions and minimized projections.
 
 ## 4. Data and API constraints
 
