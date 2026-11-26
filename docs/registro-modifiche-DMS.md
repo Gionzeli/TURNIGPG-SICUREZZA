@@ -316,3 +316,10 @@ Aggiunti test negativi sintetici per deleghe manager cross-account e cross-Emplo
 ## Estensione harness: lifecycle e revoca payroll — 2026-11-26
 
 Payroll read/write/export nel modello sintetico richiede ora Employee con status esattamente active. Aggiunti test negativi per sospensione, cessazione, archiviazione e stato sconosciuto, più casi di revoca permission tramite rimozione dei grant. Il test verifica che write deny non aggiunga record. Non dimostra revoca immediata server-side, stato trusted, atomicità datastore, o protezione runtime. Nessuna modifica runtime, schema, endpoint, Rules, migrazione, provisioning, wiring, dati reali o deploy. CI sul nuovo commit da verificare.
+
+## 2026-11-26 — Harness: audit atomico su payroll read/export
+
+**Modello sintetico:** payrollView e exportPayroll preparano il record audit (attore sintetico, permission specifica, account, Employee e numero record) prima di restituire i dati. Se la preparazione dell’audit fallisce, l’operazione solleva errore e non restituisce dati payroll. Anche il record payroll-write ora include la permission specifica.
+
+
+**Test aggiunti:** audit read/export fail-closed quando l’append non è disponibile; read/export registrano actor e permission corretti. Test in-memory, non audit persistente o autorizzazione server reale. Nessun codice runtime, schema, endpoint, Rules, provisioning o deploy modificato.

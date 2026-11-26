@@ -92,11 +92,15 @@ function requireActiveEmployee(state, accountId, employeeId) {
   if (!employee || employee.status !== "active") fail("permission-denied");
   return employee;
 }
-export function payrollView(state, { accountId, employeeId, permissions = [] }) {
+export function payrollView(state, { accountId, employeeId, actorUid, permissions = [] }) {
   requireActiveEmployee(state, accountId, employeeId);
-  if (!permissions.includes("payroll:read")) fail("permission-denied");
-  return state.payroll.filter(x => x.accountId === accountId && x.employeeId === employeeId)
+  if (!permissions.includes("payroll:read") || typeof actorUid !== "string" || !actorUid) fail("permission-denied");
+  const rows = state.payroll.filter(x => x.accountId === accountId && x.employeeId === employeeId)
     .map(x => ({ period: x.period, amount: x.amount }));
+  const nextAudit = state.audit.concat({ actorUid, action: "payroll-read", permission: "payroll:read", accountId, employeeId, recordCount: rows.length });
+  // Prepare audit before returning any payroll data (fail closed if audit cannot be staged).
+  state.audit = nextAudit;
+  return rows;
 }
 
 export function managerAbsenceView(state, { accountId, employeeId }) {
@@ -142,7 +146,7 @@ export function writePayrollRecord(state, {
   const record = { accountId, employeeId, recordId, period, amount };
   if (index < 0) nextPayroll.push(record);
   else nextPayroll[index] = record;
-  const nextAudit = state.audit.concat({ actorUid, action: "payroll-write", accountId, employeeId, recordId });
+  const nextAudit = state.audit.concat({ actorUid, action: "payroll-write", permission: "payroll:write", accountId, employeeId, recordId });
   // Prepare both replacement arrays before publishing either mutation.
   state.payroll = nextPayroll;
   state.audit = nextAudit;
@@ -152,11 +156,13 @@ export function writePayrollRecord(state, {
 export function exportPayroll(state, {
   accountId, employeeId, actorUid, permissions = [], authorizedEmployeeIds = []
 }) {
-  if (!permissions.includes("payroll:export") || !authorizedEmployeeIds.includes(employeeId)) fail("permission-denied");
+  if (!permissions.includes("payroll:export") || !authorizedEmployeeIds.includes(employeeId) ||
+      typeof actorUid !== "string" || !actorUid) fail("permission-denied");
   requireActiveEmployee(state, accountId, employeeId);
   const rows = state.payroll.filter(x => x.accountId === accountId && x.employeeId === employeeId)
     .map(x => ({ period: x.period, amount: x.amount }));
-  const nextAudit = state.audit.concat({ actorUid, action: "payroll-export", accountId, employeeId, recordCount: rows.length });
+  const nextAudit = state.audit.concat({ actorUid, action: "payroll-export", permission: "payroll:export", accountId, employeeId, recordCount: rows.length });
+  // Audit must be staged before data is returned; an audit failure prevents export.
   state.audit = nextAudit;
   return rows;
 }

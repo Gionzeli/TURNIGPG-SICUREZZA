@@ -62,7 +62,7 @@ test("payroll is deny-by-default and requires the exact read permission", () => 
   const s = createDomainFixture();
   s.payroll.push({ accountId:"acct-a", employeeId:"emp-1", period:"2026-01", amount:123.45 });
   assert.throws(() => payrollView(s, { accountId:"acct-a", employeeId:"emp-1", permissions:["manager"] }), { code:"permission-denied" });
-  assert.deepEqual(payrollView(s, { accountId:"acct-a", employeeId:"emp-1", permissions:["payroll:read"] }),
+  assert.deepEqual(payrollView(s, { accountId:"acct-a", employeeId:"emp-1", actorUid:"employee-1", permissions:["payroll:read"] }),
     [{ period:"2026-01", amount:123.45 }]);
 });
 
@@ -188,7 +188,7 @@ test("payroll authorization requires both exact permission and explicit Employee
     { accountId:"acct-a", employeeId:"emp-2", period:"2026-01", amount:200 },
     { accountId:"acct-b", employeeId:"emp-1", period:"2026-01", amount:300 }
   );
-  assert.deepEqual(payrollView(s, { accountId:"acct-a", employeeId:"emp-1", permissions:["payroll:read"] }),
+  assert.deepEqual(payrollView(s, { accountId:"acct-a", employeeId:"emp-1", actorUid:"employee-1", permissions:["payroll:read"] }),
     [{ period:"2026-01", amount:100 }]);
   assert.throws(() => writePayrollRecord(s, { accountId:"acct-a", employeeId:"emp-2",
     recordId:"pay-2", period:"2026-02", amount:222, actorUid:"manager-a",
@@ -222,7 +222,7 @@ test("payroll read/write/export deny after Employee suspension or termination", 
     permissions:["payroll:export"], authorizedEmployeeIds:["emp-1"] };
   for (const status of ["suspended","terminated","archived","unknown"]) {
     s.employees[0].status=status;
-    assert.throws(() => payrollView(s,{accountId:"acct-a",employeeId:"emp-1",permissions:["payroll:read"]}),{code:"permission-denied"});
+    assert.throws(() => payrollView(s,{accountId:"acct-a",employeeId:"emp-1",actorUid:"employee-1",permissions:["payroll:read"]}),{code:"permission-denied"});
     assert.throws(() => writePayrollRecord(s,writeArgs),{code:"permission-denied"});
     assert.throws(() => exportPayroll(s,exportArgs),{code:"permission-denied"});
     assert.equal(s.payroll.length,1);
@@ -236,6 +236,31 @@ test("payroll revocation is effective when the operation permission is removed",
   const exportArgs={accountId:"acct-a",employeeId:"emp-1",actorUid:"mgr",authorizedEmployeeIds:["emp-1"]};
   assert.throws(()=>writePayrollRecord(s,{...writeArgs,permissions:[]}),{code:"permission-denied"});
   assert.throws(()=>exportPayroll(s,{...exportArgs,permissions:[]}),{code:"permission-denied"});
-  assert.throws(()=>payrollView(s,{accountId:"acct-a",employeeId:"emp-1",permissions:[]}),{code:"permission-denied"});
+  assert.throws(()=>payrollView(s,{accountId:"acct-a",employeeId:"emp-1",actorUid:"employee-1",permissions:[]}),{code:"permission-denied"});
   assert.equal(s.payroll.length,1);
+});
+
+
+test("payroll read and export fail closed when audit cannot be appended", () => {
+  const s = createDomainFixture();
+  s.payroll.push({ accountId:"acct-a", employeeId:"emp-1", recordId:"pay-1", period:"2026-01", amount:100 });
+  const readArgs = { accountId:"acct-a", employeeId:"emp-1", actorUid:"employee-1", permissions:["payroll:read"] };
+  const exportArgs = { accountId:"acct-a", employeeId:"emp-1", actorUid:"manager-1",
+    permissions:["payroll:export"], authorizedEmployeeIds:["emp-1"] };
+  s.audit = null;
+  assert.throws(() => payrollView(s, readArgs));
+  assert.throws(() => exportPayroll(s, exportArgs));
+});
+
+test("payroll read/export audit entries include actor and operation permission", () => {
+  const s = createDomainFixture();
+  s.payroll.push({ accountId:"acct-a", employeeId:"emp-1", recordId:"pay-1", period:"2026-01", amount:100 });
+  assert.deepEqual(payrollView(s, { accountId:"acct-a", employeeId:"emp-1", actorUid:"employee-1", permissions:["payroll:read"] }),
+    [{ period:"2026-01", amount:100 }]);
+  assert.deepEqual(exportPayroll(s, { accountId:"acct-a", employeeId:"emp-1", actorUid:"manager-1",
+    permissions:["payroll:export"], authorizedEmployeeIds:["emp-1"] }), [{ period:"2026-01", amount:100 }]);
+  assert.deepEqual(s.audit.map(x => [x.action, x.permission, x.actorUid]), [
+    ["payroll-read", "payroll:read", "employee-1"],
+    ["payroll-export", "payroll:export", "manager-1"]
+  ]);
 });

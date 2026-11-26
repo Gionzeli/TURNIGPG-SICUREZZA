@@ -37,3 +37,7 @@ node --test tests/storage-harness/*.test.mjs
 It installs no project dependencies and does not start Firebase emulators or contact a datastore. A green workflow validates only these in-memory reference-model tests; it is not evidence for Firestore/PostgreSQL guarantees or application authorization.
 
 Payroll examples now also require a synthetic Employee record to be explicitly active for read/write/export. Suspension, termination, archival, and unknown status are denied in the model; removing an operation permission simulates revocation. This is not server-enforced lifecycle or revocation.
+
+### Payroll audit preparation
+
+The synthetic payroll read and export examples now stage an audit entry (actor, exact permission, account, Employee, record count) before returning data. If the audit append cannot be staged, the operation throws and no payroll result is returned. The actor value remains a synthetic test input, not a trusted identity. This tests model fail-closed behavior only; it is not durable or server-side audit.
