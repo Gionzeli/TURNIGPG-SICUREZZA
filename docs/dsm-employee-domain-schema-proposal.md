@@ -179,3 +179,29 @@ Questo documento non autorizza alcuna lettura, importazione o migrazione di dati
 ## 10. Non autorizzazione esplicita
 
 Questa decisione approva soltanto la separazione concettuale Employee/payroll (EMP-01) e la semantica compatibile di `profileId` (EMP-02). Non approva percorsi Firestore, schema fisico definitivo, cardinalità, placement, lifecycle, provisioning, migrazioni, Rules, endpoint, UI, accesso a dati reali, credenziali o deploy. Non modifica il runtime e non rende attivo il binding A. PR #1 deve restare Draft fino alle decisioni e verifiche separate.
+
+
+## 11. Audit tecnico dei servizi esistenti — 2026-11-26
+
+Verifica documentale dei file sul commit `20881c3aca2f8d64fffb8336f3fc526860cf9af7`:
+
+| Area | Evidenza nel codice attuale | Implicazione |
+|---|---|---|
+| Profilo | `ProfileService` persiste `params` retributivi e `profile` con CCNL/sezione/livello/ruolo/decorrenza; nessun Employee ID o owner autorevole. | La separazione concettuale Employee/payroll è necessaria; il profilo locale attuale non può fungere da fonte canonica. |
+| Turni | `ShiftService` accetta data, tipo, post/nota, orari, flag e ore; non accetta un employeeId. | Ownership individuale e collegamento storico non sono implementati. Non aggiungere ID client come prova di proprietà. |
+| Assenze | `AbsenceService` accetta `kind` (incluso `malattia`) e intervallo date; nessun employeeId o DTO manager distinto. | La categoria sensibile è presente nel dominio locale; qualsiasi futura API manager deve applicare minimizzazione e permessi espliciti. |
+| Binding | `resolveOwnEmployeeBinding` usa loader iniettati e verifica il profilo attivo; nessun adapter Firestore o endpoint. | Il modulo è una policy isolata, non un flusso operativo. |
+| Risorse organizzative | `resource-resolver.js` verifica identità/account/relazioni parentali ma il contratto loader non richiede `status: active`. | ORG lifecycle resta un prerequisito prima di API protette. |
+
+### Raccomandazioni non approvate per EMP-03…EMP-10
+
+- **EMP-03 / LINK-01/02:** partire con cardinalità 1:1 attiva per account; rifiutare duplicati e conflitti, senza scegliere automaticamente un binding. Riesaminare solo con un caso d'uso concreto per account recovery o identità multiple.
+- **EMP-04:** consentire un solo placement corrente per Employee; conservare gli intervalli precedenti in modo versionato/append-only. Nessuna sovrapposizione implicita.
+- **EMP-05:** ogni shift deve avere ownership canonica Employee lato server; self-service solo sul proprio Employee. Manager con permission dedicata e scope verificato alla data pertinente, non dal solo ruolo.
+- **EMP-06:** DTO manager senza categoria `malattia` e senza note/documenti sanitari; distinguere “assenza pianificabile” dai dettagli sensibili. Accesso eccezionale con permission separata e audit.
+- **EMP-07:** payroll separato e negato per default; permission esplicite per lettura, modifica ed export, senza grant implicito dal ruolo admin/manager.
+- **EMP-08:** nessuna tassonomia definitiva proposta in assenza di decisione ORG lifecycle; qualunque stato mancante, sconosciuto o non attivo deve negare accesso. Cessazione/revoca non cancella l'ownership storica.
+- **EMP-09:** provisioning manuale amministrativo con verifica della persona fuori banda, approvazione tracciata, reason code, revisione/concorrenza e revoca; mai auto-match per email/nome o import client.
+- **EMP-10:** mantenere il dominio storage-agnostic finché il responsabile schema non approva tecnologia e percorsi; non inferire path Firestore da esempi o percorsi membership esistenti.
+
+Questi punti sono raccomandazioni per decisione, non approvazioni dell'utente e non autorizzano implementazione. In particolare, nessun loader, endpoint, Rules, migrazione o modifica runtime è stato creato.

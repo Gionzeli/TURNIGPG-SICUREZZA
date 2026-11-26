@@ -121,3 +121,29 @@ EMP-01…EMP-10 coprono separazione Employee/payroll, compatibilità `profileId`
 - Non sono autorizzati loader concreti, endpoint, Rules, migrazioni, accesso a dati reali o deploy. Nessuna modifica runtime effettuata.
 
 **HEAD di partenza:** `82ac016947c19abf68378cb3cd92d04adc0a51be`. PR #1 verificata aperta, Draft, non merged, base `main`. CI sul nuovo commit documentale da verificare separatamente.
+
+
+## 2026-11-26 — Audit tecnico EMP-03…EMP-10 (solo raccomandazioni)
+
+**HEAD esaminato:** `20881c3aca2f8d64fffb8336f3fc526860cf9af7`.
+
+Verificati i contratti di `ProfileService`, `ShiftService`, `AbsenceService`, `employee-binding.js` e `resource-resolver.js`. Evidenze:
+- il profilo locale mescola parametri retributivi e campi contrattuali, senza employeeId/owner canonico;
+- turni e assenze non hanno riferimenti Employee;
+- le assenze includono `malattia`, quindi i futuri DTO manager richiedono minimizzazione esplicita;
+- il binding richiede loader iniettati ma non ha loader Firestore né endpoint;
+- il resolver organizzativo non impone ancora `status: active` su account/sede/reparto.
+
+Raccomandazioni proposte, **non approvate**:
+- EMP-03: cardinalità attiva 1:1 UID↔Employee per account, deny su duplicati/conflitti;
+- EMP-04: un placement corrente, storico versionato/append-only;
+- EMP-05: ownership shift canonica lato server e permission manager dedicata;
+- EMP-06: DTO manager senza categoria `malattia` o dettagli sanitari per default;
+- EMP-07: payroll negato per default e permessi separati per read/write/export;
+- EMP-08: lifecycle da allineare a ORG; stato mancante/sconosciuto/non attivo = deny;
+- EMP-09: provisioning manuale verificato fuori banda, approvato e auditato;
+- EMP-10: nessun path/tecnologia scelti prima dell'approvazione schema.
+
+Nessuna implementazione runtime o migrazione effettuata. Nessuna delle raccomandazioni EMP-03…EMP-10 è considerata approvata.
+
+**CI sul commit `20881c3aca2f8d64fffb8336f3fc526860cf9af7`:** `firestore-rules-emulator` = success; `indexeddb-browser-tests` = in_progress al momento del controllo. Non sono presenti risultati Functions su questo commit documentale.

@@ -1,6 +1,6 @@
 # DSM employee identity linkage — decision brief
 
-**Status:** architecture decision required; proposal only, not approved or implemented.
+**Status:** model A approved as an isolated policy; EMP-01/EMP-02 approved on 2026-11-26. Backend storage, loaders, endpoints and application wiring remain unimplemented and unapproved.
 **Scope:** associate a verified Firebase identity with a DSM employee/profile record without trusting browser-owned identifiers.
 **Evidence branch:** `dsm-enterprise/core-v1`, reviewed at commit `6620b01e2749a66b0cc349c5d1d4a7444254e5fe`.
 **Safety boundary:** documentation and synthetic examples only. No Firebase Rules, operational configuration, client composition root, production data, migration, credentials or deployment changes.
@@ -150,3 +150,12 @@ This brief does not approve a Firestore path or schema, does not implement bindi
 **Test aggiunti:** binding valido; UID/account discordanti; binding assente/revocato/malformato/revisione invalida; profilo assente/inattivo/cross-account; ruolo/permesso non ammesso; errore loader; assenza di lookup del profilo dopo binding non valido; impossibilità di selezionare un profilo tramite input del chiamante.
 
 Questa decisione sostituisce lo stato “candidate models — not selected” della sezione 3 e l'indicazione “do not implement until approved” della sezione 7 limitatamente al modulo puro e ai test descritti. Tutti i limiti e le non-autorizzazioni qui sopra restano validi.
+
+
+## 9. Decision update — model A and Employee identifier (2026-11-26)
+
+The user approved model A and the limited domain decisions EMP-01/EMP-02:
+- Employee is a minimal canonical work-identity entity separate from employment terms and payroll data.
+- The existing logical `profileId` in the isolated binding contract identifies the canonical Employee; in the domain it is `employeeId`. A future trusted loader must map this explicitly. The policy module contract is not renamed at this stage.
+
+This does not approve the candidate Firestore path shown in section 3, cardinalities LINK-01/02, provisioning, reassignment, lifecycle, manager permissions, payroll access, canonical storage technology, Rules, endpoints, migration or production wiring. The earlier candidate options and required test matrix remain design material, not implementation evidence. The PR remains Draft.
