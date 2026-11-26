@@ -34,7 +34,8 @@
 **Commit / verifica**
 
 - Commit precedente: `b7f6c8ecc7999f2b19566154a84b789eef7b5a80`.
-- Commit della correzione: da registrare dopo la creazione e verifica GitHub.
+- Commit della correzione isolata: `19a3ab41ba9aa4551c33655577307934fe1e49b3` (verificato su branch e PR).
+- Stato CI al controllo: tre check GitHub Actions avviati e ancora `in_progress`; nessun esito positivo/negativo dichiarato.
 - Deploy: non eseguito.
 
 ## Registro audit aperto
