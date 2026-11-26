@@ -514,3 +514,5 @@ La prima esecuzione backend dopo l'introduzione dei campi effective-dated ha evi
 Aggiunto servizio interno per creare site e department con ID Firestore auto-generati server-side, parent validation e audit atomico. Aggiunti archiviazione site/department riservata ad admin con permessi dedicati: blocca dipartimenti attivi, placement Employee correnti e membership/scope ancora attivi. Nessun endpoint callable esposto; il chiamante deve derivare actorUid da token revocation-checked.
 
 - Aggiunto test Emulator per ID server-generated, creazione site/department, blocco archiviazione con dipartimenti/placement/member/manager attivi e audit delle quattro operazioni.
+
+- Archiviazione reparto rafforzata: verifica anche il parent site canonico attivo nella stessa transazione; una relazione parent mancante/archiviata non consente l'archiviazione.

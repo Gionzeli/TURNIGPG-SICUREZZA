@@ -116,6 +116,11 @@ export async function archiveDepartment({ db, accountId, actorUid, departmentId,
       fail("failed-precondition", "Active canonical account and department required.");
     }
     const department = departmentSnap.data();
+    if (!validId(department.siteId)) fail("failed-precondition", "Department has no canonical parent site.");
+    const parentSiteSnap = await tx.get(db.doc(`accounts/${accountId}/sites/${department.siteId}`));
+    if (!validResource(parentSiteSnap, accountId, "siteId", department.siteId)) {
+      fail("failed-precondition", "Department parent site must be active and canonical.");
+    }
     if (auditSnap.exists) fail("already-exists", "Audit ID collision.");
     const principal = await actorPrincipal(db, tx, accountId, actorUid, timestamp);
     if (principal.role !== "admin" || !principal.permissions.includes("dsm:archive:department")) {
