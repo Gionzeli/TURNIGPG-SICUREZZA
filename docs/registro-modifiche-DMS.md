@@ -500,3 +500,5 @@ Il validatore membership ora richiede validFrom Timestamp/Date, validUntil Times
 La prima esecuzione backend dopo l'introduzione dei campi effective-dated ha evidenziato fixture storiche prive di `validFrom`/`validUntil`. Il validatore ha correttamente negato tali membership. Aggiornate le fixture sintetiche dei test unitari ed Emulator con timestamp espliciti; nessun rilassamento della policy runtime.
 
 - Correzione fixture unit nomination: anche gli helper compatti ora forniscono `validFrom` e `validUntil`; la policy effettiva non è stata allentata.
+
+- Il servizio di trasferimento ora include un authorizer transazionale predefinito: ricarica la membership effective-dated e verifica permesso, ruolo e scope su entrambe le sedi. Il test Emulator usa la policy canonica e verifica il diniego a manager non assegnato alla destinazione.

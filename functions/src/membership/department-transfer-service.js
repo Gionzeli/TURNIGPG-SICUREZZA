@@ -1,10 +1,30 @@
+import { validateCanonicalMembership } from "./membership-policy.js";
+
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
 const validId = value => typeof value === "string" && ID.test(value);
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
 
+/** Transaction-aware authorization from the canonical, effective membership. */
+async function authorizeFromCanonicalMembership(db, tx, args, nowMs) {
+  const ref = db.doc(`accounts/${args.accountId}/members/${args.actorUid}`);
+  const snapshot = await tx.get(ref);
+  const principal = validateCanonicalMembership(
+    snapshot.exists ? snapshot.data() : null, args.actorUid, args.accountId, nowMs
+  );
+  if (!principal || !principal.permissions.includes("dsm:transfer:departments")) {
+    fail("permission-denied", "Active membership with department-transfer permission required.");
+  }
+  if (principal.role === "admin" && principal.scopeType === "account" && principal.scopeIds.length === 0) return;
+  if (principal.role === "manager" && principal.scopeType === "site" &&
+      principal.scopeIds.includes(args.sourceSiteId) &&
+      principal.scopeIds.includes(args.destinationSiteId)) return;
+  fail("permission-denied", "Actor must be scoped to both source and destination sites.");
+}
+
 /**
- * Internal-only department transfer. Actor authorization must re-read the
- * verified membership inside this transaction and validate both site scopes.
+ * Internal-only department transfer. actorUid must be derived from a
+ * revocation-checked Firebase ID token by the trusted caller. The default
+ * authorizer reloads effective membership inside the same transaction.
  * Audit IDs are generated server-side and the write is atomic with the move.
  */
 export async function transferDepartment({
@@ -15,7 +35,9 @@ export async function transferDepartment({
       sourceSiteId === destinationSiteId ||
       !Number.isSafeInteger(expectedVersion) || expectedVersion < 1 ||
       typeof reasonCode !== "string" || !/^[a-z0-9_-]{1,64}$/.test(reasonCode) ||
-      typeof authorizeActor !== "function") {
+      (authorizeActor !== undefined && typeof authorizeActor !== "function") ||
+      !db || typeof db.doc !== "function" || typeof db.collection !== "function" ||
+      typeof db.runTransaction !== "function") {
     fail("invalid-argument", "Invalid department transfer request.");
   }
   const accountRef = db.doc(`accounts/${accountId}`);
@@ -49,10 +71,12 @@ export async function transferDepartment({
       fail("failed-precondition", "Active source and destination sites in the same account are required.");
     }
     if (auditSnap.exists) fail("already-exists", "Audit event collision.");
-    await authorizeActor(tx, {
+    const authorizationArgs = {
       accountId, actorUid, permission: "dsm:transfer:departments",
       sourceSiteId, destinationSiteId, departmentId
-    });
+    };
+    if (authorizeActor) await authorizeActor(tx, authorizationArgs);
+    else await authorizeFromCanonicalMembership(db, tx, authorizationArgs, timestamp);
     const nextVersion = department.version + 1;
     if (!Number.isSafeInteger(nextVersion)) fail("failed-precondition", "Department version exhausted.");
     tx.update(departmentRef, { siteId: destinationSiteId, version: nextVersion, updatedAt: timestamp });

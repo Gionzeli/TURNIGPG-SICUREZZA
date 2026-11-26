@@ -18,15 +18,11 @@ test("Firestore Emulator: canonical organization lifecycle and department transf
   const department = db.doc(`accounts/${accountId}/departments/${departmentId}`);
   const audit = db.collection(`accounts/${accountId}/organizationAudit`);
   const loaders = createOrganizationFirestoreLoaders(db);
-  const authorizeActor = async (_tx, args) => {
-    assert.equal(args.actorUid, "synthetic-admin");
-    assert.equal(args.permission, "dsm:transfer:departments");
-    assert.ok([sourceSiteId, destinationSiteId, thirdSiteId].includes(args.sourceSiteId));
-    assert.ok([sourceSiteId, destinationSiteId, thirdSiteId].includes(args.destinationSiteId));
-  };
+  const member = db.doc(`accounts/${accountId}/members/synthetic-admin`);
   try {
     await Promise.all([
       account.set({ accountId, status: "active", schemaVersion: 1, version: 1 }),
+      member.set({ uid: "synthetic-admin", accountId, status: "active", validFrom: new Date(0), validUntil: null, role: "admin", scopeType: "account", scopeIds: [] }),
       source.set({ accountId, siteId: sourceSiteId, status: "active", version: 1 }),
       destination.set({ accountId, siteId: destinationSiteId, status: "active", version: 1 }),
       thirdSite.set({ accountId, siteId: thirdSiteId, status: "active", version: 1 }),
@@ -37,7 +33,7 @@ test("Firestore Emulator: canonical organization lifecycle and department transf
     const moved = await transferDepartment({
       db, accountId, departmentId, sourceSiteId, destinationSiteId,
       expectedVersion: 1, actorUid: "synthetic-admin", reasonCode: "org-transfer",
-      now: () => 123456789, authorizeActor
+      now: () => 123456789
     });
     assert.equal(moved.version, 2);
     assert.equal((await loaders.loadDepartment(accountId, sourceSiteId, departmentId)), null);
@@ -45,6 +41,13 @@ test("Firestore Emulator: canonical organization lifecycle and department transf
     const event = await audit.doc(moved.auditEventId).get();
     assert.equal(event.data().action, "department.transferred");
     assert.equal(event.data().previousVersion, 1);
+    await member.update({ role: "manager", scopeType: "site", scopeIds: [sourceSiteId] });
+    await assert.rejects(transferDepartment({
+      db, accountId, departmentId, sourceSiteId: destinationSiteId,
+      destinationSiteId: sourceSiteId, expectedVersion: 2, actorUid: "synthetic-admin",
+      reasonCode: "manager-out-of-scope", now: () => 123456790
+    }), error => error.code === "permission-denied");
+    await member.update({ role: "admin", scopeType: "account", scopeIds: [] });
     await assert.rejects(transferDepartment({
       db, accountId, departmentId, sourceSiteId: destinationSiteId,
       destinationSiteId: sourceSiteId, expectedVersion: 1, actorUid: "synthetic-admin",
@@ -54,12 +57,12 @@ test("Firestore Emulator: canonical organization lifecycle and department transf
       transferDepartment({
         db, accountId, departmentId, sourceSiteId: destinationSiteId,
         destinationSiteId: sourceSiteId, expectedVersion: 2, actorUid: "synthetic-admin",
-        reasonCode: "race-transfer-a", now: () => 123456791, authorizeActor
+        reasonCode: "race-transfer-a", now: () => 123456791
       }),
       transferDepartment({
         db, accountId, departmentId, sourceSiteId: destinationSiteId,
         destinationSiteId: thirdSiteId, expectedVersion: 2, actorUid: "synthetic-admin",
-        reasonCode: "race-transfer-b", now: () => 123456792, authorizeActor
+        reasonCode: "race-transfer-b", now: () => 123456792
       })
     ]);
     assert.equal(competing.filter(result => result.status === "fulfilled").length, 1);
@@ -73,12 +76,12 @@ test("Firestore Emulator: canonical organization lifecycle and department transf
     await assert.rejects(transferDepartment({
       db, accountId, departmentId, sourceSiteId: current.siteId,
       destinationSiteId: unusedSiteId, expectedVersion: 3, actorUid: "synthetic-admin",
-      reasonCode: "archived-destination", now: () => 123456793, authorizeActor
+      reasonCode: "archived-destination", now: () => 123456793
     }), error => error.code === "failed-precondition");
   } finally {
     const events = await audit.get();
     await Promise.all(events.docs.map(doc => doc.ref.delete()));
-    await Promise.all([account.delete(), source.delete(), destination.delete(), thirdSite.delete(), department.delete()]);
+    await Promise.all([account.delete(), source.delete(), destination.delete(), thirdSite.delete(), department.delete(), member.delete()]);
     await deleteApp(app);
   }
 });

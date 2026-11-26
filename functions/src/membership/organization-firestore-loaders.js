@@ -45,8 +45,8 @@ export function createOrganizationFirestoreLoaders(db) {
       const a = validDoc(account, "accountId", accountId, accountId);
       const s = validDoc(site, "siteId", siteId, accountId);
       const d = validDoc(department, "departmentId", departmentId, accountId);
-      return a?.status === "active" && s?.status === "active" &&
-        d?.status === "active" && d.siteId === siteId ? d : null;
+      return a?.status === "active" && Number.isSafeInteger(a.schemaVersion) && a.schemaVersion > 0 &&
+        s?.status === "active" && d?.status === "active" && d.siteId === siteId ? d : null;
     },
     async loadActiveOrg(tx, accountId, siteId, departmentId) {
       if (![accountId, siteId, departmentId].every(validId)) return null;
