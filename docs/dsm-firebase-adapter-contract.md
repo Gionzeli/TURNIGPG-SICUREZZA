@@ -11,7 +11,7 @@ Definire come una futura integrazione DSM possa ricevere un'identità autenticat
 
 - L'evento turni-firebase-session prodotto dall'interfaccia UI è un segnale UI e non costituisce prova di autenticazione o autorizzazione.
 - UID, admin, member, request, email, date di validità o stato copiati da payload UI non devono essere accettati come credenziali.
-- L'adapter isolato attuale ascolta onAuthStateChanged: gestisce identità, sign-out e cambi utente, ma non osserva esplicitamente ogni refresh del token (onIdTokenChanged non è collegato). getPrincipal() forza il refresh del token quando viene invocato; non esiste un rinnovo periodico o push automatico della membership.
+- L'adapter isolato attuale richiede `getAccountSelectionSnapshot()`, che restituisce `{ accountId, revision }` con revisione intera monotona; confronta entrambi i campi prima e dopo la risoluzione per rilevare anche una sequenza A→B→A. La sorgente della revisione deve incrementarla a ogni modifica della selezione. Ascolta onAuthStateChanged: gestisce identità, sign-out e cambi utente, ma non osserva esplicitamente ogni refresh del token (onIdTokenChanged non è collegato). getPrincipal() forza il refresh del token quando viene invocato; non esiste un rinnovo periodico o push automatico della membership.
 - Autenticazione (identità) e autorizzazione (accesso DSM) sono distinte: email verificata da sola non conferisce accesso.
 - La membership/ruolo deve derivare da una fonte autorizzativa affidabile, con regole di backend e Firestore Security Rules verificate; campi client modificabili non sono autorità.
 - Non passare token, password, OTP, PIN, claim sensibili o dati personali in IndexedDB, audit, log o BroadcastChannel.
@@ -19,7 +19,7 @@ Definire come una futura integrazione DSM possa ricevere un'identità autenticat
 
 ## Percorso Firebase-to-DSM isolato attualmente implementato
 
-1. `createFirebaseAuthAdapter()` osserva direttamente il Firebase Auth SDK; non considera attendibile il CustomEvent emesso dalla UI legacy.
+1. `createFirebaseAuthAdapter()` osserva direttamente il Firebase Auth SDK e riceve uno snapshot account con revisione monotona; non considera attendibile il CustomEvent emesso dalla UI legacy.
 2. Per un utente presente, l'adapter richiede un token aggiornato e chiama il resolver server con verifica del token revocato (`checkRevoked=true` nel verificatore iniettato). Verifica UID, email verificata, membership attiva e scadenza.
 3. L'adapter restituisce un principal minimizzato e congelato con origine Firebase e autorizzazione server; token e claim UI non vengono esposti al contesto.
 4. `createDSMCoreSession()` sottoscrive gli eventi dell'adapter, serializza l'invalidazione e usa una revisione auth per impedire la ripresa di principal obsoleti.

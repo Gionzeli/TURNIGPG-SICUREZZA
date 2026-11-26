@@ -35,13 +35,13 @@ export function createFirebaseAuthAdapter({
   auth,
   onAuthStateChanged,
   resolveAuthorization,
-  getAccountId,
+  getAccountSelectionSnapshot,
   now = () => Date.now()
 } = {}) {
   if (!auth || typeof auth !== "object" ||
       typeof onAuthStateChanged !== "function" ||
       typeof resolveAuthorization !== "function" ||
-      typeof getAccountId !== "function" ||
+      typeof getAccountSelectionSnapshot !== "function" ||
       typeof now !== "function") {
     throw new TypeError("Configurazione adapter Firebase non valida.");
   }
@@ -116,14 +116,17 @@ export function createFirebaseAuthAdapter({
     }
 
     let authorization;
-    let selectedAccountId;
+    let selectedAccount;
     try {
-      selectedAccountId = await getAccountId();
-      if (typeof selectedAccountId !== "string" || !ACCOUNT_ID_PATTERN.test(selectedAccountId)) {
-        throw deny("Selettore account non valido.");
+      selectedAccount = await getAccountSelectionSnapshot();
+      if (!selectedAccount || typeof selectedAccount !== "object" ||
+          typeof selectedAccount.accountId !== "string" ||
+          !ACCOUNT_ID_PATTERN.test(selectedAccount.accountId) ||
+          !Number.isSafeInteger(selectedAccount.revision) || selectedAccount.revision < 0) {
+        throw deny("Snapshot selezione account non valido.");
       }
       authorization = await resolveAuthorization({
-        accountId: selectedAccountId,
+        accountId: selectedAccount.accountId,
         uid: user.uid,
         idToken
       });
@@ -133,20 +136,22 @@ export function createFirebaseAuthAdapter({
 
     // A newer auth event or account selection wins over every late response.
     if (disposed || generation !== capturedGeneration || currentUser !== user) return null;
-    let currentAccountId;
+    let currentAccountSelection;
     try {
-      currentAccountId = await getAccountId();
+      currentAccountSelection = await getAccountSelectionSnapshot();
     } catch {
       throw deny("Selettore account non disponibile dopo l'autorizzazione.");
     }
-    if (disposed || generation !== capturedGeneration || currentUser !== user ||
-        currentAccountId !== selectedAccountId) return null;
+    if (disposed || generation !== capturedGeneration || currentUser !== user) return null;
+    if (!currentAccountSelection ||
+        currentAccountSelection.accountId !== selectedAccount.accountId ||
+        currentAccountSelection.revision !== selectedAccount.revision) return null;
 
     const principal = authorization?.principal;
     if (!authorization || authorization.authorizationSource !== "server" ||
         !principal || principal.uid !== user.uid ||
         (principal.status !== undefined && principal.status !== "active") ||
-        principal.accountId !== selectedAccountId ||
+        principal.accountId !== selectedAccount.accountId ||
         typeof principal.accountId !== "string" ||
         !ACCOUNT_ID_PATTERN.test(principal.accountId) ||
         typeof principal.role !== "string" ||

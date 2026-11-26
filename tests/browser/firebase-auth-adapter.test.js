@@ -71,7 +71,7 @@ export async function runFirebaseAuthAdapterTests() {
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth,
       onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: async () => { throw new Error("must not be called"); }
     });
     assert.equal(await adapter.getPrincipal(), null);
@@ -84,7 +84,7 @@ export async function runFirebaseAuthAdapterTests() {
     let resolverCalls = 0;
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth, onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: async () => { resolverCalls += 1; return null; }
     });
     await rejected(adapter.getPrincipal());
@@ -97,7 +97,7 @@ export async function runFirebaseAuthAdapterTests() {
     const fake = fakeAuth(user);
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth, onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: async ({ uid }) => activeAuthorization(uid, { status: "pending" })
     });
     await rejected(adapter.getPrincipal());
@@ -110,7 +110,7 @@ export async function runFirebaseAuthAdapterTests() {
     let received;
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth, onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: async input => {
         received = input;
         return activeAuthorization(input.uid);
@@ -136,7 +136,7 @@ export async function runFirebaseAuthAdapterTests() {
     const fake = fakeAuth(user);
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth, onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: async ({ uid }) => activeAuthorization(uid, { status: "inactive" })
     });
     await rejected(adapter.getPrincipal());
@@ -145,7 +145,7 @@ export async function runFirebaseAuthAdapterTests() {
     const second = fakeAuth(user);
     const mismatched = createFirebaseAuthAdapter({
       auth: second.auth, onAuthStateChanged: second.onAuthStateChanged,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: async () => activeAuthorization("different-synthetic-user")
     });
     await rejected(mismatched.getPrincipal());
@@ -158,7 +158,7 @@ export async function runFirebaseAuthAdapterTests() {
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth, onAuthStateChanged: fake.onAuthStateChanged,
       now: () => 1_900_000_000_000,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: async ({ uid }) => activeAuthorization(uid, { expiresAt: 1_899_999_999_999 })
     });
     await rejected(adapter.getPrincipal());
@@ -173,7 +173,7 @@ export async function runFirebaseAuthAdapterTests() {
     const seenTokens = [];
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth, onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: async ({ uid, idToken }) => {
         seenTokens.push(idToken);
         return activeAuthorization(uid);
@@ -193,7 +193,7 @@ export async function runFirebaseAuthAdapterTests() {
     let release;
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth, onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: ({ uid }) => uid === firstUser.uid
         ? new Promise(resolve => { release = () => resolve(activeAuthorization(uid)); })
         : Promise.resolve(activeAuthorization(uid))
@@ -211,13 +211,14 @@ export async function runFirebaseAuthAdapterTests() {
     const user = syntheticUser("synthetic-account-race");
     const fake = fakeAuth(user);
     let selectedAccountId = "synthetic-account-before";
+    let selectionRevision = 1;
     let release;
     let resolverStarted;
     const started = new Promise(resolve => { resolverStarted = resolve; });
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth,
       onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountId: async () => selectedAccountId,
+      getAccountSelectionSnapshot: async () => ({ accountId: selectedAccountId, revision: selectionRevision }),
       resolveAuthorization: ({ uid, accountId }) => new Promise(resolve => {
         resolverStarted();
         release = () => resolve(activeAuthorization(uid, { accountId }));
@@ -226,6 +227,35 @@ export async function runFirebaseAuthAdapterTests() {
     const pending = adapter.getPrincipal();
     await started;
     selectedAccountId = "synthetic-account-after";
+    selectionRevision += 1;
+    release();
+    assert.equal(await pending, null);
+    adapter.dispose();
+  });
+
+  await test("account selection ABA change is detected by monotonic revision", async () => {
+    const user = syntheticUser("synthetic-account-aba");
+    const fake = fakeAuth(user);
+    let selectedAccountId = "synthetic-account-A";
+    let selectionRevision = 10;
+    let release;
+    let resolverStarted;
+    const started = new Promise(resolve => { resolverStarted = resolve; });
+    const adapter = createFirebaseAuthAdapter({
+      auth: fake.auth,
+      onAuthStateChanged: fake.onAuthStateChanged,
+      getAccountSelectionSnapshot: async () => ({ accountId: selectedAccountId, revision: selectionRevision }),
+      resolveAuthorization: ({ uid, accountId }) => new Promise(resolve => {
+        resolverStarted();
+        release = () => resolve(activeAuthorization(uid, { accountId }));
+      })
+    });
+    const pending = adapter.getPrincipal();
+    await started;
+    selectedAccountId = "synthetic-account-B";
+    selectionRevision += 1;
+    selectedAccountId = "synthetic-account-A";
+    selectionRevision += 1;
     release();
     assert.equal(await pending, null);
     adapter.dispose();
@@ -235,7 +265,7 @@ export async function runFirebaseAuthAdapterTests() {
     const fake = fakeAuth(syntheticUser("synthetic-resolver-error"));
     const adapter = createFirebaseAuthAdapter({
       auth: fake.auth, onAuthStateChanged: fake.onAuthStateChanged,
-      getAccountId: async () => "synthetic-account-1",
+      getAccountSelectionSnapshot: async () => ({ accountId: "synthetic-account-1", revision: 1 }),
       resolveAuthorization: async () => { throw new Error("synthetic backend unavailable"); }
     });
     await rejected(adapter.getPrincipal());
