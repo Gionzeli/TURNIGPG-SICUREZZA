@@ -118,3 +118,5 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - The injected authorization adapter must validate active account/member, explicit `absence:read:availability` permission and each placement/delegation scope overlapping the requested date range; only its returned placement IDs are visible.
 - Audit records contain actor, employee, requested date range and interval count only; no absence category or medical data.
 - No callable is exposed until the canonical manager/delegation authorization adapter is implemented. Emulator coverage uses synthetic authorization callbacks and does not establish real manager access control.
+
+- Update/delete revalidate the stored shift Employee and immutable placement/site/department against canonical placement history; a callback cannot authorize a different Employee or substitute a different historical placement.

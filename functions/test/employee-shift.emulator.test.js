@@ -15,7 +15,7 @@ test("Firestore Emulator: Employee shifts bind to server-derived Employee and hi
     db, now: () => 1000,
     authorizeActor: async (_tx, args) => {
       authorizeCalls.push({ operation: args.operation, employeeId: args.employeeId });
-      if (args.actorUid !== "member-1" || args.operation === "delete") throw Object.assign(new Error("denied"), { code: "permission-denied" });
+      if (args.actorUid !== "member-1" || args.operation === "delete" || (args.employeeId && args.employeeId !== "employee-1")) throw Object.assign(new Error("denied"), { code: "permission-denied" });
       return { employeeId: "employee-1" };
     },
     loadPlacementAt: async (_tx, a, e, date) => a === accountId && e === "employee-1" && date >= placement.validFrom ? placement : null
@@ -34,6 +34,8 @@ test("Firestore Emulator: Employee shifts bind to server-derived Employee and hi
     await assert.rejects(service.update({ accountId, actorUid: "member-1", actorIdentity: { uid: "member-1" }, shiftId, eventId: "stale-1", expectedRevision: 1, changes: { hours: 6 } }), e => e.code === "failed-precondition");
     await assert.rejects(service.delete({ accountId, actorUid: "member-1", actorIdentity: { uid: "member-1" }, shiftId, eventId: "delete-denied", expectedRevision: 2 }), e => e.code === "permission-denied");
     assert.equal((await shiftRef.get()).data().status, "active");
+    await assert.rejects(service.update({ accountId, actorUid: "member-1", actorIdentity: { uid: "member-1" }, shiftId, eventId: "wrong-owner", expectedRevision: 2, changes: { hours: 6 }, employeeId: "another-employee" }), e => e.code === "permission-denied");
+    assert.equal((await shiftRef.get()).data().revision, 2);
     assert.equal((await db.doc("accounts/" + accountId + "/employeeAudit/shift-update-1").get()).data().type, "employee.shift.updated");
     assert.equal(authorizeCalls.some(x => x.operation === "create"), true);
     assert.equal(authorizeCalls.some(x => x.operation === "update"), true);

@@ -424,3 +424,8 @@ Aggiunto servizio interno Firestore per create/update/delete dei turni canonici 
 ## 2026-11-27 — Vista manager assenze minimizzata
 
 Aggiunto servizio interno per disponibilità assenze: il DTO restituisce esclusivamente indisponibilità e date, senza categoria, motivazione, note o documenti. Il filtro usa placement IDs restituiti da un authorizer server-side che deve verificare permission esplicita absence:read:availability e scope delegato per l'intero intervallo. Audit minimizzato senza categorie sanitarie. Test Firestore Emulator sintetico verifica clipping date, esclusione placement fuori scope e assenza di campi sensibili nella risposta/audit. Non esposto callable finché l'adapter canonico membership/deleghe non è implementato.
+
+
+## 2026-11-27 — Coerenza owner e placement nei turni
+
+Rafforzata la boundary update/delete: l'Employee restituito dall'authorizer deve coincidere con l'owner storico del turno e il placement risolto alla data originale deve coincidere con placement/sede/reparto registrati. Aggiunto test che nega il tentativo di agire su un Employee differente senza mutare revisione o record.

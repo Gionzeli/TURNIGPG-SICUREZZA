@@ -63,10 +63,15 @@ export function createEmployeeShiftService({ db, authorizeActor, loadPlacementAt
   }
   async function context(tx, args) {
     const actor = await authorizeActor(tx, args);
-    if (!actor || !validId(actor.employeeId)) fail("permission-denied", "Shift operation is not authorized.");
+    if (!actor || !validId(actor.employeeId) || (args.employeeId && actor.employeeId !== args.employeeId)) fail("permission-denied", "Shift operation is not authorized for this Employee.");
     const placement = assertPlacement(await loadPlacementAt(tx, args.accountId, actor.employeeId, args.date), {
       accountId: args.accountId, employeeId: actor.employeeId, date: args.date
     });
+    if ((args.placementId && placement.placementId !== args.placementId) ||
+        (args.siteId && placement.siteId !== args.siteId) ||
+        (args.departmentId && placement.departmentId !== args.departmentId)) {
+      fail("permission-denied", "Stored shift placement context does not match canonical history.");
+    }
     return { employeeId: actor.employeeId, placement };
   }
   return Object.freeze({
