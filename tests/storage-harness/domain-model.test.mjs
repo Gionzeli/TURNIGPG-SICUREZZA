@@ -210,3 +210,32 @@ test("payroll write prepares audit before publishing data mutation", () => {
     permissions:["payroll:write"], authorizedEmployeeIds:["emp-1"] }));
   assert.deepEqual(s.payroll, before);
 });
+
+
+test("payroll read/write/export deny after Employee suspension or termination", () => {
+  const s = createDomainFixture();
+  s.payroll.push({ accountId:"acct-a", employeeId:"emp-1", recordId:"pay-1", period:"2026-01", amount:100 });
+  const writeArgs = { accountId:"acct-a", employeeId:"emp-1", recordId:"pay-2",
+    period:"2026-02", amount:120, actorUid:"manager-a", permissions:["payroll:write"],
+    authorizedEmployeeIds:["emp-1"] };
+  const exportArgs = { accountId:"acct-a", employeeId:"emp-1", actorUid:"manager-a",
+    permissions:["payroll:export"], authorizedEmployeeIds:["emp-1"] };
+  for (const status of ["suspended","terminated","archived","unknown"]) {
+    s.employees[0].status=status;
+    assert.throws(() => payrollView(s,{accountId:"acct-a",employeeId:"emp-1",permissions:["payroll:read"]}),{code:"permission-denied"});
+    assert.throws(() => writePayrollRecord(s,writeArgs),{code:"permission-denied"});
+    assert.throws(() => exportPayroll(s,exportArgs),{code:"permission-denied"});
+    assert.equal(s.payroll.length,1);
+  }
+});
+
+test("payroll revocation is effective when the operation permission is removed", () => {
+  const s=createDomainFixture();
+  s.payroll.push({accountId:"acct-a",employeeId:"emp-1",recordId:"pay-1",period:"2026-01",amount:100});
+  const writeArgs={accountId:"acct-a",employeeId:"emp-1",recordId:"pay-2",period:"2026-02",amount:150,actorUid:"mgr",authorizedEmployeeIds:["emp-1"]};
+  const exportArgs={accountId:"acct-a",employeeId:"emp-1",actorUid:"mgr",authorizedEmployeeIds:["emp-1"]};
+  assert.throws(()=>writePayrollRecord(s,{...writeArgs,permissions:[]}),{code:"permission-denied"});
+  assert.throws(()=>exportPayroll(s,{...exportArgs,permissions:[]}),{code:"permission-denied"});
+  assert.throws(()=>payrollView(s,{accountId:"acct-a",employeeId:"emp-1",permissions:[]}),{code:"permission-denied"});
+  assert.equal(s.payroll.length,1);
+});

@@ -87,7 +87,13 @@ export function authorizeNewOperation(state, { accountId, uid, employeeId, siteI
   return true;
 }
 
+function requireActiveEmployee(state, accountId, employeeId) {
+  const employee = state.employees.find(x => x.accountId === accountId && x.employeeId === employeeId);
+  if (!employee || employee.status !== "active") fail("permission-denied");
+  return employee;
+}
 export function payrollView(state, { accountId, employeeId, permissions = [] }) {
+  requireActiveEmployee(state, accountId, employeeId);
   if (!permissions.includes("payroll:read")) fail("permission-denied");
   return state.payroll.filter(x => x.accountId === accountId && x.employeeId === employeeId)
     .map(x => ({ period: x.period, amount: x.amount }));
@@ -127,6 +133,7 @@ export function writePayrollRecord(state, {
   accountId, employeeId, recordId, period, amount, actorUid, permissions = [], authorizedEmployeeIds = []
 }) {
   if (!permissions.includes("payroll:write") || !authorizedEmployeeIds.includes(employeeId)) fail("permission-denied");
+  requireActiveEmployee(state, accountId, employeeId);
   if (![accountId, employeeId, recordId, period, actorUid].every(x => typeof x === "string" && x.length > 0) ||
       typeof amount !== "number" || !Number.isFinite(amount)) fail("invalid-payroll-record");
   const index = state.payroll.findIndex(x =>
@@ -146,6 +153,7 @@ export function exportPayroll(state, {
   accountId, employeeId, actorUid, permissions = [], authorizedEmployeeIds = []
 }) {
   if (!permissions.includes("payroll:export") || !authorizedEmployeeIds.includes(employeeId)) fail("permission-denied");
+  requireActiveEmployee(state, accountId, employeeId);
   const rows = state.payroll.filter(x => x.accountId === accountId && x.employeeId === employeeId)
     .map(x => ({ period: x.period, amount: x.amount }));
   const nextAudit = state.audit.concat({ actorUid, action: "payroll-export", accountId, employeeId, recordCount: rows.length });

@@ -35,3 +35,5 @@ node --test tests/storage-harness/*.test.mjs
 ```
 
 It installs no project dependencies and does not start Firebase emulators or contact a datastore. A green workflow validates only these in-memory reference-model tests; it is not evidence for Firestore/PostgreSQL guarantees or application authorization.
+
+Payroll examples now also require a synthetic Employee record to be explicitly active for read/write/export. Suspension, termination, archival, and unknown status are denied in the model; removing an operation permission simulates revocation. This is not server-enforced lifecycle or revocation.

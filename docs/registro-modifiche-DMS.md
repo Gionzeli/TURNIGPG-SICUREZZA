@@ -311,3 +311,8 @@ Aggiunti esempi e test puramente in-memory per: delega manager legata a Employee
 ## Estensione harness: isolamento account/Employee e scope payroll — 2026-11-26
 
 Aggiunti test negativi sintetici per deleghe manager cross-account e cross-Employee, e per payroll con permission esatta ma Employee fuori dallo scope esplicito. Le funzioni payroll richiedono ora anche una lista `authorizedEmployeeIds` e preparano le nuove strutture dati/audit prima di pubblicare la mutazione in-memory. Aggiunto test che un errore nella preparazione dell'audit non lascia la scrittura payroll applicata. Questi esempi non dimostrano che lo scope o l'attore siano derivati da fonti trusted, né atomicità/durabilità datastore; non sono enforcement runtime. Nessuna modifica a schema, storage, endpoint, Rules, migrazioni, provisioning, wiring, dati reali o deploy. CI sul nuovo SHA da verificare.
+
+
+## Estensione harness: lifecycle e revoca payroll — 2026-11-26
+
+Payroll read/write/export nel modello sintetico richiede ora Employee con status esattamente active. Aggiunti test negativi per sospensione, cessazione, archiviazione e stato sconosciuto, più casi di revoca permission tramite rimozione dei grant. Il test verifica che write deny non aggiunga record. Non dimostra revoca immediata server-side, stato trusted, atomicità datastore, o protezione runtime. Nessuna modifica runtime, schema, endpoint, Rules, migrazione, provisioning, wiring, dati reali o deploy. CI sul nuovo commit da verificare.
