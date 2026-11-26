@@ -405,3 +405,7 @@ Collegati al composition root Functions gli endpoint callable di proposta e appr
 ## 2026-11-26 — Revoca Employee binding atomica e auditata
 
 Aggiunta revoca esplicita del binding Employee: amministratore canonico attivo con token verificato/revocation-checked e claim TOTP recente; verifica di account, Employee, mirror UID/Employee e documento controllo revisioni; revoca simultanea dei due mirror, incremento revisione e audit nella stessa transazione. Il provisioning crea anche employeeControl. Collegata callable revokeEmployeeBinding e aggiunti test unitari della boundary. La riassociazione resta un nuovo processo a due persone; i documenti revocati non vengono sovrascritti. Il claim TOTP reale non è ancora validato in un tenant Firebase approvato.
+
+## 2026-11-26 — Test Emulator revoca binding Employee
+
+Aggiunto test Firestore Emulator end-to-end sintetico che crea il binding tramite proposta e approvazione distinte, poi revoca entrambe le prenotazioni UID/Employee, incrementa il controllo revisione e verifica l'evento audit. Il test verifica anche il rifiuto della seconda revoca. Nessun test TOTP reale, progetto reale o deploy.

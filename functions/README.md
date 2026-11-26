@@ -92,3 +92,5 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - It verifies Employee and both UID/Employee reservation mirrors against the serialized control revision, then revokes both mirrors, increments the binding revision and appends audit in one transaction.
 - Rebinding remains a separate two-person proposal/approval flow; revoked reservations are not overwritten.
 - TOTP assurance still requires validation against an approved non-production Firebase Auth configuration before deployment.
+
+- Emulator integration test covers two-person provisioning followed by audited, mirrored binding revocation and revision increment.
