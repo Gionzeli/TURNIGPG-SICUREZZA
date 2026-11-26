@@ -143,6 +143,18 @@ Use only synthetic identities and records in Firebase Auth/Firestore/Functions e
 8. Implement isolated canonical loaders and one endpoint at a time; add emulator tests for both allow and deny paths.
 9. Obtain independent security/privacy review before any production integration.
 
-## 8. Explicit non-authorization
+
+
+## Audit finding — revocation, reassignment and transaction freshness
+
+**Read-only code review:** the canonical resolver loads account, site and department on each invocation and fails closed for missing, malformed, cross-account and cross-parent records. This reduces stale resource-context risk for callers that invoke it for every operation. However, the pure `authorizeResource` function accepts a principal object and cannot itself refresh membership; any future endpoint that reuses a cached principal or authorization result could retain permissions after membership revocation or scope changes. No protected data endpoints currently exist, so the repository does not yet demonstrate an endpoint-level freshness guarantee.
+
+The nomination service uses Firestore transactions and reads the actor's canonical membership inside the create/approve/cancel transaction. Approval also re-reads the proposer membership and target membership in its transaction. This is a useful transactional safeguard in the isolated service, but it is not a deployed callable or a full revocation integration test; emulator tests currently exercise synthetic service-level identities, not concurrent Firebase Auth revocation against live callable requests.
+
+**Remaining coverage gap:** existing resolver/authorization tests validate static scope and relationship cases, but do not simulate (a) membership revoked between token verification and an endpoint operation, (b) site/department reassignment while an authorization operation is in flight, or (c) repeated transaction retries/conflicts with membership or nomination changes. These scenarios should be tested once the protected endpoint and approved lifecycle/ownership models exist, using emulator fixtures only.
+
+**Conservative implementation requirement:** each protected operation must re-verify/re-resolve canonical membership and resource relationships server-side at operation time, avoid reusing a browser principal as an authority, and use transactions/expected revisions for mutations where supported. For list operations, authorization constraints must be applied to the query before results are returned. This is a documented requirement, not current endpoint behavior or release approval.
+
+## 9. Explicit non-authorization
 
 This proposal does not add permissions to code, approve Firestore paths or schemas, create employee bindings, implement protected APIs, change root Firestore Rules, alter operational Firebase configuration, modify production UI/composition, migrate real data or authorize deployment. The existing member scope behavior remains unchanged by this document. The PR must remain open and Draft pending review.
