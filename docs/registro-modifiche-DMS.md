@@ -269,3 +269,10 @@ Prima di scegliere storage fisico e percorsi è richiesta una specifica comparat
 L'approvazione non autorizza loader, endpoint/callable, Rules, migrazioni, provisioning operativo, wiring, dati reali o deploy. Nessuna modifica runtime è stata effettuata.
 
 **HEAD di partenza:** `0993ef82bbb046d10ea8e996716678643ea6af36`. PR #1 verificata aperta, Draft, non merged, base `main` prima della scrittura.
+
+
+## Specifica comparativa storage Employee — 2026-11-26
+
+A seguito dell'approvazione EMP-10 è stata preparata `docs/dsm-employee-storage-comparison.md`. Il confronto documentale valuta Firestore e PostgreSQL come candidati non selezionati e IndexedDB come soluzione esclusa quale archivio canonico (ammissibile solo come cache non autorevole). Sono esplicitati i requisiti di tenancy, unicità bidirezionale, atomicità/concorrenza, placement e storico, lifecycle/revoche, audit, separazione payroll/assenze, query/indici e testabilità.
+
+La raccomandazione è mantenere il dominio storage-agnostic e sottoporre Firestore e PostgreSQL a una decisione del responsabile dello schema dopo prove sintetiche e valutazione operativa. Non sono stati scelti path, collection, tabelle, indici o servizi. Questa è una specifica comparativa, non un'approvazione tecnologica e non autorizza implementazione, loader, endpoint, Rules, migrazioni, provisioning, wiring, dati reali o deploy. Nessuna modifica runtime.

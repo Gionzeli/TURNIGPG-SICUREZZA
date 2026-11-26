@@ -327,3 +327,10 @@ Prima di scegliere lo storage fisico o i percorsi dovrà essere prodotta una spe
 La scelta di tecnologia, collection/path, documenti, indici e strategia di persistenza richiede una decisione esplicita successiva del responsabile dello schema. Le policy EMP-01…EMP-09 e la presente decisione non selezionano alcun archivio fisico.
 
 Questa approvazione è esclusivamente architetturale/documentale. Non autorizza loader concreti, endpoint/callable, Rules, migrazioni, provisioning operativo, wiring applicativo, accesso a dati reali o deploy. Nessuna modifica runtime è stata effettuata. Restano validi i gate TOTP già documentati per il prototipo nomination.
+
+
+## 20. Specifica comparativa storage — 2026-11-26
+
+È stata aggiunta `docs/dsm-employee-storage-comparison.md`, confronto preliminare tra Firestore, PostgreSQL, IndexedDB e ibrido. Il documento valuta requisiti, vantaggi, limiti e prove mancanti senza selezionare tecnologia o schema fisico. IndexedDB è escluso come fonte canonica Employee, ma può essere valutato come cache non autorevole. Firestore e PostgreSQL restano candidati non selezionati; la decisione è riservata al responsabile dello schema.
+
+Nessuna autorizzazione a loader, endpoint/callable, Rules, migrazioni, provisioning, wiring, accesso a dati reali o deploy. Nessuna modifica runtime.
