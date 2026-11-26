@@ -120,3 +120,5 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - No callable is exposed until the canonical manager/delegation authorization adapter is implemented. Emulator coverage uses synthetic authorization callbacks and does not establish real manager access control.
 
 - Update/delete revalidate the stored shift Employee and immutable placement/site/department against canonical placement history; a callback cannot authorize a different Employee or substitute a different historical placement.
+
+- Shift updates normalize only editable domain fields; server metadata and ownership fields are never fed back through client-field validation.

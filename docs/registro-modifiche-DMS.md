@@ -429,3 +429,8 @@ Aggiunto servizio interno per disponibilità assenze: il DTO restituisce esclusi
 ## 2026-11-27 — Coerenza owner e placement nei turni
 
 Rafforzata la boundary update/delete: l'Employee restituito dall'authorizer deve coincidere con l'owner storico del turno e il placement risolto alla data originale deve coincidere con placement/sede/reparto registrati. Aggiunto test che nega il tentativo di agire su un Employee differente senza mutare revisione o record.
+
+
+## 2026-11-27 — Normalizzazione update turno
+
+Corretto l'update dei turni per validare esclusivamente i campi di dominio modificabili, senza passare i metadati server (account, owner, placement, revisioni e audit timestamps) nel validatore del payload. Il test Emulator esercita ora aggiornamento riuscito e attacco con authorizer che restituisce un Employee diverso dall'owner storico.

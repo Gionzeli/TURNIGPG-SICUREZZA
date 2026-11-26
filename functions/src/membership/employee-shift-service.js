@@ -110,7 +110,8 @@ export function createEmployeeShiftService({ db, authorizeActor, loadPlacementAt
         const current = shiftSnap.data();
         if (current.accountId !== accountId || !validId(current.employeeId) || !validDate(current.date) || current.revision !== expectedRevision) fail("failed-precondition", "Shift ownership or revision mismatch.");
         await context(tx, { accountId, actorUid, actorIdentity, employeeId: current.employeeId, date: current.date, siteId: current.siteId, departmentId: current.departmentId, operation: "update", current });
-        const normalized = normalizeShift({ ...current, ...changes });
+        const editable = Object.fromEntries([...KEYS].filter(key => Object.hasOwn(current, key)).map(key => [key, current[key]]));
+        const normalized = normalizeShift({ ...editable, ...changes });
         const revision = expectedRevision + 1;
         if (!Number.isSafeInteger(revision)) fail("failed-precondition", "Shift revision exhausted.");
         tx.update(r.shift, { ...normalized, revision, updatedAt: timestamp, updatedBy: actorUid });
