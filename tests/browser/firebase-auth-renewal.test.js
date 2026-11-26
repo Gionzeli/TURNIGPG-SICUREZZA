@@ -182,7 +182,7 @@ export async function runFirebaseAuthRenewalTests() {
     assert.throws(() => coordinator.invalidate("cleanup-test"), AggregateError);
     assert.equal(cancelCalls, 1);
     assert.equal(clearCalls, 1);
-    assert.equal(coordinator.getStatus().state, "inactive");
+    assert.equal(coordinator.getStatus().state, "blocked");
     assert.equal(coordinator.getStatus().expiresAt, null);
     coordinator.dispose();
   });
