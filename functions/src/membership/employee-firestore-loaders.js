@@ -47,15 +47,23 @@ export function createEmployeeFirestoreLoaders(db) {
 
     async loadActiveProfile(accountId, profileId) {
       if (!validId(accountId) || !validId(profileId)) return null;
-      const snapshot = await db.doc(`accounts/${accountId}/employees/${profileId}`).get();
-      if (!snapshot.exists) return null;
-      const employee = snapshot.data();
-      if (employee.accountId !== accountId || employee.employeeId !== profileId) return null;
-      return {
-        accountId,
-        profileId,
-        active: employee.status === "active"
-      };
+      const accountRef = db.doc(`accounts/${accountId}`);
+      const employeeRef = db.doc(`accounts/${accountId}/employees/${profileId}`);
+      return db.runTransaction(async tx => {
+        const [accountSnapshot, employeeSnapshot] = await Promise.all([
+          tx.get(accountRef), tx.get(employeeRef)
+        ]);
+        if (!accountSnapshot.exists || !employeeSnapshot.exists) return null;
+        const account = accountSnapshot.data();
+        const employee = employeeSnapshot.data();
+        if (account.status !== "active" ||
+            employee.accountId !== accountId || employee.employeeId !== profileId) return null;
+        return {
+          accountId,
+          profileId,
+          active: employee.status === "active"
+        };
+      });
     }
   });
 }

@@ -385,3 +385,8 @@ L'utente ha autorizzato la scelta e l'implementazione dello storage. Selezionato
 ## 2026-11-26 — Adapter Firestore Employee: risoluzione binding canonico
 
 Aggiunto il primo adapter server-only Firestore per risolvere il binding tramite le due prenotazioni UID/Employee e verificare che concordino su account, UID, Employee, stato e revisione. Il loader Employee controlla il lifecycle attivo e mappa `profileId` → `employeeId`. Aggiunto test Firestore Emulator per risoluzione valida, mirror incoerente, Employee sospeso e binding revocato. Nessun endpoint callable, provisioning, UI wiring, accesso a progetto reale o deploy.
+
+
+## 2026-11-26 — Employee loader: lifecycle account fail-closed
+
+Il loader Firestore ora verifica nella stessa transazione che il documento account esista e abbia `status: active`, oltre al lifecycle Employee. Estesi i test Emulator per account sospeso e mirror inverso mancante. I dati non vengono restituiti se account o associazione sono mancanti/incoerenti. Nessuna API o modifica alle Rules operative.

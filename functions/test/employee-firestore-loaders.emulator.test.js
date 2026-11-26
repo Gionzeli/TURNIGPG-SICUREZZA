@@ -14,6 +14,7 @@ test("Firestore Emulator: resolves only consistent active UID↔Employee binding
   const employeeId = "synthetic-employee-01";
   const byUid = db.doc(`accounts/${accountId}/employeeBindingsByUid/${uid}`);
   const byEmployee = db.doc(`accounts/${accountId}/employeeBindingsByEmployee/${employeeId}`);
+  const account = db.doc(`accounts/${accountId}`);
   const employee = db.doc(`accounts/${accountId}/employees/${employeeId}`);
   const principal = Object.freeze({
     uid, accountId, role: "member", permissions: ["dsm:read:own-scope"]
@@ -24,6 +25,7 @@ test("Firestore Emulator: resolves only consistent active UID↔Employee binding
 
   try {
     await Promise.all([
+      account.set({ accountId, status: "active", revision: 1 }),
       byUid.set(binding),
       byEmployee.set(binding),
       employee.set({ employeeId, accountId, status: "active", revision: 1 })
@@ -47,6 +49,18 @@ test("Firestore Emulator: resolves only consistent active UID↔Employee binding
     );
 
     await employee.update({ status: "active" });
+    await account.update({ status: "suspended" });
+    await assert.rejects(
+      resolveOwnEmployeeFromFirestore({ db, principal }),
+      error => error.code === "permission-denied"
+    );
+    await account.update({ status: "active" });
+    await byEmployee.delete();
+    await assert.rejects(
+      resolveOwnEmployeeFromFirestore({ db, principal }),
+      error => error.code === "permission-denied"
+    );
+    await byEmployee.set(binding);
     await byUid.update({ status: "revoked", revision: 2 });
     await byEmployee.update({ status: "revoked", revision: 2 });
     await assert.rejects(
@@ -54,7 +68,7 @@ test("Firestore Emulator: resolves only consistent active UID↔Employee binding
       error => error.code === "permission-denied"
     );
   } finally {
-    await Promise.all([byUid.delete(), byEmployee.delete(), employee.delete()]);
+    await Promise.all([account.delete(), byUid.delete(), byEmployee.delete(), employee.delete()]);
     await deleteApp(app);
   }
 });
