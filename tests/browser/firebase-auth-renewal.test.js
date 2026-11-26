@@ -57,6 +57,27 @@ export async function runFirebaseAuthRenewalTests() {
     assert.ok(clears >= 1);
     coordinator.dispose();
   });
+  await test("identity change without explicit invalidation clears stale authorization", async () => {
+    let identity = { uid: "synthetic-race-old", accountId: "synthetic-race-account" };
+    const gate = deferred();
+    let installed = null, clears = 0;
+    const coordinator = createFirebaseAuthRenewalCoordinator({
+      getIdentity: () => identity,
+      resolveAuthorization: () => gate.promise,
+      installPrincipal: value => { installed = value; },
+      clearPrincipal: () => { installed = null; clears++; },
+      schedule: () => 1, cancelSchedule: () => {}
+    });
+    const pending = coordinator.renew();
+    identity = { uid: "synthetic-race-new", accountId: "synthetic-race-account" };
+    gate.resolve(principal({ uid: "synthetic-race-old", accountId: "synthetic-race-account" }));
+    assert.equal(await pending, null);
+    assert.equal(installed, null);
+    assert.equal(coordinator.getStatus().state, "inactive");
+    assert.equal(coordinator.getStatus().expiresAt, null);
+    assert.ok(clears >= 1);
+    coordinator.dispose();
+  });
   await test("resolver denial clears old authorization and enters blocked state", async () => {
     const identity = { uid: "synthetic-denied", accountId: "synthetic-account" };
     let installed = null, clears = 0;

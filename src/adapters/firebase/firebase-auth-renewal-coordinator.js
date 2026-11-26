@@ -103,7 +103,13 @@ export function createFirebaseAuthRenewalCoordinator({
           reason
         }));
         const currentIdentity = authorizationIdentity(getIdentity());
-        if (disposed || requestEpoch !== epoch || !sameIdentity(identity, currentIdentity)) return null;
+        if (disposed || requestEpoch !== epoch) return null;
+        if (!sameIdentity(identity, currentIdentity)) {
+          epoch += 1;
+          state = "inactive";
+          clearActive();
+          return null;
+        }
         if (!principal || principal.uid !== identity.uid ||
             principal.accountId !== identity.accountId ||
             !Number.isFinite(principal.expiresAt) || principal.expiresAt <= now()) {
