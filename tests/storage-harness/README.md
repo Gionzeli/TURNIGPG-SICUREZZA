@@ -70,3 +70,7 @@ Manager authorization in the reference model now denies when more than one activ
 
 
 The duplicate-grant ambiguity case also distinguishes genuinely competing grants from irrelevant records: an expired matching grant and a current grant for a different operation do not invalidate one unique current grant for the requested operation. This is a regression check for the synthetic model only.
+
+
+### Ambiguous Employee bindings (synthetic)
+The Employee operation reference model now requires exactly one active binding for the account/UID/Employee tuple. Duplicate active matches deny access rather than selecting the first record; revoked historical duplicates do not count as active grants. This is an in-memory regression check only and does not implement or prove canonical binding uniqueness in a server or datastore.

@@ -360,3 +360,8 @@ Rafforzato il modello in-memory: l'autorizzazione manager non seleziona più la 
 ## 2026-11-26 — Harness: ambiguità limitata alle deleghe effettivamente valide
 
 Aggiunto un test negativo/positivo di confine: una delega scaduta e una delega valida per un'altra operazione non rendono ambigua l'unica concessione corrente per l'operazione richiesta. La regola di deny resta applicata quando più concessioni attive, non scadute e corrispondenti alla stessa operazione competono. Solo modello sintetico in-memory; nessuna modifica runtime, schema, storage, Rules, endpoint, provisioning, wiring o deploy.
+
+
+## 2026-11-26 — Harness: binding Employee duplicate fail-closed
+
+Rafforzato il solo modello sintetico delle operazioni Employee: richiede esattamente una binding attiva per la tupla account/UID/Employee; più binding attive corrispondenti negano l'accesso senza selezione implicita. Le copie storiche revocate non vengono conteggiate come concessioni attive. Aggiunto test per entrambi i casi. Nessuna modifica runtime, schema, storage, endpoint, Rules, provisioning, wiring o deploy; non è prova di unicità canonica persistente.

@@ -87,8 +87,10 @@ export function revokeBinding(state, accountId, uid) {
 }
 
 export function authorizeNewOperation(state, { accountId, uid, employeeId, siteId, departmentId, date }) {
-  const binding = state.bindings.find(x => x.accountId === accountId && x.uid === uid &&
+  const matchingBindings = state.bindings.filter(x => x.accountId === accountId && x.uid === uid &&
     x.employeeId === employeeId && x.status === "active");
+  // Multiple active bindings for the same identity tuple are ambiguous; deny rather than select one.
+  const binding = matchingBindings.length === 1 ? matchingBindings[0] : null;
   const employee = state.employees.find(x => x.accountId === accountId && x.employeeId === employeeId);
   const orgMatches = activeOrgMatches(state, accountId, siteId, departmentId);
   let placement;

@@ -412,3 +412,16 @@ test("manager authorization ignores expired or operation-mismatched duplicate gr
     now:"2026-02-01T12:00:00Z", operation:"read"
   }), true);
 });
+
+
+test("Employee authorization fails closed on duplicate active bindings but ignores revoked duplicates", () => {
+  const ambiguous = placedFixture();
+  ambiguous.bindings.push({ ...ambiguous.bindings[0] });
+  const args = { accountId:"acct-a", uid:"uid-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01" };
+  assert.throws(() => authorizeNewOperation(ambiguous, args), { code:"permission-denied" });
+
+  const revoked = placedFixture();
+  revoked.bindings.push({ ...revoked.bindings[0], status:"revoked" });
+  assert.equal(authorizeNewOperation(revoked, args), true);
+});
