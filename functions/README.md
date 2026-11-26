@@ -111,3 +111,10 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - Shift date is immutable in this service; moving a shift date requires a separate approved workflow so historical placement context cannot be silently rewritten.
 - The injected authorization callback MUST verify the revocation-checked actor, canonical membership, active Employee binding for self-service OR exact manager delegation and `shift:<operation>` permission, lifecycle and historical scope inside the supplied transaction. The placement loader must return exactly one placement valid on the shift date.
 - No callable endpoint is exposed: canonical delegation document paths and a trusted authorization adapter must be implemented and tested before exposure. Emulator test uses synthetic callbacks and validates persistence/revision/audit only, not real permission enforcement.
+
+
+## Employee absence availability (internal, privacy-minimized)
+- Manager availability service exposes only `unavailable`, `startDate`, `endDate` for each authorized interval. It never returns absence category, reason, notes, documents or raw Firestore records.
+- The injected authorization adapter must validate active account/member, explicit `absence:read:availability` permission and each placement/delegation scope overlapping the requested date range; only its returned placement IDs are visible.
+- Audit records contain actor, employee, requested date range and interval count only; no absence category or medical data.
+- No callable is exposed until the canonical manager/delegation authorization adapter is implemented. Emulator coverage uses synthetic authorization callbacks and does not establish real manager access control.

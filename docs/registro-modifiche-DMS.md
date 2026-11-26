@@ -419,3 +419,8 @@ Aggiunto servizio interno Firestore per creazione del placement iniziale e trasf
 ## 2026-11-27 — Servizio transazionale turni Employee
 
 Aggiunto servizio interno Firestore per create/update/delete dei turni canonici Employee. L'Employee ID e il contesto placement/sede/reparto sono ottenuti esclusivamente da callback server-side; payload client con campi extra respinto. Create/update/delete hanno autorizzazione distinta, revisione ottimistica e audit atomico; delete è soft-delete per preservare lo storico. La data turno è immutabile per non riscrivere il contesto storico. I callback di autorizzazione e risoluzione placement devono leggere membership, binding/deleghe, lifecycle e placement storico nella stessa transazione; non esposto callable finché il contratto canonico deleghe/permessi non è implementato. Test Emulator sintetico copre persistenza, contesto server-side, revisione obsoleta, audit e delete negato.
+
+
+## 2026-11-27 — Vista manager assenze minimizzata
+
+Aggiunto servizio interno per disponibilità assenze: il DTO restituisce esclusivamente indisponibilità e date, senza categoria, motivazione, note o documenti. Il filtro usa placement IDs restituiti da un authorizer server-side che deve verificare permission esplicita absence:read:availability e scope delegato per l'intero intervallo. Audit minimizzato senza categorie sanitarie. Test Firestore Emulator sintetico verifica clipping date, esclusione placement fuori scope e assenza di campi sensibili nella risposta/audit. Non esposto callable finché l'adapter canonico membership/deleghe non è implementato.
