@@ -2,7 +2,7 @@
 
 **Status:** architecture decision required; proposal only, not approved or implemented.
 **Scope:** associate a verified Firebase identity with a DSM employee/profile record without trusting browser-owned identifiers.
-**Evidence branch:** `dsm-enterprise/core-v1`, reviewed at commit `da101917f1f31a4d26b319155087161117978ef7`.
+**Evidence branch:** `dsm-enterprise/core-v1`, reviewed at commit `6620b01e2749a66b0cc349c5d1d4a7444254e5fe`.
 **Safety boundary:** documentation and synthetic examples only. No Firebase Rules, operational configuration, client composition root, production data, migration, credentials or deployment changes.
 
 ## 1. Verified repository facts
@@ -118,6 +118,8 @@ All fixtures must be synthetic and run against Firebase Auth/Firestore emulators
 13. Audit events record actor, target, action, reason, revision and server timestamp without copying payroll data or tokens.
 14. Failure of identity, membership, binding, resource loader or audit transaction fails closed.
 15. A member scoped to a site/department cannot read another employee's profile in that same organizational scope unless a separately approved permission and ownership relationship explicitly authorize it.
+
+**Test-status clarification:** item 15 is a required future test case, not an implemented automated test in this repository. The current `resource-authorization.test.js` tests organizational scope boundaries, but its positive member case still authorizes a resource in the member's department without resolving an employee binding. Do not treat the matrix item as evidence that individual ownership isolation has been tested.
 
 ## 6. Implementation sequence after approval
 
