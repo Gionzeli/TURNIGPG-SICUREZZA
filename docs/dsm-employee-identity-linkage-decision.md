@@ -2,7 +2,7 @@
 
 **Status:** architecture decision required; proposal only, not approved or implemented.
 **Scope:** associate a verified Firebase identity with a DSM employee/profile record without trusting browser-owned identifiers.
-**Evidence branch:** `dsm-enterprise/core-v1`, reviewed at commit `164272bac74d370f3bf4a38861316653063bb8bc`.
+**Evidence branch:** `dsm-enterprise/core-v1`, reviewed at commit `da101917f1f31a4d26b319155087161117978ef7`.
 **Safety boundary:** documentation and synthetic examples only. No Firebase Rules, operational configuration, client composition root, production data, migration, credentials or deployment changes.
 
 ## 1. Verified repository facts
@@ -16,6 +16,8 @@
 4. The backend membership policy validates `uid`, `accountId`, `status`, `role`, `scopeType`, and `scopeIds`. A member receives only `dsm:read:own-scope`; the current membership shape does not identify a profile record.
 5. The resource authorization policy can compare a principal's scope against canonical account/site/department context. Its resolver depends on injected loaders. No canonical Firestore loaders or protected DSM data endpoints are implemented.
 6. The current health callable explicitly reports `protectedDataApisImplemented: false` and `authorizationImplemented: false`.
+
+**Important security distinction — “own-scope” is not individual ownership:** the current `authorizeResource()` implementation authorizes a member when the resolved resource's `siteId` or `departmentId` is included in membership `scopeIds`. It does not compare the resource to a profile owned by the verified UID. Therefore `dsm:read:own-scope` currently means organizational-scope access in this pure policy, not proof that a member may read only their own employee profile. Until an authoritative UID↔employee binding and per-record relationship exist, do not describe this permission as individual “own profile” isolation or expose employee-specific data APIs on that assumption.
 
 **Conclusion:** the current code does not establish a trustworthy relation between a Firebase UID and a DSM profile. A matching name, email, display label, local account ID, or browser-supplied profile ID is not proof of ownership.
 
@@ -115,6 +117,7 @@ All fixtures must be synthetic and run against Firebase Auth/Firestore emulators
 12. Payroll fields are not returned to roles lacking the explicit payroll permission.
 13. Audit events record actor, target, action, reason, revision and server timestamp without copying payroll data or tokens.
 14. Failure of identity, membership, binding, resource loader or audit transaction fails closed.
+15. A member scoped to a site/department cannot read another employee's profile in that same organizational scope unless a separately approved permission and ownership relationship explicitly authorize it.
 
 ## 6. Implementation sequence after approval
 
