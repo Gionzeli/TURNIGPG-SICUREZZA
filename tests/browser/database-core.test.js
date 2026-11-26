@@ -1448,12 +1448,17 @@ async function run() {
       shifts: [{ id: "shared", date: "2026-11-22", type: "turno", hours: 8 }],
       extra: { quota: { ferie }, skills: [{ title: skillTitle }] }
     });
+    const quotaOnly = inspectLegacyReconciliation([
+      { source: "export-1", rawJson: make(10, "Corso A") },
+      { source: "export-2", rawJson: make(12, "Corso A") }
+    ]);
     const result = inspectLegacyReconciliation([
       { source: "export-1", rawJson: make(10, "Corso A") },
       { source: "export-2", rawJson: make(12, "Corso B") }
     ]);
-    assert(result.conflicts.extraDifferences > 0, "Differenza quota ferie non rilevata.");
-    assert(result.conflicts.extraDifferences > 0, "Differenza formazione non rilevata.");
+    assert(quotaOnly.conflicts.extraDifferences > 0, "Differenza quota ferie non rilevata.");
+    assert(result.conflicts.extraDifferences > quotaOnly.conflicts.extraDifferences,
+      "La differenza formazione non aggiunge un conflitto extra indipendente.");
     assert(result.conflicts.identicalShiftGroups >= 1, "Turni uguali tra export non riconosciuti.");
   });
 
