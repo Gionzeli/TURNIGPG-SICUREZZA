@@ -14,9 +14,10 @@
 4. The legacy application and DSM remain separate. This is currently a safe separation; do not bridge them by passing a UID as if it were proof of authorization.
 
 ## Safe next steps (synthetic-only)
-- Define and implement a Firebase adapter that receives only verified SDK auth state, checks UID and membership/authorization, and handles expiry, revoke, account-switch, and sign-out.
+- Complete the approved identity-to-employee binding and organizational schema decisions before implementing Firestore resource loaders; current employee records do not yet have an authoritative UID/profile linkage.
+- Implement protected data endpoints only after schema and permission decisions are approved; each endpoint must reverify token revocation, reload canonical membership, resolve canonical resources, and authorize the requested operation server-side.
 - Test the adapter with mocked Firebase auth states: unauthenticated, unverified email, pending member, approved member, inactive/expired member, admin, token/session changes, and late async callbacks.
-- Add a non-operational integration harness that opens only `DSM_ENTERPRISE_TEST_DB`, uses synthetic accounts/records, and verifies isolation and cleanup across transitions.
+- Keep any integration harness non-operational, opening only `DSM_ENTERPRISE_TEST_DB`, with synthetic accounts/records and cleanup across transitions.
 - Add a read-only preview integration first. Do not change operational data reads or writes until the preview tests and security review pass.
 - Before any operational integration: review Firebase security rules, privacy/data classification, encryption and key lifecycle, backup/restore, retention/deletion, and XSS/CSP/dependency risk.
 
@@ -66,3 +67,16 @@ The two successful workflows above establish that the browser IndexedDB suite an
 - La revoca membership dopo l'attivazione è rilevata dal resolver alla successiva richiesta; non è garantita invalidazione immediata della sessione locale.
 - Non esistono ancora API protette per i dati DSM: health riporta protectedDataApisImplemented: false e authorizationImplemented: false. Nessuna operazione IndexedDB deve essere descritta come autorizzata dal server.
 - Refresh coordinato, revoca durante sessione attiva, outage/timeout e ripristino restano test/gate prima di integrazione. Non collegare un listener onIdTokenChanged senza gestire la transizione che il suo evento innesca.
+
+## Work log — verifica CI e stato d'integrazione (2026-11-26)
+
+- HEAD verificato: `7c6130190025e805bb4671a90ec8605706678df7`; PR #1 aperta, Draft e non unita.
+- Browser / Playwright sullo SHA esatto: [run 45767726435](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45767726435), completata con successo. Log: **97 test superati, 0 falliti**; inclusi adapter Firebase sintetico, lifecycle, rinnovo, AUTH-008, IndexedDB, invalidazione BroadcastChannel tra due pagine browser, CSP, cronologia, export CSV e preview locale.
+- Firestore Rules Emulator sullo stesso SHA: [run 45767726489](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45767726489), completata con successo: **38 test superati, 0 falliti, 0 saltati**.
+- I check-runs sullo SHA corrente risultano entrambi `completed/success`; nessuna esecuzione CI è attiva al momento della verifica.
+- Il confronto GitHub tra `81bcb9d0cf0ad2eff584854af6bee1c51591e980` e l'HEAD corrente mostra quattro file cambiati e **nessun file sotto `functions/`**. Questo prova che il codice Functions non è cambiato in quel tratto, ma non equivale a un'esecuzione backend emulator sullo SHA corrente.
+- La pipeline backend emulator precedentemente verificata (63 test, 0 falliti sul commit storico riportato nel log di lavoro) non viene promossa a prova CI sullo SHA corrente. Va rieseguita sul codice Functions corrente prima di considerare completato il gate backend.
+- Nessun endpoint protetto per i dati DSM è implementato: `health` continua a dichiarare `protectedDataApisImplemented: false` e `authorizationImplemented: false`. Il resolver di membership e le policy pure non sostituiscono le API dati.
+- Restano bloccanti le decisioni di schema canonico account/sede/reparto, il collegamento autorevole UID↔dipendente, la semantica own-scope, la matrice di permessi per operazione e la policy di membership multi-account/validità.
+- Nessuna modifica a `main`, root `firestore.rules`, configurazione Firebase operativa, entrypoint o composizione UI protetti; nessun accesso a dati reali, import, sincronizzazione o deploy.
+- Prossimo passo sicuro: completare le decisioni di dominio e, dopo approvazione, implementare loader e API protette isolate con test Auth/Functions/Firestore Emulator sintetici. Fino ad allora il core resta non operativo e la PR resta Draft.
