@@ -498,3 +498,5 @@ Il validatore membership ora richiede validFrom Timestamp/Date, validUntil Times
 ## 2026-11-27 — Allineamento fixture membership al lifecycle approvato
 
 La prima esecuzione backend dopo l'introduzione dei campi effective-dated ha evidenziato fixture storiche prive di `validFrom`/`validUntil`. Il validatore ha correttamente negato tali membership. Aggiornate le fixture sintetiche dei test unitari ed Emulator con timestamp espliciti; nessun rilassamento della policy runtime.
+
+- Correzione fixture unit nomination: anche gli helper compatti ora forniscono `validFrom` e `validUntil`; la policy effettiva non è stata allentata.

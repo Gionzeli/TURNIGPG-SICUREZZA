@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createAdminNomination, approveAdminNomination, cancelAdminNomination } from "../src/membership/nomination-service.js";
 
-const admin = uid => ({ uid, accountId:"ac1", status:"active", role:"admin", scopeType:"account", scopeIds:[] });
+const admin = uid => ({ uid, accountId:"ac1", status:"active", validFrom:new Date(0), validUntil:null, role:"admin", scopeType:"account", scopeIds:[] });
 function fakeDb(seed={}) {
   const store = new Map(Object.entries(seed));
   const db = {
@@ -32,7 +32,7 @@ test("creates pending nomination with active canonical admin only", async()=>{
   assert.equal(store.get("accounts/ac1/adminNominations/n1").nominatedBy,"adminA");
 });
 test("rejects non-admin proposer and duplicate nomination id",async()=>{
-  const {db,store}=fakeDb({"accounts/ac1/members/memberA":{uid:"memberA",accountId:"ac1",status:"active",role:"member",scopeType:"department",scopeIds:["d1"]}});
+  const {db,store}=fakeDb({"accounts/ac1/members/memberA":{uid:"memberA",accountId:"ac1",status:"active",validFrom:new Date(0),validUntil:null,role:"member",scopeType:"department",scopeIds:["d1"]}});
   await assert.rejects(createAdminNomination({db,accountId:"ac1",actorUid:"memberA",actorIdentity:stepUp("memberA"),nominationId:"n1",...baseNom}),e=>e.code==="permission-denied");
   store.set("accounts/ac1/members/adminA",admin("adminA"));
   await createAdminNomination({db,accountId:"ac1",actorUid:"adminA",actorIdentity:stepUp("adminA"),nominationId:"n1",...baseNom});
