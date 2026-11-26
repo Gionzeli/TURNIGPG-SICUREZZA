@@ -78,3 +78,7 @@ The Employee operation reference model now requires exactly one active binding f
 
 ### Bidirectional active Employee binding uniqueness (synthetic)
 The reference model now requires exactly one active binding per UID and exactly one active UID per Employee, scoped to the same account. A UID linked to two Employees or an Employee linked to two UIDs is denied; an identical UID or Employee value in a different account does not create a cross-account collision. This is an in-memory policy regression test only, not persistent uniqueness or server-side enforcement.
+
+
+### Duplicate canonical Employee records (synthetic)
+The reference model denies operations when more than one active Employee record matches the same account and Employee identifier. The guard is applied to placement creation, employee-bound operations, manager shift access and payroll access. This detects ambiguous fixtures in memory only; it does not establish persistent uniqueness or concurrency safety.

@@ -370,3 +370,8 @@ Rafforzato il solo modello sintetico delle operazioni Employee: richiede esattam
 ## 2026-11-26 — Harness: unicità bidirezionale binding Employee
 
 Rafforzato il solo modello sintetico: per ogni account è richiesta esattamente una binding attiva per UID e una per Employee, e le due devono essere la stessa associazione. Aggiunti test per UID associato a due Employee, Employee associato a due UID e isolamento tra account. Non dimostra unicità persistente, transazioni concorrenti o enforcement server-side. Nessuna modifica runtime, schema, storage, endpoint, Rules, provisioning, wiring, dati reali o deploy.
+
+
+## 2026-11-26 — Harness: Employee canonico duplicato fail-closed
+
+Aggiunto un controllo sintetico che richiede esattamente un record Employee attivo per account e identificativo Employee. Placement, operazioni personali, accesso manager ai turni e payroll negano in caso di record canonici duplicati. Test in-memory; non dimostra unicità persistente o protezione da concorrenza. Nessuna modifica runtime, schema, storage, endpoint, Rules, provisioning, wiring, dati reali o deploy.

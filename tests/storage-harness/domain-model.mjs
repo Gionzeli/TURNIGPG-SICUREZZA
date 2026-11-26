@@ -26,6 +26,11 @@ function accountIsActive(state, accountId) {
   return matches.length === 1;
 }
 
+function activeEmployeeMatches(state, accountId, employeeId) {
+  return state.employees.filter(x => x.accountId === accountId &&
+    x.employeeId === employeeId && x.status === "active");
+}
+
 function activeOrgMatches(state, accountId, siteId, departmentId) {
   return state.org.filter(x => x.accountId === accountId && x.siteId === siteId &&
     x.departmentId === departmentId && x.status === "active" &&
@@ -37,7 +42,7 @@ function validatePlacement(state, placement, excluded = null) {
   if (![accountId, employeeId, siteId, departmentId].every(x => typeof x === "string" && x.length > 0) ||
       !validDate(start) || (end !== null && (!validDate(end) || end <= start))) fail("invalid-placement");
   if (!accountIsActive(state, accountId)) fail("account-not-active");
-  if (!state.employees.some(x => x.accountId === accountId && x.employeeId === employeeId && x.status === "active")) fail("employee-not-active");
+  if (activeEmployeeMatches(state, accountId, employeeId).length !== 1) fail("employee-not-active-or-ambiguous");
   if (activeOrgMatches(state, accountId, siteId, departmentId).length !== 1) fail("org-not-active");
   const candidate = { accountId, employeeId, siteId, departmentId, start, end };
   if (state.placements.some(x => x !== excluded && x.accountId === accountId &&
@@ -95,12 +100,12 @@ export function authorizeNewOperation(state, { accountId, uid, employeeId, siteI
   const binding = activeForUid.length === 1 && activeForEmployee.length === 1 &&
     activeForUid[0] === activeForEmployee[0] &&
     activeForUid[0].employeeId === employeeId ? activeForUid[0] : null;
-  const employee = state.employees.find(x => x.accountId === accountId && x.employeeId === employeeId);
+  const employeeMatches = activeEmployeeMatches(state, accountId, employeeId);
   const orgMatches = activeOrgMatches(state, accountId, siteId, departmentId);
   let placement;
   try { placement = placementAt(state, accountId, employeeId, date); }
   catch { fail("permission-denied"); }
-  if (!accountIsActive(state, accountId) || !binding || !employee || employee.status !== "active" ||
+  if (!accountIsActive(state, accountId) || !binding || employeeMatches.length !== 1 ||
       orgMatches.length !== 1 || placement.siteId !== siteId || placement.departmentId !== departmentId) fail("permission-denied");
   return true;
 }
@@ -109,9 +114,9 @@ function requireActiveAccount(state, accountId) {
   if (!accountIsActive(state, accountId)) fail("permission-denied");
 }
 function requireActiveEmployee(state, accountId, employeeId) {
-  const employee = state.employees.find(x => x.accountId === accountId && x.employeeId === employeeId);
-  if (!employee || employee.status !== "active") fail("permission-denied");
-  return employee;
+  const matches = activeEmployeeMatches(state, accountId, employeeId);
+  if (matches.length !== 1) fail("permission-denied");
+  return matches[0];
 }
 export function payrollView(state, { accountId, employeeId, actorUid, permissions = [] }) {
   requireActiveAccount(state, accountId);
@@ -164,13 +169,12 @@ export function authorizeManagerShift(state, {
     Date.parse(x.expiresAt) > Date.parse(now));
   // Duplicate active grants are ambiguous; do not select one implicitly.
   const delegation = matchingDelegations.length === 1 ? matchingDelegations[0] : null;
-  const employee = state.employees.find(x =>
-    x.accountId === accountId && x.employeeId === employeeId && x.status === "active");
+  const employeeMatches = activeEmployeeMatches(state, accountId, employeeId);
   const orgMatches = activeOrgMatches(state, accountId, siteId, departmentId);
   let placement;
   try { placement = placementAt(state, accountId, employeeId, date); }
   catch { fail("permission-denied"); }
-  if (!accountIsActive(state, accountId) || !delegation || !employee || orgMatches.length !== 1 ||
+  if (!accountIsActive(state, accountId) || !delegation || employeeMatches.length !== 1 || orgMatches.length !== 1 ||
       placement.siteId !== siteId || placement.departmentId !== departmentId) fail("permission-denied");
   return true;
 }

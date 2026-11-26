@@ -448,3 +448,24 @@ test("Employee binding enforces active one-to-one identity in both directions wi
     employeeId:"emp-2", status:"active" });
   assert.equal(authorizeNewOperation(otherAccount, args), true);
 });
+
+
+test("duplicate active canonical Employee records deny placement, self-service, manager and payroll", () => {
+  const s = placedFixture();
+  s.employees.push({ ...s.employees[0] });
+  const selfArgs = { accountId:"acct-a", uid:"uid-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01" };
+  assert.throws(() => authorizeNewOperation(s, selfArgs), { code:"permission-denied" });
+  assert.throws(() => addPlacement(s, { accountId:"acct-a", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", start:"2027-01-01" }),
+    { code:"employee-not-active-or-ambiguous" });
+  assert.throws(() => payrollView(s, { accountId:"acct-a", employeeId:"emp-1",
+    actorUid:"actor-1", permissions:["payroll:read"] }), { code:"permission-denied" });
+
+  s.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", status:"active",
+    expiresAt:"2026-03-01T00:00:00Z", permissions:["shift:read"] });
+  assert.throws(() => authorizeManagerShift(s, { accountId:"acct-a", managerUid:"manager-1",
+    employeeId:"emp-1", siteId:"site-1", departmentId:"dept-1", date:"2026-02-01",
+    now:"2026-02-01T12:00:00Z", operation:"read" }), { code:"permission-denied" });
+});
