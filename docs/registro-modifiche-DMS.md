@@ -390,3 +390,8 @@ Aggiunto il primo adapter server-only Firestore per risolvere il binding tramite
 ## 2026-11-26 — Employee loader: lifecycle account fail-closed
 
 Il loader Firestore ora verifica nella stessa transazione che il documento account esista e abbia `status: active`, oltre al lifecycle Employee. Estesi i test Emulator per account sospeso e mirror inverso mancante. I dati non vengono restituiti se account o associazione sono mancanti/incoerenti. Nessuna API o modifica alle Rules operative.
+
+
+## 2026-11-26 — Provisioning Employee manuale a doppia approvazione
+
+Aggiunto servizio Firestore transazionale per proposta e approvazione Employee. Richiede account attivo, amministratori canonici attivi con identità TOTP recente verificata dal backend, proponente e approvatore distinti, membro target già attivo e ticket opaco di verifica manuale. L'approvazione crea Employee, due prenotazioni binding UID/Employee, transizione proposta e audit nella stessa transazione; duplicati e rebinding vengono rifiutati. Aggiunto test Emulator sintetico per happy path, self-approval negata e collisione UID. Il servizio è interno, non esposto come callable; il test usa identity fixture sintetiche e non prova il flusso TOTP Firebase reale.

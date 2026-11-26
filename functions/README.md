@@ -71,3 +71,10 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - The Employee loader checks account ownership and active lifecycle; the legacy `profileId` contract maps to canonical `employeeId`.
 - The Firestore Emulator integration test covers valid resolution, inconsistent reverse binding, suspended Employee, and revoked binding.
 - This is a server-side loader module, not a callable endpoint. It must be invoked only after token verification and canonical membership resolution. Admin SDK bypasses Rules; the calling endpoint remains responsible for all authorization.
+
+
+## Manual Employee provisioning service (internal, Emulator-tested)
+- `src/membership/employee-provisioning-service.js` implements proposal and distinct-admin approval.
+- Approval requires a verified recent TOTP identity, active account, active proposer and target member; Employee creation, mirrored UID/Employee reservations, proposal transition and audit are atomic.
+- Duplicate Employee/UID reservations deny; no silent overwrite or rebinding.
+- The service is not yet exposed as a callable. Emulator tests use synthetic verified-identity fixtures and do not establish real Firebase TOTP assurance.
