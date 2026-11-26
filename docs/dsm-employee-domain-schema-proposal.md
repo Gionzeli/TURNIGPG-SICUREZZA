@@ -339,3 +339,8 @@ Nessuna autorizzazione a loader, endpoint/callable, Rules, migrazioni, provision
 ## 21. Protocollo di prova comparativa storage — 2026-11-26
 
 È stato aggiunto `docs/dsm-employee-storage-test-protocol.md`, piano T01–T20 per concorrenza UID↔Employee, idempotenza, isolamento account, revisioni, trasferimenti e placement storico, revoca/lifecycle, atomicità e attribuzione audit, payroll, minimizzazione assenze, query scope e partial failure. Il protocollo è documentale e non è stato eseguito. Richiede fixture esclusivamente sintetiche e approvazione separata del candidato e dell'ambiente di test. Non seleziona storage/schema fisico e non autorizza harness, driver, Rules, endpoint, migrazioni, provisioning o wiring.
+
+
+## Harness sintetico autorizzato — 2026-11-26
+
+Su autorizzazione esplicita è stato aggiunto `tests/storage-harness/` con due modelli in-memory semplificati (Firestore optimistic-transaction model e PostgreSQL serialized-transaction model), test Node `node:test` e README. Il perimetro copre binding UID↔Employee 1:1 entro account, retry idempotente/conflittuale e rollback in caso di errore audit. Non sono adapter reali e non provano garanzie effettive Firestore/PostgreSQL. Nessun SDK/driver, emulator, cloud project, network, credenziale, schema fisico, collection, tabella, indice, Rules o codice applicativo è coinvolto. Harness aggiunto ma non eseguito in questo ambiente; nessun risultato di test dichiarato. Estensioni per placement, revoca, lifecycle, payroll, assenze e crash recovery restano da fare e richiedono successiva verifica. Nessun deploy.

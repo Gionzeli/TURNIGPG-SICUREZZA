@@ -281,3 +281,8 @@ La raccomandazione è mantenere il dominio storage-agnostic e sottoporre Firesto
 ## Protocollo di prova comparativa storage Employee — 2026-11-26
 
 Aggiunto `docs/dsm-employee-storage-test-protocol.md` con 20 scenari sintetici T01–T20, oracoli di correttezza, misure e gate distinti per Firestore e PostgreSQL. Il documento non costituisce esecuzione: nessun test datastore o benchmark è stato eseguito. Ogni harness concreto richiederà approvazione dello storage candidato, ambiente isolato e autorizzazione specifica. Nessuna modifica runtime o scelta di schema fisico; EMP-10 resta invariata.
+
+
+## Harness sintetico autorizzato — 2026-11-26
+
+Su autorizzazione esplicita è stato aggiunto `tests/storage-harness/` con due modelli in-memory semplificati (Firestore optimistic-transaction model e PostgreSQL serialized-transaction model), test Node `node:test` e README. Il perimetro copre binding UID↔Employee 1:1 entro account, retry idempotente/conflittuale e rollback in caso di errore audit. Non sono adapter reali e non provano garanzie effettive Firestore/PostgreSQL. Nessun SDK/driver, emulator, cloud project, network, credenziale, schema fisico, collection, tabella, indice, Rules o codice applicativo è coinvolto. Harness aggiunto ma non eseguito in questo ambiente; nessun risultato di test dichiarato. Estensioni per placement, revoca, lifecycle, payroll, assenze e crash recovery restano da fare e richiedono successiva verifica. Nessun deploy.

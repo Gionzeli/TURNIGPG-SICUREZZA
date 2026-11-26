@@ -104,3 +104,10 @@ Non stabilire SLO, volumi o soglie economiche senza requisiti del responsabile d
 ## 8. Limiti di questa fase
 
 Questo documento è un protocollo, non un risultato di test. Nessun test Firestore/PostgreSQL è stato eseguito; nessun benchmark o garanzia è dichiarato. Nessun path, collection, tabella, indice, driver, progetto cloud o servizio è stato creato o selezionato. Nessuna implementazione, Rules, migrazione, provisioning, loader, endpoint/callable, wiring, credenziale, dato reale o deploy è autorizzato. EMP-10 resta invariata.
+
+
+## 9. Harness di riferimento autorizzato
+
+È stato aggiunto `tests/storage-harness/` con modelli in-memory semplificati e test per il sottoinsieme iniziale di invarianti: binding UID↔Employee 1:1, retry idempotente/conflittuale, isolamento namespace account e rollback mutazione/audit. Il comando previsto è `node --test tests/storage-harness/*.test.mjs` dalla root repository. Il codice non usa SDK, driver, emulator, rete, credenziali, schema fisico o servizi cloud.
+
+**Limite essenziale:** i due modelli simulano forme transazionali semplificate; non sono adapter Firestore/PostgreSQL e non dimostrano le garanzie reali dei database. Il harness non è stato eseguito in questo ambiente. Nessun test superato viene dichiarato. Non copre ancora placement, revoca, lifecycle, payroll, assenze, query, crash recovery o durabilità/reload. Per tali proprietà e per test datastore reali servirà una distinta autorizzazione/approvazione dell'ambiente isolato.
