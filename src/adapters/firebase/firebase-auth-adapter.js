@@ -131,8 +131,16 @@ export function createFirebaseAuthAdapter({
       throw deny("Autorizzazione account non disponibile.");
     }
 
-    // A newer auth event wins over every late token/authorization response.
+    // A newer auth event or account selection wins over every late response.
     if (disposed || generation !== capturedGeneration || currentUser !== user) return null;
+    let currentAccountId;
+    try {
+      currentAccountId = await getAccountId();
+    } catch {
+      throw deny("Selettore account non disponibile dopo l'autorizzazione.");
+    }
+    if (disposed || generation !== capturedGeneration || currentUser !== user ||
+        currentAccountId !== selectedAccountId) return null;
 
     const principal = authorization?.principal;
     if (!authorization || authorization.authorizationSource !== "server" ||

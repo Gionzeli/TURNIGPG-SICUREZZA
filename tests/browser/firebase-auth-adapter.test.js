@@ -207,6 +207,30 @@ export async function runFirebaseAuthAdapterTests() {
     adapter.dispose();
   });
 
+  await test("account selection change during resolver discards late principal", async () => {
+    const user = syntheticUser("synthetic-account-race");
+    const fake = fakeAuth(user);
+    let selectedAccountId = "synthetic-account-before";
+    let release;
+    let resolverStarted;
+    const started = new Promise(resolve => { resolverStarted = resolve; });
+    const adapter = createFirebaseAuthAdapter({
+      auth: fake.auth,
+      onAuthStateChanged: fake.onAuthStateChanged,
+      getAccountId: async () => selectedAccountId,
+      resolveAuthorization: ({ uid, accountId }) => new Promise(resolve => {
+        resolverStarted();
+        release = () => resolve(activeAuthorization(uid, { accountId }));
+      })
+    });
+    const pending = adapter.getPrincipal();
+    await started;
+    selectedAccountId = "synthetic-account-after";
+    release();
+    assert.equal(await pending, null);
+    adapter.dispose();
+  });
+
   await test("resolver failure is fail-closed and dispose unsubscribes", async () => {
     const fake = fakeAuth(syntheticUser("synthetic-resolver-error"));
     const adapter = createFirebaseAuthAdapter({
