@@ -52,3 +52,11 @@ test("effective dates and membership lifecycle fail closed", () => {
   assert.equal(validateCanonicalMembership(valid, "userA", "acct1", now - 2000), null);
   assert.equal(validateCanonicalMembership(valid, "userA", "acct1", now + 2000), null);
 });
+
+
+test("account admin receives the explicit department-transfer permission", () => {
+  const admin = validateCanonicalMembership({
+    ...base, role: "admin", scopeType: "account", scopeIds: []
+  }, "userA", "acct1");
+  assert.ok(admin.permissions.includes("dsm:transfer:departments"));
+});

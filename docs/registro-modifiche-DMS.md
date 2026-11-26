@@ -504,3 +504,6 @@ La prima esecuzione backend dopo l'introduzione dei campi effective-dated ha evi
 - Il servizio di trasferimento ora include un authorizer transazionale predefinito: ricarica la membership effective-dated e verifica permesso, ruolo e scope su entrambe le sedi. Il test Emulator usa la policy canonica e verifica il diniego a manager non assegnato alla destinazione.
 
 - Corretto il test di replay stale per usare il nuovo authorizer canonico (nessun callback sintetico residuo); aggiunto caso di account privo di schemaVersion che deve negare la risoluzione.
+
+- Corretto l'allineamento della matrice: anche l'admin account-scoped riceve il permesso esplicito `dsm:transfer:departments`; il manager continua a richiedere scope su entrambe le sedi. Aggiornato il test unitario.
+- Resa più resiliente l'installazione Playwright CI: installa Chromium senza invocare apt/system-deps esterni, il cui repository Microsoft ha restituito HTTP 403 nell'ultima run. Le librerie native saranno verificate dal test browser.

@@ -48,7 +48,7 @@ Permessi derivati esclusivamente dal server; campi permissions client/stored non
 |---|---|---|
 | member | `dsm:read:own-scope` | Solo dati propri collegati a binding Employee attivo. Nessuna gestione organizzativa, payroll o dati salute. |
 | manager | `dsm:read:site`, `dsm:manage:site`, `dsm:manage:departments`, `dsm:transfer:departments` | Solo site assegnati; dipartimenti autorizzati via relazione corrente; nessun account-wide, membership, payroll o contenuto sanitario. |
-| admin | `dsm:read:account`, `dsm:manage:account`, `dsm:manage:memberships`, `dsm:manage:admin-nominations` | Scope account. Non implica payroll, dati sanitari o export. |
+| admin | `dsm:read:account`, `dsm:manage:account`, `dsm:manage:memberships`, `dsm:manage:admin-nominations`, `dsm:transfer:departments` | Scope account. Non implica payroll, dati sanitari o export. |
 
 Semantica:
 - `read`: sola lettura del dominio indicato.
