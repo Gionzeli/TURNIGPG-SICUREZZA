@@ -97,3 +97,29 @@ test("malformed principal, mode and placement fail closed", () => {
     assert.throws(() => authorizeEmployeeDomainOperation(args), e => e.code === "permission-denied");
   }
 });
+
+test("principal shape and placement interval dates are strictly validated", () => {
+  const malformedPrincipals = [
+    { ...selfPrincipal, role: "owner" },
+    { ...selfPrincipal, scopeIds: ["dept-1", "dept-1"] },
+    { ...selfPrincipal, permissions: "dsm:read:shifts:self" }
+  ];
+  for (const principal of malformedPrincipals) {
+    assert.throws(() => authorizeEmployeeDomainOperation({
+      principal, permission: "dsm:read:shifts:self",
+      accessMode: "self", employeeBinding: binding, employeeId: "employee-1"
+    }), e => e.code === "permission-denied");
+  }
+  for (const invalidPlacement of [
+    { ...placement, validFrom: "2026-02-30" },
+    { ...placement, validFrom: "2026-1-01" },
+    { ...placement, validUntil: "2025-12-31" },
+    { ...placement, validUntil: "2026-02-30" }
+  ]) {
+    assert.throws(() => authorizeEmployeeDomainOperation({
+      principal: manager, permission: "dsm:read:shifts:site",
+      accessMode: "delegated", employeeId: "employee-2",
+      placement: invalidPlacement
+    }), e => e.code === "permission-denied");
+  }
+});

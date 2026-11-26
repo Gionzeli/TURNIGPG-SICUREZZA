@@ -454,3 +454,8 @@ Esteso il test Emulator della disponibilità assenze con casi di authorizer che 
 ## 2026-11-27 — Primitive fail-closed per autorizzazione Employee per dominio
 
 Aggiunto `employee-domain-authorization.js`: modalità self richiede binding UID↔Employee attivo e revisione valida; modalità delegated richiede permission esatta per dominio/operazione e placement canonico coerente con account/Employee, poi applica il controllo scope esistente. I permessi proposti non sono aggiunti alla allowlist dei ruoli e non vengono esposti endpoint. Test unitari coprono spoof Employee, binding revocato/mismatch, permission generica insufficiente, payroll deny-default e scope manager cross-site.
+
+ 
+## 2026-11-27 — Validazione rigorosa principal e intervalli placement
+
+Rafforzata la primitive Employee domain authorization: il principal deve avere ruolo, scope, array di scope ID univoci e permission strutturalmente validi anche nel percorso self; i placement delegati richiedono date ISO calendariali reali e intervalli non vuoti/non invertiti. Aggiunti test negativi per ruoli sconosciuti, scope duplicati, permission malformate, date impossibili e intervalli invertiti. La verifica resta una policy pura: non sostituisce loader canonici, controllo lifecycle o autorizzazione temporale rispetto alla data della singola operazione.

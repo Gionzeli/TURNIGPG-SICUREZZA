@@ -131,3 +131,6 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - `src/membership/employee-domain-authorization.js` composes a verified canonical principal with either the active UID↔Employee binding (self access) or a canonical Employee placement plus an exact domain-operation permission (delegated access).
 - The helper is pure and internal; it is not exported as a callable and performs no Firestore reads. Callers must load principal, binding and placement from trusted server-side loaders in the same transaction as the protected operation.
 - Proposed permissions such as `dsm:read:shifts:self`, `dsm:read:shifts:site` and `dsm:read:payroll:account` are deliberately not added to the current role allowlist. Existing generic role permissions do not grant Employee-domain or payroll access.
+
+ 
+- The Employee domain authorization primitive validates canonical principal structure on both self and delegated paths, including role/scope/permission structure. Delegated placement intervals require real canonical ISO calendar dates and a strictly increasing end date when bounded. This remains a pure policy helper: trusted transactional loaders must still enforce lifecycle and select the placement valid at the protected operation's effective date.
