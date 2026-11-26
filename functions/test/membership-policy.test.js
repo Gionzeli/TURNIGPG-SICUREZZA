@@ -60,3 +60,12 @@ test("account admin receives the explicit department-transfer permission", () =>
   }, "userA", "acct1");
   assert.ok(admin.permissions.includes("dsm:transfer:departments"));
 });
+
+
+test("admin permission matrix contains explicit site and department archive grants", () => {
+  const admin = validateCanonicalMembership({
+    ...base, role: "admin", scopeType: "account", scopeIds: []
+  }, "userA", "acct1");
+  assert.ok(admin.permissions.includes("dsm:archive:site"));
+  assert.ok(admin.permissions.includes("dsm:archive:department"));
+});

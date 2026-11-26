@@ -1,6 +1,12 @@
 import { validateCanonicalMembership } from "./membership-policy.js";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
+const ISO_DATE = /^\\d{4}-\\d{2}-\\d{2}$/;
+function validDate(value) {
+  if (typeof value !== "string" || !ISO_DATE.test(value)) return false;
+  const d = new Date(value + "T00:00:00Z");
+  return !Number.isNaN(d.getTime()) && d.toISOString().slice(0, 10) === value;
+}
 const validId = value => typeof value === "string" && ID.test(value);
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
 function validLabel(value) { return typeof value === "string" && value.trim().length >= 1 && value.trim().length <= 120; }
@@ -115,11 +121,16 @@ export async function archiveDepartment({ db, accountId, actorUid, departmentId,
     if (principal.role !== "admin" || !principal.permissions.includes("dsm:archive:department")) {
       fail("permission-denied", "Account admin with department-archive permission required.");
     }
-    const hasCurrentPlacement = placementSnap.docs.some(doc => {
+    for (const doc of placementSnap.docs) {
       const d = doc.data();
-      return d.accountId === accountId && d.departmentId === departmentId && d.validUntil === null;
-    });
-    if (hasCurrentPlacement) fail("failed-precondition", "Transfer or close current Employee placements before archiving the department.");
+      if (d.accountId !== accountId || d.departmentId !== departmentId) continue;
+      if (!validId(d.employeeId) || !validId(d.placementId) ||
+          !validDate(d.validFrom) ||
+          (d.validUntil !== null && (!validDate(d.validUntil) || d.validUntil <= d.validFrom))) {
+        fail("failed-precondition", "Malformed Employee placement prevents department archival.");
+      }
+      if (d.validUntil === null) fail("failed-precondition", "Transfer or close current Employee placements before archiving the department.");
+    }
     const hasMemberAssignment = memberSnap.docs.some(doc => {
       const m = validateCanonicalMembership(doc.data(), doc.id, accountId, timestamp);
       return m?.role === "member" && m.scopeType === "department" && m.scopeIds.includes(departmentId);

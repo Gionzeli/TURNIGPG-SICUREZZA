@@ -88,3 +88,100 @@ test("Firestore Emulator: canonical organization lifecycle and department transf
     await deleteApp(app);
   }
 });
+
+
+test("Firestore Emulator: organization create/archive generates IDs and enforces active dependencies", { skip: !enabled }, async () => {
+  const app = initializeApp({ projectId: "demo-dsm-membership" }, "organization-mutations-service");
+  const db = getFirestore(app);
+  const accountId = "synthetic-org-mutation-account";
+  const account = db.doc(`accounts/${accountId}`);
+  const members = db.collection(`accounts/${accountId}/members`);
+  const sites = db.collection(`accounts/${accountId}/sites`);
+  const departments = db.collection(`accounts/${accountId}/departments`);
+  const audits = db.collection(`accounts/${accountId}/organizationAudit`);
+  const employeePlacements = db.collection(`accounts/${accountId}/employees/employee-1/placements`);
+  const { createSite, createDepartment, archiveDepartment, archiveSite } =
+    await import("../src/membership/organization-mutation-service.js");
+  try {
+    await Promise.all([
+      account.set({ accountId, status: "active", schemaVersion: 1, version: 1 }),
+      members.doc("synthetic-admin").set({
+        uid: "synthetic-admin", accountId, status: "active", validFrom: new Date(0),
+        validUntil: null, role: "admin", scopeType: "account", scopeIds: []
+      })
+    ]);
+    const createdSite = await createSite({
+      db, accountId, actorUid: "synthetic-admin", displayName: "Synthetic site",
+      reasonCode: "initial-setup", now: () => 1000
+    });
+    assert.match(createdSite.siteId, /^[A-Za-z0-9_-]{20}$/);
+    const siteDoc = await sites.doc(createdSite.siteId).get();
+    assert.equal(siteDoc.data().status, "active");
+    assert.equal(siteDoc.data().version, 1);
+    const createdDepartment = await createDepartment({
+      db, accountId, actorUid: "synthetic-admin", siteId: createdSite.siteId,
+      displayName: "Synthetic department", reasonCode: "initial-setup", now: () => 1100
+    });
+    assert.match(createdDepartment.departmentId, /^[A-Za-z0-9_-]{20}$/);
+    assert.notEqual(createdDepartment.departmentId, "client-selected-id");
+    await assert.rejects(archiveSite({
+      db, accountId, actorUid: "synthetic-admin", siteId: createdSite.siteId,
+      reasonCode: "site-close", now: () => 1200
+    }), error => error.code === "failed-precondition");
+
+    await employeePlacements.doc("placement-current").set({
+      accountId, employeeId: "employee-1", placementId: "placement-current",
+      siteId: createdSite.siteId, departmentId: createdDepartment.departmentId,
+      validFrom: "2026-01-01", validUntil: null, revision: 1
+    });
+    await assert.rejects(archiveDepartment({
+      db, accountId, actorUid: "synthetic-admin", departmentId: createdDepartment.departmentId,
+      reasonCode: "dept-close", now: () => 1300
+    }), error => error.code === "failed-precondition");
+    await employeePlacements.doc("placement-current").delete();
+
+    await members.doc("synthetic-member").set({
+      uid: "synthetic-member", accountId, status: "active", validFrom: new Date(0),
+      validUntil: null, role: "member", scopeType: "department", scopeIds: [createdDepartment.departmentId]
+    });
+    await assert.rejects(archiveDepartment({
+      db, accountId, actorUid: "synthetic-admin", departmentId: createdDepartment.departmentId,
+      reasonCode: "dept-close", now: () => 1400
+    }), error => error.code === "failed-precondition");
+    await members.doc("synthetic-member").update({ status: "revoked" });
+    const archivedDepartment = await archiveDepartment({
+      db, accountId, actorUid: "synthetic-admin", departmentId: createdDepartment.departmentId,
+      reasonCode: "dept-close", now: () => 1500
+    });
+    assert.equal(archivedDepartment.status, "archived");
+
+    await members.doc("synthetic-manager").set({
+      uid: "synthetic-manager", accountId, status: "active", validFrom: new Date(0),
+      validUntil: null, role: "manager", scopeType: "site", scopeIds: [createdSite.siteId]
+    });
+    await assert.rejects(archiveSite({
+      db, accountId, actorUid: "synthetic-admin", siteId: createdSite.siteId,
+      reasonCode: "site-close", now: () => 1600
+    }), error => error.code === "failed-precondition");
+    await members.doc("synthetic-manager").update({ status: "revoked" });
+    const archivedSite = await archiveSite({
+      db, accountId, actorUid: "synthetic-admin", siteId: createdSite.siteId,
+      reasonCode: "site-close", now: () => 1700
+    });
+    assert.equal(archivedSite.status, "archived");
+    const auditActions = (await audits.get()).docs.map(doc => doc.data().action).sort();
+    assert.deepEqual(auditActions, [
+      "department.archived", "department.created", "site.archived", "site.created"
+    ]);
+  } finally {
+    const [auditDocs, departmentDocs, siteDocs, placementDocs, memberDocs] = await Promise.all([
+      audits.get(), departments.get(), sites.get(), employeePlacements.get(), members.get()
+    ]);
+    await Promise.all([
+      ...auditDocs.docs, ...departmentDocs.docs, ...siteDocs.docs,
+      ...placementDocs.docs, ...memberDocs.docs
+    ].map(doc => doc.ref.delete()));
+    await account.delete();
+    await deleteApp(app);
+  }
+});
