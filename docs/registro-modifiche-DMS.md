@@ -276,3 +276,8 @@ L'approvazione non autorizza loader, endpoint/callable, Rules, migrazioni, provi
 A seguito dell'approvazione EMP-10 è stata preparata `docs/dsm-employee-storage-comparison.md`. Il confronto documentale valuta Firestore e PostgreSQL come candidati non selezionati e IndexedDB come soluzione esclusa quale archivio canonico (ammissibile solo come cache non autorevole). Sono esplicitati i requisiti di tenancy, unicità bidirezionale, atomicità/concorrenza, placement e storico, lifecycle/revoche, audit, separazione payroll/assenze, query/indici e testabilità.
 
 La raccomandazione è mantenere il dominio storage-agnostic e sottoporre Firestore e PostgreSQL a una decisione del responsabile dello schema dopo prove sintetiche e valutazione operativa. Non sono stati scelti path, collection, tabelle, indici o servizi. Questa è una specifica comparativa, non un'approvazione tecnologica e non autorizza implementazione, loader, endpoint, Rules, migrazioni, provisioning, wiring, dati reali o deploy. Nessuna modifica runtime.
+
+
+## Protocollo di prova comparativa storage Employee — 2026-11-26
+
+Aggiunto `docs/dsm-employee-storage-test-protocol.md` con 20 scenari sintetici T01–T20, oracoli di correttezza, misure e gate distinti per Firestore e PostgreSQL. Il documento non costituisce esecuzione: nessun test datastore o benchmark è stato eseguito. Ogni harness concreto richiederà approvazione dello storage candidato, ambiente isolato e autorizzazione specifica. Nessuna modifica runtime o scelta di schema fisico; EMP-10 resta invariata.

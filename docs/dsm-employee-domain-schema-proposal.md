@@ -334,3 +334,8 @@ Questa approvazione è esclusivamente architetturale/documentale. Non autorizza 
 È stata aggiunta `docs/dsm-employee-storage-comparison.md`, confronto preliminare tra Firestore, PostgreSQL, IndexedDB e ibrido. Il documento valuta requisiti, vantaggi, limiti e prove mancanti senza selezionare tecnologia o schema fisico. IndexedDB è escluso come fonte canonica Employee, ma può essere valutato come cache non autorevole. Firestore e PostgreSQL restano candidati non selezionati; la decisione è riservata al responsabile dello schema.
 
 Nessuna autorizzazione a loader, endpoint/callable, Rules, migrazioni, provisioning, wiring, accesso a dati reali o deploy. Nessuna modifica runtime.
+
+
+## 21. Protocollo di prova comparativa storage — 2026-11-26
+
+È stato aggiunto `docs/dsm-employee-storage-test-protocol.md`, piano T01–T20 per concorrenza UID↔Employee, idempotenza, isolamento account, revisioni, trasferimenti e placement storico, revoca/lifecycle, atomicità e attribuzione audit, payroll, minimizzazione assenze, query scope e partial failure. Il protocollo è documentale e non è stato eseguito. Richiede fixture esclusivamente sintetiche e approvazione separata del candidato e dell'ambiente di test. Non seleziona storage/schema fisico e non autorizza harness, driver, Rules, endpoint, migrazioni, provisioning o wiring.
