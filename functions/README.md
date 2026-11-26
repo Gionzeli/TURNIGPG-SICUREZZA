@@ -64,3 +64,10 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - Canonical Employee paths are tenant-scoped under `accounts/{accountId}`; binding uses mirrored UID and Employee reservation documents in a single Firestore transaction.
 - `profileId` in the existing policy contract maps explicitly to canonical `employeeId`.
 - This selection authorizes implementation and Emulator tests only. Do not connect this scaffold to a real Firebase project, deploy, import real data, or wire the operational UI.
+
+
+## Employee Firestore loader (Emulator-only validation)
+- `src/membership/employee-firestore-loaders.js` reads both canonical binding reservation documents and rejects missing/inconsistent mirrors.
+- The Employee loader checks account ownership and active lifecycle; the legacy `profileId` contract maps to canonical `employeeId`.
+- The Firestore Emulator integration test covers valid resolution, inconsistent reverse binding, suspended Employee, and revoked binding.
+- This is a server-side loader module, not a callable endpoint. It must be invoked only after token verification and canonical membership resolution. Admin SDK bypasses Rules; the calling endpoint remains responsible for all authorization.

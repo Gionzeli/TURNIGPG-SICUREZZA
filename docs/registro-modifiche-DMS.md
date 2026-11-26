@@ -380,3 +380,8 @@ Aggiunto un controllo sintetico che richiede esattamente un record Employee atti
 ## 2026-11-26 — Decisione storage canonico Employee: Firestore
 
 L'utente ha autorizzato la scelta e l'implementazione dello storage. Selezionato Firestore per continuità con Functions/Admin SDK e disponibilità dell'Emulator; PostgreSQL resta alternativa se le prove di contesa/query/atomicità non soddisfano i requisiti. Definiti percorsi tenant-scoped per Employee, binding bidirezionale, placement, controllo revisioni, turni, assenze, payroll e audit in `docs/dsm-employee-firestore-decision.md`. `profileId` viene mappato esplicitamente a `employeeId`. Prossimo incremento: adapter server-side e test Emulator. Nessun progetto Firebase reale, credenziali, dati reali, deploy, merge, main o wiring UI.
+
+
+## 2026-11-26 — Adapter Firestore Employee: risoluzione binding canonico
+
+Aggiunto il primo adapter server-only Firestore per risolvere il binding tramite le due prenotazioni UID/Employee e verificare che concordino su account, UID, Employee, stato e revisione. Il loader Employee controlla il lifecycle attivo e mappa `profileId` → `employeeId`. Aggiunto test Firestore Emulator per risoluzione valida, mirror incoerente, Employee sospeso e binding revocato. Nessun endpoint callable, provisioning, UI wiring, accesso a progetto reale o deploy.
