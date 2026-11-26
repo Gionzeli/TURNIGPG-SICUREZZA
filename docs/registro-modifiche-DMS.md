@@ -502,3 +502,5 @@ La prima esecuzione backend dopo l'introduzione dei campi effective-dated ha evi
 - Correzione fixture unit nomination: anche gli helper compatti ora forniscono `validFrom` e `validUntil`; la policy effettiva non è stata allentata.
 
 - Il servizio di trasferimento ora include un authorizer transazionale predefinito: ricarica la membership effective-dated e verifica permesso, ruolo e scope su entrambe le sedi. Il test Emulator usa la policy canonica e verifica il diniego a manager non assegnato alla destinazione.
+
+- Corretto il test di replay stale per usare il nuovo authorizer canonico (nessun callback sintetico residuo); aggiunto caso di account privo di schemaVersion che deve negare la risoluzione.

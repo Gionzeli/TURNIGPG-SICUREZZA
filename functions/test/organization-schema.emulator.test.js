@@ -30,6 +30,9 @@ test("Firestore Emulator: canonical organization lifecycle and department transf
     ]);
     assert.equal((await loaders.loadDepartment(accountId, sourceSiteId, departmentId)).departmentId, departmentId);
     assert.equal(await loaders.loadDepartment(accountId, destinationSiteId, departmentId), null);
+    await account.set({ accountId, status: "active", version: 1 });
+    assert.equal(await loaders.loadDepartment(accountId, sourceSiteId, departmentId), null);
+    await account.set({ accountId, status: "active", schemaVersion: 1, version: 1 });
     const moved = await transferDepartment({
       db, accountId, departmentId, sourceSiteId, destinationSiteId,
       expectedVersion: 1, actorUid: "synthetic-admin", reasonCode: "org-transfer",
@@ -51,7 +54,7 @@ test("Firestore Emulator: canonical organization lifecycle and department transf
     await assert.rejects(transferDepartment({
       db, accountId, departmentId, sourceSiteId: destinationSiteId,
       destinationSiteId: sourceSiteId, expectedVersion: 1, actorUid: "synthetic-admin",
-      reasonCode: "stale-replay", now: () => 123456790, authorizeActor
+      reasonCode: "stale-replay", now: () => 123456790
     }), error => error.code === "failed-precondition");
     const competing = await Promise.allSettled([
       transferDepartment({
