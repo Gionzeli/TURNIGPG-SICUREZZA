@@ -31,13 +31,13 @@
 - Test sintetici aggiunti al runner Node `node --test`.
 - Workflow `membership-service-tests` sul commit `19a3ab41...`: **success** (inclusi test Node del backend e test emulator Auth/Functions/Firestore).
 - Workflow `firestore-rules-emulator` sullo stesso commit: **success**.
-- Workflow `indexeddb-browser-tests`: ancora in esecuzione al momento dell'ultimo controllo; non incluso nel giudizio sul modulo binding.
+- Workflow `indexeddb-browser-tests`: **success**.
 
 **Commit / verifica**
 
 - Commit precedente: `b7f6c8ecc7999f2b19566154a84b789eef7b5a80`.
 - Commit della correzione isolata: `19a3ab41ba9aa4551c33655577307934fe1e49b3` (verificato su branch e PR).
-- Stato CI aggiornato: 2 check conclusi con `success` (`membership-service-tests`, `firestore-rules-emulator`); `indexeddb-browser-tests` ancora `in_progress`.
+- Stato CI finale sul commit del codice `19a3ab41...`: tutti e 3 i check conclusi con `success` (`membership-service-tests`, `firestore-rules-emulator`, `indexeddb-browser-tests`).
 - Deploy: non eseguito.
 
 ## Registro audit aperto
