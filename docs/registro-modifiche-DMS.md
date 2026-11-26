@@ -83,3 +83,28 @@ Non collegare il binding a un record IndexedDB, a un nome/email, a un campo scel
 **Prossima attività sicura:** preparare una decisione di schema limitata all'entità dipendente e ai riferimenti di turni/assenze, mantenendola come proposta non operativa. Nessuna scelta di percorso Firestore, cardinalità o provisioning è stata inferita.
 
 **Verifica PR:** PR #1 è ancora aperta e Draft, branch `dsm-enterprise/core-v1`, HEAD `842714a8d3bd3ca4f0ead462c3fb0c6d9b0b3f0c`; nessun merge, deploy o dato reale.
+
+
+## 2026-11-26 — Proposta del dominio dipendente e riferimenti a turni/assenze
+
+**Documento:** `docs/dsm-employee-domain-schema-proposal.md`.
+**Stato:** proposta documentale non operativa; nessun path Firestore o campo runtime approvato.
+
+### Direzione raccomandata per la revisione
+
+- Introdurre una entità Employee minimale, con ID opaco, immutabile e account-scoped, distinta dai dati payroll.
+- Il binding A deve puntare all'identità dipendente canonica; prima del loader occorre decidere se il suo `profileId` esistente diventa l'ID Employee o se si aggiorna il contratto.
+- Separare placement organizzativo (sede/reparto e validità) e termini/payroll.
+- Collegare ogni turno e assenza a Employee con riferimento server-authoritative; la proprietà non è dimostrata da ID forniti dal client.
+- Applicare permessi diversi per self-service, delega manager, payroll e categoria sensibile delle assenze.
+- Conservare la proprietà storica dei record dopo trasferimenti/cessazioni; la policy di visibilità storica resta da approvare.
+
+### Decisioni aperte
+
+EMP-01…EMP-10 coprono separazione Employee/payroll, compatibilità `profileId`, cardinalità UID↔Employee, placement, ownership turni, privacy assenze, payroll permissions, lifecycle, provisioning e tecnologia/percorso backend. I default nel documento sono raccomandazioni prudenziali, non decisioni approvate.
+
+### Verifiche CI e PR
+
+- Sul precedente HEAD `ae72c20ba12a5417ff6ecb8ca7e623d490dd96c8`, i workflow `indexeddb-browser-tests` e `firestore-rules-emulator` risultano `success`.
+- Questo commit contiene solo documentazione: non attiva necessariamente il workflow backend Functions; non attribuire a questo SHA test del backend non eseguiti.
+- Nessuna modifica runtime, Firestore Rules, `main`, deploy, migrazione o dato reale.
