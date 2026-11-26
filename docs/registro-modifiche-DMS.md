@@ -169,3 +169,19 @@ La modifica riguarda solo il commento. Nessun path Firestore è stato scelto; ne
 - EMP-04…EMP-10 restano non approvate. Nessun loader, endpoint, Rules, migrazione, wiring applicativo o modifica runtime è autorizzato da questa decisione. Nessun dato reale o deploy.
 
 **HEAD di partenza:** `08824fe981ad493c800b759af1d3b1198f1aef5b`. PR #1 verificata aperta, Draft, non merged, base `main`. I tre check CI su questo SHA risultano `success`; i risultati non si trasferiscono automaticamente al nuovo commit documentale.
+
+
+## 2026-11-26 — Approvazione esplicita EMP-04 (placement organizzativo)
+
+**Decisione esplicita dell'utente:** approvata la regola di un solo placement organizzativo attivo per Employee, con trasferimenti storicizzati.
+
+- Ogni Employee può avere un solo placement corrente alla volta.
+- Il trasferimento chiude il placement precedente e crea un nuovo placement; lo storico non viene sovrascritto né cancellato.
+- Gli intervalli temporali dello stesso Employee non possono sovrapporsi.
+- I turni storici devono conservare il contesto organizzativo valido alla data in cui si sono svolti; il trasferimento non deve riscrivere retroattivamente tale contesto.
+- Ambiguità, conflitti e intervalli incoerenti comportano rifiuto fail-closed, senza selezione automatica.
+- La regola esclude assegnazioni simultanee a più sedi/reparti per lo stesso Employee. Un eventuale scenario multisede simultaneo richiede una decisione e una policy dedicate.
+
+L'approvazione definisce l'invariante logica, non la persistenza fisica. Non approva path Firestore, lifecycle completo, provisioning, loader, endpoint, Rules, migrazioni, wiring applicativo, dati reali o deploy. I servizi Shift attuali non implementano ancora il contesto storico server-authoritative. Nessuna modifica runtime è stata effettuata.
+
+**HEAD di partenza:** `61a6efbc6789b49c2e64b04271ccd20f0c34601f`. PR #1 verificata aperta, Draft, non merged, base `main`. I check CI sul nuovo commit documentale devono essere verificati separatamente.

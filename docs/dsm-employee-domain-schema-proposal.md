@@ -156,7 +156,7 @@ Questo documento non autorizza alcuna lettura, importazione o migrazione di dati
 | EMP-01 | Employee separato dal profilo/payroll? | **APPROVATO:** sì, entità identitaria minimale e dominio terms/payroll separato. |
 | EMP-02 | Semantica di `profileId` nel binding A | **APPROVATO:** `profileId` identifica l'Employee canonico; mapping esplicito a `employeeId`, senza rinominare il contratto isolato. |
 | EMP-03 | Cardinalità UID↔Employee | Una sola associazione attiva per account in entrambe le direzioni fino a diversa approvazione. |
-| EMP-04 | Placement multiplo e storico | Storico append-only o versionato; un solo placement attivo salvo policy multi-site esplicita. |
+| EMP-04 | Placement multiplo e storico | **APPROVATO:** un solo placement organizzativo attivo per Employee; trasferimenti storicizzati, intervalli non sovrapposti e contesto storico dei turni preservato. |
 | EMP-05 | Shift ownership | Ogni turno collegato a Employee; delega manager con permission dedicata. |
 | EMP-06 | Absence privacy | DTO manager minimizzato; categoria malattia non visibile per default. |
 | EMP-07 | Payroll permissions | Dominio e permission separati; nessun grant implicito da ruolo. |
@@ -218,3 +218,19 @@ Invarianti approvate:
 - il sistema non deve scegliere automaticamente un binding in presenza di più candidati o conflitti.
 
 L'approvazione definisce la cardinalità logica, non il modello fisico di persistenza. Restano da decidere separatamente provisioning, verifica della persona, revoca/riassegnazione, lifecycle, audit e storage/path (EMP-08…EMP-10 e decisioni correlate). Non autorizza loader concreti, endpoint, Rules, migrazioni, wiring applicativo, accesso a dati reali o deploy. Il binding A resta una policy isolata e non attiva nell'applicazione.
+
+
+## 13. Approvazione esplicita EMP-04 — 2026-11-26
+
+**Decisione esplicita dell'utente:** approvata la regola di un solo placement organizzativo attivo per Employee, con trasferimenti storicizzati.
+
+Invarianti approvate:
+- ogni Employee può avere **un solo placement organizzativo corrente** alla volta;
+- un trasferimento chiude il placement precedente e crea un nuovo placement, senza sovrascrivere o cancellare la storia;
+- gli intervalli temporali dei placement dello stesso Employee non possono sovrapporsi;
+- i turni storici devono conservare il contesto organizzativo valido alla data del turno; il trasferimento non deve riscrivere retroattivamente quel contesto;
+- record ambigui, conflittuali o con intervalli incoerenti devono essere rifiutati fail-closed, senza selezione automatica.
+
+La regola non consente assegnazioni organizzative simultanee a più sedi/reparti per lo stesso Employee. Un eventuale caso multisede simultaneo richiederà una nuova decisione esplicita e una policy dedicata; non è incluso in questa approvazione.
+
+L'approvazione definisce l'invariante di dominio, non lo schema fisico o il meccanismo di persistenza. Non approva path Firestore, lifecycle completo ORG/Employee, provisioning, loader, endpoint, Rules, migrazioni, wiring applicativo, accesso a dati reali o deploy. In particolare, i campi e i servizi attuali di Shift non implementano ancora la conservazione server-authoritative del contesto storico. Nessuna modifica runtime è autorizzata da questa decisione.
