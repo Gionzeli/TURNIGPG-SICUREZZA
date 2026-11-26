@@ -122,3 +122,5 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - Update/delete revalidate the stored shift Employee and immutable placement/site/department against canonical placement history; a callback cannot authorize a different Employee or substitute a different historical placement.
 
 - Shift updates normalize only editable domain fields; server metadata and ownership fields are never fed back through client-field validation.
+
+- Placement mutations now verify both active UID↔Employee binding mirrors and `employeeControl.bindingRevision` in the same transaction; every historical placement is schema-validated before interval comparisons, and initial placement is permitted only when history is empty.

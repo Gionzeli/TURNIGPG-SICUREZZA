@@ -32,9 +32,10 @@ async function runPlacementTransaction({
   const nextRef = placementsRef.doc(placementId);
   const auditRef = db.doc("accounts/" + accountId + "/employeeAudit/placement-" + eventId);
   return db.runTransaction(async tx => {
-    const [accountSnap, employeeSnap, controlSnap, placementQuery, nextSnap, auditSnap] = await Promise.all([
+    const bindingByEmployeeRef = db.doc("accounts/" + accountId + "/employeeBindingsByEmployee/" + employeeId);
+    const [accountSnap, employeeSnap, controlSnap, placementQuery, nextSnap, auditSnap, inverseBindingSnap] = await Promise.all([
       tx.get(accountRef), tx.get(employeeRef), tx.get(controlRef), tx.get(placementsRef.limit(501)),
-      tx.get(nextRef), tx.get(auditRef)
+      tx.get(nextRef), tx.get(auditRef), tx.get(bindingByEmployeeRef)
     ]);
     const timestamp = now();
     if (!Number.isSafeInteger(timestamp)) fail("failed-precondition", "Trusted clock is invalid.");
@@ -43,10 +44,40 @@ async function runPlacementTransaction({
         employeeSnap.data().employeeId !== employeeId || employeeSnap.data().status !== "active") fail("failed-precondition", "Active canonical Employee required.");
     if (!controlSnap.exists || controlSnap.data().accountId !== accountId ||
         controlSnap.data().employeeId !== employeeId || !Number.isSafeInteger(controlSnap.data().placementRevision) ||
-        controlSnap.data().placementRevision < 0) fail("failed-precondition", "Employee placement control is missing or malformed.");
+        controlSnap.data().placementRevision < 0 ||
+        !Number.isSafeInteger(controlSnap.data().bindingRevision) || controlSnap.data().bindingRevision < 1) {
+      fail("failed-precondition", "Employee control or binding revision is missing or malformed.");
+    }
     if (placementQuery.size > 500) fail("resource-exhausted", "Placement history exceeds the safe transaction bound.");
     if (nextSnap.exists || auditSnap.exists) fail("already-exists", "Placement or audit event ID already exists.");
-    const existing = placementQuery.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    if (!inverseBindingSnap.exists) fail("permission-denied", "Active Employee binding is required.");
+    const inverse = inverseBindingSnap.data();
+    if (inverse.accountId !== accountId || inverse.employeeId !== employeeId ||
+        inverse.status !== "active" || !validId(inverse.uid) ||
+        !Number.isSafeInteger(inverse.revision) || inverse.revision !== controlSnap.data().bindingRevision) {
+      fail("permission-denied", "Employee binding reservation is inconsistent or revoked.");
+    }
+    const bindingByUidRef = db.doc("accounts/" + accountId + "/employeeBindingsByUid/" + inverse.uid);
+    const bindingByUidSnap = await tx.get(bindingByUidRef);
+    if (!bindingByUidSnap.exists) fail("permission-denied", "Employee UID binding mirror is missing.");
+    const forward = bindingByUidSnap.data();
+    if (forward.accountId !== accountId || forward.uid !== inverse.uid ||
+        forward.employeeId !== employeeId || forward.status !== "active" ||
+        forward.revision !== inverse.revision) {
+      fail("permission-denied", "Employee binding mirrors do not agree.");
+    }
+    const existing = placementQuery.docs.map(doc => {
+      const data = doc.data();
+      if (data.accountId !== accountId || data.employeeId !== employeeId ||
+          data.placementId !== doc.id || !validId(data.siteId) || !validId(data.departmentId) ||
+          !validDate(data.validFrom) ||
+          (data.validUntil !== null && (!validDate(data.validUntil) || data.validUntil <= data.validFrom)) ||
+          !Number.isSafeInteger(data.revision) || data.revision < 1) {
+        fail("failed-precondition", "Malformed historical Employee placement.");
+      }
+      return { id: doc.id, ...data };
+    });
+    if (!transfer && existing.length !== 0) fail("failed-precondition", "Initial placement requires empty placement history.");
     const org = await loadActiveOrg(tx, accountId, siteId, departmentId);
     if (!org || org.accountId !== accountId || org.siteId !== siteId ||
         org.departmentId !== departmentId || org.status !== "active" ||
@@ -71,7 +102,9 @@ async function runPlacementTransaction({
     if (!Number.isSafeInteger(revision)) fail("failed-precondition", "Placement revision exhausted.");
     if (previous) {
       const previousRef = placementsRef.doc(previous.id);
-      tx.update(previousRef, { validUntil: validFrom, revision: (previous.revision ?? 1) + 1, updatedAt: timestamp });
+      const previousRevision = previous.revision + 1;
+      if (!Number.isSafeInteger(previousRevision)) fail("failed-precondition", "Previous placement revision exhausted.");
+      tx.update(previousRef, { validUntil: validFrom, revision: previousRevision, updatedAt: timestamp });
     }
     tx.create(nextRef, { ...candidate, revision: 1, createdAt: timestamp, createdBy: actorUid });
     tx.update(controlRef, { placementRevision: revision, updatedAt: timestamp });
