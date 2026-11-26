@@ -49,17 +49,34 @@ export function createFirebaseAuthRenewalCoordinator({
   let activeExpiry = null;
 
   function cancelTimer() {
-    if (timer !== null) {
-      cancelSchedule(timer);
-      timer = null;
-    }
+    if (timer === null) return;
+    const handle = timer;
+    timer = null;
+    cancelSchedule(handle);
   }
 
   function clearActive() {
-    cancelTimer();
+    const handle = timer;
+    timer = null;
     activeIdentity = null;
     activeExpiry = null;
-    clearPrincipal();
+
+    const errors = [];
+    if (handle !== null) {
+      try {
+        cancelSchedule(handle);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    try {
+      clearPrincipal();
+    } catch (error) {
+      errors.push(error);
+    }
+    if (errors.length) {
+      throw new AggregateError(errors, "Pulizia autorizzazione Firebase incompleta.");
+    }
   }
 
   function scheduleRenewal(identity, expiry, capturedEpoch) {
@@ -81,8 +98,12 @@ export function createFirebaseAuthRenewalCoordinator({
     try {
       identity = authorizationIdentity(getIdentity());
     } catch (error) {
-      clearActive();
       state = "blocked";
+      try {
+        clearActive();
+      } catch (cleanupError) {
+        return Promise.reject(new AggregateError([error, cleanupError], "Identità non valida e pulizia fallita."));
+      }
       return Promise.reject(error);
     }
 
@@ -123,8 +144,12 @@ export function createFirebaseAuthRenewalCoordinator({
         return principal;
       } catch (error) {
         if (!disposed && requestEpoch === epoch) {
-          clearActive();
           state = "blocked";
+          try {
+            clearActive();
+          } catch (cleanupError) {
+            throw new AggregateError([error, cleanupError], "Rinnovo negato e pulizia fallita.");
+          }
         }
         throw error;
       }
@@ -142,8 +167,8 @@ export function createFirebaseAuthRenewalCoordinator({
     // Detach the stale request so a new identity can renew immediately.
     // Its captured epoch prevents a late result from installing authorization.
     inFlight = null;
-    clearActive();
     state = "inactive";
+    clearActive();
     return Object.freeze({ invalidated: true, reason, epoch });
   }
 
@@ -151,8 +176,8 @@ export function createFirebaseAuthRenewalCoordinator({
     if (disposed) return;
     disposed = true;
     epoch += 1;
-    clearActive();
     state = "disposed";
+    clearActive();
   }
 
   return Object.freeze({

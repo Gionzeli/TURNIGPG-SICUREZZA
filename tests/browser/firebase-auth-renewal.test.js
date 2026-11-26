@@ -167,6 +167,44 @@ export async function runFirebaseAuthRenewalTests() {
     coordinator.dispose();
     assert.equal(coordinator.getStatus().state, "disposed");
   });
+  await test("invalidate attempts principal cleanup even when timer cancellation throws", async () => {
+    const identity = { uid: "synthetic-cleanup", accountId: "synthetic-cleanup-account" };
+    let clearCalls = 0, cancelCalls = 0;
+    const coordinator = createFirebaseAuthRenewalCoordinator({
+      getIdentity: () => identity,
+      resolveAuthorization: async () => principal(identity),
+      installPrincipal: () => {},
+      clearPrincipal: () => { clearCalls++; },
+      schedule: () => 99,
+      cancelSchedule: () => { cancelCalls++; throw new Error("synthetic timer cancellation failure"); }
+    });
+    await coordinator.renew();
+    assert.throws(() => coordinator.invalidate("cleanup-test"), AggregateError);
+    assert.equal(cancelCalls, 1);
+    assert.equal(clearCalls, 1);
+    assert.equal(coordinator.getStatus().state, "inactive");
+    assert.equal(coordinator.getStatus().expiresAt, null);
+    coordinator.dispose();
+  });
+  await test("dispose remains disposed and attempts cleanup when principal clearing throws", async () => {
+    const identity = { uid: "synthetic-dispose-cleanup", accountId: "synthetic-dispose-account" };
+    let cancelCalls = 0, clearCalls = 0;
+    const coordinator = createFirebaseAuthRenewalCoordinator({
+      getIdentity: () => identity,
+      resolveAuthorization: async () => principal(identity),
+      installPrincipal: () => {},
+      clearPrincipal: () => { clearCalls++; throw new Error("synthetic principal cleanup failure"); },
+      schedule: () => 100,
+      cancelSchedule: () => { cancelCalls++; }
+    });
+    await coordinator.renew();
+    assert.throws(() => coordinator.dispose(), AggregateError);
+    assert.equal(cancelCalls, 1);
+    assert.equal(clearCalls, 1);
+    assert.equal(coordinator.getStatus().state, "disposed");
+    assert.equal(coordinator.getStatus().expiresAt, null);
+    assert.equal(coordinator.getStatus().inFlight, false);
+  });
   await test("dispose prevents late response from reinstalling authorization", async () => {
     const identity = { uid: "synthetic-dispose", accountId: "synthetic-account" };
     const gate = deferred();
