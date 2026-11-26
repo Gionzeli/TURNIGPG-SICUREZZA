@@ -282,3 +282,20 @@ Invarianti approvate:
 L'approvazione definisce la policy, non la sua implementazione. L'audit del codice sul commit `9685df21ece56722b4711897bcf8b6a8b3d0abbb` ha rilevato che `ProfileService` conserva parametri retributivi in IndexedDB e non applica autorizzazioni payroll proprie; non esiste un archivio payroll canonico o un'API backend protetta che applichi queste permission. La policy non rende quindi i dati attuali protetti né autorizza a considerarli accessibili in sicurezza.
 
 Non sono approvati schema fisico/path, storage, loader, endpoint, Rules, migrazioni, wiring applicativo, dati reali o deploy. Nessuna modifica runtime è stata autorizzata o effettuata.
+
+
+## 17. Approvazione esplicita EMP-08 — 2026-11-26
+
+**Decisione esplicita dell'utente:** approvata integralmente la policy di lifecycle Employee e risorse organizzative proposta nell'audit EMP-08.
+
+Invarianti approvate:
+- Employee e risorse organizzative devono avere uno stato canonico esplicito e riconosciuto; nessuno stato implicito.
+- Stato mancante, sconosciuto, incoerente o non autorizzato comporta rifiuto fail-closed.
+- Account, sede e reparto possono essere usati per nuove operazioni protette soltanto quando sono attivi; una risorsa archiviata non concede accesso.
+- Soltanto Employee attivi possono essere utilizzati per nuove operazioni ordinarie. Sospensione, cessazione e archiviazione impediscono nuove operazioni operative secondo la policy di stato applicabile.
+- Sospensione o revoca di membership e binding impedisce nuove operazioni protette; l'invalidazione della sola sessione client non è sufficiente.
+- Cessazione, revoca e archiviazione non cancellano né riassegnano automaticamente turni, assenze e audit storici.
+- L'accesso ai dati storici dopo cessazione o revoca richiede un'autorizzazione distinta; non deriva automaticamente dall'ownership storica.
+- Le transizioni di stato devono essere tracciate lato server con attore, motivazione e decorrenza. Le mutazioni critiche devono essere atomiche e protette da conflitti concorrenti.
+
+L'approvazione definisce le invarianti di dominio e sicurezza, non un calendario completo delle transizioni né lo schema fisico. Non approva percorsi Firestore, loader, endpoint, Rules, migrazioni, provisioning, wiring applicativo, accesso a dati reali o deploy. L'audit sul commit `322f42cb47fbb1f20ca86b4d054799c812018d8b` ha rilevato che il resolver organizzativo non verifica lo stato attivo di account/sede/reparto e che il lifecycle Employee canonico non è ancora integrato. Nessuna modifica runtime è stata autorizzata o effettuata.

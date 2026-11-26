@@ -236,3 +236,20 @@ L'approvazione riguarda la policy, non l'implementazione. L'audit di `ProfileSer
 Non sono approvati schema/path, storage, loader, endpoint, Rules, migrazioni, wiring, accesso a dati reali o deploy. Nessuna modifica runtime effettuata.
 
 **HEAD di partenza:** `9685df21ece56722b4711897bcf8b6a8b3d0abbb`. PR #1 verificata aperta, Draft, non merged, base `main`.
+
+
+## 2026-11-26 — Approvazione esplicita EMP-08 (lifecycle Employee e risorse organizzative)
+
+**Decisione esplicita dell'utente:** approvata integralmente la policy EMP-08.
+
+- Employee e risorse organizzative richiedono uno stato canonico esplicito; stati mancanti, sconosciuti, incoerenti o non autorizzati comportano deny fail-closed.
+- Account, sede e reparto devono essere attivi per nuove operazioni protette; risorse archiviate non concedono accesso.
+- Solo Employee attivi sono utilizzabili per nuove operazioni ordinarie. Sospensione, cessazione e archiviazione bloccano le nuove operazioni secondo la policy di stato.
+- Sospensione/revoca di membership e binding deve bloccare nuove operazioni protette lato server, non soltanto invalidare la sessione client.
+- Turni, assenze e audit storici non vengono cancellati o riassegnati automaticamente per cessazione, revoca o archiviazione.
+- L'accesso storico dopo cessazione/revoca richiede autorizzazione distinta e non discende automaticamente dall'ownership storica.
+- Ogni transizione è tracciata lato server con attore, motivazione e decorrenza; mutazioni critiche atomiche e protette da conflitti concorrenti.
+
+L'approvazione riguarda le invarianti, non il calendario completo delle transizioni o lo schema fisico. Non autorizza path Firestore, loader, endpoint, Rules, migrazioni, provisioning, wiring, dati reali o deploy. L'audit ha confermato che il resolver organizzativo non controlla ancora gli stati active di account/sede/reparto e che il lifecycle Employee canonico non è integrato. Nessuna modifica runtime effettuata.
+
+**HEAD di partenza:** `322f42cb47fbb1f20ca86b4d054799c812018d8b`. PR #1 verificata aperta, Draft, non merged, base `main`.
