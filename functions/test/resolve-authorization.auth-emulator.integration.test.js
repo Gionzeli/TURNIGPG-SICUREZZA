@@ -74,6 +74,8 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
       uid,
       accountId,
       status: "active",
+      validFrom: new Date(0),
+      validUntil: null,
       role: "member",
       scopeType: "department",
       scopeIds: ["synthetic-department"],

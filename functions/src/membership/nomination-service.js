@@ -32,7 +32,7 @@ function requireAdmin(membership, uid, accountId, identity, nowMs) {
       identity.secondFactor !== REQUIRED_MFA_FACTOR) {
     fail("permission-denied", "Verified recent MFA authentication required.");
   }
-  const normalized = validateCanonicalMembership(membership, uid, accountId);
+  const normalized = validateCanonicalMembership(membership, uid, accountId, nowMs);
   if (!normalized || normalized.role !== "admin") fail("permission-denied", "Active account admin required.");
   return normalized;
 }
@@ -94,13 +94,14 @@ export async function approveAdminNomination({ db, accountId, actorUid, actorIde
     const proposer = validateCanonicalMembership(
       proposerSnap.exists ? proposerSnap.data() : null,
       nomination.nominatedBy,
-      accountId
+      accountId,
+      approvedAt
     );
     if (!proposer || proposer.role !== "admin") {
       fail("failed-precondition", "Proposing admin is no longer active.");
     }
     if (targetSnap.exists && targetSnap.data()?.status === "active") fail("already-exists", "Target already has active membership.");
-    const membership = { uid: nomination.targetUid, accountId, status: "active", role: nomination.role, scopeType: nomination.scopeType, scopeIds: [...nomination.scopeIds], grantedBy: nomination.nominatedBy, approvedBy: actorUid, activatedAt: approvedAt };
+    const membership = { uid: nomination.targetUid, accountId, status: "active", validFrom: new Date(approvedAt), validUntil: null, role: nomination.role, scopeType: nomination.scopeType, scopeIds: [...nomination.scopeIds], grantedBy: nomination.nominatedBy, approvedBy: actorUid, activatedAt: approvedAt };
     if (!validateCanonicalMembership(membership, nomination.targetUid, accountId)) fail("failed-precondition", "Proposed membership violates role/scope policy.");
     tx.set(targetRef, membership);
     tx.update(nominationRef, { status: "approved", approvedBy: actorUid, approvedAt });

@@ -149,3 +149,5 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - `organization-firestore-loaders.js` reads the approved flat account/site/department paths and requires matching document IDs, account parent, current department→site relationship and active lifecycle.
 - `department-transfer-service.js` is an internal transaction service. It requires a trusted transaction-aware actor authorizer, expected version, active account/source/destination/department, and writes the department parent change plus a server-generated append-only audit event atomically.
 - These services are not callable exports. The caller must inject canonical membership authorization; client payloads are not an authorization source. Emulator tests use synthetic documents only.
+
+- Membership policy is effective-dated: only `status: active` with valid Firestore Timestamp/Date `validFrom` and null/future `validUntil` is accepted. Missing or malformed lifecycle fields fail closed. Manager permission set includes the distinct `dsm:transfer:departments`; payroll remains ungranted.

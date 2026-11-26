@@ -28,13 +28,15 @@ export async function revokeMembership({ db, accountId, actorUid, targetUid, eve
     const [actorSnap, targetSnap, adminsSnap, eventSnap] = await Promise.all([
       tx.get(actorRef), tx.get(targetRef), tx.get(adminsQuery), tx.get(eventRef)
     ]);
-    const actor = validateCanonicalMembership(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId);
+    const revokedAt = now();
+    if (!Number.isSafeInteger(revokedAt)) fail("failed-precondition", "Trusted clock returned an invalid revocation timestamp.");
+    const actor = validateCanonicalMembership(actorSnap.exists ? actorSnap.data() : null, actorUid, accountId, revokedAt);
     if (!actor || actor.role !== "admin") fail("permission-denied", "Active canonical account admin required.");
     if (!targetSnap.exists) fail("not-found", "Membership not found.");
     if (eventSnap.exists) fail("already-exists", "Audit event ID already used.");
 
     const target = targetSnap.data();
-    const canonicalTarget = validateCanonicalMembership(target, targetUid, accountId);
+    const canonicalTarget = validateCanonicalMembership(target, targetUid, accountId, revokedAt);
     if (!canonicalTarget) fail("failed-precondition", "Target membership is not active or canonical.");
 
     // Count only fully valid active account admins; malformed documents never preserve admin availability.
@@ -44,7 +46,7 @@ export async function revokeMembership({ db, accountId, actorUid, targetUid, eve
       // The Firestore document ID is the canonical membership UID selector.
       // A matching uid field alone cannot make a differently keyed document authoritative.
       const candidateUid = doc.id;
-      const canonical = validateCanonicalMembership(data, candidateUid, accountId);
+      const canonical = validateCanonicalMembership(data, candidateUid, accountId, revokedAt);
       if (canonical?.role === "admin" && canonical.scopeType === "account" && canonical.scopeIds.length === 0) {
         activeAdminUids.add(candidateUid);
       }
@@ -53,11 +55,7 @@ export async function revokeMembership({ db, accountId, actorUid, targetUid, eve
       fail("failed-precondition", "Cannot revoke the last active canonical admin.");
     }
 
-    const revokedAt = now();
-    if (!Number.isSafeInteger(revokedAt)) {
-      fail("failed-precondition", "Trusted clock returned an invalid revocation timestamp.");
-    }
-    const auditEvent = Object.freeze({
+     const auditEvent = Object.freeze({
       eventId, type: "membership.revoked", accountId, targetUid,
       targetRole: target.role, actorUid, occurredAt: revokedAt
     });

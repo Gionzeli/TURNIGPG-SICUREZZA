@@ -486,3 +486,8 @@ L'utente ha approvato esplicitamente tutte le decisioni organizzative e i defaul
 ## 2026-11-27 — Primo adapter organizzativo Firestore e trasferimento
 
 Aggiunti loader server-only sui percorsi approvati `accounts/{accountId}`, `sites/{siteId}`, `departments/{departmentId}`, con controllo ID documento/campi, parent account, parent site e lifecycle active. Il resolver puro ora nega account/site/department non active. Aggiunto servizio interno di trasferimento department→site con version precondition, scope authorization iniettata e audit generato server-side nella stessa transazione. Test Emulator sintetico copre catena canonica, trasferimento, audit, replay stale e archived. Nessuna callable esposta.
+
+
+## 2026-11-27 — Lifecycle effettivo membership e permesso trasferimento
+
+Il validatore membership ora richiede validFrom Timestamp/Date, validUntil Timestamp/Date o null, status active e intervallo corrente secondo clock server. Suspended, revoked, date mancanti/malformate/future/expired negano. Il permesso `dsm:transfer:departments` è derivato per manager scoped alle sedi; payroll e salute restano fuori dalla matrice base. La nomina crea membership effective-dated; revoca usa lo stesso timestamp server per la decisione. Aggiornate fixture sintetiche Emulator.

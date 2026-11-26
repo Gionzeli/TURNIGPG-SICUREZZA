@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { validateCanonicalMembership, resolveCanonicalMembership } from "../src/membership/membership-policy.js";
 
-const base = { uid: "userA", accountId: "acct1", status: "active", role: "member", scopeType: "department", scopeIds: ["dept1"], permissions: ["dsm:manage:account"] };
+const base = { uid: "userA", accountId: "acct1", status: "active", validFrom: new Date(0), validUntil: null, role: "member", scopeType: "department", scopeIds: ["dept1"], permissions: ["dsm:manage:account"] };
 
 test("derives member permissions and ignores client-injected permissions", () => {
   const result = validateCanonicalMembership(base, "userA", "acct1");
@@ -13,7 +13,7 @@ test("derives member permissions and ignores client-injected permissions", () =>
 
 test("accepts site manager with assigned site scope", () => {
   const result = validateCanonicalMembership({ ...base, role: "manager", scopeType: "site", scopeIds: ["site1", "site2"] }, "userA", "acct1");
-  assert.deepEqual(result.permissions, ["dsm:read:site", "dsm:manage:site", "dsm:manage:departments"]);
+  assert.deepEqual(result.permissions, ["dsm:read:site", "dsm:manage:site", "dsm:manage:departments", "dsm:transfer:departments"]);
 });
 
 test("admin must be account-scoped and cannot carry scope IDs", () => {
@@ -33,4 +33,22 @@ test("rejects inactive, wrong-identity, malformed, and privilege escalation reco
 test("membership resolver fails closed for invalid selector", () => {
   assert.equal(resolveCanonicalMembership({ uid: "", accountId: "acct1", membership: base }), null);
   assert.equal(resolveCanonicalMembership({ uid: "userA", accountId: "other", membership: base }), null);
+});
+
+
+test("effective dates and membership lifecycle fail closed", () => {
+  const now = Date.UTC(2026, 0, 1);
+  const valid = { ...base, validFrom: new Date(now - 1000), validUntil: new Date(now + 1000) };
+  assert.ok(validateCanonicalMembership(valid, "userA", "acct1", now));
+  for (const invalid of [
+    { ...base, validFrom: undefined },
+    { ...base, validFrom: "2025-01-01" },
+    { ...base, validFrom: new Date(now + 1) },
+    { ...base, validUntil: new Date(now) },
+    { ...base, validUntil: new Date(now - 1) },
+    { ...base, status: "suspended" },
+    { ...base, status: "revoked" }
+  ]) assert.equal(validateCanonicalMembership(invalid, "userA", "acct1", now), null);
+  assert.equal(validateCanonicalMembership(valid, "userA", "acct1", now - 2000), null);
+  assert.equal(validateCanonicalMembership(valid, "userA", "acct1", now + 2000), null);
 });
