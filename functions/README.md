@@ -85,3 +85,10 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - Actor UID, verified-email state, auth time and second-factor claim are derived from the verified token; client-supplied actor fields are ignored.
 - Service authorization still requires active canonical admin membership, recent TOTP claim, distinct proposer/approver and the Firestore transaction invariants.
 - Unit tests exercise the callable composition boundary with synthetic verifier claims. They do not prove that a deployed Firebase Auth tenant issues/validates TOTP claims as expected. Do not deploy or treat real MFA assurance as verified until that integration is independently validated in an approved non-production Firebase project.
+
+
+## Employee binding revocation
+- The revoke callable requires a revocation-checked identity token, recent TOTP claim and active canonical account admin.
+- It verifies Employee and both UID/Employee reservation mirrors against the serialized control revision, then revokes both mirrors, increments the binding revision and appends audit in one transaction.
+- Rebinding remains a separate two-person proposal/approval flow; revoked reservations are not overwritten.
+- TOTP assurance still requires validation against an approved non-production Firebase Auth configuration before deployment.

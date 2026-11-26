@@ -132,6 +132,7 @@ export async function approveEmployeeProvisioning({
     };
     tx.create(byUidRef, binding);
     tx.create(byEmployeeRef, binding);
+    tx.create(db.doc(`accounts/${accountId}/employeeControl/${proposal.employeeId}`), { accountId, employeeId: proposal.employeeId, placementRevision: 0, bindingRevision: revision, updatedAt: approvedAt });
     tx.update(proposalRef, { status: "approved", approvedBy: actorUid, approvedAt });
     tx.create(auditRef, {
       eventId: `provision-${proposalId}`, type: "employee.provisioned",

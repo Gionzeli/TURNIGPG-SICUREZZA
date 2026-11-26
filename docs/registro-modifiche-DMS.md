@@ -400,3 +400,8 @@ Aggiunto servizio Firestore transazionale per proposta e approvazione Employee. 
 ## 2026-11-26 — Callable Employee provisioning protette
 
 Collegati al composition root Functions gli endpoint callable di proposta e approvazione Employee. L'identità amministrativa è ricavata esclusivamente da ID token Firebase verificato con controllo revoca; UID, email verificata, auth time e secondo fattore non sono accettati dal payload client. Errori di policy sono tradotti in HttpsError senza esporre errori interni. Aggiunti test unitari della boundary callable con verifier sintetico. Questo non dimostra ancora l'emissione/validazione reale del claim TOTP in Firebase Auth e non autorizza deploy.
+
+
+## 2026-11-26 — Revoca Employee binding atomica e auditata
+
+Aggiunta revoca esplicita del binding Employee: amministratore canonico attivo con token verificato/revocation-checked e claim TOTP recente; verifica di account, Employee, mirror UID/Employee e documento controllo revisioni; revoca simultanea dei due mirror, incremento revisione e audit nella stessa transazione. Il provisioning crea anche employeeControl. Collegata callable revokeEmployeeBinding e aggiunti test unitari della boundary. La riassociazione resta un nuovo processo a due persone; i documenti revocati non vengono sovrascritti. Il claim TOTP reale non è ancora validato in un tenant Firebase approvato.

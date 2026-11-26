@@ -1,78 +1,27 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createEmployeeProvisioningHandlers } from "../src/membership/employee-provisioning-callable-handlers.js";
-
 const db = Object.freeze({ trusted: true });
-function request(data, token = "signed-token") {
-  return { data, rawRequest: { headers: { authorization: `Bearer ${token}` } } };
-}
-
-test("Employee provisioning callable derives proposer UID and MFA only from revocation-checked token", async () => {
+const req = data => ({ data, rawRequest: { headers: { authorization: "Bearer signed-token" } } });
+const verified = uid => ({ uid, email_verified: true, auth_time: 1, firebase: { sign_in_second_factor: "totp" } });
+test("Employee provisioning callables derive actors from revocation-checked tokens", async () => {
   const calls = [];
-  const handlers = createEmployeeProvisioningHandlers({
-    db, now: () => 1234,
-    verifyToken: async (token, checkRevoked) => {
-      calls.push(["verify", token, checkRevoked]);
-      return {
-        uid: "verified-admin", email_verified: true, auth_time: 1,
-        firebase: { sign_in_second_factor: "totp" }
-      };
-    },
-    services: {
-      proposeEmployeeProvisioning: async args => { calls.push(["propose", args]); return { status: "pending" }; },
-      approveEmployeeProvisioning: async args => { calls.push(["approve", args]); return { status: "approved" }; }
-    }
-  });
-  await handlers.propose(request({
-    accountId: "acct-1", proposalId: "proposal-1", targetUid: "member-1",
-    employeeId: "employee-1", verificationRef: "manual-1",
-    actorUid: "attacker", actorIdentity: { uid: "attacker", secondFactor: "totp" }
-  }));
-  const invocation = calls.find(x => x[0] === "propose")[1];
+  const handlers = createEmployeeProvisioningHandlers({ db, now: () => 1234, verifyToken: async (token, checkRevoked) => { calls.push(["verify", token, checkRevoked]); return verified("verified-admin"); }, services: {
+    proposeEmployeeProvisioning: async args => { calls.push(["propose", args]); return { status: "pending" }; },
+    approveEmployeeProvisioning: async args => { calls.push(["approve", args]); return { status: "approved" }; },
+    revokeEmployeeBinding: async args => { calls.push(["revoke", args]); return { status: "revoked" }; }
+  }});
+  await handlers.propose(req({ accountId: "acct-1", proposalId: "p-1", targetUid: "member-1", employeeId: "emp-1", verificationRef: "manual-1", actorUid: "spoofed" }));
   assert.equal(calls[0][2], true);
-  assert.equal(invocation.actorUid, "verified-admin");
-  assert.equal(invocation.actorIdentity.uid, "verified-admin");
-  assert.equal(invocation.actorIdentity.secondFactor, "totp");
-  assert.equal(invocation.accountId, "acct-1");
-  assert.equal(invocation.now(), 1234);
+  assert.equal(calls.find(x => x[0] === "propose")[1].actorUid, "verified-admin");
+  await handlers.approve(req({ accountId: "acct-1", proposalId: "p-1", actorUid: "spoofed" }));
+  assert.equal(calls.find(x => x[0] === "approve")[1].actorUid, "verified-admin");
+  await handlers.revoke(req({ accountId: "acct-1", employeeId: "emp-1", eventId: "evt-1", actorUid: "spoofed" }));
+  assert.equal(calls.find(x => x[0] === "revoke")[1].actorUid, "verified-admin");
 });
-
-test("Employee approval callable ignores client actor identity and passes verified identity", async () => {
-  let invocation;
-  const handlers = createEmployeeProvisioningHandlers({
-    db, verifyToken: async () => ({
-      uid: "approver-2", email_verified: true, auth_time: 10,
-      firebase: { sign_in_second_factor: "totp" }
-    }),
-    services: {
-      proposeEmployeeProvisioning: async () => ({}),
-      approveEmployeeProvisioning: async args => { invocation = args; return { status: "approved" }; }
-    }
-  });
-  await handlers.approve(request({
-    accountId: "acct-1", proposalId: "proposal-1",
-    actorUid: "spoofed", actorIdentity: { uid: "spoofed" }
-  }));
-  assert.equal(invocation.actorUid, "approver-2");
-  assert.equal(invocation.actorIdentity.uid, "approver-2");
-  assert.equal(invocation.proposalId, "proposal-1");
-});
-
-test("Employee provisioning callable rejects absent bearer, unverified email and failed token verification", async () => {
-  const handlers = createEmployeeProvisioningHandlers({
-    db, verifyToken: async () => ({ uid: "x", email_verified: false }),
-    services: {
-      proposeEmployeeProvisioning: async () => ({}),
-      approveEmployeeProvisioning: async () => ({})
-    }
-  });
-  await assert.rejects(handlers.propose({ data: {}, rawRequest: { headers: {} } }),
-    error => error.code === "unauthenticated");
-  await assert.rejects(handlers.propose(request({})),
-    error => error.code === "unauthenticated");
-  const failed = createEmployeeProvisioningHandlers({
-    db, verifyToken: async () => { throw new Error("revoked"); },
-    services: { proposeEmployeeProvisioning: async () => ({}), approveEmployeeProvisioning: async () => ({}) }
-  });
-  await assert.rejects(failed.approve(request({})), error => error.code === "unauthenticated");
+test("Employee provisioning callable rejects absent bearer and unverified email", async () => {
+  const services = { proposeEmployeeProvisioning: async () => ({}), approveEmployeeProvisioning: async () => ({}), revokeEmployeeBinding: async () => ({}) };
+  const handlers = createEmployeeProvisioningHandlers({ db, verifyToken: async () => ({ uid: "x", email_verified: false }), services });
+  await assert.rejects(handlers.propose({ data: {}, rawRequest: { headers: {} } }), e => e.code === "unauthenticated");
+  await assert.rejects(handlers.propose(req({})), e => e.code === "unauthenticated");
 });

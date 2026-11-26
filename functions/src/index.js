@@ -70,3 +70,8 @@ export const approveEmployeeProvisioning = onCall(async request => {
   try { return await employeeProvisioning.approve(request); }
   catch (error) { throw callableError(error); }
 });
+
+export const revokeEmployeeBinding = onCall(async request => {
+  try { return await employeeProvisioning.revoke(request); }
+  catch (error) { throw callableError(error); }
+});
