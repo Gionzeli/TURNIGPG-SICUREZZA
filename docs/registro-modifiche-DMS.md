@@ -449,3 +449,8 @@ Il servizio placement ora richiede entrambe le riserve UID↔Employee attive e c
 ## 2026-11-27 — Test fail-closed per vista assenze manager
 
 Esteso il test Emulator della disponibilità assenze con casi di authorizer che nega la permission/scope e che restituisce un Employee diverso dal target. Entrambi devono fallire senza creare audit né restituire intervalli. I test di successo continuano a verificare DTO privo di categorie e dettagli sanitari.
+
+
+## 2026-11-27 — Primitive fail-closed per autorizzazione Employee per dominio
+
+Aggiunto `employee-domain-authorization.js`: modalità self richiede binding UID↔Employee attivo e revisione valida; modalità delegated richiede permission esatta per dominio/operazione e placement canonico coerente con account/Employee, poi applica il controllo scope esistente. I permessi proposti non sono aggiunti alla allowlist dei ruoli e non vengono esposti endpoint. Test unitari coprono spoof Employee, binding revocato/mismatch, permission generica insufficiente, payroll deny-default e scope manager cross-site.

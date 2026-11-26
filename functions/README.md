@@ -124,3 +124,10 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - Shift updates normalize only editable domain fields; server metadata and ownership fields are never fed back through client-field validation.
 
 - Placement mutations now verify both active UID↔Employee binding mirrors and `employeeControl.bindingRevision` in the same transaction; every historical placement is schema-validated before interval comparisons, and initial placement is permitted only when history is empty.
+
+
+### Employee domain authorization primitive
+
+- `src/membership/employee-domain-authorization.js` composes a verified canonical principal with either the active UID↔Employee binding (self access) or a canonical Employee placement plus an exact domain-operation permission (delegated access).
+- The helper is pure and internal; it is not exported as a callable and performs no Firestore reads. Callers must load principal, binding and placement from trusted server-side loaders in the same transaction as the protected operation.
+- Proposed permissions such as `dsm:read:shifts:self`, `dsm:read:shifts:site` and `dsm:read:payroll:account` are deliberately not added to the current role allowlist. Existing generic role permissions do not grant Employee-domain or payroll access.
