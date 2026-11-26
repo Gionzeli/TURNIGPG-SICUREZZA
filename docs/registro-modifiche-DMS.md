@@ -481,3 +481,8 @@ La primitive Employee ora rifiuta permessi vuoti, composti da soli spazi o dupli
 L'utente ha approvato esplicitamente tutte le decisioni organizzative e i default prudenziali. Registrata la decisione vincolante in `docs/dsm-organizational-schema-decision.md`: gerarchia Firestore flat account/sites/departments; lifecycle active/archived; membership effective-dated e revocabile; multi-account con selector non autorevole; scope multipli; matrice per operazione; trasferimento reparto atomico; ID server-side immutabili; audit append-only senza TTL automatico fino a policy di retention; API dati con autenticazione, revoca e autorizzazione server-side a ogni chiamata.
 
 **Ambito:** implementazione isolata e Firebase Emulator con dati sintetici. Restano esclusi dati reali, credenziali, Rules operative, migrazioni, deploy, merge e main. Il bootstrap del primo admin resta processo separato e non attivato.
+
+
+## 2026-11-27 — Primo adapter organizzativo Firestore e trasferimento
+
+Aggiunti loader server-only sui percorsi approvati `accounts/{accountId}`, `sites/{siteId}`, `departments/{departmentId}`, con controllo ID documento/campi, parent account, parent site e lifecycle active. Il resolver puro ora nega account/site/department non active. Aggiunto servizio interno di trasferimento department→site con version precondition, scope authorization iniettata e audit generato server-side nella stessa transazione. Test Emulator sintetico copre catena canonica, trasferimento, audit, replay stale e archived. Nessuna callable esposta.

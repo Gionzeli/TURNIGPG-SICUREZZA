@@ -31,13 +31,13 @@ function validRecord(record) {
  * from the backend data store; do not implement them using client input.
  *
  * Loader contract:
- * - loadAccount(accountId) -> { accountId } | null
- * - loadSite(accountId, siteId) -> { accountId, siteId } | null
+ * - loadAccount(accountId) -> { accountId, status: "active" } | null
+ * - loadSite(accountId, siteId) -> { accountId, siteId, status: "active" } | null
  * - loadDepartment(accountId, siteId, departmentId)
- *   -> { accountId, siteId, departmentId } | null
+ *   -> { accountId, siteId, departmentId, status: "active" } | null
  *
- * This adapter is intentionally storage-agnostic because production
- * account/site/department document paths have not been approved or defined.
+ * Storage adapters are server-only and must resolve the approved canonical
+ * paths. Every ancestor and resource must be active.
  */
 export async function resolveCanonicalResourceContext({ selector, principal, loaders }) {
   if (!principal || typeof principal !== "object" || !validId(principal.accountId)) deny();
@@ -59,14 +59,14 @@ export async function resolveCanonicalResourceContext({ selector, principal, loa
   }
 
   const account = await loadCanonical(loaders.loadAccount, [accountId]);
-  if (!validRecord(account) || account.accountId !== accountId) deny();
+  if (!validRecord(account) || account.accountId !== accountId || account.status !== "active") deny();
 
   if (type === "account") {
     return Object.freeze({ accountId, siteId: null, departmentId: null });
   }
 
   const site = await loadCanonical(loaders.loadSite, [accountId, siteId]);
-  if (!validRecord(site) || site.accountId !== accountId || site.siteId !== siteId) deny();
+  if (!validRecord(site) || site.accountId !== accountId || site.siteId !== siteId || site.status !== "active") deny();
 
   if (type === "site") {
     return Object.freeze({ accountId, siteId, departmentId: null });
@@ -76,7 +76,7 @@ export async function resolveCanonicalResourceContext({ selector, principal, loa
   if (!validRecord(department) ||
       department.accountId !== accountId ||
       department.siteId !== siteId ||
-      department.departmentId !== departmentId) deny();
+      department.departmentId !== departmentId || department.status !== "active") deny();
 
   return Object.freeze({ accountId, siteId, departmentId });
 }

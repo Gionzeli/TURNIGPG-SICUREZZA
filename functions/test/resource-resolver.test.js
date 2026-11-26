@@ -10,10 +10,10 @@ const principal = {
   scopeIds: ["siteA"], permissions: ["dsm:read:site", "dsm:manage:departments"]
 };
 const records = {
-  account: { accountId: "acct1", displayName: "Synthetic account" },
-  site: { accountId: "acct1", siteId: "siteA", displayName: "Synthetic site" },
+  account: { accountId: "acct1", status: "active", displayName: "Synthetic account" },
+  site: { accountId: "acct1", siteId: "siteA", status: "active", displayName: "Synthetic site" },
   department: {
-    accountId: "acct1", siteId: "siteA", departmentId: "deptA",
+    accountId: "acct1", siteId: "siteA", departmentId: "deptA", status: "active",
     displayName: "Synthetic department"
   }
 };
@@ -271,6 +271,25 @@ test("normalizes canonical loader failures to permission-denied and stops resolu
         ? { type: "site", accountId: "acct1", siteId: "siteA" }
         : { type: "department", accountId: "acct1", siteId: "siteA", departmentId: "deptA" };
     await assert.rejects(resolveCanonicalResourceContext({ principal, selector, loaders: faultLoaders }),
+      error => error.code === "permission-denied");
+  }
+});
+
+
+test("archived or missing lifecycle status is denied at every level", async () => {
+  const selectors = [
+    { type: "account", accountId: "acct1" },
+    { type: "site", accountId: "acct1", siteId: "siteA" },
+    { type: "department", accountId: "acct1", siteId: "siteA", departmentId: "deptA" }
+  ];
+  for (const [index, selector] of selectors.entries()) {
+    const bad = {
+      ...loaders,
+      async loadAccount(id) { return index === 0 ? { accountId: id, status: "archived" } : records.account; },
+      async loadSite(a, id) { return index === 1 ? { accountId: a, siteId: id, status: "archived" } : records.site; },
+      async loadDepartment(a, s, d) { return index === 2 ? { accountId: a, siteId: s, departmentId: d, status: "archived" } : records.department; }
+    };
+    await assert.rejects(resolveCanonicalResourceContext({ principal, selector, loaders: bad }),
       error => error.code === "permission-denied");
   }
 });

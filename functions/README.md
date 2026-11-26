@@ -142,3 +142,10 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - Employee authorization additionally enforces the existing membership role/scope combinations (account-scoped admin with no scope IDs; site-scoped manager; site- or department-scoped member, each with non-empty unique scope IDs). This does not expand role permissions or expose new endpoints.
 
 - Employee domain authorization rejects empty/whitespace/duplicate permission entries and malformed self-binding object/profile IDs; these are structural guards, not a replacement for trusted canonical membership/binding loaders.
+
+
+### Organizational Firestore adapter (isolated)
+
+- `organization-firestore-loaders.js` reads the approved flat account/site/department paths and requires matching document IDs, account parent, current department→site relationship and active lifecycle.
+- `department-transfer-service.js` is an internal transaction service. It requires a trusted transaction-aware actor authorizer, expected version, active account/source/destination/department, and writes the department parent change plus a server-generated append-only audit event atomically.
+- These services are not callable exports. The caller must inject canonical membership authorization; client payloads are not an authorization source. Emulator tests use synthetic documents only.
