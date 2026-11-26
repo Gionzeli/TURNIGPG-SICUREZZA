@@ -110,11 +110,23 @@ export function createFirebaseAuthRenewalCoordinator({
     const capturedEpoch = epoch;
     if (state === "active" && !sameIdentity(activeIdentity, identity)) {
       epoch += 1;
+      state = "blocked";
       clearActive();
+      state = "inactive";
     }
     const requestEpoch = epoch;
     state = "refreshing";
-    cancelTimer();
+    try {
+      cancelTimer();
+    } catch (error) {
+      state = "blocked";
+      try {
+        clearActive();
+      } catch (cleanupError) {
+        return Promise.reject(new AggregateError([error, cleanupError], "Cancellazione timer e pulizia autorizzazione fallite."));
+      }
+      return Promise.reject(error);
+    }
 
     const task = (async () => {
       try {
@@ -127,8 +139,9 @@ export function createFirebaseAuthRenewalCoordinator({
         if (disposed || requestEpoch !== epoch) return null;
         if (!sameIdentity(identity, currentIdentity)) {
           epoch += 1;
-          state = "inactive";
+          state = "blocked";
           clearActive();
+          state = "inactive";
           return null;
         }
         if (!principal || principal.uid !== identity.uid ||
@@ -167,8 +180,9 @@ export function createFirebaseAuthRenewalCoordinator({
     // Detach the stale request so a new identity can renew immediately.
     // Its captured epoch prevents a late result from installing authorization.
     inFlight = null;
-    state = "inactive";
+    state = "blocked";
     clearActive();
+    state = "inactive";
     return Object.freeze({ invalidated: true, reason, epoch });
   }
 
