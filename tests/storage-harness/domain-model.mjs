@@ -150,12 +150,14 @@ export function authorizeManagerShift(state, {
   if (!allowedOperations.has(operation) || typeof now !== "string" ||
       Number.isNaN(Date.parse(now)) || !validDate(date)) fail("permission-denied");
   const permission = `shift:${operation}`;
-  const delegation = state.delegations.find(x =>
+  const matchingDelegations = state.delegations.filter(x =>
     x.accountId === accountId && x.managerUid === managerUid &&
     x.employeeId === employeeId && x.status === "active" &&
     x.permissions?.includes(permission) && x.siteId === siteId && x.departmentId === departmentId &&
     typeof x.expiresAt === "string" && !Number.isNaN(Date.parse(x.expiresAt)) &&
     Date.parse(x.expiresAt) > Date.parse(now));
+  // Duplicate active grants are ambiguous; do not select one implicitly.
+  const delegation = matchingDelegations.length === 1 ? matchingDelegations[0] : null;
   const employee = state.employees.find(x =>
     x.accountId === accountId && x.employeeId === employeeId && x.status === "active");
   const orgMatches = activeOrgMatches(state, accountId, siteId, departmentId);

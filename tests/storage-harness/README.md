@@ -63,3 +63,7 @@ Payroll read/write/export examples now require exactly one account record with e
 
 ### Manager delegation revocation and transfer boundary (synthetic)
 Additional domain tests exercise immediate manager-delegation revocation, fail-closed behavior when the revocation audit cannot be staged, and the transfer boundary: an old-site delegation can resolve only shifts whose date belongs to the old placement, not shifts on or after the new placement's effective date. A suspended Employee also denies the manager operation in this model. These tests do not implement automatic delegation lifecycle management or prove runtime authorization.
+
+
+### Ambiguous manager delegations (synthetic)
+Manager authorization in the reference model now denies when more than one active, unexpired delegation matches the same account, manager, Employee, site, department, and operation. It does not select an arbitrary matching grant. A focused test covers this duplicate-grant case. This is a harness policy example, not a runtime authorization change.

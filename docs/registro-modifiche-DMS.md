@@ -350,3 +350,8 @@ Esteso il modello sintetico affinché payroll read/write/export richiedano un ac
 ## 2026-11-26 — Harness: revoca delega manager e confine trasferimento
 
 Aggiunti test puramente in-memory per la revoca effettiva di una delega manager sulle operazioni successive, per il fail-closed se l'audit di revoca non può essere predisposto, e per il confine temporale di un trasferimento: la delega sul vecchio sito vale solo per turni collocati nel vecchio placement, non per date dal trasferimento in avanti. Aggiunto anche il controllo che un Employee sospeso blocchi l'operazione manager nel modello. Non viene introdotta revoca automatica o lifecycle runtime delle deleghe. Nessuna modifica a schema, storage, endpoint, Rules, provisioning, wiring, dati reali o deploy.
+
+
+## 2026-11-26 — Harness: deleghe manager duplicate e ambigue
+
+Rafforzato il modello in-memory: l'autorizzazione manager non seleziona più la prima delega corrispondente quando esistono più concessioni attive, valide e identiche per account, manager, Employee, sito, reparto e operazione; in tale situazione nega l'accesso. Aggiunto test dedicato e aggiornata la documentazione del solo harness. Nessuna modifica al runtime, schema, storage, endpoint, Rules, provisioning o deploy.
