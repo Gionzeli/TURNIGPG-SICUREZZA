@@ -38,7 +38,7 @@ test("missing or ambiguous historical placement fails closed", () => {
 
 test("revocation blocks subsequent protected operations", () => {
   const s = placedFixture();
-  const args = { accountId:"acct-a", uid:"uid-1", employeeId:"emp-1", siteId:"site-1", departmentId:"dept-1", date:"2026-02-01" };
+  const args = { accountId:"acct-a", uid:"uid-1", employeeId:"emp-1", siteId:"site-1", departmentId:"dept-1", date:"2026-02-01", now:"2026-02-01T12:00:00Z" };
   assert.equal(authorizeNewOperation(s, args), true);
   revokeBinding(s, "acct-a", "uid-1");
   assert.throws(() => authorizeNewOperation(s, args), { code:"permission-denied" });

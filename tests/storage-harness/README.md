@@ -41,3 +41,8 @@ Payroll examples now also require a synthetic Employee record to be explicitly a
 ### Payroll audit preparation
 
 The synthetic payroll read and export examples now stage an audit entry (actor, exact permission, account, Employee, record count) before returning data. If the audit append cannot be staged, the operation throws and no payroll result is returned. The actor value remains a synthetic test input, not a trusted identity. This tests model fail-closed behavior only; it is not durable or server-side audit.
+
+
+### Manager delegation expiry and revocation
+
+The in-memory model now requires a valid explicit expiry timestamp for manager shift delegation and checks expiry against an explicit operation timestamp. Revocation is modeled as an audited change: audit staging must succeed before status is changed. Tests cover just-before expiry, at expiry, after expiry, immediate revocation, and audit staging failure. This is not wired into callable endpoints or a persistent authorization system.

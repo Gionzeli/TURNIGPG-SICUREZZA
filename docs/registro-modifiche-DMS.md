@@ -323,3 +323,10 @@ Payroll read/write/export nel modello sintetico richiede ora Employee con status
 
 
 **Test aggiunti:** audit read/export fail-closed quando l’append non è disponibile; read/export registrano actor e permission corretti. Test in-memory, non audit persistente o autorizzazione server reale. Nessun codice runtime, schema, endpoint, Rules, provisioning o deploy modificato.
+
+
+## 2026-11-26 — Harness: scadenza e revoca deleghe manager
+
+**Modello sintetico:** le deleghe manager per le operazioni sui turni richiedono una scadenza esplicita; una delega scaduta non autorizza. La revoca seleziona una sola delega attiva e prepara prima l'audit; se l'audit non può essere predisposto, la delega resta attiva. Sono inclusi attore e motivo sintetico nel record di revoca.
+
+**Test aggiunti:** prima dell'istante di scadenza, al momento esatto e dopo; revoca immediata; audit fail-closed della revoca. Modello in-memory, non endpoint o persistence reali.

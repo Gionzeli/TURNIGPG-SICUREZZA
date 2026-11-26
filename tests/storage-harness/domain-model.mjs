@@ -110,17 +110,36 @@ export function managerAbsenceView(state, { accountId, employeeId }) {
 
 
 // Synthetic policy examples only; these do not enforce authorization in an application.
+export function revokeManagerDelegation(state, {
+  accountId, managerUid, employeeId, siteId, departmentId, actorUid, reason
+}) {
+  if (![accountId, managerUid, employeeId, siteId, departmentId, actorUid, reason]
+      .every(x => typeof x === "string" && x.trim().length > 0)) fail("invalid-revocation");
+  const matches = state.delegations.filter(x => x.accountId === accountId &&
+    x.managerUid === managerUid && x.employeeId === employeeId &&
+    x.siteId === siteId && x.departmentId === departmentId && x.status === "active");
+  if (matches.length !== 1) fail("delegation-unavailable");
+  const nextAudit = state.audit.concat({ actorUid, action:"manager-delegation-revoked",
+    accountId, managerUid, employeeId, siteId, departmentId, reason });
+  // Stage the audit before changing delegation status.
+  state.audit = nextAudit;
+  matches[0].status = "revoked";
+  return true;
+}
+
 export function authorizeManagerShift(state, {
-  accountId, managerUid, employeeId, siteId, departmentId, date, operation
+  accountId, managerUid, employeeId, siteId, departmentId, date, operation, now
 }) {
   const allowedOperations = new Set(["read", "create", "update", "delete"]);
-  if (!allowedOperations.has(operation)) fail("permission-denied");
+  if (!allowedOperations.has(operation) || typeof now !== "string" ||
+      Number.isNaN(Date.parse(now)) || !validDate(date)) fail("permission-denied");
   const permission = `shift:${operation}`;
   const delegation = state.delegations.find(x =>
     x.accountId === accountId && x.managerUid === managerUid &&
     x.employeeId === employeeId && x.status === "active" &&
-    x.permissions?.includes(permission) &&
-    x.siteId === siteId && x.departmentId === departmentId);
+    x.permissions?.includes(permission) && x.siteId === siteId && x.departmentId === departmentId &&
+    typeof x.expiresAt === "string" && !Number.isNaN(Date.parse(x.expiresAt)) &&
+    Date.parse(x.expiresAt) > Date.parse(now));
   const employee = state.employees.find(x =>
     x.accountId === accountId && x.employeeId === employeeId && x.status === "active");
   const org = state.org.find(x => x.accountId === accountId &&
