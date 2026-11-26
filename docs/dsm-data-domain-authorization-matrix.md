@@ -20,6 +20,12 @@ The current client domain services also do not establish an authoritative employ
 
 Consequently, a future API cannot safely infer who owns a profile, shift or absence from a record ID, account ID, display name, post label, local repository partition or client-supplied selector.
 
+### Audit finding ORG-02 — lifecycle status is not enforced by the current resource resolver
+
+A read-only review of `functions/src/membership/resource-resolver.js` and `functions/test/resource-resolver.test.js` confirms that canonical account/site/department loaders are checked for record shape, IDs and parent relationships, but the resolver does not require `status: "active"` for the account, site or department. The current synthetic fixtures omit lifecycle status, and no negative archived/inactive-state tests exist. Thus the current resolver can accept structurally matching resource records regardless of lifecycle status; this is an unresolved security gap, not an approved behavior.
+
+ORG-02 in the organizational schema decision register already proposes that every resource and ancestor must be active and that missing, unknown or malformed status fail closed. Because the canonical schema and lifecycle vocabulary remain unapproved, this audit records the confirmed gap without changing runtime logic or introducing a speculative status contract. Before any protected data endpoint is built, ORG-02 must be approved and implemented with emulator tests for archived/inactive account, site and department, missing/unknown status, and archived parent relationships.
+
 ## 2. Keep three independent authorization dimensions
 
 Every protected operation must evaluate all applicable dimensions on the server:
