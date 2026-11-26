@@ -202,3 +202,18 @@ L'approvazione definisce l'invariante logica, non la persistenza fisica. Non app
 L'approvazione riguarda la policy, non l'implementazione. Non approva schema fisico/path, lifecycle completo, provisioning, loader, endpoint, Rules, migrazioni, wiring, dati reali o deploy. Gli attuali servizi Shift non hanno un riferimento Employee canonico e non applicano questa policy. Nessuna modifica runtime è stata effettuata.
 
 **HEAD di partenza:** `023fe62f55f4363e74807b24a5a6457c9dfb9ee9`. PR #1 verificata aperta, Draft, non merged, base `main`. I check CI sul nuovo commit documentale devono essere verificati separatamente.
+
+
+## 2026-11-26 — Approvazione esplicita EMP-06 (privacy delle assenze)
+
+**Decisione esplicita dell'utente:** approvata la policy di minimizzazione delle assenze e protezione della categoria sanitaria.
+
+- La vista ordinaria del responsabile mostra soltanto indisponibilità e intervallo temporale necessario alla pianificazione.
+- `malattia`, diagnosi, motivazioni, note e documenti sanitari non sono esposti nei DTO ordinari.
+- Riepiloghi, conteggi, filtri, ricerche, report ed export non devono rivelare direttamente o indirettamente la categoria sanitaria.
+- L'accesso eccezionale ai dettagli sanitari richiede permission separata, finalità autorizzata e audit.
+- Il dipendente consulta i propri dati secondo regole personali da definire.
+
+L'approvazione riguarda la policy, non l'implementazione. L'attuale `AbsenceService` locale conserva e restituisce `kind` (incluso `malattia`) e `summarizeRange()` aggrega per categoria; non esiste un DTO manager backend protetto. Non sono approvati schema/path, lifecycle, loader, endpoint, Rules, migrazioni, wiring, dati reali o deploy. Nessuna modifica runtime effettuata.
+
+**HEAD di partenza:** `600b9b8ac6a1a331448677d39e5ad2468a046452`. PR #1 verificata aperta, Draft, non merged, base `main`.

@@ -158,7 +158,7 @@ Questo documento non autorizza alcuna lettura, importazione o migrazione di dati
 | EMP-03 | Cardinalità UID↔Employee | Una sola associazione attiva per account in entrambe le direzioni fino a diversa approvazione. |
 | EMP-04 | Placement multiplo e storico | **APPROVATO:** un solo placement organizzativo attivo per Employee; trasferimenti storicizzati, intervalli non sovrapposti e contesto storico dei turni preservato. |
 | EMP-05 | Shift ownership | **APPROVATO:** ownership Employee canonica assegnata/verificata dal backend; self-service limitato ai propri turni; delega manager con permission esplicita e scope verificato alla data del turno. |
-| EMP-06 | Absence privacy | DTO manager minimizzato; categoria malattia non visibile per default. |
+| EMP-06 | Absence privacy | **APPROVATO:** vista ordinaria minimizzata; nessuna categoria sanitaria in DTO, riepiloghi, filtri o export; accesso eccezionale separato e auditato. |
 | EMP-07 | Payroll permissions | Dominio e permission separati; nessun grant implicito da ruolo. |
 | EMP-08 | Lifecycle | Stati, transizioni, cessazione e accesso storico da approvare. |
 | EMP-09 | Provisioning e identity proof | Procedura amministrativa verificata fuori banda, auditata e revocabile. |
@@ -250,3 +250,17 @@ Invarianti approvate:
 - leggere, creare, modificare e cancellare turni sono operazioni autorizzative distinte; nessun privilegio deriva implicitamente dal solo ruolo manager.
 
 L'approvazione definisce la policy di dominio e autorizzazione, non la sua implementazione. Non approva uno schema fisico o path Firestore, il lifecycle completo, provisioning, loader concreti, endpoint, Rules, migrazioni, wiring applicativo, accesso a dati reali o deploy. I servizi Shift attuali non contengono un riferimento Employee canonico e non applicano questa policy. Nessuna modifica runtime è stata autorizzata o effettuata.
+
+
+## 15. Approvazione esplicita EMP-06 — 2026-11-26
+
+**Decisione esplicita dell'utente:** approvata la policy di minimizzazione delle assenze e protezione delle informazioni sanitarie.
+
+Invarianti approvate:
+- la vista ordinaria del responsabile espone soltanto l'indisponibilità e l'intervallo temporale necessario alla pianificazione;
+- categoria `malattia`, diagnosi, motivazioni, note e documenti sanitari non sono esposti nei DTO ordinari;
+- riepiloghi, conteggi, filtri, ricerche, report ed esportazioni non devono consentire di ricavare indirettamente la categoria sanitaria;
+- l'accesso eccezionale a informazioni sanitarie richiede una permission separata, una finalità autorizzata e audit dell'accesso;
+- il dipendente può consultare i propri dati secondo le regole di accesso personali da definire.
+
+L'approvazione definisce la policy di privacy, non la sua implementazione. Non approva schema fisico/path, storage, lifecycle, provisioning, loader, endpoint, Rules, migrazioni, wiring, accesso a dati reali o deploy. L'attuale `AbsenceService` locale restituisce ancora il campo `kind` (incluso `malattia`) e i riepiloghi lo aggregano; non esiste un DTO manager backend protetto. Nessuna modifica runtime è stata autorizzata o effettuata.
