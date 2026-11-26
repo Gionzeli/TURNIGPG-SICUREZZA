@@ -345,3 +345,8 @@ Esteso il modello in-memory per richiedere esattamente un account attivo e un re
 ## 2026-11-26 — Harness: lifecycle account per payroll e revoca binding audit-first
 
 Esteso il modello sintetico affinché payroll read/write/export richiedano un account univoco con stato esplicito `active`, oltre a Employee attivo e permission specifica. Aggiunti casi negativi per account sospeso, archiviato, sconosciuto o senza stato, verificando assenza di mutazioni payroll/audit. La revoca binding ora prepara l'evento audit prima di mutare lo stato; un errore di staging lascia il binding attivo. Copertura esclusivamente in-memory: non prova enforcement server, audit durevole o atomicità datastore. Nessuna modifica runtime, schema, storage, Rules, endpoint, provisioning, wiring, dati reali o deploy.
+
+
+## 2026-11-26 — Harness: revoca delega manager e confine trasferimento
+
+Aggiunti test puramente in-memory per la revoca effettiva di una delega manager sulle operazioni successive, per il fail-closed se l'audit di revoca non può essere predisposto, e per il confine temporale di un trasferimento: la delega sul vecchio sito vale solo per turni collocati nel vecchio placement, non per date dal trasferimento in avanti. Aggiunto anche il controllo che un Employee sospeso blocchi l'operazione manager nel modello. Non viene introdotta revoca automatica o lifecycle runtime delle deleghe. Nessuna modifica a schema, storage, endpoint, Rules, provisioning, wiring, dati reali o deploy.

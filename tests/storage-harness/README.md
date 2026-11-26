@@ -59,3 +59,7 @@ The in-memory domain model now requires exactly one active account record and ex
 
 ### Payroll account lifecycle and binding revocation audit
 Payroll read/write/export examples now require exactly one account record with explicit `active` status in addition to the active Employee and operation-specific permission. Missing, duplicate, suspended, archived, or unknown account state denies all three operations without changing payroll or audit arrays. Binding revocation prepares its audit entry before changing binding status; a simulated audit-staging failure leaves the binding active. These are in-memory reference-model checks only, not trusted server authorization, durable audit, datastore atomicity, or production enforcement.
+
+
+### Manager delegation revocation and transfer boundary (synthetic)
+Additional domain tests exercise immediate manager-delegation revocation, fail-closed behavior when the revocation audit cannot be staged, and the transfer boundary: an old-site delegation can resolve only shifts whose date belongs to the old placement, not shifts on or after the new placement's effective date. A suspended Employee also denies the manager operation in this model. These tests do not implement automatic delegation lifecycle management or prove runtime authorization.

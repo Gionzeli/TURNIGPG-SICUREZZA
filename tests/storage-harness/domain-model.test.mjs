@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import {
   createDomainFixture, addPlacement, placementAt, addHistoricalShift,
   transferEmployee, revokeBinding, authorizeNewOperation, payrollView, managerAbsenceView,
-  authorizeManagerShift, writePayrollRecord, exportPayroll, managerAbsenceReport
+  authorizeManagerShift, revokeManagerDelegation, writePayrollRecord, exportPayroll, managerAbsenceReport
 } from "./domain-model.mjs";
 
 function placedFixture() {
@@ -332,4 +332,51 @@ test("account, site, and department lifecycle independently deny new placement a
   const duplicateAccount = placedFixture();
   duplicateAccount.accounts.push({ accountId:"acct-a", status:"active" });
   assert.throws(() => authorizeNewOperation(duplicateAccount, args), { code:"permission-denied" });
+});
+
+
+test("manager delegation revocation blocks later access and fails closed if audit staging fails", () => {
+  const s = placedFixture();
+  s.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", status:"active",
+    expiresAt:"2026-03-01T00:00:00Z", permissions:["shift:read"] });
+  const args = { accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", date:"2026-02-01",
+    now:"2026-02-01T12:00:00Z", operation:"read" };
+  assert.equal(authorizeManagerShift(s, args), true);
+  assert.equal(revokeManagerDelegation(s, { accountId:"acct-a", managerUid:"manager-1",
+    employeeId:"emp-1", siteId:"site-1", departmentId:"dept-1",
+    actorUid:"admin-1", reason:"access-review" }), true);
+  assert.throws(() => authorizeManagerShift(s, args), { code:"permission-denied" });
+  assert.equal(s.audit.at(-1).action, "manager-delegation-revoked");
+  assert.equal(s.audit.at(-1).actorUid, "admin-1");
+
+  const failed = placedFixture();
+  failed.delegations.push({ accountId:"acct-a", managerUid:"manager-1", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", status:"active",
+    expiresAt:"2026-03-01T00:00:00Z", permissions:["shift:read"] });
+  failed.audit = null;
+  assert.throws(() => revokeManagerDelegation(failed, { accountId:"acct-a", managerUid:"manager-1",
+    employeeId:"emp-1", siteId:"site-1", departmentId:"dept-1",
+    actorUid:"admin-1", reason:"access-review" }));
+  assert.equal(failed.delegations[0].status, "active");
+});
+
+test("manager delegation remains bound to the placement at the shift date after transfer", () => {
+  const s = placedFixture();
+  s.delegations.push({ accountId:"acct-a", managerUid:"manager-old", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", status:"active",
+    expiresAt:"2027-01-01T00:00:00Z", permissions:["shift:read"] });
+  transferEmployee(s, { accountId:"acct-a", employeeId:"emp-1",
+    siteId:"site-2", departmentId:"dept-2", effectiveDate:"2026-06-01" });
+  const oldScope = { accountId:"acct-a", managerUid:"manager-old", employeeId:"emp-1",
+    siteId:"site-1", departmentId:"dept-1", now:"2026-06-15T12:00:00Z", operation:"read" };
+  assert.equal(authorizeManagerShift(s, { ...oldScope, date:"2026-05-31" }), true);
+  assert.throws(() => authorizeManagerShift(s, { ...oldScope, date:"2026-06-01" }),
+    { code:"permission-denied" });
+  assert.throws(() => authorizeManagerShift(s, { ...oldScope, siteId:"site-2",
+    departmentId:"dept-2", date:"2026-06-01" }), { code:"permission-denied" });
+  s.employees[0].status = "suspended";
+  assert.throws(() => authorizeManagerShift(s, { ...oldScope, date:"2026-05-31" }),
+    { code:"permission-denied" });
 });
