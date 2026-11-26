@@ -20,7 +20,9 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
   const db = getFirestore(app);
   const uidSuffix = randomUUID().replaceAll("-", "").slice(0, 20);
   const accountId = `auth-test-${uidSuffix}`;
+  const secondAccountId = `auth-test-second-${uidSuffix}`;
   const members = db.collection(`accounts/${accountId}/members`);
+  const secondMembers = db.collection(`accounts/${secondAccountId}/members`);
   let uid;
   let idToken;
   const email = `dsm-emulator-${uidSuffix}@example.invalid`;
@@ -112,6 +114,17 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
     const missingMembership = await callAuthorization({ selector: `${accountId}-missing` });
     assert.equal((await errorStatus(missingMembership)).status, "PERMISSION_DENIED");
 
+    await secondMembers.doc(uid).set({
+      uid, accountId: secondAccountId, status: "active",
+      validFrom: new Date(0), validUntil: null,
+      role: "member", scopeType: "department", scopeIds: ["synthetic-department-second"]
+    });
+    const secondAccountAccepted = await callAuthorization({ selector: secondAccountId });
+    const secondAccountBody = await secondAccountAccepted.json();
+    assert.equal(secondAccountAccepted.ok, true, JSON.stringify(secondAccountBody));
+    assert.equal(secondAccountBody.result?.principal?.accountId, secondAccountId);
+    assert.equal(secondAccountBody.result?.principal?.uid, uid);
+
     const accepted = await callAuthorization();
     const acceptedBody = await accepted.json();
     assert.equal(accepted.ok, true, JSON.stringify(acceptedBody));
@@ -152,6 +165,7 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
   } finally {
     if (uid) {
       await members.doc(uid).delete().catch(() => {});
+      await secondMembers.doc(uid).delete().catch(() => {});
       await auth.deleteUser(uid).catch(() => {});
     }
     await deleteApp(app);

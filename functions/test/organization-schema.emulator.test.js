@@ -118,10 +118,20 @@ test("Firestore Emulator: organization create/archive generates IDs and enforces
     const siteDoc = await sites.doc(createdSite.siteId).get();
     assert.equal(siteDoc.data().status, "active");
     assert.equal(siteDoc.data().version, 1);
+    await members.doc("synthetic-manager").set({
+      uid: "synthetic-manager", accountId, status: "active", validFrom: new Date(0),
+      validUntil: null, role: "manager", scopeType: "site", scopeIds: [createdSite.siteId]
+    });
     const createdDepartment = await createDepartment({
-      db, accountId, actorUid: "synthetic-admin", siteId: createdSite.siteId,
+      db, accountId, actorUid: "synthetic-manager", siteId: createdSite.siteId,
       displayName: "Synthetic department", reasonCode: "initial-setup", now: () => 1100
     });
+    await members.doc("synthetic-manager").update({ scopeIds: ["unassigned-site"] });
+    await assert.rejects(createDepartment({
+      db, accountId, actorUid: "synthetic-manager", siteId: createdSite.siteId,
+      displayName: "Out of scope", reasonCode: "negative-scope", now: () => 1150
+    }), error => error.code === "permission-denied");
+    await members.doc("synthetic-manager").update({ scopeIds: [createdSite.siteId] });
     assert.match(createdDepartment.departmentId, /^[A-Za-z0-9_-]{20}$/);
     assert.notEqual(createdDepartment.departmentId, "client-selected-id");
     await assert.rejects(archiveSite({
@@ -155,10 +165,6 @@ test("Firestore Emulator: organization create/archive generates IDs and enforces
     });
     assert.equal(archivedDepartment.status, "archived");
 
-    await members.doc("synthetic-manager").set({
-      uid: "synthetic-manager", accountId, status: "active", validFrom: new Date(0),
-      validUntil: null, role: "manager", scopeType: "site", scopeIds: [createdSite.siteId]
-    });
     await assert.rejects(archiveSite({
       db, accountId, actorUid: "synthetic-admin", siteId: createdSite.siteId,
       reasonCode: "site-close", now: () => 1600
@@ -173,6 +179,9 @@ test("Firestore Emulator: organization create/archive generates IDs and enforces
     assert.deepEqual(auditActions, [
       "department.archived", "department.created", "site.archived", "site.created"
     ]);
+    const auditDocs = (await audits.get()).docs.map(doc => doc.data());
+    assert.ok(auditDocs.every(event => event.actorUid && event.eventId && event.occurredAt instanceof Date));
+    assert.ok(auditDocs.every(event => !("token" in event) && !("expiresAt" in event)));
   } finally {
     const [auditDocs, departmentDocs, siteDocs, placementDocs, memberDocs] = await Promise.all([
       audits.get(), departments.get(), sites.get(), employeePlacements.get(), members.get()
