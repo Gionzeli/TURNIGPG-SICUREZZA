@@ -340,3 +340,8 @@ Il modello sintetico di autorizzazione turni manager richiede ora esattamente un
 ## 2026-11-26 — Harness: lifecycle indipendente di account, sede e reparto
 
 Esteso il modello in-memory per richiedere esattamente un account attivo e un record organizzativo univoco con stato esplicito `active` per organizzazione, sede e reparto. Aggiunti casi negativi per stati sospeso, archiviato, sconosciuto e mancante, oltre a duplicazione account. I test verificano il deny su creazione placement, operazioni Employee e accesso manager ai turni. È copertura sintetica del solo harness: non implementa enforcement runtime, non modifica schema/storage/Rules/API e non prova stati trusted o persistenza reale. Nessun dato reale, credenziale, deploy o merge.
+
+
+## 2026-11-26 — Harness: lifecycle account per payroll e revoca binding audit-first
+
+Esteso il modello sintetico affinché payroll read/write/export richiedano un account univoco con stato esplicito `active`, oltre a Employee attivo e permission specifica. Aggiunti casi negativi per account sospeso, archiviato, sconosciuto o senza stato, verificando assenza di mutazioni payroll/audit. La revoca binding ora prepara l'evento audit prima di mutare lo stato; un errore di staging lascia il binding attivo. Copertura esclusivamente in-memory: non prova enforcement server, audit durevole o atomicità datastore. Nessuna modifica runtime, schema, storage, Rules, endpoint, provisioning, wiring, dati reali o deploy.

@@ -81,8 +81,9 @@ export function transferEmployee(state, { accountId, employeeId, siteId, departm
 export function revokeBinding(state, accountId, uid) {
   const binding = state.bindings.find(x => x.accountId === accountId && x.uid === uid && x.status === "active");
   if (!binding) fail("binding-unavailable");
+  const nextAudit = state.audit.concat({ actor: "synthetic-server-actor", action: "binding-revoked", accountId, uid });
+  state.audit = nextAudit;
   binding.status = "revoked";
-  state.audit.push({ actor: "synthetic-server-actor", action: "binding-revoked", accountId, uid });
 }
 
 export function authorizeNewOperation(state, { accountId, uid, employeeId, siteId, departmentId, date }) {
@@ -98,12 +99,16 @@ export function authorizeNewOperation(state, { accountId, uid, employeeId, siteI
   return true;
 }
 
+function requireActiveAccount(state, accountId) {
+  if (!accountIsActive(state, accountId)) fail("permission-denied");
+}
 function requireActiveEmployee(state, accountId, employeeId) {
   const employee = state.employees.find(x => x.accountId === accountId && x.employeeId === employeeId);
   if (!employee || employee.status !== "active") fail("permission-denied");
   return employee;
 }
 export function payrollView(state, { accountId, employeeId, actorUid, permissions = [] }) {
+  requireActiveAccount(state, accountId);
   requireActiveEmployee(state, accountId, employeeId);
   if (!permissions.includes("payroll:read") || typeof actorUid !== "string" || !actorUid) fail("permission-denied");
   const rows = state.payroll.filter(x => x.accountId === accountId && x.employeeId === employeeId)
@@ -166,6 +171,7 @@ export function writePayrollRecord(state, {
   accountId, employeeId, recordId, period, amount, actorUid, permissions = [], authorizedEmployeeIds = []
 }) {
   if (!permissions.includes("payroll:write") || !authorizedEmployeeIds.includes(employeeId)) fail("permission-denied");
+  requireActiveAccount(state, accountId);
   requireActiveEmployee(state, accountId, employeeId);
   if (![accountId, employeeId, recordId, period, actorUid].every(x => typeof x === "string" && x.length > 0) ||
       typeof amount !== "number" || !Number.isFinite(amount)) fail("invalid-payroll-record");
@@ -187,6 +193,7 @@ export function exportPayroll(state, {
 }) {
   if (!permissions.includes("payroll:export") || !authorizedEmployeeIds.includes(employeeId) ||
       typeof actorUid !== "string" || !actorUid) fail("permission-denied");
+  requireActiveAccount(state, accountId);
   requireActiveEmployee(state, accountId, employeeId);
   const rows = state.payroll.filter(x => x.accountId === accountId && x.employeeId === employeeId)
     .map(x => ({ period: x.period, amount: x.amount }));

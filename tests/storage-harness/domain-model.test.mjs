@@ -331,3 +331,38 @@ test("account, site, and department lifecycle independently deny new placement a
   duplicateAccount.accounts.push({ accountId:"acct-a", status:"active" });
   assert.throws(() => authorizeNewOperation(duplicateAccount, args), { code:"permission-denied" });
 });
+
+
+test("payroll read, write, and export fail closed when account lifecycle is not explicitly active", () => {
+  const inactiveStates = ["suspended", "archived", "unknown", undefined];
+  for (const status of inactiveStates) {
+    const s = createDomainFixture();
+    s.payroll.push({ accountId:"acct-a", employeeId:"emp-1", recordId:"pay-1", period:"2026-01", amount:50 });
+    if (status === undefined) delete s.accounts[0].status;
+    else s.accounts[0].status = status;
+    const beforePayroll = structuredClone(s.payroll);
+    const beforeAudit = structuredClone(s.audit);
+    assert.throws(() => payrollView(s, { accountId:"acct-a", employeeId:"emp-1",
+      actorUid:"actor-1", permissions:["payroll:read"] }), { code:"permission-denied" });
+    assert.throws(() => writePayrollRecord(s, { accountId:"acct-a", employeeId:"emp-1",
+      recordId:"pay-2", period:"2026-02", amount:75, actorUid:"actor-1",
+      permissions:["payroll:write"], authorizedEmployeeIds:["emp-1"] }), { code:"permission-denied" });
+    assert.throws(() => exportPayroll(s, { accountId:"acct-a", employeeId:"emp-1",
+      actorUid:"actor-1", permissions:["payroll:export"], authorizedEmployeeIds:["emp-1"] }),
+      { code:"permission-denied" });
+    assert.deepEqual(s.payroll, beforePayroll);
+    assert.deepEqual(s.audit, beforeAudit);
+  }
+});
+
+test("binding revocation stages audit before changing binding status", () => {
+  const s = createDomainFixture();
+  const originalAudit = s.audit;
+  s.audit = { concat() { throw new Error("synthetic-audit-unavailable"); } };
+  assert.throws(() => revokeBinding(s, "acct-a", "uid-1"), /synthetic-audit-unavailable/);
+  assert.equal(s.bindings[0].status, "active");
+  s.audit = originalAudit;
+  revokeBinding(s, "acct-a", "uid-1");
+  assert.equal(s.bindings[0].status, "revoked");
+  assert.equal(s.audit.at(-1).action, "binding-revoked");
+});

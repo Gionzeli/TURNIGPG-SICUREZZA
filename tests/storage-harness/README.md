@@ -55,3 +55,7 @@ Manager shift authorization in the synthetic model now requires exactly one matc
 
 ### Account/site/department lifecycle guard (synthetic)
 The in-memory domain model now requires exactly one active account record and exactly one matching organizational record whose organization, site, and department statuses are all explicitly `active`. Missing, duplicate, suspended, archived, and unknown lifecycle values deny placement creation and protected employee/manager shift operations. These checks are illustrative test logic only; they do not add runtime enforcement or validate a real identity, database, Firestore Rules, or server API.
+
+
+### Payroll account lifecycle and binding revocation audit
+Payroll read/write/export examples now require exactly one account record with explicit `active` status in addition to the active Employee and operation-specific permission. Missing, duplicate, suspended, archived, or unknown account state denies all three operations without changing payroll or audit arrays. Binding revocation prepares its audit entry before changing binding status; a simulated audit-staging failure leaves the binding active. These are in-memory reference-model checks only, not trusted server authorization, durable audit, datastore atomicity, or production enforcement.
