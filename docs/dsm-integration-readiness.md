@@ -92,3 +92,13 @@ The two successful workflows above establish that the browser IndexedDB suite an
 - Esiste un test d'integrazione Firestore Emulator per nomination e revoche (`functions/test/membership-emulator.integration.test.js`), ma la sua presenza nel repository non prova che sia stato eseguito sullo SHA corrente.
 - Nessun file operativo o protetto è stato modificato per forzare l'avvio della pipeline. Nessun merge, deploy, modifica a `main`, regole Firestore operative o configurazione Firebase operativa.
 - Nota di coerenza: la sezione precedente datata 2026-11-26 riportava ancora HEAD `7c613019`; i dati sopra sono la rettifica riferita all'HEAD effettivo `554d964a`.
+
+
+## Verifica backend Auth/Functions/Firestore Emulator — evidenza aggiornata (2026-11-26)
+
+- La pipeline backend [run 45712537972](https://github.com/Gionzeli/TURNIGPG-SICUREZZA/actions/runs/45712537972) è completata con `success` sul commit `f1974e7214ef2205bbf2804ce891c7dbd310637e` (2026-11-25). Il log del job `membership-service-tests` riporta **63 test, 63 pass, 0 fail, 0 skipped**.
+- Il log conferma l'esecuzione del test `Auth + Functions + Firestore Emulators: callable enforces identity, selector, membership and token revocation` (subtest 27). Questa è una prova end-to-end della callable `resolveAuthorization`: utente sintetico creato nell'Auth Emulator, ID token inviato al Functions Emulator e membership verificata nel Firestore Emulator.
+- Il confronto Git tra `f1974e7` e l'HEAD `4d2341b053dc1f133c9ff6aaa64cc39670e0f611` mostra che nessun file `functions/**` e nessun workflow backend è cambiato nel tratto. L'esito backend è quindi pertinente al codice Functions presente in HEAD, ma **non è una run eseguita sullo SHA HEAD** e non va etichettato come tale.
+- La copertura end-to-end riguarda `resolveAuthorization` soltanto. I test `nomination-callable-handlers.test.js` sono test unitari con verifier e servizi mockati: `createNominationHandlers()` non è collegato a `onCall` né esportato da `functions/src/index.js`. Le operazioni callable di nomination non sono quindi esposte o verificate end-to-end.
+- Il test `membership-emulator.integration.test.js` esercita direttamente i servizi membership con Firestore Emulator e identità admin sintetiche; non sostituisce un test Auth/Functions end-to-end per le nomination.
+- PR #1 resta aperta e Draft; nessun merge, deploy o modifica a `main`. I test usano esclusivamente identità e dati sintetici.
