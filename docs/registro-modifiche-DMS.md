@@ -185,3 +185,20 @@ La modifica riguarda solo il commento. Nessun path Firestore è stato scelto; ne
 L'approvazione definisce l'invariante logica, non la persistenza fisica. Non approva path Firestore, lifecycle completo, provisioning, loader, endpoint, Rules, migrazioni, wiring applicativo, dati reali o deploy. I servizi Shift attuali non implementano ancora il contesto storico server-authoritative. Nessuna modifica runtime è stata effettuata.
 
 **HEAD di partenza:** `61a6efbc6789b49c2e64b04271ccd20f0c34601f`. PR #1 verificata aperta, Draft, non merged, base `main`. I check CI sul nuovo commit documentale devono essere verificati separatamente.
+
+
+## 2026-11-26 — Approvazione esplicita EMP-05 (ownership e accesso ai turni)
+
+**Decisione esplicita dell'utente:** approvata la policy di ownership individuale dei turni e delega manager controllata.
+
+- Ogni turno deve essere associato a un `employeeId` canonico assegnato/verificato dal backend; un ID inviato dal client non dimostra proprietà.
+- Il dipendente può leggere e gestire soltanto i propri turni tramite il binding personale verificato.
+- Manager/delegati richiedono una permission esplicita, specifica per l'operazione, e uno scope organizzativo autorizzato.
+- Lo scope deve essere verificato rispetto alla collocazione Employee valida alla data del turno.
+- Il turno conserva il contesto organizzativo storico; trasferimenti successivi non lo riscrivono.
+- Identità, Employee, turno, collocazione, intervallo o permesso mancanti/ambigui/incoerenti/revocati/fuori scope comportano deny fail-closed.
+- Read/create/update/delete sono operazioni distinte; il ruolo manager da solo non concede privilegi.
+
+L'approvazione riguarda la policy, non l'implementazione. Non approva schema fisico/path, lifecycle completo, provisioning, loader, endpoint, Rules, migrazioni, wiring, dati reali o deploy. Gli attuali servizi Shift non hanno un riferimento Employee canonico e non applicano questa policy. Nessuna modifica runtime è stata effettuata.
+
+**HEAD di partenza:** `023fe62f55f4363e74807b24a5a6457c9dfb9ee9`. PR #1 verificata aperta, Draft, non merged, base `main`. I check CI sul nuovo commit documentale devono essere verificati separatamente.

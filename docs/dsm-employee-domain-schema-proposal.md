@@ -157,7 +157,7 @@ Questo documento non autorizza alcuna lettura, importazione o migrazione di dati
 | EMP-02 | Semantica di `profileId` nel binding A | **APPROVATO:** `profileId` identifica l'Employee canonico; mapping esplicito a `employeeId`, senza rinominare il contratto isolato. |
 | EMP-03 | Cardinalità UID↔Employee | Una sola associazione attiva per account in entrambe le direzioni fino a diversa approvazione. |
 | EMP-04 | Placement multiplo e storico | **APPROVATO:** un solo placement organizzativo attivo per Employee; trasferimenti storicizzati, intervalli non sovrapposti e contesto storico dei turni preservato. |
-| EMP-05 | Shift ownership | Ogni turno collegato a Employee; delega manager con permission dedicata. |
+| EMP-05 | Shift ownership | **APPROVATO:** ownership Employee canonica assegnata/verificata dal backend; self-service limitato ai propri turni; delega manager con permission esplicita e scope verificato alla data del turno. |
 | EMP-06 | Absence privacy | DTO manager minimizzato; categoria malattia non visibile per default. |
 | EMP-07 | Payroll permissions | Dominio e permission separati; nessun grant implicito da ruolo. |
 | EMP-08 | Lifecycle | Stati, transizioni, cessazione e accesso storico da approvare. |
@@ -193,11 +193,11 @@ Verifica documentale dei file sul commit `20881c3aca2f8d64fffb8336f3fc526860cf9a
 | Binding | `resolveOwnEmployeeBinding` usa loader iniettati e verifica il profilo attivo; nessun adapter Firestore o endpoint. | Il modulo è una policy isolata, non un flusso operativo. |
 | Risorse organizzative | `resource-resolver.js` verifica identità/account/relazioni parentali ma il contratto loader non richiede `status: active`. | ORG lifecycle resta un prerequisito prima di API protette. |
 
-### Raccomandazioni non approvate per EMP-03…EMP-10
+### Stato raccomandazioni EMP-03…EMP-10 (aggiornato)
 
 - **EMP-03 / LINK-01/02:** partire con cardinalità 1:1 attiva per account; rifiutare duplicati e conflitti, senza scegliere automaticamente un binding. Riesaminare solo con un caso d'uso concreto per account recovery o identità multiple.
 - **EMP-04:** consentire un solo placement corrente per Employee; conservare gli intervalli precedenti in modo versionato/append-only. Nessuna sovrapposizione implicita.
-- **EMP-05:** ogni shift deve avere ownership canonica Employee lato server; self-service solo sul proprio Employee. Manager con permission dedicata e scope verificato alla data pertinente, non dal solo ruolo.
+- **EMP-05 — APPROVATO:** ogni shift deve avere ownership canonica Employee assegnata/verificata dal backend; self-service solo sui propri turni, senza accettare employeeId client come prova di proprietà. Manager/delegati richiedono permission esplicita per operazione e scope organizzativo verificato rispetto alla collocazione valida alla data del turno. Il contesto storico del turno non viene riscritto dopo trasferimenti.
 - **EMP-06:** DTO manager senza categoria `malattia` e senza note/documenti sanitari; distinguere “assenza pianificabile” dai dettagli sensibili. Accesso eccezionale con permission separata e audit.
 - **EMP-07:** payroll separato e negato per default; permission esplicite per lettura, modifica ed export, senza grant implicito dal ruolo admin/manager.
 - **EMP-08:** nessuna tassonomia definitiva proposta in assenza di decisione ORG lifecycle; qualunque stato mancante, sconosciuto o non attivo deve negare accesso. Cessazione/revoca non cancella l'ownership storica.
@@ -234,3 +234,19 @@ Invarianti approvate:
 La regola non consente assegnazioni organizzative simultanee a più sedi/reparti per lo stesso Employee. Un eventuale caso multisede simultaneo richiederà una nuova decisione esplicita e una policy dedicata; non è incluso in questa approvazione.
 
 L'approvazione definisce l'invariante di dominio, non lo schema fisico o il meccanismo di persistenza. Non approva path Firestore, lifecycle completo ORG/Employee, provisioning, loader, endpoint, Rules, migrazioni, wiring applicativo, accesso a dati reali o deploy. In particolare, i campi e i servizi attuali di Shift non implementano ancora la conservazione server-authoritative del contesto storico. Nessuna modifica runtime è autorizzata da questa decisione.
+
+
+## 14. Approvazione esplicita EMP-05 — 2026-11-26
+
+**Decisione esplicita dell'utente:** approvata la policy di ownership e accesso ai turni descritta nella proposta.
+
+Invarianti approvate:
+- ogni turno deve essere associato a un `employeeId` canonico; il collegamento è assegnato e verificato dal backend, non provato da un identificatore inviato dal client;
+- il dipendente può leggere e gestire esclusivamente i propri turni tramite il binding personale verificato;
+- manager/delegati possono operare sui turni altrui soltanto con una permission esplicita e specifica per l'operazione, oltre a uno scope organizzativo autorizzato;
+- lo scope del manager/delegato deve essere verificato rispetto alla collocazione Employee valida alla data del turno, non soltanto rispetto alla collocazione attuale o al ruolo;
+- il turno conserva il contesto organizzativo valido quando è stato svolto; trasferimenti successivi non riscrivono la storia;
+- identità, Employee, turno, collocazione, intervallo temporale o permesso mancanti, ambigui, incoerenti, revocati o fuori scope comportano rifiuto fail-closed;
+- leggere, creare, modificare e cancellare turni sono operazioni autorizzative distinte; nessun privilegio deriva implicitamente dal solo ruolo manager.
+
+L'approvazione definisce la policy di dominio e autorizzazione, non la sua implementazione. Non approva uno schema fisico o path Firestore, il lifecycle completo, provisioning, loader concreti, endpoint, Rules, migrazioni, wiring applicativo, accesso a dati reali o deploy. I servizi Shift attuali non contengono un riferimento Employee canonico e non applicano questa policy. Nessuna modifica runtime è stata autorizzata o effettuata.
