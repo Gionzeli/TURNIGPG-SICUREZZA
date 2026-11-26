@@ -1,7 +1,7 @@
 import { validateCanonicalMembership } from "./membership-policy.js";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
-const ISO_DATE = /^\\d{4}-\\d{2}-\\d{2}$/;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 function validDate(value) {
   if (typeof value !== "string" || !ISO_DATE.test(value)) return false;
   const d = new Date(value + "T00:00:00Z");

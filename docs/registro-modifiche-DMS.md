@@ -516,3 +516,5 @@ Aggiunto servizio interno per creare site e department con ID Firestore auto-gen
 - Aggiunto test Emulator per ID server-generated, creazione site/department, blocco archiviazione con dipartimenti/placement/member/manager attivi e audit delle quattro operazioni.
 
 - Archiviazione reparto rafforzata: verifica anche il parent site canonico attivo nella stessa transazione; una relazione parent mancante/archiviata non consente l'archiviazione.
+
+- Corretto l'escape della regex ISO-date nel controllo degli intervalli storici placement prima dell'archiviazione; ora riconosce correttamente date canoniche YYYY-MM-DD.
