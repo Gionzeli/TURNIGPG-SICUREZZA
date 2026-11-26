@@ -205,3 +205,16 @@ Verifica documentale dei file sul commit `20881c3aca2f8d64fffb8336f3fc526860cf9a
 - **EMP-10:** mantenere il dominio storage-agnostic finché il responsabile schema non approva tecnologia e percorsi; non inferire path Firestore da esempi o percorsi membership esistenti.
 
 Questi punti sono raccomandazioni per decisione, non approvazioni dell'utente e non autorizzano implementazione. In particolare, nessun loader, endpoint, Rules, migrazione o modifica runtime è stato creato.
+
+
+## 12. Approvazione esplicita EMP-03 — 2026-11-26
+
+**Decisione approvata dall'utente:** cardinalità attiva 1:1 tra UID Firebase verificato ed Employee canonico, entro lo stesso account.
+
+Invarianti approvate:
+- ogni UID Firebase verificato può avere al massimo un binding attivo verso un Employee nell'account;
+- ogni Employee può avere al massimo un UID Firebase attivo nell'account;
+- duplicati, associazioni concorrenti e conflitti in entrambe le direzioni devono essere rifiutati (fail-closed);
+- il sistema non deve scegliere automaticamente un binding in presenza di più candidati o conflitti.
+
+L'approvazione definisce la cardinalità logica, non il modello fisico di persistenza. Restano da decidere separatamente provisioning, verifica della persona, revoca/riassegnazione, lifecycle, audit e storage/path (EMP-08…EMP-10 e decisioni correlate). Non autorizza loader concreti, endpoint, Rules, migrazioni, wiring applicativo, accesso a dati reali o deploy. Il binding A resta una policy isolata e non attiva nell'applicazione.

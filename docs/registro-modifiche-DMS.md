@@ -156,3 +156,16 @@ Nessuna implementazione runtime o migrazione effettuata. Nessuna delle raccomand
 Il commento in `functions/src/membership/employee-binding.js` citava un percorso Firestore esemplificativo per `loadBinding`. È stato reso esplicitamente storage-agnostic: il loader deve leggere un record backend-owned, ma il percorso concreto dipende dalla decisione EMP-10/schema, ancora non approvata.
 
 La modifica riguarda solo il commento. Nessun path Firestore è stato scelto; nessuna logica runtime, test, Rules, endpoint, migrazione o provisioning è stata modificata. EMP-03…EMP-10 restano non approvate.
+
+
+## 2026-11-26 — Approvazione esplicita EMP-03 (cardinalità UID↔Employee)
+
+**Decisione esplicita dell'utente:** approvata la cardinalità attiva 1:1 per account tra UID Firebase verificato ed Employee canonico.
+
+- Un UID verificato può avere al massimo un Employee attivo nell'account.
+- Un Employee può avere al massimo un UID attivo nell'account.
+- Duplicati, conflitti e associazioni concorrenti in entrambe le direzioni devono essere rifiutati fail-closed; nessuna selezione automatica.
+- La decisione approva solo l'invariante logica di cardinalità. Non definisce path/storage, provisioning, verifica della persona, revoca/riassegnazione, lifecycle o audit.
+- EMP-04…EMP-10 restano non approvate. Nessun loader, endpoint, Rules, migrazione, wiring applicativo o modifica runtime è autorizzato da questa decisione. Nessun dato reale o deploy.
+
+**HEAD di partenza:** `08824fe981ad493c800b759af1d3b1198f1aef5b`. PR #1 verificata aperta, Draft, non merged, base `main`. I tre check CI su questo SHA risultano `success`; i risultati non si trasferiscono automaticamente al nuovo commit documentale.
