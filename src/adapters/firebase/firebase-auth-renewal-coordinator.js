@@ -13,7 +13,7 @@ function sameIdentity(left, right) {
 }
 
 /**
- * Serialized, fail-closed renewal coordinator.
+ * Epoch-guarded, fail-closed renewal coordinator.
  *
  * This module is deliberately standalone: callers supply the trusted resolver
  * and principal installer. It does not observe Firebase Auth, access Firestore,
@@ -139,6 +139,9 @@ export function createFirebaseAuthRenewalCoordinator({
   function invalidate(reason = "identity-change") {
     if (disposed) return false;
     epoch += 1;
+    // Detach the stale request so a new identity can renew immediately.
+    // Its captured epoch prevents a late result from installing authorization.
+    inFlight = null;
     clearActive();
     state = "inactive";
     return Object.freeze({ invalidated: true, reason, epoch });

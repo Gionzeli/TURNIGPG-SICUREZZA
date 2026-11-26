@@ -57,6 +57,34 @@ export async function runFirebaseAuthRenewalTests() {
     assert.ok(clears >= 1);
     coordinator.dispose();
   });
+  await test("invalidate allows new identity renewal while old resolver is pending", async () => {
+    let identity = { uid: "synthetic-rotate-old", accountId: "synthetic-rotate-account" };
+    const oldGate = deferred();
+    let installed = null, calls = [];
+    const coordinator = createFirebaseAuthRenewalCoordinator({
+      getIdentity: () => identity,
+      resolveAuthorization: request => {
+        calls.push(request.uid);
+        return request.uid === "synthetic-rotate-old" ? oldGate.promise : Promise.resolve(principal(identity));
+      },
+      installPrincipal: value => { installed = value; },
+      clearPrincipal: () => { installed = null; },
+      schedule: () => 1, cancelSchedule: () => {}
+    });
+    const oldPending = coordinator.renew();
+    identity = { uid: "synthetic-rotate-new", accountId: "synthetic-rotate-account" };
+    coordinator.invalidate("uid-rotation");
+    const newPending = coordinator.renew("new-identity");
+    const fresh = await newPending;
+    assert.equal(fresh.uid, "synthetic-rotate-new");
+    assert.equal(installed.uid, "synthetic-rotate-new");
+    assert.deepEqual(calls, ["synthetic-rotate-old", "synthetic-rotate-new"]);
+    oldGate.resolve(principal({ uid: "synthetic-rotate-old", accountId: "synthetic-rotate-account" }));
+    assert.equal(await oldPending, null);
+    assert.equal(installed.uid, "synthetic-rotate-new");
+    assert.equal(coordinator.getStatus().state, "active");
+    coordinator.dispose();
+  });
   await test("identity change without explicit invalidation clears stale authorization", async () => {
     let identity = { uid: "synthetic-race-old", accountId: "synthetic-race-account" };
     const gate = deferred();
