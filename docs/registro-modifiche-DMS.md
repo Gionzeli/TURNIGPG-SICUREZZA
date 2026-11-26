@@ -491,3 +491,5 @@ Aggiunti loader server-only sui percorsi approvati `accounts/{accountId}`, `site
 ## 2026-11-27 — Lifecycle effettivo membership e permesso trasferimento
 
 Il validatore membership ora richiede validFrom Timestamp/Date, validUntil Timestamp/Date o null, status active e intervallo corrente secondo clock server. Suspended, revoked, date mancanti/malformate/future/expired negano. Il permesso `dsm:transfer:departments` è derivato per manager scoped alle sedi; payroll e salute restano fuori dalla matrice base. La nomina crea membership effective-dated; revoca usa lo stesso timestamp server per la decisione. Aggiornate fixture sintetiche Emulator.
+
+- Hardening aggiuntivo: il loader richiede `schemaVersion` positiva sull'account; test Emulator verifica due trasferimenti concorrenti con la stessa versione (un solo vincitore), audit e rifiuto della destinazione archiviata.

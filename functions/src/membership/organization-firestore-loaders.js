@@ -1,5 +1,3 @@
-import { FieldPath } from "firebase-admin/firestore";
-
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
 const validId = value => typeof value === "string" && ID.test(value);
 function deny() {
@@ -28,14 +26,16 @@ export function createOrganizationFirestoreLoaders(db) {
     async loadAccount(accountId) {
       if (!validId(accountId)) return null;
       const snap = await accountRef(accountId).get();
-      return validDoc(snap, "accountId", accountId, accountId);
+      const account = validDoc(snap, "accountId", accountId, accountId);
+      return account && Number.isSafeInteger(account.schemaVersion) && account.schemaVersion > 0 ? account : null;
     },
     async loadSite(accountId, siteId) {
       if (!validId(accountId) || !validId(siteId)) return null;
       const [account, site] = await Promise.all([accountRef(accountId).get(), siteRef(accountId, siteId).get()]);
       const a = validDoc(account, "accountId", accountId, accountId);
       const s = validDoc(site, "siteId", siteId, accountId);
-      return a?.status === "active" && s?.status === "active" ? s : null;
+      return a?.status === "active" && Number.isSafeInteger(a.schemaVersion) && a.schemaVersion > 0 &&
+        s?.status === "active" ? s : null;
     },
     async loadDepartment(accountId, siteId, departmentId) {
       if (![accountId, siteId, departmentId].every(validId)) return null;
@@ -55,8 +55,8 @@ export function createOrganizationFirestoreLoaders(db) {
       const a = validDoc(account, "accountId", accountId, accountId);
       const s = validDoc(site, "siteId", siteId, accountId);
       const d = validDoc(department, "departmentId", departmentId, accountId);
-      if (a?.status !== "active" || s?.status !== "active" ||
-          d?.status !== "active" || d.siteId !== siteId) return null;
+      if (a?.status !== "active" || !Number.isSafeInteger(a.schemaVersion) || a.schemaVersion < 1 ||
+          s?.status !== "active" || d?.status !== "active" || d.siteId !== siteId) return null;
       return {
         accountId, siteId, departmentId,
         status: "active", siteStatus: "active", departmentStatus: "active"
