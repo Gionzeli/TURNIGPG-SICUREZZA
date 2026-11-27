@@ -214,3 +214,25 @@ The test is added but has not been executed in this environment. It uses Firesto
 ### Cleanup attempt for malformed vault references
 
 Connection setup now makes a best-effort scoped vault-revocation call when secret storage returns a non-empty but invalid/oversized reference. The malformed reference is never written to connection metadata. A synthetic regression verifies cleanup is attempted and no connection record is saved. Cleanup failure is intentionally suppressed at this boundary, so operational vault review may still be required; this does not prove that an arbitrary malformed reference can be revoked by a concrete vault backend.
+
+
+### Durable credential-cleanup outbox
+
+Credential deletion now has a Firestore-backed retry record under
+`accounts/{accountId}/mailboxCredentialCleanup/{connectionId}`. The server adapter
+supports idempotent record creation/update, bounded listing of pending tickets,
+loading an individual ticket, and monotonic completion. A conflicting secret
+reference for the same connection is rejected. Connection setup failure,
+malformed non-empty vault references, and ordinary connection revocation record
+the ticket before calling the vault; successful deletion completes it, while
+failure leaves it pending for later retry. The record contains only the opaque
+vault reference and operational metadata, never token material.
+
+Synthetic tests cover persistence, idempotency, conflicting references,
+account-scoped pending listing, and a vault outage leaving a pending ticket.
+This is an outbox primitive, **not yet a scheduled cleanup worker**: production
+must wire a server-only worker that lists pending tickets, retries idempotent
+vault deletion with bounded backoff, completes tickets only after confirmed
+deletion/not-found, and alerts on exhausted retries. Firestore Rules/IAM must
+keep this collection inaccessible to clients. No worker, callable, live Firebase,
+or production vault was wired or exercised here.
