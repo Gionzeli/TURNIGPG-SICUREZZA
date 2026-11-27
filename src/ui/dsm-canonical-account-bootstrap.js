@@ -12,6 +12,7 @@ const functions = getFunctions();
 const listAccounts = httpsCallable(functions, "listMyCanonicalAccounts");
 const resolveAuthorization = httpsCallable(functions, "resolveAuthorization");
 const listOwnEmployeeShifts = httpsCallable(functions, "listOwnEmployeeShifts");
+const readOwnEmployeeEmploymentProfile = httpsCallable(functions, "readOwnEmployeeEmploymentProfile");
 const proposeMembershipInvite = httpsCallable(functions, "proposeCanonicalMembershipInvite");
 const approveMembershipInvite = httpsCallable(functions, "approveCanonicalMembershipInvite");
 const claimMembershipInvite = httpsCallable(functions, "claimCanonicalMembershipInvite");
@@ -27,6 +28,10 @@ const controller = mountDSMCanonicalAccountBridge(root, {
   },
   listOwnEmployeeShifts: async data => {
     const result = await listOwnEmployeeShifts(data);
+    return result.data;
+  },
+  readOwnEmployeeEmploymentProfile: async data => {
+    const result = await readOwnEmployeeEmploymentProfile(data);
     return result.data;
   },
   resolveAuthorization: async ({ uid, accountId }) => {
