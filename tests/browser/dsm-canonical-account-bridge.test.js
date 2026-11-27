@@ -13,14 +13,17 @@ const onAuthStateChanged = (_auth, callback) => {
   queueMicrotask(() => callback(auth.currentUser));
   return () => listeners.delete(callback);
 };
-const account = { accountId: "synthetic-account-01", role: "member" };
+const accounts = [
+  { accountId: "synthetic-account-01", role: "member" },
+  { accountId: "synthetic-account-02", role: "member" }
+];
 const databaseName = `dsm-canonical-bridge-${crypto.randomUUID()}`;
 window.__bridgeDatabaseName = databaseName;
 let session;
 let controller;
 const dependencies = {
   auth, onAuthStateChanged,
-  listCanonicalAccounts: async () => [account],
+  listCanonicalAccounts: async () => accounts,
   resolveAuthorization: async ({ uid, accountId }) => ({
     principal: {
       uid, accountId, role: "member", status: "active",
@@ -42,7 +45,7 @@ const dependencies = {
 controller = mountDSMCanonicalAccountBridge(root, dependencies);
 await new Promise(resolve => setTimeout(resolve, 0));
 document.documentElement.dataset.bridgeResult = "accounts";
-document.querySelector("select").value = account.accountId;
+document.querySelector("select").value = accounts[0].accountId;
 document.querySelector("select").dispatchEvent(new Event("change", { bubbles: true }));
 document.querySelector("button").click();
 await new Promise((resolve, reject) => {
@@ -55,10 +58,38 @@ await new Promise((resolve, reject) => {
   check();
 });
 if (session?.accountContext.getActive()?.identitySource !== "firebase" ||
-    session.accountContext.getActive()?.accountId !== account.accountId) {
+    session.accountContext.getActive()?.accountId !== accounts[0].accountId) {
   throw new Error("Canonical Firebase principal was not activated.");
 }
 document.documentElement.dataset.bridgeResult = "active";
+const accountSelect = root.querySelector("select");
+accountSelect.value = accounts[1].accountId;
+accountSelect.dispatchEvent(new Event("change", { bubbles: true }));
+await new Promise((resolve, reject) => {
+  const started = Date.now();
+  const check = () => {
+    if (root.textContent.includes("Account precedente disconnesso")) return resolve();
+    if (Date.now() - started > 5000) return reject(new Error("Previous DSM account was not invalidated."));
+    setTimeout(check, 20);
+  };
+  check();
+});
+if (session.accountContext.getActive() !== null) {
+  throw new Error("Previous DSM account remained active after selection changed.");
+}
+root.querySelector("button").click();
+await new Promise((resolve, reject) => {
+  const started = Date.now();
+  const check = () => {
+    if (root.textContent.includes("synthetic-account-02 collegato.")) return resolve();
+    if (Date.now() - started > 5000) return reject(new Error("Second canonical account activation timed out."));
+    setTimeout(check, 20);
+  };
+  check();
+});
+if (session.accountContext.getActive()?.accountId !== accounts[1].accountId) {
+  throw new Error("Second canonical account was not activated.");
+}
 
 await controller.destroy();
 if (listeners.size !== 0) throw new Error("Auth listeners were not removed during teardown.");
