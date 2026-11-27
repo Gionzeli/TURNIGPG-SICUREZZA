@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-06 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, and test requirements. D-07 and lifecycle/historical access remain open. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-03 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -262,6 +262,21 @@ Approved policy in principle:
 
 **Still required before implementation:** define the canonical suspension state and effective timestamp, which exact personal self-service domains (if any) remain available, session/token revocation behavior, treatment of pending proposals/approvals, and tests for immediate denial of operational actions. No suspended-user exception is implied for compensation, exports, or sensitive data.
 
+### L-03 — Access after employment termination
+
+**Question:** What access remains for an employee after the employment relationship ends?
+
+**Approved 2026-11-27 — option B (revoke operational access; allow temporary, limited personal access only to separately authorized documents), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- On termination becoming effective, revoke operational access and delegated privileges, including schedule, manager, approver, administrative, and other work-related capabilities.
+- A personal self-service channel may remain temporarily available only for a separately approved, explicitly allowlisted set of the employee's own documents.
+- Access must be read-only unless a distinct policy explicitly authorizes another action; it must not expose other employees' data or general historical records.
+- Every request must re-check canonical lifecycle status and the termination-access grant server-side; cached sessions and client state do not establish eligibility.
+- When the authorized period expires or the grant is revoked, personal access is denied. Termination does not authorize deletion or alteration of records subject to retention requirements.
+
+**Still required before implementation:** define the maximum access duration, exact document types and fields, delivery/viewing method, identity re-verification, revocation and expiry behavior, retention/legal-hold handling, and synthetic negative tests. No post-termination self-service endpoint or document access is authorized until these details are approved.
+
 Other lifecycle decisions remain open and fail closed:
 - leave, termination and reactivation;
 - account/site/department archive and restoration;
@@ -284,7 +299,10 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | D-05 Manager absence visibility | Approved — option B minimal availability, dates and request status; implementation gated on roles/scope/schema |
 | D-06 Audit read | Approved — option B scoped, minimized manager event visibility; implementation gated on roles/scope/event taxonomy/retention |
 | D-07 Export/report | Approved — option B narrow per-domain exports in principle; no endpoint until per-export details and review are approved |
-| L-01 Transfer and prior-manager historical access | Approved — option B limited to operational records within former assignment interval; implementation gated on temporal semantics and tests |\n| L-02 Suspension access | Approved — option B operational access revoked; narrowly necessary self-service only if separately authorized; implementation gated on status/revocation details |\n| Other lifecycle and historical access | Open — fail closed |
+| L-01 Transfer and prior-manager historical access | Approved — option B limited to operational records within former assignment interval; implementation gated on temporal semantics and tests |
+| L-02 Suspension access | Approved — option B operational access revoked; narrowly necessary self-service only if separately authorized; implementation gated on status/revocation details |
+| L-03 Termination access | Approved — option B operational access revoked; temporary, limited personal document access only if separately authorized; implementation gated on duration/document allowlist/revocation |
+| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
