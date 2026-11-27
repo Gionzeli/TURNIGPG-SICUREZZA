@@ -131,6 +131,10 @@ test("low-confidence employee extraction is blocked without creating a proposal"
 
 test("ambiguous shift matching is blocked instead of guessing", async () => {
   const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [{
+      employeeMatchKey: "verified-employee-code", confidence: 0.999,
+      shifts: [{ date: "2026-06-02", type: "turno", post: "Reception", start_time: "10:00", end_time: "16:00", hours: 6 }]
+    }] }),
     loadEmployeeShifts: async () => [
       { accountId, employeeId: "synthetic-employee", shiftId: "shift-a", date: "2026-06-02", type: "turno", post: "Reception", start_time: "07:00", end_time: "13:00", hours: 6, revision: 1 },
       { accountId, employeeId: "synthetic-employee", shiftId: "shift-b", date: "2026-06-02", type: "turno", post: "Reception", start_time: "08:00", end_time: "14:00", hours: 6, revision: 1 }
