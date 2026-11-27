@@ -37,7 +37,7 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
           if(leaseService) {
             try { lease=await leaseService.acquire({accountId,connectionId,ttlMs:120_000}); }
             catch { const error=new Error("Mailbox refresh coordination is unavailable."); error.code="unavailable"; throw error; }
-            // Re-read after acquiring: another instance may have refreshed just before our lease.
+            // Re-read under the lease: a competing instance may have refreshed after our first read.
             stored=await load();
             if(Number.isSafeInteger(stored.expiresAt) && stored.expiresAt>now()+REFRESH_SKEW_MS) {
               return Object.freeze({status:"active",accessToken:stored.accessToken,expiresAt:stored.expiresAt,refreshed:false});
