@@ -695,3 +695,11 @@ alert delivery has no exhausted-attempt terminal state; a null retry time would
 make the outbox entry unscheduled and potentially strand it. The Firestore
 adapter now rejects null, past, and otherwise invalid retry timestamps before
 updating the alert ticket.
+
+
+#### Persisted cleanup-alert state validation
+
+Before advancing or acknowledging a pending exhaustion alert, the Firestore
+adapter now validates its persisted retry counter, next-attempt timestamp, and
+last error code. Malformed stored metadata fails closed instead of being
+coerced during retry comparison or silently acknowledged as delivered.
