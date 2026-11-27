@@ -23,7 +23,7 @@ export function createMailboxCredentialVault({ backend, now = () => Date.now(), 
   return Object.freeze({
     async storeSecret({ accountId, connectionId, provider, secretMaterial }) {
       if (typeof accountId !== "string" || !accountId || typeof connectionId !== "string" || !connectionId ||
-          !PROVIDERS.has(provider) || !secretMaterial || typeof secretMaterial !== "object ||
+          !PROVIDERS.has(provider) || !secretMaterial || typeof secretMaterial !== "object" ||
           typeof secretMaterial.accessToken !== "string" || secretMaterial.accessToken.length < 16 ||
           secretMaterial.accessToken.length > MAX_TOKEN ||
           (secretMaterial.refreshToken != null && (typeof secretMaterial.refreshToken !== "string" ||
