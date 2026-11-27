@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-72 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-73 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1935,6 +1935,26 @@ Approved policy in principle:
 
 **Still required before implementation:** hold authority and owner matrix; matter/scope metadata schema; release and independent-approval workflow; overlapping-hold resolution rules; retention schedule linkage and disposition decision evidence; inventory of replicas, indexes, exports, backups and processors; deletion/anonymization propagation and restore-reconciliation design; exception/escalation process; audit access controls; and synthetic Emulator tests. This decision does not determine legal sufficiency, set retention periods, authorize immediate deletion on hold release, override statutory duties, or approve real-data processing or production activation.
 
+### L-73 — Audit evidence access, disclosure and evidentiary export
+
+**Question:** How should audit evidence be accessed, disclosed or packaged for investigation and external review without turning ordinary audit visibility into unrestricted access to employee data or weakening evidence integrity?
+
+**Approved 2026-11-27 — option B (purpose-bound, read-only evidence access with controlled disclosure and verifiable chain of custody), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Separate permission to view operational audit summaries from permission to inspect underlying evidence, security telemetry, identity details, payloads or employee records. D-06 audit visibility does not grant access to raw logs or unrestricted evidence.
+- Require a documented case, incident, compliance or legal purpose; authorized requester; precise time range, systems, actors and record categories; and an approved evidence scope before retrieval. Unknown or overly broad requests fail closed.
+- Use role-specific authorization and separation of duties for evidence custodians, investigators, privacy/legal reviewers and approvers. A person must not approve their own expanded access or alter evidence they are responsible for collecting.
+- Default to read-only, minimized evidence views. Redact unrelated employees, credentials, tokens, secrets, sensitive absence details and unrelated personal content. Reveal additional fields only when necessity and authority are documented and separately approved.
+- Preserve source records and integrity metadata. Evidence collection must record source, collection time, collector identity, query/filter criteria, relevant versions, integrity digest or equivalent verification, transformations/redactions and every custody transfer. Never edit the original evidence in place.
+- Treat derived extracts, screenshots, reports and evidence bundles as new controlled artifacts with their own classification, access list, purpose, retention, integrity verification and disposal rules. A successful export must not create an unrestricted reusable copy.
+- Require independent approval and explicit preview for bulk, cross-employee, highly sensitive or externally disclosed evidence. Validate recipient identity, authority, secure delivery channel, expiry and acknowledgement where appropriate; do not send evidence through ordinary notifications or public links.
+- Keep evidence-access logs separate from the evidence being protected, with restricted append-only or tamper-evident handling, so investigators cannot erase their own access trail. Avoid logging unnecessary sensitive payloads or secrets.
+- Apply legal holds and retention rules to both source evidence and derived bundles. Disclosure does not waive a hold or authorize deletion; disposition follows the separate approved retention and hold-release workflows.
+- Revoke case access and delivery links when the purpose ends, the case closes, an approver withdraws authorization or a grant expires. Review outstanding copies and recipients, and record verified return/deletion where contractually and technically possible.
+- Test synthetic cases for unauthorized raw-log access, self-approval, overbroad queries, cross-tenant evidence, redaction failures, altered source evidence, digest mismatch, custody gaps, public-link exposure, expired recipient access, held evidence deletion and audit-trail tampering.
+
+**Still required before implementation:** evidence classification and source inventory; case-purpose and requester authority matrix; custodian/investigator/reviewer separation-of-duties model; query and field allowlists; redaction rules; integrity and chain-of-custody format; derived-artifact storage, delivery and expiry design; external-recipient verification; hold/retention linkage; access review and revocation procedures; and synthetic Emulator tests. This decision does not authorize unrestricted raw-log access, bulk employee surveillance, general-purpose evidence exports, external disclosure without review, or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2007,6 +2027,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-70 Account archival, restoration and archived organizational units | Approved — option B controlled reversible archival and separately authorized restoration; implementation gated on impact inventory, revocation, retention, approval and recovery tests |
 | L-71 Historical employee records after termination or lifecycle change | Approved — option B purpose-limited, read-only, time-bounded historical access; implementation gated on lawful-purpose review, historical scope model, revocation, query enforcement and tests |
 | L-72 Legal-hold release and post-hold disposition | Approved — option B verified hold release followed by separate retention-based disposition; implementation gated on legal authority, overlapping-hold checks, copy propagation and tests |
+| L-73 Audit evidence access, disclosure and evidentiary export | Approved — option B purpose-bound read-only evidence access and controlled disclosure; implementation gated on evidence scope, redaction, custody, recipient and test controls |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
