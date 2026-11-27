@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** open decision; proposal only. No new permission, schema, API, Firestore Rule, or operational behavior is approved by this document.
+**Status:** D-01 approved for employee self-read as recorded below; all other decisions remain open. This approval authorizes only the D-01 policy scope, not implementation or production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -37,7 +37,19 @@ Required safeguards regardless of choice:
 - Return an explicit field allowlist, not the Firestore document.
 - No compensation or deduction fields in this response.
 
-**Unapproved:** exact field list and whether self-read is enabled.
+**Approved 2026-11-27 — option B (employment profile), by explicit user confirmation in the project conversation.**
+
+Approved self-read allowlist, expressed as semantic fields pending a schema-to-field mapping review:
+- minimum identity fields needed to identify the linked Employee record;
+- CCNL;
+- section;
+- level;
+- role;
+- effective date for the applicable employment-profile values.
+
+The response must remain limited to the authenticated employee's own canonical record, resolved only through the unique active backend-owned UID↔Employee binding. No compensation, payroll, deductions, bank/payment details, health/absence details, documents, or other employees' data are included. No general Firestore document passthrough and no client-selected Employee ID as ownership proof.
+
+**Still required before implementation:** map each approved semantic field to the actual canonical schema and confirm that no field contains mixed or sensitive data. Unknown or unmapped fields remain denied. This approval does not authorize offline caching, exports, manager access, profile mutation, or historical access after lifecycle/binding changes.
 
 ### D-02 — Employee's own compensation
 
@@ -179,7 +191,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 
 | Decision | Status |
 |---|---|
-| D-01 Own ordinary profile | Open — deny new endpoint |
+| D-01 Own ordinary profile | Approved — option B self-read; implementation gated on schema field mapping |
 | D-02 Own compensation | Open — deny |
 | D-03 Manager/team profile | Open — deny new endpoint |
 | D-04 Manager/team shifts | Open — no new delegated access |
