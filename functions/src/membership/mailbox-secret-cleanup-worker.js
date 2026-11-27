@@ -27,9 +27,10 @@ function readWorkerTimestamp(now) {
  * log secret references or provider errors.
  */
 export function createMailboxSecretCleanupWorker({
-  cleanupAdapters, credentialVault, alert, now = () => Date.now()
+  cleanupAdapters, credentialVault, assertRevocationPending, alert, now = () => Date.now()
 }) {
   const required = [
+    ["assertRevocationPending", assertRevocationPending],
     ["listPendingSecretCleanup", cleanupAdapters?.listPendingSecretCleanup],
     ["completeSecretCleanup", cleanupAdapters?.completeSecretCleanup],
     ["recordSecretCleanupFailure", cleanupAdapters?.recordSecretCleanupFailure],
@@ -93,6 +94,11 @@ export function createMailboxSecretCleanupWorker({
           continue;
         }
         try {
+          // A durable cleanup ticket is not itself proof that refresh has
+          // been fenced. Verify the monotonic revocation gate before deletion.
+          await assertRevocationPending({
+            accountId: ticket.accountId, connectionId: ticket.connectionId
+          });
           await credentialVault.revokeSecret({
             accountId: ticket.accountId,
             connectionId: ticket.connectionId,
