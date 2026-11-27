@@ -65,7 +65,9 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
       batch.set(collection.doc(`in-range-${date}`), {
         accountId, employeeId, date, type: "turno", status: "active",
         placementId: "range-placement", siteId: "synthetic-range-site",
-        departmentId: "synthetic-range-department", revision: 1, hours: 8
+        departmentId: "synthetic-range-department", revision: 1, hours: 8,
+        ownerUid: "must-not-leak", compensation: 9999, medicalReason: "synthetic-sensitive",
+        absenceNotes: "must-not-leak", internalAudit: { actorUid: "must-not-leak" }
       });
     }
     await batch.commit();
@@ -76,6 +78,19 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     });
     assert.deepEqual(result.map(item => item.date), ["2026-06-04", "2026-06-18"]);
     assert.equal(result.length, 2);
+    const allowedDtoKeys = [
+      "shiftId", "date", "type", "post", "start_time", "end_time", "hours",
+      "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed",
+      "has_meal_voucher", "revision"
+    ];
+    for (const item of result) {
+      assert.deepEqual(Object.keys(item).sort(), [...allowedDtoKeys].sort());
+      assert.equal(Object.hasOwn(item, "ownerUid"), false);
+      assert.equal(Object.hasOwn(item, "compensation"), false);
+      assert.equal(Object.hasOwn(item, "medicalReason"), false);
+      assert.equal(Object.hasOwn(item, "absenceNotes"), false);
+      assert.equal(Object.hasOwn(item, "internalAudit"), false);
+    }
 
     const created = await handlers.create({
       rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
