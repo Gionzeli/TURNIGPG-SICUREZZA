@@ -367,3 +367,14 @@ exhaustion state, retry count and sanitized error codes). The credential
 `secretRef`, cleanup reason and unrelated metadata are deliberately excluded
 before data reaches the alert worker. Unit and Firestore Emulator assertions
 guard this boundary.
+
+
+#### Cleanup worker clock validation
+
+The cleanup worker now samples its injected clock once per invocation and
+rejects non-positive, non-safe-integer, or retry-overflow-prone timestamps
+before querying adapters or performing side effects. The fixed run timestamp
+is reused for completion and retry scheduling, avoiding inconsistent timestamps
+within a single batch. Synthetic regressions cover invalid and near-overflow
+clock values. This is defensive input validation; it does not replace
+monitoring clock synchronization on production workers.
