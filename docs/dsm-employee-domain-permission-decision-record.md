@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-38 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-39 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1067,6 +1067,28 @@ Approved policy in principle:
 
 **Still required before implementation:** define evidence format and storage, requirement-to-test mapping, test ownership, risk severity thresholds, CI enforcement, exception approval/expiry, and reviewer criteria. This decision establishes governance policy only; it does not assert current CI/test status, certify security, or authorize merge/deployment/production activation.
 
+### L-39 — CI dependency and vulnerability gates
+
+**Question:** How should dependency vulnerabilities and risky package changes be prevented from passing continuous integration unnoticed?
+
+Possible choices:
+- **A. Advisory-only:** show warnings but permit normal advancement.
+- **B. Risk-based enforced gates:** automated dependency inventory and vulnerability/provenance checks; block on defined severity or policy violations; reviewed exceptions with expiry.
+- **C. Freeze all dependencies indefinitely:** prohibit all dependency updates.
+
+**Approved 2026-11-27 — option B (risk-based enforced dependency and vulnerability gates), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Maintain a reproducible dependency inventory, lockfiles, and version/provenance metadata for direct and transitive dependencies.
+- Run automated vulnerability and license/policy checks in CI; assess severity, exploitability, exposure and available remediation, with defined blocking thresholds.
+- Block advancement for critical/high vulnerabilities under policy, untrusted or unverifiable provenance, dependency confusion indicators, unexpected lockfile changes, and failed mandatory checks; do not silently ignore findings.
+- Prefer supported versions and controlled, reviewable updates; test updates in isolated CI and review material changes to scripts, install hooks and permissions.
+- Use scoped, documented, time-limited exceptions with accountable approval, rationale, compensating controls and expiry; exceptions must not disable unrelated checks.
+- Keep scanning results tied to commit and workflow run, minimize secret exposure in CI, and monitor scanner/configuration failures as failures rather than success.
+- Avoid automatic upgrades that change runtime behavior without review and tests; automate safe discovery and proposed updates, but retain controlled review for material or security-sensitive changes.
+
+**Still required before implementation:** define severity thresholds and risk criteria, scanners and provenance sources, license policy, CI workflow/permissions, remediation ownership and deadlines, exception workflow, and synthetic validation of blocking behavior. This policy does not claim scans currently run, authorize dependency changes, merge, deploy or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1114,7 +1136,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
 | L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
 | L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
-| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| Other lifecycle and historical access | Open — fail closed |
+| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
