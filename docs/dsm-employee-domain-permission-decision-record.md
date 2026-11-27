@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-80 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-81 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2093,6 +2093,26 @@ Approved policy in principle:
 
 **Still required before implementation:** inventory of all live-data transports and listener paths; subscription authorization contract; server-side query and payload projection rules; maximum revocation-latency objective and enforcement mechanism; token, cursor and replay binding design; fan-out workload identity model; disconnect and buffer-cleanup guarantees; audit taxonomy; and synthetic Emulator/integration conformance tests. This decision does not authorize any new real-time endpoint, direct client listener to protected data, or production activation.
 
+### L-81 — Data synchronization, offline queues and conflict-safe reconciliation
+
+**Question:** How must delayed, offline, retried or concurrently synchronized client changes be validated so that reconnection cannot bypass current authorization, overwrite newer canonical data or replay stale and revoked operations?
+
+**Approved 2026-11-27 — option B (untrusted client queues with server-side reauthorization, revision-based reconciliation and explicit conflict handling), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat all client-side pending changes, offline queues, cached snapshots, sync cursors and locally generated timestamps as untrusted input. Local persistence is not canonical ownership, approval, authorization or proof that an operation remains valid.
+- On every synchronization attempt, authenticate the current actor and re-evaluate current membership, lifecycle, tenant, ownership, scope, policy version, domain/action/field permission and workflow state. Never rely on the authorization decision made when the operation was first queued or when the device went offline.
+- Bind queued operations to an explicit operation identity, intended canonical resource, actor context, schema/version, expected revision and idempotency key. Reject client attempts to change actor, tenant, owner, placement, role, permission, approval state or audit metadata.
+- Apply changes only through server-authorized transactional or equivalent atomic workflows. Validate expected revisions and canonical state at commit time; reject stale writes or return a conflict requiring explicit reconciliation. Never silently use last-write-wins for protected employee, payroll, schedule, absence, identity or permission data.
+- Recheck workflow approvals, separation of duties and approver eligibility at execution time. An offline proposal is not an approval, and an approval obtained before a material scope, identity, policy or resource change must be revalidated before application.
+- Make retries idempotent without treating duplicate requests as new approvals or mutations. Preserve original operation identity and outcome; detect replay, altered payloads, expired requests and mismatched actor/resource context.
+- Define conflict-specific reconciliation rules by domain. Prefer explicit human review for ambiguous or high-impact conflicts; do not merge identity records, overwrite sensitive fields, recreate revoked grants or resurrect archived/terminated records automatically.
+- Enforce retention and expiry for queued operations and local snapshots. Expired, superseded, revoked or unsupported operations must be rejected with a safe outcome; cleanup must minimize residual sensitive data on logout, account switch, session revocation and device reassignment.
+- Return only minimized synchronization results and allowlisted canonical projections. Do not disclose unrelated records, rejected payload contents, sensitive conflict context or cross-tenant existence through errors.
+- Audit synchronization attempts, authorization rejections, conflicts, approvals, retries and final outcomes with server-generated timestamps and minimized metadata. Preserve provenance of accepted changes and distinguish client event time, server receipt time and canonical commit time.
+- Test synthetic offline and reconnection scenarios: permission revocation while disconnected, employee transfer/termination, tenant boundary change, policy update, expired delegation, stale revision, duplicate/reordered/replayed requests, concurrent edits, account switching, partial network failure and approval invalidation.
+
+**Still required before implementation:** per-domain synchronization contract; operation envelope and schema versioning; idempotency and replay protection design; revision/conflict strategy; offline data classification and expiry; commit-time authorization and approval checks; retry/backoff and partial-failure semantics; audit/provenance fields; user-visible conflict workflow; and synthetic Emulator tests. This decision does not authorize sensitive offline storage, automatic conflict merges, LocalStorage migration, or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2173,6 +2193,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-78 Trusted time, clock integrity and temporal authorization | Approved — option B authoritative server time, UTC storage, explicit business time zones and fail-closed temporal checks; implementation gated on synchronization, semantics, provenance and tests |
 | L-79 Authorization conflict resolution and permission composition | Approved — option B deny-overrides, least-privilege intersection and no implicit privilege accumulation; implementation gated on formal algebra, scope semantics and conformance tests |
 | L-80 Real-time subscriptions, event streams and live-data authorization | Approved — option B server-authorized scoped streams, ongoing revalidation and prompt revocation; implementation gated on transport inventory, revocation latency, replay controls and tests |
+| L-81 Data synchronization, offline queues and conflict-safe reconciliation | Approved — option B untrusted client queues, server reauthorization, revision-based reconciliation and explicit conflicts; implementation gated on domain contracts, replay protection and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
