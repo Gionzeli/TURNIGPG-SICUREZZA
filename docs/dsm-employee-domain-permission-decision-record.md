@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-81 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-82 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2113,6 +2113,27 @@ Approved policy in principle:
 
 **Still required before implementation:** per-domain synchronization contract; operation envelope and schema versioning; idempotency and replay protection design; revision/conflict strategy; offline data classification and expiry; commit-time authorization and approval checks; retry/backoff and partial-failure semantics; audit/provenance fields; user-visible conflict workflow; and synthetic Emulator tests. This decision does not authorize sensitive offline storage, automatic conflict merges, LocalStorage migration, or production activation.
 
+### L-82 — Bulk operations, batch authorization and partial-failure safety
+
+**Question:** How must bulk reads, updates, imports, exports, approvals and administrative batch jobs be authorized and executed so that a single broad request cannot exceed per-record permissions, hide partial failures or cause uncontrolled high-impact changes?
+
+**Approved 2026-11-27 — option B (explicitly scoped batch capabilities with per-item authorization, bounded execution and reviewable partial outcomes), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat batch access as a distinct capability, never as an automatic consequence of single-record read or write permission. Each batch action requires an explicit domain/action grant, purpose, tenant and organizational scope, field allowlist, maximum item count and execution window.
+- Authorize every target record independently on the server using current identity, lifecycle, tenant, ownership, scope, policy version and field-level rules. A batch-level scope check is not sufficient if individual records can differ in ownership, placement, lifecycle or restrictions.
+- Reject client attempts to supply authoritative actor, tenant, owner, role, permission, approval, placement or audit metadata. Resolve the target set and canonical constraints server-side; client-provided IDs are requests for consideration, not proof of authority.
+- Require a dry-run or preview for high-impact or irreversible batches, showing the authorized target count, excluded/rejected count, exact action and field scope, expected revisions and consequences without disclosing unauthorized record details.
+- Apply bounded chunk sizes, rate limits, concurrency limits, resource budgets, deadlines and cancellation. Large or long-running batches must use scoped workload identities and reauthorize each item or defined transaction unit at execution time.
+- Define atomicity explicitly per operation. Where all-or-nothing semantics are required, use an appropriate transactional boundary and fail the whole unit on any authorization or integrity failure. Where partial completion is permitted, report per-item outcomes without implying that the whole batch succeeded.
+- Use expected revisions, idempotency keys and replay protection for each item. Retries must not duplicate mutations, approvals, notifications, exports or audit events; stale items must be rejected or routed to explicit conflict resolution.
+- Separate batch proposal, approval and execution. High-impact actions require independent approval and, where defined, quorum; the proposer cannot approve their own batch. Revalidate approval validity, target set and material inputs immediately before execution.
+- Prevent batch operations from bypassing retention, legal holds, lifecycle restrictions, tenant boundaries, separation of duties, export controls or field-level restrictions. A single denied or ambiguous item must never be silently broadened to a more permissive fallback.
+- Protect generated batch artifacts and reports with the same field, scope, delivery, expiry and deletion controls as individual exports. Do not expose excluded records, raw rejected payloads or sensitive failure details in summaries.
+- Record a tamper-resistant, minimized audit trail for request, preview, approval, execution, cancellation, per-item result and final reconciliation, including actor, purpose, policy version, scope, counts and stable reason codes without copying sensitive payloads.
+- Test synthetic batches containing mixed tenants, scopes, roles, lifecycle states, explicit denials, stale revisions, duplicate IDs, malformed items, partial network failure, retries, cancellation, approval changes and resource-limit exhaustion.
+
+**Still required before implementation:** batch capability catalogue; per-domain target-selection and item-authorization contract; atomicity and partial-success semantics; preview and approval workflow; item and workload limits; concurrency, timeout and cancellation rules; per-item idempotency/revision strategy; artifact protection; audit schema; and synthetic Emulator tests. This decision does not authorize bulk employee-data export, mass mutation, production execution or bypass of any per-record restriction.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2194,6 +2215,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-79 Authorization conflict resolution and permission composition | Approved — option B deny-overrides, least-privilege intersection and no implicit privilege accumulation; implementation gated on formal algebra, scope semantics and conformance tests |
 | L-80 Real-time subscriptions, event streams and live-data authorization | Approved — option B server-authorized scoped streams, ongoing revalidation and prompt revocation; implementation gated on transport inventory, revocation latency, replay controls and tests |
 | L-81 Data synchronization, offline queues and conflict-safe reconciliation | Approved — option B untrusted client queues, server reauthorization, revision-based reconciliation and explicit conflicts; implementation gated on domain contracts, replay protection and tests |
+| L-82 Bulk operations, batch authorization and partial-failure safety | Approved — option B scoped batch capabilities, per-item authorization, bounded execution and explicit partial outcomes; implementation gated on atomicity, limits, approvals and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
