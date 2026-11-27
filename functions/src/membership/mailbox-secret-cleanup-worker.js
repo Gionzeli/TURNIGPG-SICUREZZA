@@ -46,7 +46,8 @@ export function createMailboxSecretCleanupWorker({
         throw error;
       }
       const runTimestamp = now();
-      if (!Number.isSafeInteger(runTimestamp) || runTimestamp < 1) {
+      if (!Number.isSafeInteger(runTimestamp) || runTimestamp < 1 ||
+          runTimestamp > Number.MAX_SAFE_INTEGER - MAX_BACKOFF_MS) {
         const error = new Error("Cleanup worker clock returned an invalid timestamp.");
         error.code = "failed-precondition";
         throw error;
@@ -100,7 +101,7 @@ export function createMailboxSecretCleanupWorker({
           summary.completed++;
         } catch (error) {
           const attempts = ticket.attempts + 1;
-          const timestamp = runTimestamp
+          const timestamp = runTimestamp;
           const exhausted = attempts >= MAX_ATTEMPTS;
           const nextAttemptAt = exhausted ? null : timestamp + retryDelay(attempts);
           let retryRecorded = false;
