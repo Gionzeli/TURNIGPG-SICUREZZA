@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-97 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-98 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2466,6 +2466,28 @@ Approved policy in principle:
 
 **Still required before implementation:** canonical API and persisted-schema registry; versioning and compatibility policy; server-side schema validation framework; unknown-field and enum handling rules; client capability negotiation contract; migration and rollback standards; event/queue compatibility plan; deprecation ownership and telemetry; and synthetic mixed-version contract tests. This decision does not authorize a production API migration, schema rewrite, legacy data conversion or relaxation of server-side authorization.
 
+### L-98 — Safe document preview, rendering and active-content isolation
+
+**Question:** How must the application safely preview or render uploaded and generated documents without allowing untrusted document content to execute code, access browser context, disclose data, or bypass authorization?
+
+**Decision:** Approved — option B, use a deny-by-default document preview model with isolated rendering, explicit format allowlists, bounded parsing, and independently authorized document retrieval. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Define an explicit allowlist of previewable formats and reject or force download for unsupported, ambiguous, malformed, encrypted, or active-content formats.
+- Treat every uploaded, imported, and externally sourced document as untrusted, regardless of filename, extension, MIME declaration, or claimed origin; inspect actual content using safe, bounded processing.
+- Render previews in an isolated origin or equivalently strong sandbox with scripts, plugins, navigation, downloads, forms, and ambient credentials disabled unless a separately reviewed use case requires a narrowly scoped capability.
+- Never render untrusted HTML or SVG in the privileged application origin; sanitize only with maintained, context-appropriate controls and retain isolation as the primary boundary.
+- Authorize each preview, page, thumbnail, conversion, and download request server-side against the current actor, tenant, record, purpose, and document lifecycle; opaque identifiers and possession of a URL are not authorization.
+- Prevent cross-tenant and cross-account cache reuse; use private, non-shared delivery and explicit cache controls for protected documents and derived previews.
+- Bound file size, page count, decompression ratio, recursion, CPU, memory, and processing time; isolate parsers/converters and defend against archive bombs, parser exploits, polyglot files, and path traversal.
+- Strip or suppress active content, embedded attachments, external references, macros, scripts, and remote resource fetches in previews; prevent server-side request forgery during conversion.
+- Apply malware scanning and quarantine where appropriate, but do not treat a clean scan as proof of safety or authorization.
+- Avoid leaking document contents, filenames, metadata, thumbnails, or sensitive error details through logs, telemetry, referrers, browser history, notifications, or third-party services.
+- Revoke access and invalidate derived previews when the source is deleted, quarantined, reclassified, transferred, or access is withdrawn; define retention and secure disposal for temporary conversion artifacts.
+- Test malicious and malformed files, MIME/extension mismatches, active content, cross-tenant access, stale links, cache leakage, resource exhaustion, parser isolation, and revocation using synthetic fixtures in isolated environments.
+
+**Implementation gates:** Maintain a document-format and processing inventory; document the trust boundary and sandbox configuration; define authorization and cache contracts for originals and derivatives; select and harden parsers/converters; establish quarantine, retention, and incident procedures; and provide reproducible negative tests. No production document-processing service, storage rule, or viewer change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2563,6 +2585,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-95 Browser storage isolation and cross-tab state lifecycle | Approved — option B minimal account-scoped state, explicit invalidation and server-authoritative authorization; implementation gated on inventory, partitioning, lifecycle and tests |
 | L-96 Third-party scripts, tag governance and client-side dependency execution | Approved — option B deny-by-default execution, reviewed providers, strict isolation and integrity controls; implementation gated on inventory, CSP, data-flow review and tests |
 | L-97 API schema evolution, compatibility and contract integrity | Approved — option B explicit versioned contracts, strict validation and fail-closed retirement; implementation gated on schema registry, migration plan and mixed-version tests |
+| L-98 Safe document preview, rendering and active-content isolation | Approved — option B isolated rendering, format allowlists, bounded processing and per-request authorization; implementation gated on sandbox, parser inventory, lifecycle and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
