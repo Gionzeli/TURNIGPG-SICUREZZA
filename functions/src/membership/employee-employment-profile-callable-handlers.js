@@ -15,7 +15,7 @@ export function createOwnEmploymentProfileCallableHandlers({ db, verifyToken, no
         fail("invalid-argument", "Only a valid accountId selector is accepted.");
       }
       const header = request?.rawRequest?.headers?.authorization;
-      const match = typeof header === "string" ? /^Bearer ([^\\s]+)$/i.exec(header) : null;
+      const match = typeof header === "string" ? /^Bearer ([^\s]+)$/i.exec(header) : null;
       if (!match) fail("unauthenticated", "Bearer ID token required.");
       let identity;
       try { identity = await verifyIdentity(match[1], verifyToken); }
