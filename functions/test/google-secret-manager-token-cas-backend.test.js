@@ -36,7 +36,8 @@ function fixture() {
   const backend = createGoogleSecretManagerTokenCasBackend({
     secretManager, firestore,
     secretNameForRef: () => 'projects/test-project/secrets/mailbox-test',
-    pointerRefForRef: () => pointerRef
+    pointerRefForRef: () => pointerRef,
+    requireLeaseProof: false
   });
   return {backend,versions,get activeVersion(){return activeVersion;}};
 }
@@ -80,7 +81,8 @@ test('rejects malformed references and untrusted resource mappings',async()=>{
     secretManager:{accessSecretVersion:async()=>[],addSecretVersion:async()=>[]},
     firestore:{runTransaction:async()=>{}},
     secretNameForRef:()=> 'https://attacker.invalid/secret',
-    pointerRefForRef:()=>({get:async()=>({})})
+    pointerRefForRef:()=>({get:async()=>({})}),
+    requireLeaseProof:false
   });
   await assert.rejects(()=>bad.replaceSecret({secretRef:ref,payload:{},expectedVersion:'1'}),/invalid trusted resource mapping/);
 });
@@ -132,3 +134,17 @@ test('fences Secret Manager pointer update against the live Firestore lease in t
  assert.equal(activeVersion,'2');
 });
 
+
+test('requires a lease proof by default',async()=>{
+ const secretManager={accessSecretVersion:async()=>[],addSecretVersion:async()=>[{name:'projects/test-project/secrets/x/versions/2'}]};
+ const pointerRef={get:async()=>({exists:true,data:()=>({version:'1'})})};
+ const backend=createGoogleSecretManagerTokenCasBackend({
+  secretManager,firestore:{runTransaction:async()=>{}},
+  secretNameForRef:()=> 'projects/test-project/secrets/x',
+  pointerRefForRef:()=>pointerRef,
+  leaseRefForConnection:()=>({get:async()=>({exists:true,data:()=>({})})})
+ });
+ await assert.rejects(()=>backend.replaceSecret({
+  secretRef:ref,payload:{},expectedVersion:'1'
+ }),{code:'failed-precondition'});
+});
