@@ -11,12 +11,12 @@ test("Employee provisioning callables derive actors from revocation-checked toke
     approveEmployeeProvisioning: async args => { calls.push(["approve", args]); return { status: "approved" }; },
     revokeEmployeeBinding: async args => { calls.push(["revoke", args]); return { status: "revoked" }; }
   }});
-  await handlers.propose(req({ accountId: "acct-1", proposalId: "p-1", targetUid: "member-1", employeeId: "emp-1", verificationRef: "manual-1", actorUid: "spoofed" }));
+  await handlers.propose(req({ accountId: "acct-1", proposalId: "p-1", targetUid: "member-1", employeeId: "emp-1", verificationRef: "manual-1" }));
   assert.equal(calls[0][2], true);
   assert.equal(calls.find(x => x[0] === "propose")[1].actorUid, "verified-admin");
-  await handlers.approve(req({ accountId: "acct-1", proposalId: "p-1", actorUid: "spoofed" }));
+  await handlers.approve(req({ accountId: "acct-1", proposalId: "p-1" }));
   assert.equal(calls.find(x => x[0] === "approve")[1].actorUid, "verified-admin");
-  await handlers.revoke(req({ accountId: "acct-1", employeeId: "emp-1", eventId: "evt-1", actorUid: "spoofed" }));
+  await handlers.revoke(req({ accountId: "acct-1", employeeId: "emp-1", eventId: "evt-1" }));
   assert.equal(calls.find(x => x[0] === "revoke")[1].actorUid, "verified-admin");
 });
 test("Employee provisioning callable rejects absent bearer and unverified email", async () => {
