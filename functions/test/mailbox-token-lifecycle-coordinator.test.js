@@ -141,3 +141,45 @@ test('does not persist refreshed tokens if the clock becomes invalid after provi
   }), { code: 'unavailable' });
   assert.equal(writes, 0);
 });
+
+test('rejects malformed account and connection identifiers before vault access', async () => {
+  let reads = 0;
+  const coordinator = createMailboxTokenLifecycleCoordinator({
+    vault: { loadSecret: async () => { reads++; return expired; }, storeSecret: async () => {} },
+    refreshService: { refresh: async () => ({}) }, now: () => 1000
+  });
+  for (const [accountId, connectionId] of [['bad/id', 'conn'], ['acct', 'bad/id'], ['', 'conn']]) {
+    await assert.rejects(() => coordinator.ensureFresh({
+      accountId, connectionId, provider: 'gmail_api', secretRef: 'opaque',
+      clientId: 'client-id-12345', clientSecret: 'secret'
+    }), { code: 'invalid-argument' });
+  }
+  assert.equal(reads, 0);
+});
+
+test('does not share an in-flight token result across different secret references', async () => {
+  let releaseRead;
+  const readGate = new Promise(resolve => { releaseRead = resolve; });
+  let reads = 0;
+  const coordinator = createMailboxTokenLifecycleCoordinator({
+    vault: { loadSecret: async ({ secretRef }) => {
+      reads++;
+      if (secretRef === 'opaque-one') await readGate;
+      return { ...expired, expiresAt: 5000000 };
+    }, storeSecret: async () => {} },
+    refreshService: { refresh: async () => ({}) }, now: () => 1000
+  });
+  const first = coordinator.ensureFresh({
+    accountId: 'acct', connectionId: 'conn', provider: 'gmail_api', secretRef: 'opaque-one',
+    clientId: 'client-id-12345', clientSecret: 'secret'
+  });
+  await new Promise(resolve => setImmediate(resolve));
+  await assert.rejects(() => coordinator.ensureFresh({
+    accountId: 'acct', connectionId: 'conn', provider: 'gmail_api', secretRef: 'opaque-two',
+    clientId: 'client-id-12345', clientSecret: 'secret'
+  }), { code: 'failed-precondition' });
+  releaseRead();
+  const result = await first;
+  assert.equal(result.refreshed, false);
+  assert.equal(reads, 1);
+});
