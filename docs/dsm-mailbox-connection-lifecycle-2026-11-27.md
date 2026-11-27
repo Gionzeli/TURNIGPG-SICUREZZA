@@ -191,3 +191,8 @@ The Firestore lease service now exposes `disable({accountId, connectionId})`. It
 Synthetic tests cover disable-before-delete ordering, fail-closed behavior when the gate is unavailable, acquire/renew rejection, and the Firestore Emulator CAS transaction rejecting a valid-looking lease proof once `revocationPending` is set. The Emulator test has not been run here. This does not cancel an HTTP refresh request already sent to a provider, remotely revoke every provider session, or prove production wiring.
 
 The coordinator unit tests also verify that if lease renewal fails after the provider has returned rotated tokens, the coordinator does not call the vault store operation and still attempts lease release. This covers the application-side half of the revocation race; the backend transaction remains the final commit fence.
+
+
+### Revocation error classification
+
+Lease acquisition now preserves the explicit `failed-precondition` result when the per-connection revocation marker is present, rather than flattening it into a generic coordination outage. The existing synthetic lease-service regression asserts this exact code. This is diagnostic/API error classification only; it does not change the fail-closed behavior.
