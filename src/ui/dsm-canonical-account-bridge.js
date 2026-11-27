@@ -126,12 +126,26 @@ export function mountDSMCanonicalAccountBridge(container, {
     void onUserChanged(user);
   }, () => resetAccounts("Stato Firebase non verificabile. Accesso DSM negato."));
 
-  select.addEventListener("change", () => {
-    selectedAccountId = availableAccounts.some(item => item.accountId === select.value)
+  const onSelectChange = async () => {
+    const nextAccountId = availableAccounts.some(item => item.accountId === select.value)
       ? select.value : null;
+    selectedAccountId = nextAccountId;
     selectionRevision += 1;
+    const active = session?.accountContext.getActive();
+    if (active?.identitySource === "firebase" && active.accountId !== nextAccountId) {
+      button.disabled = true;
+      setStatus("Disconnessione dell'account DSM precedente…");
+      try {
+        await session.logout();
+        setStatus("Account precedente disconnesso. Puoi verificare la nuova selezione.");
+      } catch {
+        setStatus("Cambio account non completato. Il nuovo account resta bloccato finché la sessione precedente non è stata chiusa.");
+        return;
+      }
+    }
     button.disabled = !selectedAccountId || Boolean(activationPromise);
-  });
+  };
+  select.addEventListener("change", onSelectChange);
 
   button.addEventListener("click", async () => {
     if (disposed || !selectedAccountId || activationPromise) return;
@@ -172,6 +186,7 @@ export function mountDSMCanonicalAccountBridge(container, {
       disposed = true;
       generation += 1;
       authUnsubscribe?.();
+      select.removeEventListener("change", onSelectChange);
       authAdapter.dispose();
       try { await activationPromise; } catch {}
       try {
