@@ -45,6 +45,12 @@ export function createMailboxSecretCleanupWorker({
         error.code = "invalid-argument";
         throw error;
       }
+      const runTimestamp = now();
+      if (!Number.isSafeInteger(runTimestamp) || runTimestamp < 1) {
+        const error = new Error("Cleanup worker clock returned an invalid timestamp.");
+        error.code = "failed-precondition";
+        throw error;
+      }
       const tickets = await cleanupAdapters.listPendingSecretCleanup({ accountId, limit });
       if (!Array.isArray(tickets) || tickets.length > limit ||
           tickets.some(ticket => !ticket || typeof ticket.connectionId !== "string") ||
@@ -77,7 +83,7 @@ export function createMailboxSecretCleanupWorker({
           summary.exhausted++;
           continue;
         }
-        if (Number.isSafeInteger(ticket.nextAttemptAt) && ticket.nextAttemptAt > now()) {
+        if (Number.isSafeInteger(ticket.nextAttemptAt) && ticket.nextAttemptAt > runTimestamp) {
           summary.deferred++;
           continue;
         }
@@ -89,12 +95,12 @@ export function createMailboxSecretCleanupWorker({
           });
           await cleanupAdapters.completeSecretCleanup({
             accountId: ticket.accountId, connectionId: ticket.connectionId,
-            timestamp: now()
+            timestamp: runTimestamp
           });
           summary.completed++;
         } catch (error) {
           const attempts = ticket.attempts + 1;
-          const timestamp = now();
+          const timestamp = runTimestamp
           const exhausted = attempts >= MAX_ATTEMPTS;
           const nextAttemptAt = exhausted ? null : timestamp + retryDelay(attempts);
           let retryRecorded = false;
@@ -140,7 +146,7 @@ export function createMailboxSecretCleanupWorker({
             !(ticket.alertLastErrorCode === null || ticket.alertLastErrorCode === undefined ||
               (typeof ticket.alertLastErrorCode === "string" &&
                /^[a-z0-9_-]{1,64}$/.test(ticket.alertLastErrorCode)))) continue;
-        if (Number.isSafeInteger(ticket.alertNextAttemptAt) && ticket.alertNextAttemptAt > now()) continue;
+        if (Number.isSafeInteger(ticket.alertNextAttemptAt) && ticket.alertNextAttemptAt > runTimestamp) continue;
         const alertId = accountId + ":" + ticket.connectionId + ":cleanup-exhausted";
         try {
           await alert({
@@ -148,12 +154,12 @@ export function createMailboxSecretCleanupWorker({
             attempts: ticket.attempts, code: ticket.lastErrorCode
           });
           await cleanupAdapters.markCleanupAlertDelivered({
-            accountId, connectionId: ticket.connectionId, timestamp: now()
+            accountId, connectionId: ticket.connectionId, timestamp: runTimestamp
           });
         } catch (error) {
           // Persist bounded exponential backoff; the durable alert remains pending.
           const attempts = (ticket.alertAttempts ?? 0) + 1;
-          const timestamp = now();
+          const timestamp = runTimestamp
           try {
             await cleanupAdapters.recordCleanupAlertFailure({
               accountId, connectionId: ticket.connectionId, attempts,
