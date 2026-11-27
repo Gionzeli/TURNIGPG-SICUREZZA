@@ -67,6 +67,7 @@ I nomi e i campi sono una proposta, non una migrazione già autorizzata. Le scri
 - Esiste già la lettura self-service dei turni con intervallo date e DTO allowlist.
 - L'UI del calendario resta in sola lettura finché non è pronto il flusso di proposta e approvazione. È stata rimossa la precedente azione di modifica diretta perché avrebbe pubblicato modifiche senza il nuovo consenso personale.
 - Esistono servizi shift self-service con revisione e audit, ma non equivalgono a un workflow di proposta/approvazione e non devono essere usati come scorciatoia per importare PDF.
+- Le callable pubbliche `createOwnEmployeeShift`, `updateOwnEmployeeShift` e `deleteOwnEmployeeShift` risultano ancora esportate nel backend. La sola rimozione del pulsante UI non le disabilita: prima di attivare il nuovo flusso occorre sostituirle/limitarle server-side in modo che nessuna modifica diventi effettiva senza la decisione personale prevista.
 - Non esistono ancora connettori email multi-provider, parser PDF aziendale, matching affidabile, proposta diff, approvazione self-service o notifiche.
 - Prima di collegare caselle reali va definito e testato il processo autorizzato di associazione casella↔Employee e la gestione dei segreti.
 - Sviluppo e test esclusivamente con fixture sintetiche e Firebase Emulator. Nessuna chiamata Firebase reale, nessun accesso a caselle reali, nessun deploy, merge o attivazione produzione.
