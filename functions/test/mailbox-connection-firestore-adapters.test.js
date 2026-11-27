@@ -448,7 +448,6 @@ test("exhausted cleanup alert retries persist backoff and reject stale attempts"
 test("cleanup alert retry counter is not artificially capped at one thousand", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
-  const active = fixtureConnection();
   const input = {
     accountId: active.accountId, connectionId: active.connectionId,
     secretRef: active.credentialSecretRef, reason: "connection_revoked",
