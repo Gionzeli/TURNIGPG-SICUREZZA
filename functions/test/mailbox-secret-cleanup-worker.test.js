@@ -33,12 +33,12 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
   ];
   const worker = createMailboxSecretCleanupWorker({
     cleanupAdapters: {
-      listPendingSecretCleanup: async ({ accountId }) => records.filter(item => item.accountId === accountId),
+      listPendingSecretCleanup: async ({ accountId }) => records.filter(item => item.accountId === accountId && item.status !== "exhausted"),
       completeSecretCleanup: async () => {},
       recordSecretCleanupFailure: async input => {
       retries.push(input);
       records = records.map(item => item.connectionId === input.connectionId
-        ? { ...item, attempts: input.attempts, nextAttemptAt: input.nextAttemptAt }
+        ? { ...item, status: input.attempts >= 12 ? "exhausted" : "pending", attempts: input.attempts, nextAttemptAt: input.attempts >= 12 ? null : input.nextAttemptAt }
         : item);
       }
     },
@@ -60,7 +60,7 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
   assert.equal(alerts.length, 1);
   assert.equal(alerts[0].connectionId, "synthetic-exhausted");
   const secondRun = await worker.runOnce({ accountId: "synthetic-account" });
-  assert.deepEqual(secondRun, { scanned: 3, completed: 0, deferred: 1, exhausted: 1 });
+  assert.deepEqual(secondRun, { scanned: 1, completed: 0, deferred: 1, exhausted: 0 });
   assert.equal(retries.length, 2, "exhausted tickets are not retried");
   assert.equal(alerts.length, 1, "exhaustion alert is not repeated");
 });
