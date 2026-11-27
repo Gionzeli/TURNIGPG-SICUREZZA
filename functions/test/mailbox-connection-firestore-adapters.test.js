@@ -663,3 +663,27 @@ test("cleanup completion rejects a ticket whose credential reference escaped its
   }), error => error.code === "failed-precondition");
   assert.equal(docs.get(path).status, "pending");
 });
+
+
+test("cleanup retry schedule must match whether the retry ceiling is exhausted", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  await assert.rejects(adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 2, nextAttemptAt: null, lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  }), error => error.code === "invalid-argument");
+  await assert.rejects(adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: input.timestamp + 60000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  }), error => error.code === "invalid-argument");
+  assert.equal(docs.get(path).status, "pending");
+  assert.equal(docs.get(path).attempts, 1);
+});
