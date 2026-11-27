@@ -65,7 +65,7 @@ test('validates scope and bounded lease duration',async()=>{
 
 
 test('rejects malformed persisted lease state instead of resetting fencing',async()=>{
- let record={ownerId:null,fencingToken:0,expiresAt:0};
+ let record={ownerId:null,fencingToken:-1,expiresAt:0};
  const ref={get:async()=>({exists:true,data:()=>record})};
  const firestore={runTransaction:async callback=>callback({
   get:async()=>({exists:true,data:()=>record}),
@@ -86,4 +86,24 @@ test('rejects invalid clock values',async()=>{
   createOwnerId:()=> 'owner_identifier_clock'
  });
  await assert.rejects(()=>service.acquire({...scope}),{code:'unavailable'});
+});
+
+test('disable atomically fences active refresh and blocks acquire and renew',async()=>{
+ const f=fixture();
+ const lease=await f.service.acquire({...scope,ttlMs:5000});
+ const disabled=await f.service.disable(scope);
+ assert.equal(disabled.status,'revocation_pending');
+ assert.equal(f.record.revocationPending,true);
+ await assert.rejects(()=>f.service.acquire({...scope}),{code:'failed-precondition'});
+ await assert.rejects(()=>f.service.renew({...scope,lease}),{code:'lease-lost'});
+ assert.equal(await f.service.release({...scope,lease}),true);
+ assert.equal(f.record.revocationPending,true);
+});
+
+test('disable creates a permanent fail-closed gate when no lease record exists',async()=>{
+ const f=fixture();
+ await f.service.disable(scope);
+ assert.equal(f.record.revocationPending,true);
+ assert.equal(f.record.fencingToken,0);
+ await assert.rejects(()=>f.service.acquire({...scope}),{code:'failed-precondition'});
 });
