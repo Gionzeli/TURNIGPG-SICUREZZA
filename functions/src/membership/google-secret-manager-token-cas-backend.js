@@ -10,13 +10,16 @@ function conflict() { const error=new Error("version or lease conflict"); error.
 
 export function createGoogleSecretManagerTokenCasBackend({
   secretManager,firestore,secretNameForRef,pointerRefForRef,
-  leaseRefForConnection,now=()=>Date.now()
+  leaseRefForConnection,now=()=>Date.now(),requireLeaseProof=true
 }) {
   if(!secretManager || typeof secretManager.accessSecretVersion!=="function" ||
      typeof secretManager.addSecretVersion!=="function" ||
      !firestore || typeof firestore.runTransaction!=="function" ||
      typeof secretNameForRef!=="function" || typeof pointerRefForRef!=="function") {
     throw new TypeError("Google Secret Manager and Firestore CAS dependencies are required.");
+  }
+  if(typeof requireLeaseProof!=="boolean" || (requireLeaseProof && typeof leaseRefForConnection!=="function")) {
+    throw new TypeError("A trusted Firestore lease mapper is required when lease fencing is enabled.");
   }
   function resources(secretRef) {
     const parts=parseRef(secretRef);
@@ -58,6 +61,9 @@ export function createGoogleSecretManagerTokenCasBackend({
       }
     },
     async replaceSecret({secretRef,payload,expectedVersion,leaseProof}) {
+      if(requireLeaseProof && leaseProof===undefined) {
+        const error=new Error("A live mailbox lease proof is required."); error.code="failed-precondition"; throw error;
+      }
       if(typeof expectedVersion!=="string" || !VERSION_RE.test(expectedVersion)) throw new Error("invalid expected version");
       const {parts,secretName,pointerRef}=resources(secretRef);
       const leaseRef=leaseResource(parts,leaseProof);
