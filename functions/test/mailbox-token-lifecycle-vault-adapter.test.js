@@ -41,3 +41,27 @@ test('preserves compare-and-swap conflicts and masks backend failures',async()=>
  await assert.rejects(()=>broken.loadSecret({secretRef:ref}),/Mailbox credential unavailable/);
  await assert.rejects(()=>broken.storeSecret({secretRef:ref,secretMaterial:secret,expectedVersion:'v1'}),/Mailbox credential persistence failed/);
 });
+
+test('only one concurrent writer can replace the same secret version', async()=>{
+ let record={payload:{...secret},version:'v7'};
+ const backend={
+  readSecret:async()=>({payload:record.payload,version:record.version}),
+  replaceSecret:async({payload,expectedVersion})=>{
+   // This synchronous comparison+assignment models the backend's required atomic primitive.
+   if(record.version!==expectedVersion){const e=new Error('stale version');e.code='conflict';throw e;}
+   const next=String(Number(record.version.slice(1))+1);
+   record={payload,version:'v'+next};
+   return {version:record.version};
+  }
+ };
+ const adapter=createMailboxTokenLifecycleVaultAdapter({backend});
+ const outcomes=await Promise.allSettled([
+  adapter.storeSecret({secretRef:ref,secretMaterial:{...secret,accessToken:'writer-one-access-token'},expectedVersion:'v7'}),
+  adapter.storeSecret({secretRef:ref,secretMaterial:{...secret,accessToken:'writer-two-access-token'},expectedVersion:'v7'})
+ ]);
+ assert.equal(outcomes.filter(x=>x.status==='fulfilled').length,1);
+ assert.equal(outcomes.filter(x=>x.status==='rejected' && x.reason.code==='conflict').length,1);
+ assert.equal(record.version,'v8');
+ assert.ok(['writer-one-access-token','writer-two-access-token'].includes(record.payload.accessToken));
+});
+
