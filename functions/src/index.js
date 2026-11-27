@@ -8,6 +8,7 @@ import { createEmployeeProvisioningHandlers } from "./membership/employee-provis
 import { createOrganizationCallableHandlers } from "./membership/organization-callable-handlers.js";
 import { createEmployeeShiftCallableHandlers } from "./membership/employee-shift-callable-handlers.js";
 import { createCanonicalAccountCallableHandlers } from "./membership/canonical-account-callable-handlers.js";
+import { createCanonicalMembershipInviteHandlers } from "./membership/canonical-membership-invite-callable-handlers.js";
 
 initializeApp();
 
@@ -22,6 +23,11 @@ const employeeShifts = createEmployeeShiftCallableHandlers({
 });
 
 const canonicalAccounts = createCanonicalAccountCallableHandlers({
+  db: getFirestore(),
+  verifyToken: (token, checkRevoked) => getAuth().verifyIdToken(token, checkRevoked)
+});
+
+const membershipInvites = createCanonicalMembershipInviteHandlers({
   db: getFirestore(),
   verifyToken: (token, checkRevoked) => getAuth().verifyIdToken(token, checkRevoked)
 });
@@ -53,7 +59,9 @@ export const health = onCall(async () => ({
   employeeDelegatedShiftAuthorizationImplemented: false,
   employeeDomainAuthorizationImplemented: true,
   bootstrapImplemented: false,
-  employeeProvisioningCallablesImplemented: true
+  employeeProvisioningCallablesImplemented: true,
+  canonicalMembershipInviteCallablesImplemented: true,
+  membershipInviteRequiresVerifiedEmailAndTwoAdmins: true
 }));
 
 export const resolveAuthorization = onCall(async (request) => {
@@ -97,6 +105,19 @@ export const resolveAuthorization = onCall(async (request) => {
 
 export const listMyCanonicalAccounts = onCall(async request => {
   try { return await canonicalAccounts.listMine(request); }
+  catch (error) { throw callableError(error); }
+});
+
+export const proposeCanonicalMembershipInvite = onCall(async request => {
+  try { return await membershipInvites.propose(request); }
+  catch (error) { throw callableError(error); }
+});
+export const approveCanonicalMembershipInvite = onCall(async request => {
+  try { return await membershipInvites.approve(request); }
+  catch (error) { throw callableError(error); }
+});
+export const claimCanonicalMembershipInvite = onCall(async request => {
+  try { return await membershipInvites.claim(request); }
   catch (error) { throw callableError(error); }
 });
 
