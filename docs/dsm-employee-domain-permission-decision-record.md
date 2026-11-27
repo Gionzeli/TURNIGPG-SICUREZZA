@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-77 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-78 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2036,6 +2036,24 @@ Approved policy in principle:
 
 **Still required before implementation:** canonical policy representation and ownership; policy authoring/approval workflow; version and compatibility model; enforcement-point inventory; decision input and reason-code schema; cache staleness and invalidation guarantees; rollout, integrity and rollback design; job revalidation checkpoints; adapter conformance suite; release-blocking criteria; and synthetic Emulator tests. This decision does not certify existing services as consistent, authorize permissive fallback, or approve production activation.
 
+### L-78 — Trusted time, clock integrity and temporal authorization
+
+**Question:** Which time source and temporal rules must govern security-sensitive expiry, effective dates, access windows, audit ordering and scheduled execution across clients, backend services and workers?
+
+**Approved 2026-11-27 — option B (authoritative server time, normalized UTC storage, explicit business time zones and fail-closed handling of unreliable time), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Use trusted server-side time for authorization decisions, token/session and delegation expiry, effective lifecycle transitions, legal-hold boundaries, invitation validity, one-time credentials, scheduled jobs and security-sensitive ordering. Client clocks and client-supplied timestamps are informational only and never establish authority.
+- Store machine timestamps in a consistent UTC representation with sufficient precision; retain the applicable named IANA time zone and original business-local date/time where legal or operational meaning depends on local calendar time. Never infer a time zone from browser settings or a numeric offset alone.
+- Define explicit inclusive/exclusive boundary semantics, effective-time rules, daylight-saving gap/overlap handling, date-only semantics and deterministic ordering for events sharing the same timestamp. Do not silently reinterpret historical timestamps when time-zone database rules change.
+- Synchronize backend and worker clocks to approved time sources; monitor offset, drift, synchronization health and rollback anomalies. Protect time configuration and synchronization changes as security-sensitive infrastructure changes.
+- If trusted time is unavailable or exceeds the approved skew tolerance, fail closed for operations whose authorization depends on expiry, ordering or effective time. Do not extend privileges, accept expired credentials, bypass legal-hold boundaries or guess a timestamp to keep a protected operation running.
+- Use server-generated event times for audit and workflow evidence. Preserve source timestamp, ingestion timestamp and any corrected interpretation as distinct provenance fields when delayed or offline events must be reconciled; never overwrite original evidence silently.
+- Make temporal evaluation consistent across API endpoints, callable functions, database queries, exports, notifications and background jobs. Re-evaluate time-dependent authorization at execution and at defined sensitive checkpoints, including after queue delays and retries.
+- Test boundary conditions using controllable synthetic clocks: expiry immediately before/at/after boundary, clock skew and rollback, daylight-saving transitions, leap days, delayed jobs, duplicate timestamps, timezone database updates and cross-service disagreement.
+- Keep business-effective time separate from record creation time, approval time and processing time. A backdated correction must use an explicitly authorized workflow, preserve the prior value and provenance, and must not retroactively grant access or conceal an event.
+
+**Still required before implementation:** approved time-source and synchronization architecture; maximum skew thresholds and monitoring owner; UTC/time-zone schema conventions; business-local date semantics; daylight-saving and historical-rule policy; temporal boundary definitions for each domain; trusted-clock behavior during outages; audit provenance schema; worker revalidation rules; and synthetic clock-based conformance tests. This decision does not authorize backdating, client-clock trust, changing historical records, or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2113,6 +2131,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-75 Tenant onboarding, mergers, splits and boundary changes | Approved — option B staged, independently approved transitions with provenance and fail-closed cutover; implementation gated on ownership mapping, legal review, reconciliation and recovery tests |
 | L-76 Employee identity matching and duplicate-record resolution | Approved — option B verified human review, quarantine of ambiguity and no automatic merge; implementation gated on authoritative sources, binding workflow, provenance and false-match tests |
 | L-77 Authorization policy versioning and enforcement consistency | Approved — option B canonical versioned policy, server enforcement, bounded propagation and fail-closed stale-state handling; implementation gated on enforcement inventory, rollout controls and conformance tests |
+| L-78 Trusted time, clock integrity and temporal authorization | Approved — option B authoritative server time, UTC storage, explicit business time zones and fail-closed temporal checks; implementation gated on synchronization, semantics, provenance and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
