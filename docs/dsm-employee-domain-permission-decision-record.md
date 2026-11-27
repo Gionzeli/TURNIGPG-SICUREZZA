@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-57 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-58 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1556,6 +1556,33 @@ Approved policy in principle:
 
 **Still required before implementation:** key and certificate inventory, ownership and classification, approved algorithms and cryptoperiods, key-management provider and access model, dependent-service transition plan, compromise severity/runbooks, recovery controls, monitoring and synthetic integration tests. This policy does not authorize creating, importing, rotating or revoking real production keys or credentials.
 
+### L-58 — Data retention, archival and verifiable deletion
+
+**Question:** How should employee-domain data be retained, archived, restored, anonymized or deleted so that lifecycle obligations are enforced consistently and outcomes can be evidenced without retaining unnecessary personal data?
+
+Possible choices:
+- **A. Ad hoc retention:** leave retention and deletion to manual case-by-case handling.
+- **B. Governed lifecycle schedules and verified disposition:** classify data, define approved retention triggers and periods, restrict archives, execute authorized disposition, and preserve minimized evidence.
+- **C. Indefinite retention:** retain historical records by default for convenience and possible future use.
+
+**Approved 2026-11-27 — option B (governed retention, archival and verified disposition), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Maintain a data inventory and classification mapping for each domain, record type, purpose, system, owner and processor; do not infer retention periods from technical defaults.
+- Define and approve a retention schedule per category, with the lawful purpose, triggering event, period, applicable jurisdictional/privacy review, responsible owner and disposition method documented before implementation.
+- Apply data minimization and purpose limitation throughout active use, archival, backup, export, analytics and support workflows; prohibit indefinite retention without a separately documented and approved basis.
+- Treat archival as a restricted lifecycle state, not as continued ordinary operational access; enforce least privilege, access logging, integrity protection and explicit restoration approval.
+- Ensure transfer, suspension, termination, account closure, dispute and legal-hold events trigger the relevant retention and access review without silently deleting records or extending access.
+- Support verified deletion or irreversible anonymization only after authority, scope, retention obligations, legal holds and dependencies have been checked; propagate disposition to replicas, indexes, caches, exports and downstream processors where applicable.
+- Define backup expiry and cryptographic-erasure controls where appropriate; document bounded residual backup retention and prevent routine restoration from reintroducing already-disposed data into active use.
+- Make disposition jobs scoped, authorized, idempotent, retry-safe and observable; require preview or dry-run, stale-state checks and independent approval for high-impact or irreversible actions.
+- Preserve minimized, tamper-resistant evidence of the request/authority, data categories and systems in scope, decision, execution time, method, outcome and exceptions, without copying deleted content or secrets into the audit record.
+- Provide a controlled exception process for legal holds, disputes, investigations and statutory retention, with specific scope, authority, reason, review date, expiry and access restrictions; remove the hold and resume disposition when authorized.
+- Give data subjects or authorized representatives a verified, tracked request path where applicable; record the outcome and reasons for any lawful limitation or refusal.
+- Test synthetic cases for schedule boundaries, timezone and trigger semantics, partial failures, retries, replicas, backup restoration, legal holds, anonymization resistance and proof-of-disposition integrity.
+
+**Still required before implementation:** domain-by-domain inventory and retention schedule, legal/privacy review and accountable owners, trigger and timezone semantics, archive access model, legal-hold workflow, deletion/anonymization standards, backup and processor propagation design, evidence schema, exception handling and synthetic end-to-end tests. This policy does not authorize deletion, anonymization, archival changes or retention changes to real data, nor production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1613,6 +1640,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-55 Secure account deactivation and credential revocation | Approved — option B coordinated server-side revocation, lifecycle-aware authorization, dependent-job cancellation and protected audit; implementation gated on event catalogue, propagation, integrations and tests |
 | L-56 Secure shared-device and workstation sessions | Approved — option B centrally enforced session expiry, reauthentication, server-side revocation and local-data minimization; implementation gated on device profiles, session configuration and cross-user isolation tests |
 | L-57 Cryptographic and signing key rotation and compromise response | Approved — option B governed key inventory, protected storage, scheduled/event-driven rotation, controlled verifier transition and rehearsed compromise response; implementation gated on key inventory, ownership, provider and integration tests |
+| L-58 Data retention, archival and verifiable deletion | Approved — option B governed schedules, restricted archives, authorized disposition and minimized evidence; implementation gated on domain schedules, legal/privacy review, propagation and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
