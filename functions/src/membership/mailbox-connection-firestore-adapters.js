@@ -258,7 +258,13 @@ export function createMailboxConnectionFirestoreAdapters(db) {
             value.status !== "exhausted" || value.alertStatus !== "pending" ||
             !Number.isSafeInteger(value.attempts) || value.attempts < 12 ||
             typeof value.lastErrorCode !== "string" ||
-            !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)) return null;
+            !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode) ||
+            !Number.isSafeInteger(value.alertAttempts ?? 0) || (value.alertAttempts ?? 0) < 0 ||
+            !(value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined ||
+              (Number.isSafeInteger(value.alertNextAttemptAt) && value.alertNextAttemptAt >= 1)) ||
+            !(value.alertLastErrorCode === null || value.alertLastErrorCode === undefined ||
+              (typeof value.alertLastErrorCode === "string" &&
+               /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode)))) return null;
         // Alert consumers receive a strict DTO; never expose secretRef,
         // provider metadata, or unrelated ticket fields to the notifier.
         return {
