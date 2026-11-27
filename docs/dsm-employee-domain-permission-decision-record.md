@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-12 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-13 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -447,6 +447,28 @@ Approved policy in principle:
 
 **Still required before implementation:** define dispute categories and eligible records, request and response workflow/deadlines, reviewer and approval roles, criteria for relevance and redaction, treatment of third-party/confidential/security information, evidence preservation and legal holds, disclosure format and secure delivery, appeal/escalation, minimized audit fields, and synthetic Emulator tests for cross-employee leakage, overbroad log disclosure, redaction failures and unauthorized record mutation. No dispute-access endpoint or unrestricted audit/log view is authorized until these details are approved and tested.
 
+### L-13 — Security notifications to affected employees
+
+**Question:** Which security-relevant operations concerning an employee should trigger a notification to that employee?
+
+Possible choices:
+- **A. Internal audit only:** no employee-facing notifications.
+- **B. Minimized notifications for defined relevant events:** notify the affected employee about material events, without disclosing details that could compromise security or an investigation.
+- **C. Notify on every access:** notify for every human, technical, and automated access.
+
+**Approved 2026-11-27 — option B (minimized notifications for defined relevant events), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Maintain an explicit, reviewed event catalogue identifying which material events concerning an employee trigger a notification. Candidate events include sensitive-data changes, access grants or revocations, exceptional/break-glass access where disclosure is safe, and exports of the employee's data where the applicable export policy requires notice.
+- Notifications must be minimized and sent through an approved, verified channel. They should identify the event category, relevant time, and a safe way to obtain further information or raise a concern, without exposing sensitive values, credentials, security-control details, or another person's information.
+- Do not notify for every routine technical read, background process, or automated access. Such activity remains subject to appropriate internal audit and monitoring.
+- A notification may be delayed or withheld only under a documented, authorized exception where immediate disclosure would create a concrete security, legal, or investigation risk. The exception, authorizing role, reason category, review and eventual notification decision must be recorded.
+- Notification delivery failure must not silently erase the underlying audit event or be treated as successful delivery. Retry, escalation and channel-failure handling must be defined.
+- Notification preferences or channel configuration must not disable mandatory security notices; changes to contact channels require appropriate verification.
+- Notification content and delivery metadata must themselves be access-controlled, minimized and retained under a defined policy. Notifications do not grant access to the underlying records or logs.
+
+**Still required before implementation:** define the event catalogue and materiality thresholds; eligible recipients and verified channels; delivery timing, retries and failure escalation; authorized withholding/delay criteria and independent review; message templates and privacy-safe content; retention and audit fields; and synthetic Emulator tests for correct triggering, suppression, delivery failure, recipient isolation and prevention of sensitive-content leakage. No notification endpoint or production delivery integration is authorized until these details are approved and tested.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -480,7 +502,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-10 Sensitive data corrections | Approved — option B tracked request, operator verification, separate approval and recorded change history; implementation gated on field catalogue, workflow and tests |
 | L-11 Data deletion and retention | Approved — option B tracked request, retention review, permitted deletion/anonymization and recorded outcome; implementation gated on retention rules, scope and tests |
 | L-12 Employee access during a dispute | Approved — option B tracked access to relevant records with third-party/restricted-content redaction; implementation gated on scope, disclosure workflow and tests |
-| Other lifecycle and historical access | Open — fail closed |
+| L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
