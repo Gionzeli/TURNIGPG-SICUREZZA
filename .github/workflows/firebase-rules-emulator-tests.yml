@@ -4,6 +4,11 @@ on:
   push:
     branches:
       - dsm-enterprise/core-v1
+      - codex/employee-shift-date-range-query
+    paths:
+      - "firestore.rules"
+      - "tests/firebase-emulator/**"
+      - ".github/workflows/firebase-rules-emulator-tests.yml"
   workflow_dispatch:
 
 permissions:
