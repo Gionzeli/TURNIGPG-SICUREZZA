@@ -101,7 +101,6 @@ export function mountDSMCanonicalAccountBridge(container, {
   let disposed = false;
   let generation = 0;
   let shiftQueryGeneration = 0;
-  let lastShiftQuery = null;
   let profileQueryGeneration = 0;
   let selectionRevision = 0;
   let selectedAccountId = null;
@@ -172,7 +171,6 @@ export function mountDSMCanonicalAccountBridge(container, {
 
   function clearShiftResults() {
     shiftsResults.replaceChildren();
-    lastShiftQuery = null;
   }
 
   function hideShiftView() {
@@ -342,7 +340,6 @@ export function mountDSMCanonicalAccountBridge(container, {
       if (!Array.isArray(items) || items.length > 200) {
         throw new Error("Risposta turni non valida.");
       }
-      lastShiftQuery = query;
       renderShifts(items);
       shiftsStatus.textContent = `Ricerca completata: ${items.length} turni trovati.`;
     } catch {
