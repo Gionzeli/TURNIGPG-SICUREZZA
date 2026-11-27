@@ -110,6 +110,9 @@ if (JSON.stringify(window.__shiftQuery) !== JSON.stringify({
 if (root.textContent.includes("synthetic-employee-uid") || root.textContent.includes("compensation")) {
   throw new Error("Own shifts view exposed an identity or non-allowlisted field.");
 }
+if (shiftPanel.querySelector("button") || root.textContent.includes("Modifica")) {
+  throw new Error("Employee calendar must not expose direct mutation before personal proposal approval is implemented.");
+}
 const accountSelect = root.querySelector("select");
 accountSelect.value = accounts[1].accountId;
 accountSelect.dispatchEvent(new Event("change", { bubbles: true }));
