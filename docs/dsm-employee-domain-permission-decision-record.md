@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-29 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-30 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -856,6 +856,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define event taxonomy and severity, alert thresholds and correlation, log architecture and integrity controls, retention and access policy, named operational ownership and escalation path, incident playbooks, privacy review, and synthetic tests for missed alerts, noisy alerts, tampering and pipeline outage. This approval does not authorize production monitoring integrations, external data sharing or automatic account restrictions.
 
+### L-30 — Data classification, minimization and handling
+
+**Question:** How should information be classified and handled according to sensitivity and operational need?
+
+Possible choices:
+- **A. Uniform handling:** apply broadly similar controls to all application data.
+- **B. Risk-based data governance:** classify data, minimize collection and exposure, enforce purpose and access limits, and apply handling, retention and disposal controls proportionate to sensitivity.
+- **C. Broad internal availability:** make operational data generally available to authenticated staff and rely primarily on organizational trust.
+
+**Approved 2026-11-27 — option B (risk-based classification, minimization and handling), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Establish a documented data inventory and classification scheme based on sensitivity, impact, legal/contractual obligations and operational context. Identify personal, employment, compensation, health/absence, authentication, security/audit and synthetic/test data distinctly.
+- Collect and process only fields necessary for a documented purpose. Prefer derived or minimized views over raw source records; do not expose sensitive absence reasons, health information, payroll details, credentials or unrelated employee records through general operational interfaces.
+- Enforce purpose limitation, least privilege and field-level allowlists at trusted server boundaries. Authentication alone, client-side filtering, UI hiding, local storage partitioning or possession of an identifier must not confer access.
+- Apply controls appropriate to classification, including encryption in transit and at rest where supported, restricted key and administrative access, protected audit, approved transfer channels and safeguards against unintended export or disclosure.
+- Separate synthetic/test data from real personal and operational data. Use synthetic fixtures by default in development, demonstrations, tests and AI/analytics workflows; prohibit copying production data into lower-trust environments without a separately approved and minimized process.
+- Define retention and disposal schedules by data class and purpose, including backup expiry, audit evidence, legal holds and documented deletion/anonymization outcomes. Do not silently overwrite or erase records subject to an authorized hold.
+- Review data flows, integrations, processors and exports before enabling them. Share only the minimum required fields with an authorized recipient and record the purpose, scope and approval where appropriate.
+- Periodically review classification, access, data flows and retention; reclassify when context changes and promptly correct over-collection or overexposure.
+
+**Still required before implementation:** complete the data inventory and ownership map; approve classification levels and handling matrix; define purpose, retention and disposal schedules per domain; document encryption/key management and transfer controls; assess integrations and processors; define exceptions and review cadence; and add synthetic tests for field leakage, unauthorized export, retention and deletion behavior. This approval does not authorize new data collection, third-party sharing, bulk export or production data migration.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -896,6 +919,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-27 Protection against abusive authentication attempts | Approved — option B layered rate limits, brute-force/credential-stuffing defenses, anomaly detection, proportionate temporary restrictions, secure recovery and audit; implementation gated on thresholds, signals, recovery, monitoring and tests |
 | L-28 Session and device lifecycle security | Approved — option B managed sessions, bounded lifetime, step-up authentication, server-side revocation, lifecycle invalidation and protected audit; implementation gated on architecture, token handling, lifetimes and tests |
 | L-29 Security monitoring and event response | Approved — option B risk-based centralized monitoring, protected audit, actionable alerts, defined escalation and human-reviewed response; implementation gated on event taxonomy, ownership, retention, architecture and tests |
+| L-30 Data classification and handling | Approved — option B risk-based classification, minimization, purpose limitation, least-privilege field access, environment separation and retention/disposal controls; implementation gated on inventory, schedules, handling matrix and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
