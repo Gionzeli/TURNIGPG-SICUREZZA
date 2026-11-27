@@ -87,7 +87,8 @@ export function createGoogleSecretManagerTokenCasBackend({
           if(leaseRef) {
             const current=leaseSnapshot?.data?.()||{};
             const checkedAt=now();
-            if(!leaseSnapshot?.exists || current.ownerId!==leaseProof.ownerId ||
+            if(!leaseSnapshot?.exists || current.revocationPending === true ||
+               current.ownerId!==leaseProof.ownerId ||
                current.fencingToken!==leaseProof.fencingToken ||
                !Number.isSafeInteger(current.expiresAt) ||
                !Number.isSafeInteger(checkedAt) || current.expiresAt<=checkedAt) throw conflict();
