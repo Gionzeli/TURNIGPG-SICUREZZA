@@ -365,7 +365,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
         if (!snapshot.exists) fail("not-found", "Proposal not found.");
         const proposal = snapshot.data();
         if (proposal.accountId !== accountId || proposal.employeeId !== principal.employeeId || proposal.proposerUid !== identity.uid) fail("permission-denied", "Proposal does not belong to this employee.");
-        if (proposal.status !== "pending") fail("failed-precondition", "Only pending proposals can be rejected.");
+        if (proposal.status !== "pending" || !canEmployeeDecideProposal(proposal)) fail("failed-precondition", "Only pending verified proposals can be rejected.");
         if (decisionSnap.exists) fail("already-exists", "Proposal decision already exists.");
         const timestamp = now();
         if (!Number.isSafeInteger(timestamp)) fail("failed-precondition", "Invalid trusted clock.");
