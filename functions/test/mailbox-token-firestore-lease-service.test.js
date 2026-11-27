@@ -140,3 +140,12 @@ test('cleanup gate assertion fails closed when Firestore read is unavailable',as
   return true;
  });
 });
+
+
+test('acquire and disable reject negative persisted lease expiry',async()=>{
+ const f=fixture();
+ f.record={ownerId:null,fencingToken:0,expiresAt:-1};
+ await assert.rejects(()=>f.service.acquire({...scope}),{code:'unavailable'});
+ await assert.rejects(()=>f.service.disable(scope),{code:'unavailable'});
+ assert.equal(f.record.expiresAt,-1);
+});
