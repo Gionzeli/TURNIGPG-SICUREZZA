@@ -53,6 +53,26 @@ test("Firestore Emulator: canonical Employee shift adapter proves self binding a
     assert.equal(allowed.placement.placementId, "synthetic-placement");
 
     await db.doc(`accounts/${accountId}/members/${uid}`).update({
+      validUntil: new Date(Date.UTC(2026, 4, 31))
+    });
+    await assert.rejects(
+      db.runTransaction(tx => adapter.authorizeActor(tx, {
+        accountId, actorUid: uid, operation: "read", date: "2026-02-01"
+      })),
+      error => error.code === "permission-denied"
+    );
+    await db.doc(`accounts/${accountId}/members/${uid}`).update({ validUntil: null });
+
+    await root.update({ status: "suspended" });
+    await assert.rejects(
+      db.runTransaction(tx => adapter.authorizeActor(tx, {
+        accountId, actorUid: uid, operation: "read", date: "2026-02-01"
+      })),
+      error => error.code === "permission-denied"
+    );
+    await root.update({ status: "active" });
+
+    await db.doc(`accounts/${accountId}/members/${uid}`).update({
       scopeIds: ["different-department"]
     });
     await assert.rejects(
