@@ -15,6 +15,7 @@ test("worker deletes secret and marks durable ticket complete", async () => {
       completeSecretCleanup: async input => calls.push({ completed: input }),
       recordSecretCleanupFailure: async () => assert.fail("unexpected retry"),
       listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
       markCleanupAlertDelivered: async () => {}
     },
     credentialVault: { revokeSecret: async input => calls.push(input) },
@@ -83,6 +84,7 @@ test("worker validates batch bounds and ignores malformed tickets", async () => 
       completeSecretCleanup: async () => {},
       recordSecretCleanupFailure: async () => {},
       listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
       markCleanupAlertDelivered: async () => {}
     },
     credentialVault: { revokeSecret: async () => {} },
@@ -104,6 +106,7 @@ test("worker rejects cross-account tickets before calling the vault", async () =
       completeSecretCleanup: async () => {},
       recordSecretCleanupFailure: async () => {},
       listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
       markCleanupAlertDelivered: async () => {}
     },
     credentialVault: { revokeSecret: async () => { revoked++; } },
@@ -124,6 +127,7 @@ test("worker does not alert exhaustion until the exhausted state is durably reco
       completeSecretCleanup: async () => {},
       recordSecretCleanupFailure: async () => { throw Object.assign(new Error("storage unavailable"), { code: "unavailable" }); },
       listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
       markCleanupAlertDelivered: async () => {}
     },
     credentialVault: { revokeSecret: async () => { throw Object.assign(new Error("vault unavailable"), { code: "unavailable" }); } },
@@ -141,6 +145,9 @@ test("worker retries failed exhaustion alert delivery on a later invocation", as
   let alertStatus = "pending";
   let attempts = 12;
   let calls = 0;
+  let clock = 2000;
+  let alertAttempts = 0;
+  let alertNextAttemptAt = null;
   const worker = createMailboxSecretCleanupWorker({
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [],
@@ -148,8 +155,13 @@ test("worker retries failed exhaustion alert delivery on a later invocation", as
       recordSecretCleanupFailure: async () => {},
       listPendingCleanupAlerts: async ({ accountId }) => alertStatus === "pending"
         ? [{ accountId, connectionId: "exhausted-connection", status: "exhausted",
-            alertStatus, attempts, lastErrorCode: "unavailable" }]
+            alertStatus, attempts, lastErrorCode: "unavailable",
+            alertAttempts, alertNextAttemptAt }]
         : [],
+      recordCleanupAlertFailure: async input => {
+        alertAttempts = input.attempts;
+        alertNextAttemptAt = input.nextAttemptAt;
+      },
       markCleanupAlertDelivered: async () => { alertStatus = "delivered"; }
     },
     credentialVault: { revokeSecret: async () => {} },
@@ -158,11 +170,16 @@ test("worker retries failed exhaustion alert delivery on a later invocation", as
       assert.equal(input.alertId, "synthetic-account:exhausted-connection:cleanup-exhausted");
       if (calls === 1) throw Object.assign(new Error("alert transport unavailable"), { code: "unavailable" });
     },
-    now: () => 2000
+    now: () => clock
   });
   const first = await worker.runOnce({ accountId: "synthetic-account" });
   assert.equal(first.scanned, 0);
   assert.equal(alertStatus, "pending");
+  assert.equal(alertAttempts, 1);
+  assert.equal(alertNextAttemptAt, 62000);
+  await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(calls, 1, "alert backoff prevents immediate retry");
+  clock = alertNextAttemptAt;
   await worker.runOnce({ accountId: "synthetic-account" });
   assert.equal(calls, 2);
   assert.equal(alertStatus, "delivered");
