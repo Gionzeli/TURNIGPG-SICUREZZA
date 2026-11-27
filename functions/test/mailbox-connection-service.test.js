@@ -219,3 +219,29 @@ test("revocation completion timestamp is sampled after slow vault deletion", asy
   assert.equal(revoked.updatedAt, 9000);
   assert.equal(calls.audits.at(-1).timestamp, 9000);
 });
+
+
+test("audit failure keeps revocation pending and a later retry can finish it", async () => {
+  let auditAttempts = 0;
+  const { service, calls } = harness({
+    writeAudit: async input => {
+      auditAttempts++;
+      if (auditAttempts === 2) throw new Error("synthetic audit outage");
+      calls.audits.push(input);
+    }
+  });
+  await service.connect(base);
+  await assert.rejects(service.revoke({
+    accountId: base.accountId, actorUid: base.actorUid, connectionId: "synthetic-connection"
+  }), /synthetic audit outage/);
+  assert.equal(calls.saved.at(-1).connection.status, "revocation_pending");
+  assert.equal(calls.saved.at(-1).connection.credentialSecretRef, "vault://synthetic/secret-1");
+
+  const retry = await service.revoke({
+    accountId: base.accountId, actorUid: base.actorUid, connectionId: "synthetic-connection"
+  });
+  assert.equal(retry.status, "revoked");
+  assert.equal(calls.saved.at(-1).connection.status, "revoked");
+  assert.equal(calls.saved.at(-1).connection.credentialSecretRef, null);
+  assert.equal(auditAttempts, 3);
+});
