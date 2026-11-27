@@ -57,7 +57,7 @@ export function createGoogleSecretManagerTokenCasBackend({
   return Object.freeze({
     async readSecret({ secretRef }) {
       try {
-        const { secretName, pointerRef } = resources(secretRef);
+        const { secretName, pointerRef } = resources(secretRef);\n      const parts = parseRef(secretRef);\n      let leaseRef;\n      if (leaseProof !== undefined) {\n        if (!leaseProof || typeof leaseProof.ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(leaseProof.ownerId) || !Number.isSafeInteger(leaseProof.fencingToken) || leaseProof.fencingToken < 1 || typeof leaseRefForConnection !== "function") throw new Error("invalid lease proof");\n        leaseRef = leaseRefForConnection({accountId:parts.accountId,connectionId:parts.connectionId});\n        if (!leaseRef || typeof leaseRef.get !== "function") throw new Error("invalid lease reference");\n      }
         const snapshot = await pointerRef.get();
         const version = snapshot?.data?.()?.version;
         if (!snapshot?.exists || typeof version !== "string" || !VERSION_RE.test(version)) {
@@ -69,7 +69,7 @@ export function createGoogleSecretManagerTokenCasBackend({
       }
     },
 
-    async replaceSecret({ secretRef, payload, expectedVersion }) {
+    async replaceSecret({ secretRef, payload, expectedVersion, leaseProof }) {
       if (typeof expectedVersion !== "string" || !VERSION_RE.test(expectedVersion)) {
         throw new Error("invalid expected version");
       }
