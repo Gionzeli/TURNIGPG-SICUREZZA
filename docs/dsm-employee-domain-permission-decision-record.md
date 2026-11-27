@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-120 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-121 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -3002,6 +3002,28 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory the actual database schema and migration tooling; identify authorization-critical constraints and dependent readers/writers; define migration roles and approval separation; specify staged rollout, backfill limits, quarantine and recovery procedures; and produce reproducible synthetic migration, interruption and invariant-validation tests with independent review. No real Firebase/database migration, destructive backfill, production schema change or deployment is authorized by this decision.
 
+### L-121 — Database privilege boundaries, row-level security and privileged-access bypass
+
+**Question:** How should database identities, grants and row-level security be designed and verified so that direct database access, privileged service roles or alternate query paths cannot bypass tenant, employee-ownership, lifecycle or domain authorization?
+
+**Decision:** Approved — option B, apply least-privilege database roles and defense-in-depth row-level controls, explicitly inventory privileged bypass paths, and require server authorization as the canonical decision point. This is a policy decision only.
+
+**Required controls:**
+- Separate human administration, schema migration, application workload, background-job and read-only operational identities. Do not share credentials across environments or workloads; prohibit browser/mobile clients from holding database credentials with direct access to protected employee data.
+- Grant each workload only the minimum database operations and objects required. Prefer explicit allowlists over broad schema-wide grants; remove default/public privileges and review inherited, role-membership and ownership privileges.
+- Where supported, enforce tenant and row boundaries with database row-level security or equivalent native controls as defense in depth. Derive security context from authenticated server-controlled identity and verified membership, never from caller-supplied tenant, employee, role or scope fields.
+- Ensure policies cover every relevant operation and execution path, including SELECT, INSERT, UPDATE, DELETE, bulk operations, views, stored procedures, partitions and newly created tables. Configure default-deny behavior and safe defaults for missing, malformed or stale context.
+- Inventory and constrain bypass-capable identities and features, including table owners, superusers, administrative connections, security-definer routines, maintenance jobs and migration roles. Restrict their custody, use, network reachability and duration; require independent approval and protected audit for exceptional access.
+- Ensure views, functions and stored procedures do not accidentally execute with broader privileges or leak rows/fields through unsafe ownership semantics. Pin safe search paths where relevant, validate inputs, and review grants on executable routines and exposed schemas.
+- Treat database row-level controls as defense in depth, not a replacement for canonical application authorization. Every request must still verify identity, active membership, lifecycle, domain/action permission, ownership and current scope on the server before data is returned or changed.
+- Deny direct client access to protected database collections/tables unless a separately reviewed architecture explicitly requires it and equivalent authorization is demonstrably enforced. Do not rely on UI hiding, client filters, IndexedDB partitioning or untrusted session variables.
+- Make connection-pool context transaction-bound; clear it reliably on commit, rollback, errors and connection reuse. Missing or failed context setup/reset must deny access rather than inherit a previous actor's privileges.
+- Review grants and row policies whenever schemas, tables, views, functions, workload identities or tenant models change. New objects must remain inaccessible until their grants and policies are explicitly reviewed.
+- Test both allowed and denied access using synthetic multi-tenant and multi-employee fixtures, including cross-tenant reads/writes, absent context, forged context, stale membership, suspended/terminated users, role changes, owner/bypass identities, function/view paths and pooled-connection reuse.
+- Capture policy/grant inventory, review approvals, test results and exceptional privileged access in protected audit evidence. Avoid logging credentials, tokens or unnecessary personal data.
+
+**Implementation gates:** Inventory the actual database engine, roles, grants, row policies, views, functions, privileged identities and all direct-access paths; map each workload to a narrowly scoped identity; define safe context propagation and pool reset; and produce reproducible synthetic Emulator/non-production tests proving deny-by-default behavior and bypass-path containment. No real database grant, row policy, credential, Firebase configuration or production change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3122,6 +3144,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-118 Password verifier storage, password hashing and credential migration | Approved — option B modern salted password hashing, protected optional pepper, controlled upgrades and verified legacy migration; implementation gated on provider inventory and synthetic tests |
 | L-119 Database transaction boundaries, connection-pool isolation and session-context cleanup | Approved — option B transaction-bound server context, verified pool reset and fail-closed isolation; implementation gated on driver/pool review and cross-tenant tests |
 | L-120 Database schema migrations, data backfills and authorization-invariant preservation | Approved — option B reviewed staged migrations, bounded idempotent backfills and invariant/recovery gates; implementation gated on schema inventory and synthetic migration tests |
+| L-121 Database privilege boundaries and row-level security | Approved — option B least-privilege roles, defense-in-depth row policies and constrained bypass paths; implementation gated on privilege inventory and synthetic tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
