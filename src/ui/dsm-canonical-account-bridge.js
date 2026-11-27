@@ -224,7 +224,8 @@ export function mountDSMCanonicalAccountBridge(container, {
       for (const proposal of (Array.isArray(items) ? items : [])) {
         const article = document.createElement("article"); article.className = "card";
         const heading = document.createElement("h4"); heading.textContent = "Proposta " + proposal.proposalId;
-        const detail = document.createElement("p"); detail.textContent = proposal.status + " — " + proposal.changeCount + " variazioni — origine: " + String(proposal.source ?? "non indicata");
+        const origin = proposal.source === "employer_email" ? "PDF da email aziendale verificata" : proposal.source === "employee_manual" ? "inserimento manuale" : "origine non riconosciuta";
+        const detail = document.createElement("p"); detail.textContent = proposal.status + " — " + proposal.changeCount + " variazioni — origine: " + origin;
         article.append(heading, detail);
         for (let changeIndex = 0; changeIndex < (proposal.changes ?? []).length; changeIndex++) {
           const change = proposal.changes[changeIndex];
