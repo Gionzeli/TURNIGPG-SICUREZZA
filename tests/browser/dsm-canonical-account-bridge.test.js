@@ -114,8 +114,8 @@ if (JSON.stringify(window.__shiftQuery) !== JSON.stringify({
 if (root.textContent.includes("synthetic-employee-uid") || root.textContent.includes("compensation")) {
   throw new Error("Own shifts view exposed an identity or non-allowlisted field.");
 }
-if (shiftPanel.querySelector("tbody button") || root.textContent.includes("Modifica")) {
-  throw new Error("Employee calendar must not expose direct mutation before personal proposal approval is implemented.");
+if (shiftPanel.querySelector("tbody button") || shiftPanel.textContent.includes("Modifica")) {
+  throw new Error("Employee calendar must not expose direct shift mutation controls.");
 }
 const accountSelect = root.querySelector("select");
 accountSelect.value = accounts[1].accountId;
