@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-58 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-59 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1583,6 +1583,34 @@ Approved policy in principle:
 
 **Still required before implementation:** domain-by-domain inventory and retention schedule, legal/privacy review and accountable owners, trigger and timezone semantics, archive access model, legal-hold workflow, deletion/anonymization standards, backup and processor propagation design, evidence schema, exception handling and synthetic end-to-end tests. This policy does not authorize deletion, anonymization, archival changes or retention changes to real data, nor production activation.
 
+### L-59 — Security log monitoring, retention and tamper detection
+
+**Question:** How should security and operational audit logs be monitored, retained and protected against tampering, unauthorized access, gaps and misuse while minimizing personal and sensitive data?
+
+Possible choices:
+- **A. Best-effort application logs:** rely on ordinary service logs and investigate only after a reported incident.
+- **B. Governed, tamper-evident logging and monitored response:** define authoritative events, protected collection, integrity verification, retention and alert ownership.
+- **C. Record everything indefinitely:** retain full request and response payloads for maximum investigative detail.
+
+**Approved 2026-11-27 — option B (governed, minimized, tamper-evident logging and monitored response), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Define an authoritative event catalogue covering authentication, authorization denials, privileged actions, lifecycle transitions, sensitive reads and exports, configuration changes, key operations, data disposition, security incidents and background workloads.
+- Generate security-relevant actor, target, action, outcome and timestamp fields server-side from verified context; never trust client-supplied audit metadata.
+- Minimize event content: exclude passwords, tokens, private keys, invitation secrets, full document payloads, unnecessary personal data and sensitive before/after values.
+- Send logs to a centrally governed, access-restricted destination with separation from the systems and identities that generate events; prevent ordinary application operators from silently altering or deleting retained evidence.
+- Apply tamper-evidence controls such as chained integrity proofs, signed checkpoints or independently protected immutable storage, with documented verification and key governance.
+- Monitor collection health, missing event sequences where detectable, ingestion delays, clock drift, integrity failures, retention failures, unusual privileged access and suspicious event patterns.
+- Define actionable alert thresholds, severity, accountable responders, escalation paths and human-reviewed containment; monitoring signals alone must not silently impose irreversible employment or account decisions.
+- Restrict log search and export by role, purpose, time window and field; audit access to logs themselves and protect investigative queries and derived reports.
+- Define retention and deletion schedules for each log class, legal-hold handling and controlled disposal consistent with L-58; prohibit indefinite retention by default.
+- Synchronize clocks using approved sources and record time semantics consistently, including UTC storage and explicit handling of event time versus ingestion time.
+- Ensure critical security events are captured even when business operations fail; define safe buffering, bounded retry and fail-closed behavior for high-risk operations when required audit evidence cannot be durably recorded.
+- Protect log transport and storage with encryption, managed keys, least-privilege identities, environment separation, backup and tested recovery.
+- Test synthetic cases for forged client metadata, dropped or delayed events, duplicate delivery, clock skew, tampering, compromised log-writer credentials, alert routing, retention expiry and audit-access abuse.
+
+**Still required before implementation:** event taxonomy and severity mapping, source and collector architecture, integrity mechanism and key ownership, clock and ordering semantics, retention schedule, access roles, alert thresholds and responders, outage behavior, privacy review, evidence verification procedures and synthetic end-to-end tests. This policy does not authorize production log collection, monitoring integrations, retention changes or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1641,6 +1669,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-56 Secure shared-device and workstation sessions | Approved — option B centrally enforced session expiry, reauthentication, server-side revocation and local-data minimization; implementation gated on device profiles, session configuration and cross-user isolation tests |
 | L-57 Cryptographic and signing key rotation and compromise response | Approved — option B governed key inventory, protected storage, scheduled/event-driven rotation, controlled verifier transition and rehearsed compromise response; implementation gated on key inventory, ownership, provider and integration tests |
 | L-58 Data retention, archival and verifiable deletion | Approved — option B governed schedules, restricted archives, authorized disposition and minimized evidence; implementation gated on domain schedules, legal/privacy review, propagation and tests |
+| L-59 Security log monitoring, retention and tamper detection | Approved — option B minimized, centrally protected and tamper-evident logs with monitored response; implementation gated on event taxonomy, integrity design, retention, access and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
