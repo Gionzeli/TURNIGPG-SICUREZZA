@@ -207,7 +207,7 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     const rejected = await handlers.rejectOwnProposal(proposalRequest({ accountId, proposalId: proposed.proposalId }));
     assert.deepEqual(rejected, { proposalId: proposed.proposalId, status: "rejected" });
     proposals = await handlers.listOwnProposals(proposalRequest({ accountId }));
-    assert.equal(proposals[0].status, "rejected");
+    assert.equal(proposals.find(item => item.proposalId === proposed.proposalId)?.status, "rejected");
     const liveSchedule = await collection.where("date", "==", "2026-06-22").get();
     assert.equal(liveSchedule.size, 0, "proposal submission/rejection must never mutate the live schedule");
   } finally {
