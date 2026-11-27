@@ -9,7 +9,7 @@ function fakeFirestore() {
       return {
         where(field, value, expected) {
           return {
-            orderBy() {
+            orderBy(field, direction) {
               return {
                 limit(max) {
                   return {
@@ -17,6 +17,11 @@ function fakeFirestore() {
                       const prefix = path + "/";
                       const docsFound = [...docs.entries()]
                         .filter(([key, item]) => key.startsWith(prefix) && item[field] === expected)
+                        .sort((a, b) => {
+                          const av = a[1].nextAttemptAt ?? 0;
+                          const bv = b[1].nextAttemptAt ?? 0;
+                          return av - bv || (a[1].createdAt ?? 0) - (b[1].createdAt ?? 0);
+                        })
                         .slice(0, max)
                         .map(([key, value]) => ({ id: key.slice(prefix.length), data: () => value }));
                       return { docs: docsFound };
@@ -292,4 +297,51 @@ test("pending cleanup listing excludes malformed retry metadata", async () => {
   assert.deepEqual(await adapters.listPendingSecretCleanup({
     accountId: active.accountId
   }), []);
+});
+
+test("cleanup retry ceiling moves tickets out of the pending queue", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
+    timestamp: input.timestamp + 1
+  });
+  assert.equal(docs.get("accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection").status, "exhausted");
+  assert.deepEqual(await adapters.listPendingSecretCleanup({ accountId: active.accountId }), []);
+  assert.equal((await adapters.loadSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId
+  })).status, "exhausted");
+});
+
+test("pending cleanup query sorts never-attempted and due work ahead of future retries", async () => {
+  const { db } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  for (let i = 0; i < 4; i++) {
+    const connectionId = "future-" + i;
+    await adapters.recordSecretCleanup({
+      accountId: active.accountId, connectionId,
+      secretRef: "vault://synthetic/" + i, reason: "connection_revoked",
+      timestamp: active.createdAt + i
+    });
+    await adapters.recordSecretCleanupFailure({
+      accountId: active.accountId, connectionId, secretRef: "vault://synthetic/" + i,
+      attempts: 2, nextAttemptAt: 900000 + i, lastErrorCode: "unavailable",
+      timestamp: 800000 + i
+    });
+  }
+  await adapters.recordSecretCleanup({
+    accountId: active.accountId, connectionId: "new-due",
+    secretRef: "vault://synthetic/new", reason: "connection_revoked",
+    timestamp: active.createdAt + 10
+  });
+  const batch = await adapters.listPendingSecretCleanup({ accountId: active.accountId, limit: 1 });
+  assert.equal(batch.length, 1);
+  assert.equal(batch[0].connectionId, "new-due");
 });
