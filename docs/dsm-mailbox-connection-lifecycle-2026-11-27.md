@@ -90,3 +90,8 @@ Synthetic tests use an in-memory stub only. No live tokens, vault credentials, F
 ## OAuth refresh helper (synthetic-only)
 
 Added `functions/src/membership/mailbox-oauth-refresh-service.js`. It refreshes access tokens through fixed Google or Microsoft endpoints, using an injected server HTTP transport and rejecting redirects. Provider and tenant are allowlisted; response size and token fields are validated, and provider error details are masked. The return shape includes an optional rotated refresh token: the trusted caller must store any replacement immediately and retain the prior refresh token if none is returned. Refresh operations must be serialized per mailbox connection to avoid rotation races. Unit fixtures are synthetic/mock only. This helper is not wired to OAuth credentials, a vault, Firebase callable, polling worker, or real provider accounts. Tests are authored but not executed in this environment.
+
+
+## OAuth remote revocation helper (synthetic-only)
+
+Added `mailbox-oauth-revocation-service.js`. Google access/refresh tokens can be submitted to Google's fixed revoke endpoint with POST and redirects disabled; bounded response validation and masked errors apply. For Microsoft delegated OAuth, the helper deliberately does not claim remote token revocation: ordinary delegated clients lack a general user-token revoke endpoint. Local connection disablement and vault deletion remain required; consent/session revocation may require user or admin action. Synthetic tests only. Not callable-wired or used with live accounts.
