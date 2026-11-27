@@ -372,3 +372,26 @@ test("worker rejects an invalid clock before querying adapters or touching secre
   assert.equal(listCalls, 0);
   assert.equal(vaultCalls, 0);
 });
+
+
+test("worker rejects a clock too close to the safe-integer ceiling for retry arithmetic", async () => {
+  let listCalls = 0;
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => { listCalls++; return []; },
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async () => {},
+    now: () => Number.MAX_SAFE_INTEGER
+  });
+  await assert.rejects(
+    worker.runOnce({ accountId: "synthetic-account" }),
+    error => error.code === "failed-precondition"
+  );
+  assert.equal(listCalls, 0);
+});
