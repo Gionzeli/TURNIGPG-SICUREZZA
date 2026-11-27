@@ -136,3 +136,6 @@ The coordinator now checks token expiry before acquiring a distributed lease. It
 ## Atomic lease fencing at secret-pointer commit
 
 The Google Secret Manager/Firestore CAS backend accepts an optional lease proof and, when supplied, reads the lease document in the same Firestore transaction as the secret pointer. The pointer advances only if both the expected secret version and the unexpired lease owner/fencing token still match. This closes the stale-owner window between a coordinator lease renewal and persistence. A losing writer can still leave an immutable, unreferenced Secret Manager version; cleanup remains a separate retention task. Synthetic tests only; no Firebase Emulator, cloud project, or live Secret Manager was used.
+
+
+The Secret Manager CAS backend now requires a lease proof by default (requireLeaseProof: true) and rejects construction without a trusted lease-reference mapper. The explicit requireLeaseProof: false compatibility mode is used only by isolated pointer-CAS contract fixtures; production wiring must retain the default.
