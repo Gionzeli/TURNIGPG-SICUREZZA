@@ -4,7 +4,7 @@ const REFRESH_SKEW_MS = 5 * 60 * 1000;
 /** Orchestrates token refresh using injected vault/provider adapters.
  * The lock is process-local only; production must use distributed per-connection
  * locking or transactional leases to prevent refresh-token rotation races. */
-export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, now = () => Date.now() }) {
+export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, leaseService, now = () => Date.now() }) {
   if (!vault || typeof vault.loadSecret !== "function" || typeof vault.storeSecret !== "function" ||
       !refreshService || typeof refreshService.refresh !== "function") {
     throw new TypeError("Mailbox token lifecycle dependencies are required.");
@@ -46,7 +46,7 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
           expiresAt: newExpiry,
           scopes: fresh.scope ? fresh.scope.split(" ").filter(Boolean) : stored.scopes
         };
-        try { await vault.storeSecret({ secretRef, secretMaterial: nextSecret, expectedVersion: stored.version }); } catch {
+        if (leaseService) {\n          try { lease = await leaseService.renew({ accountId, connectionId, lease, ttlMs: 120_000 }); }\n          catch { const error = new Error("Mailbox refresh lease was lost."); error.code = "unavailable"; throw error; }\n        }\n        try { await vault.storeSecret({ secretRef, secretMaterial: nextSecret, expectedVersion: stored.version }); } catch {
           const error = new Error("Mailbox credential persistence failed."); error.code = "unavailable"; throw error;
         }
         return Object.freeze({ status: "active", accessToken: fresh.accessToken, expiresAt: newExpiry, refreshed: true });
