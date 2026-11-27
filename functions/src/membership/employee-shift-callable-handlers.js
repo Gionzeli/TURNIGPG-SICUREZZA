@@ -1,5 +1,4 @@
 import { verifyIdentity } from "../auth/verify-identity.js";
-import { createEmployeeShiftService } from "./employee-shift-service.js";
 import { createEmployeeShiftFirestoreAuthorization } from "./employee-shift-firestore-authorization.js";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
@@ -25,7 +24,6 @@ const DTO_KEYS = ["date", "type", "post", "start_time", "end_time", "hours", "is
 export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () => Date.now() }) {
   if (!db || typeof verifyToken !== "function") throw new TypeError("Trusted Firestore and token verifier required.");
   const authorization = createEmployeeShiftFirestoreAuthorization({ db, now });
-  const service = createEmployeeShiftService({ db, authorizeActor: authorization.authorizeActor, loadPlacementAt: authorization.loadPlacementAt, now });
   async function actor(request) {
     try { return await verifyIdentity(bearer(request), verifyToken); }
     catch { fail("unauthenticated", "Identity verification failed."); }
@@ -66,25 +64,14 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
         return result.sort((a, b) => a.date.localeCompare(b.date));
       });
     },
-    async create(request) {
-      const data = dataObject(request, ["accountId", "data"]), identity = await actor(request), accountId = id(data.accountId);
-      const shiftId = db.collection(`accounts/${accountId}/employeeShifts`).doc().id;
-      const eventId = db.collection(`accounts/${accountId}/employeeAudit`).doc().id;
-      return service.create({ accountId, actorUid: identity.uid, actorIdentity: identity, shiftId, eventId, data: data.data });
+    async create() {
+      fail("failed-precondition", "Direct shift mutations are disabled; use the personal schedule proposal and approval workflow.");
     },
-    async update(request) {
-      const data = dataObject(request, ["accountId", "shiftId", "expectedRevision", "changes"]), identity = await actor(request);
-      if (!Number.isSafeInteger(data.expectedRevision) || data.expectedRevision < 1) fail("invalid-argument", "Invalid expected revision.");
-      const accountId = id(data.accountId);
-      return service.update({ accountId, actorUid: identity.uid, actorIdentity: identity, shiftId: id(data.shiftId),
-        eventId: db.collection(`accounts/${accountId}/employeeAudit`).doc().id, expectedRevision: data.expectedRevision, changes: data.changes });
+    async update() {
+      fail("failed-precondition", "Direct shift mutations are disabled; use the personal schedule proposal and approval workflow.");
     },
-    async delete(request) {
-      const data = dataObject(request, ["accountId", "shiftId", "expectedRevision"]), identity = await actor(request);
-      if (!Number.isSafeInteger(data.expectedRevision) || data.expectedRevision < 1) fail("invalid-argument", "Invalid expected revision.");
-      const accountId = id(data.accountId);
-      return service.delete({ accountId, actorUid: identity.uid, actorIdentity: identity, shiftId: id(data.shiftId),
-        eventId: db.collection(`accounts/${accountId}/employeeAudit`).doc().id, expectedRevision: data.expectedRevision });
+    async delete() {
+      fail("failed-precondition", "Direct shift mutations are disabled; use the personal schedule proposal and approval workflow.");
     }
   });
 }
