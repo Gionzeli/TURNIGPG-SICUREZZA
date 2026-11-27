@@ -24,6 +24,10 @@ let controller;
 const dependencies = {
   auth, onAuthStateChanged,
   listCanonicalAccounts: async () => accounts,
+  readOwnEmployeeEmploymentProfile: async data => ({
+    employeeId: "synthetic-employee-01",
+    employmentProfile: { ccnl: "HV17", section: "vigilanza_armata", level: "4", role: "Ruolo sintetico", effectiveDate: "2026-09-01" }
+  }),
   listOwnEmployeeShifts: async data => {
     window.__shiftQuery = data;
     return [{
@@ -75,8 +79,19 @@ if (session?.accountContext.getActive()?.identitySource !== "firebase" ||
   throw new Error("Canonical Firebase principal was not activated.");
 }
 document.documentElement.dataset.bridgeResult = "active";
-const shiftPanel = root.querySelector("section.card");
+const shiftPanel = [...root.querySelectorAll("section.card")].find(panel => panel.querySelector("h3")?.textContent === "I miei turni");
 if (!shiftPanel || shiftPanel.hidden) throw new Error("Own shifts view was not enabled after account activation.");
+await new Promise((resolve, reject) => {
+  const started = Date.now();
+  const check = () => {
+    if (root.textContent.includes("Ruolo sintetico")) return resolve();
+    if (Date.now() - started > 5000) return reject(new Error("Own employment profile query timed out."));
+    setTimeout(check, 20);
+  };
+  check();
+});
+if (!root.textContent.includes("HV17") || !root.textContent.includes("2026-09-01") ||
+    root.textContent.includes("compensation")) throw new Error("Employment profile allowlist was not rendered correctly.");
 root.querySelector('input[aria-label="Data iniziale"]').value = "2026-06-01";
 root.querySelector('input[aria-label="Data finale"]').value = "2026-06-30";
 root.querySelector('form').dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
@@ -107,8 +122,8 @@ await new Promise((resolve, reject) => {
   };
   check();
 });
-if (!root.querySelector("section.card").hidden ||
-    root.textContent.includes("Postazione sintetica")) {
+if ([...root.querySelectorAll("section.card")].some(panel => !panel.hidden) ||
+    root.textContent.includes("Postazione sintetica") || root.textContent.includes("Ruolo sintetico")) {
   throw new Error("Own shift data remained visible after account switch.");
 }
 if (session.accountContext.getActive() !== null) {
