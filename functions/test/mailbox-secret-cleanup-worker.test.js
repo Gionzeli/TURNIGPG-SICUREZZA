@@ -395,3 +395,27 @@ test("worker rejects a clock too close to the safe-integer ceiling for retry ari
   );
   assert.equal(listCalls, 0);
 });
+
+
+test("worker bases retry backoff on the failure time, not the batch start", async () => {
+  const recorded = [];
+  const times = [1000, 5000, 9000];
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [ticket],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async input => recorded.push(input),
+      listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => { throw Object.assign(new Error("synthetic"), { code: "unavailable" }); } },
+    alert: async () => {},
+    now: () => times.shift()
+  });
+  const result = await worker.runOnce({ accountId: "synthetic-account" });
+  assert.deepEqual(result, { scanned: 1, completed: 0, deferred: 1, exhausted: 0 });
+  assert.equal(recorded.length, 1);
+  assert.equal(recorded[0].timestamp, 9000);
+  assert.equal(recorded[0].nextAttemptAt, 129000);
+});
