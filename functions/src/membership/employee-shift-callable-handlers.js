@@ -167,6 +167,140 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
         }).filter(Boolean);
       });
     },
+
+    async approveOwnProposal(request) {
+      const data = dataObject(request, ["accountId", "proposalId"]);
+      const identity = await actor(request), accountId = id(data.accountId), proposalId = id(data.proposalId);
+      const createdShiftIds = new Map();
+      const auditIds = new Map();
+      // Stable IDs across Firestore transaction retries.
+      for (let index = 0; index < 30; index++) {
+        createdShiftIds.set(index, randomUUID().replace(/-/g, ""));
+        auditIds.set(index, randomUUID().replace(/-/g, ""));
+      }
+      return db.runTransaction(async tx => {
+        const principal = await authorization.loadOwnPrincipal(tx, { accountId, actorUid: identity.uid, operation: "read" });
+        const proposalRef = db.doc(`accounts/${accountId}/employeeShiftProposals/${proposalId}`);
+        const proposalSnap = await tx.get(proposalRef);
+        if (!proposalSnap.exists) fail("not-found", "Proposal not found.");
+        const proposal = proposalSnap.data();
+        if (proposal.accountId !== accountId || proposal.employeeId !== principal.employeeId ||
+            proposal.proposerUid !== identity.uid) fail("permission-denied", "Proposal does not belong to this employee.");
+        if (proposal.status !== "pending" || proposal.source !== "employee_manual") fail("failed-precondition", "Only pending employee-entered proposals can be approved.");
+        const changes = validateProposalChanges(proposal.changes);
+        const timestamp = now();
+        if (!Number.isSafeInteger(timestamp)) fail("failed-precondition", "Invalid trusted clock.");
+
+        // Complete all reads before any writes: Firestore transaction ordering requirement.
+        const prepared = [];
+        for (let index = 0; index < changes.length; index++) {
+          const change = changes[index];
+          if (change.operation === "create") {
+            const placement = await authorization.loadPlacementAt(tx, accountId, principal.employeeId, change.shift.date);
+            if (!principal.scopeIds.includes(principal.scopeType === "site" ? placement.siteId : placement.departmentId)) {
+              fail("permission-denied", "Proposed shift is outside the employee membership scope.");
+            }
+            const normalized = {
+              date: change.shift.date, type: change.shift.type, post: change.shift.post ?? "",
+              start_time: change.shift.start_time ?? "", end_time: change.shift.end_time ?? "",
+              hours: change.shift.hours ?? 0,
+              is_night: change.shift.is_night ?? false, is_sunday: change.shift.is_sunday ?? false,
+              is_piantonato: change.shift.is_piantonato ?? false,
+              is_rest_not_enjoyed: change.shift.is_rest_not_enjoyed ?? false,
+              has_meal_voucher: change.shift.has_meal_voucher ?? false
+            };
+            const shiftId = createdShiftIds.get(index);
+            const shiftRef = db.doc(`accounts/${accountId}/employeeShifts/${shiftId}`);
+            const existing = await tx.get(shiftRef);
+            if (existing.exists) fail("already-exists", "Generated shift identifier already exists.");
+            prepared.push({ operation: "create", shiftId, shiftRef, normalized, placement, index });
+            continue;
+          }
+          const shiftRef = db.doc(`accounts/${accountId}/employeeShifts/${change.shiftId}`);
+          const shiftSnap = await tx.get(shiftRef);
+          if (!shiftSnap.exists) fail("not-found", "A referenced shift no longer exists.");
+          const current = shiftSnap.data();
+          if (current.accountId !== accountId || current.employeeId !== principal.employeeId ||
+              current.status !== "active" || current.revision !== change.expectedRevision ||
+              !validDate(current.date) || !validId(current.placementId) ||
+              !validId(current.siteId) || !validId(current.departmentId)) {
+            fail("failed-precondition", "A referenced shift changed or is not owned by this employee.");
+          }
+          const placement = await authorization.loadPlacementAt(tx, accountId, principal.employeeId, current.date);
+          if (placement.placementId !== current.placementId || placement.siteId !== current.siteId ||
+              placement.departmentId !== current.departmentId) fail("permission-denied", "Shift placement no longer matches canonical history.");
+          const merged = {
+            date: current.date, type: current.type, post: current.post ?? "",
+            start_time: current.start_time ?? "", end_time: current.end_time ?? "",
+            hours: current.hours ?? 0, is_night: current.is_night ?? false,
+            is_sunday: current.is_sunday ?? false, is_piantonato: current.is_piantonato ?? false,
+            is_rest_not_enjoyed: current.is_rest_not_enjoyed ?? false,
+            has_meal_voucher: current.has_meal_voucher ?? false,
+            ...(change.operation === "update" ? change.changes : {})
+          };
+          if (change.operation === "update") {
+            validateProposedFields(change.changes, { allowDate: false });
+            if (typeof merged.type !== "string" || !["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"].includes(merged.type)) fail("failed-precondition", "Existing shift data is not valid for an update.");
+            if (merged.start_time && merged.end_time && merged.start_time === merged.end_time) fail("invalid-argument", "Shift start and end times must differ.");
+          }
+          prepared.push({ operation: change.operation, shiftId: change.shiftId, shiftRef, current, normalized: merged, index });
+        }
+
+        for (const item of prepared) {
+          const auditRef = db.doc(`accounts/${accountId}/employeeAudit/shift-proposal-${proposalId}-${item.index}`);
+          const auditSnap = await tx.get(auditRef);
+          if (auditSnap.exists) fail("already-exists", "Proposal audit event already exists.");
+          item.auditRef = auditRef;
+        }
+        // No writes have occurred before this point.
+        for (const item of prepared) {
+          const eventId = auditIds.get(item.index);
+          if (item.operation === "create") {
+            tx.create(item.shiftRef, {
+              ...item.normalized, accountId, employeeId: principal.employeeId,
+              placementId: item.placement.placementId, siteId: item.placement.siteId,
+              departmentId: item.placement.departmentId, status: "active", revision: 1,
+              createdAt: timestamp, createdBy: identity.uid, updatedAt: timestamp,
+              sourceProposalId: proposalId
+            });
+            tx.create(item.auditRef, {
+              eventId: "shift-proposal-" + proposalId + "-" + item.index,
+              type: "employee.shift.created_from_proposal", accountId, employeeId: principal.employeeId,
+              shiftId: item.shiftId, proposalId, actorUid: identity.uid, occurredAt: timestamp, revision: 1
+            });
+          } else if (item.operation === "update") {
+            const revision = item.current.revision + 1;
+            if (!Number.isSafeInteger(revision)) fail("failed-precondition", "Shift revision exhausted.");
+            tx.update(item.shiftRef, {
+              ...item.normalized, revision, updatedAt: timestamp, updatedBy: identity.uid,
+              lastProposalId: proposalId
+            });
+            tx.create(item.auditRef, {
+              eventId: "shift-proposal-" + proposalId + "-" + item.index,
+              type: "employee.shift.updated_from_proposal", accountId, employeeId: principal.employeeId,
+              shiftId: item.shiftId, proposalId, actorUid: identity.uid, occurredAt: timestamp, revision
+            });
+          } else {
+            const revision = item.current.revision + 1;
+            if (!Number.isSafeInteger(revision)) fail("failed-precondition", "Shift revision exhausted.");
+            tx.update(item.shiftRef, {
+              status: "deleted", revision, deletedAt: timestamp, deletedBy: identity.uid,
+              updatedAt: timestamp, lastProposalId: proposalId
+            });
+            tx.create(item.auditRef, {
+              eventId: "shift-proposal-" + proposalId + "-" + item.index,
+              type: "employee.shift.deleted_from_proposal", accountId, employeeId: principal.employeeId,
+              shiftId: item.shiftId, proposalId, actorUid: identity.uid, occurredAt: timestamp, revision
+            });
+          }
+        }
+        tx.update(proposalRef, {
+          status: "approved", decidedAt: timestamp, decidedBy: identity.uid,
+          updatedAt: timestamp, appliedShiftIds: prepared.map(item => item.shiftId)
+        });
+        return { proposalId, status: "approved", appliedCount: prepared.length, shiftIds: prepared.map(item => item.shiftId) };
+      });
+    },
     async rejectOwnProposal(request) {
       const data = dataObject(request, ["accountId", "proposalId"]);
       const identity = await actor(request), accountId = id(data.accountId), proposalId = id(data.proposalId);
