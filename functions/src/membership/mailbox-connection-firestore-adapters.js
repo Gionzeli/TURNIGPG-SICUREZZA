@@ -26,6 +26,14 @@ function normalizedEmail(value) {
   return typeof value === "string" && value.length <= 254 &&
     value === value.trim().toLowerCase() && EMAIL.test(value);
 }
+function validPendingAlertState(value) {
+  return Number.isSafeInteger(value.alertAttempts ?? 0) && (value.alertAttempts ?? 0) >= 0 &&
+    (value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined ||
+      (Number.isSafeInteger(value.alertNextAttemptAt) && value.alertNextAttemptAt >= 1)) &&
+    (value.alertLastErrorCode === null || value.alertLastErrorCode === undefined ||
+      (typeof value.alertLastErrorCode === "string" &&
+       /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode)));
+}
 function validateConnection(accountId, connectionId, value) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
       Object.keys(value).some(key => !CONNECTION_KEYS.has(key))) {
@@ -315,7 +323,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
             previous.status !== "exhausted" || previous.alertStatus !== "pending" ||
-            attempts <= (previous.alertAttempts ?? 0)) {
+            !validPendingAlertState(previous) || attempts <= (previous.alertAttempts ?? 0)) {
           const error = new Error("Cleanup alert retry is stale or conflicting.");
           error.code = "failed-precondition";
           throw error;
@@ -348,7 +356,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           throw error;
         }
         if (previous.alertStatus === "delivered") return;
-        if (previous.alertStatus !== "pending") {
+        if (previous.alertStatus !== "pending" || !validPendingAlertState(previous)) {
           const error = new Error("Cleanup alert is not pending.");
           error.code = "failed-precondition";
           throw error;
