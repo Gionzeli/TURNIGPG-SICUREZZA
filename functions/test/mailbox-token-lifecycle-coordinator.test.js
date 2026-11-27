@@ -133,7 +133,7 @@ test('does not persist refreshed tokens if the clock becomes invalid after provi
     refreshService: { refresh: async () => ({
       accessToken: 'synthetic-new-access-token', refreshToken: null, expiresInSeconds: 3600
     }) },
-    now: () => (++clockReads === 1 ? 1000 : Number.NaN)
+    now: () => (++clockReads <= 2 ? 1000 : Number.NaN)
   });
   await assert.rejects(() => coordinator.ensureFresh({
     accountId: 'acct', connectionId: 'conn', provider: 'gmail_api', secretRef: 'opaque',
