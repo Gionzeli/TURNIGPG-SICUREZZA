@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-34 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-35 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -974,6 +974,31 @@ Approved policy in principle:
 
 **Still required before implementation:** complete integration/provider inventory; assign service owners; perform security and privacy reviews; define approved data flows, scopes, contracts and retention; select authentication and webhook protections; set monitoring and review cadence; define offboarding and credential revocation; and add synthetic tests for malicious payloads, credential compromise, replay, excessive scope and provider outage. This approval does not authorize any third-party integration, external data transfer or real provider connection.
 
+### L-35 — Human error prevention and irreversible operations
+
+**Question:** How should high-impact or potentially irreversible actions be protected against mistakes and misuse?
+
+Possible choices:
+- **A. Direct execution:** permit authorized users to perform consequential actions immediately.
+- **B. Guarded operations:** explicit confirmation, preview, separation of preparation and execution, reversibility where feasible, and stronger approval for critical actions.
+- **C. Block all high-impact actions:** prohibit deletion, bulk changes and other consequential operations entirely.
+
+**Approved 2026-11-27 — option B (guarded high-impact operations with confirmation, preview, reversibility and independent approval where warranted), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Classify actions by impact and reversibility. Require explicit confirmation for high-impact actions and stronger authorization, including independent approval where appropriate, for critical operations.
+- Present a clear preview of the target, scope, affected records, fields, counts and consequences before committing. Avoid ambiguous labels or defaults that can trigger destructive operations.
+- Separate preparation from execution for bulk or sensitive operations. Require the executing actor to revalidate current authorization, scope and state at commit time; previews and stale confirmations must not authorize later execution.
+- Use idempotency, expected revisions or concurrency checks where applicable to prevent duplicate, stale or conflicting mutations.
+- Prefer reversible workflows such as soft-delete, staged changes or restore paths when legally and operationally appropriate. Where actions cannot be reversed, apply stricter confirmation, independent review, backup/retention assessment and recorded justification.
+- Restrict bulk operations and exports to separately authorized scopes, with bounded counts, clear selection, safeguards against accidental all-record targeting and explicit confirmation.
+- Do not allow the same actor to approve their own critical action when policy requires separation of duties. Enforce approvals server-side; UI prompts alone are not security controls.
+- Provide safe failure behavior: reject unknown fields, ambiguous scope, stale versions, missing approvals, invalid lifecycle state and unexpected record counts. Avoid partial commits where atomicity is feasible; otherwise report partial outcomes precisely and support reconciliation.
+- Record the actor, approver where applicable, action, reason, scope, preview/commit context, outcome and affected identifiers in protected audit without logging secrets.
+- Test accidental double-submit, stale preview, scope expansion, concurrent changes, wrong-domain selection, destructive operation recovery, approval bypass and partial failure using synthetic data.
+
+**Still required before implementation:** define the impact classification and action catalogue; confirmation and preview requirements per action; approval/separation-of-duties matrix; concurrency/idempotency strategy; reversibility and retention constraints; bulk-operation limits and recovery procedures; audit schema; and synthetic tests for each guarded action. This approval does not authorize destructive or bulk operations, real-data changes or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1019,6 +1044,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-32 Privacy requests and personal-data rights | Approved — option B verified, scoped and tracked workflow with authority checks, retention/legal-hold review, controlled actions and recorded outcomes; implementation gated on privacy ownership, data mapping, procedures and tests |
 | L-33 Business continuity and incident recovery | Approved — option B planned continuity, domain-specific RTO/RPO, protected backups, tested restores and integrity/authorization validation; implementation gated on impact analysis, architecture, owners and exercises |
 | L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
+| L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
