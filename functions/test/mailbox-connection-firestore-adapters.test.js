@@ -381,3 +381,38 @@ test("exhausted cleanup alert is durably queued and acknowledged", async () => {
     timestamp: input.timestamp + 3
   });
 });
+
+
+test("exhausted cleanup alert retries persist backoff and reject stale attempts", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
+    timestamp: input.timestamp + 1
+  });
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  assert.equal(docs.get(path).alertAttempts, 0);
+  await adapters.recordCleanupAlertFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    attempts: 1, nextAttemptAt: input.timestamp + 60000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 2
+  });
+  assert.equal(docs.get(path).alertAttempts, 1);
+  assert.equal(docs.get(path).alertNextAttemptAt, input.timestamp + 60000);
+  assert.equal(docs.get(path).alertLastErrorCode, "unavailable");
+  await assert.rejects(adapters.recordCleanupAlertFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    attempts: 1, nextAttemptAt: input.timestamp + 30000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 3
+  }), error => error.code === "failed-precondition");
+  const pending = await adapters.listPendingCleanupAlerts({ accountId: input.accountId });
+  assert.equal(pending.length, 1);
+  assert.equal(pending[0].alertAttempts, 1);
+});
