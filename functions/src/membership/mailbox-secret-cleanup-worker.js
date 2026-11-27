@@ -46,6 +46,11 @@ export function createMailboxSecretCleanupWorker({
         throw error;
       }
       const tickets = await cleanupAdapters.listPendingSecretCleanup({ accountId, limit });
+      if (!Array.isArray(tickets) || tickets.length > limit) {
+        const error = new Error("Cleanup adapter returned an invalid batch.");
+        error.code = "failed-precondition";
+        throw error;
+      }
       const summary = { scanned: 0, completed: 0, deferred: 0, exhausted: 0 };
       for (const ticket of tickets) {
         summary.scanned++;
@@ -111,6 +116,9 @@ export function createMailboxSecretCleanupWorker({
       let pendingAlerts = [];
       try {
         pendingAlerts = await cleanupAdapters.listPendingCleanupAlerts({ accountId, limit });
+        if (!Array.isArray(pendingAlerts) || pendingAlerts.length > limit) {
+          return summary;
+        }
       } catch {
         return summary;
       }
