@@ -206,7 +206,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
           typeof proposal.attachmentSha256 === "string" && /^[a-f0-9]{64}$/.test(proposal.attachmentSha256) &&
           Number.isSafeInteger(proposal.receivedAt) && proposal.receivedAt > 0 &&
           typeof proposal.sender === "string" && proposal.sender.length <= 254 &&
-          /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(proposal.sender);
+          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(proposal.sender);
         if (proposal.status !== "pending" ||
             (proposal.source !== "employee_manual" && !verifiedEmployerProposal)) {
           fail("failed-precondition", "Only pending employee-entered or verified employer-email proposals can be approved.");
