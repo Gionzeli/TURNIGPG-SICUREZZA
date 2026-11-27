@@ -48,3 +48,10 @@ does not accept a client-supplied Employee ID.
 
 This resolver is not yet wired into a callable. No provider authorization
 payload is accepted from the browser, and no mailbox connection is enabled.
+
+## OAuth transaction and PKCE core (synthetic-only)
+
+A new server-only transaction coordinator provides OAuth state binding and PKCE S256 primitives for Gmail API and Microsoft Graph provider flows. It stores the verifier server-side through an injected persistence adapter, returns only state and challenge to the caller, and consumes transactions atomically by hashed state. Transactions are bound to account, actor UID and provider, expire after ten minutes, and are single-use. Unit tests use synthetic state storage only.
+
+
+This is not a provider integration: redirect URI validation, OAuth client configuration, consent screens, callback HTTP handling, provider token exchange, encrypted vault storage, and Firebase callable wiring remain to be implemented and security-reviewed. The transaction store contract requires atomic consume/delete; no real provider or Firebase service has been accessed.
