@@ -25,6 +25,7 @@ export function createManagerAbsenceAvailabilityService({ db, authorizeManagerAv
   return Object.freeze({
     async read({ accountId, actorUid, actorIdentity, employeeId, startDate, endDate, eventId }) {
       if (![accountId, actorUid, employeeId, eventId].every(validId)) fail("invalid-argument", "Invalid absence selector.");
+      if (!actorIdentity || actorIdentity.uid !== actorUid) fail("permission-denied", "Verified actor identity does not match the request actor.");
       validateRange(startDate, endDate);
       const accountRef = db.doc("accounts/" + accountId);
       const recordsRef = db.collection("accounts/" + accountId + "/employeeAbsences");
@@ -40,7 +41,7 @@ export function createManagerAbsenceAvailabilityService({ db, authorizeManagerAv
           permission: "absence:read:availability", operation: "read-availability"
         });
         if (!scope || scope.employeeId !== employeeId || !Array.isArray(scope.placementIds) ||
-            scope.placementIds.length === 0 || scope.placementIds.some(id => !validId(id)) ||
+            scope.placementIds.length === 0 || scope.placementIds.length > 500 || scope.placementIds.some(id => !validId(id)) ||
             new Set(scope.placementIds).size !== scope.placementIds.length) {
           fail("permission-denied", "No authorized Employee placement scope for absence availability.");
         }
