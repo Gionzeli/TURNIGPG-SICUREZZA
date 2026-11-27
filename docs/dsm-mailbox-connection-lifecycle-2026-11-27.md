@@ -180,3 +180,12 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 GCLOUD_PROJECT=demo-dsm-mailbox node --te
 ```
 
 This is an Emulator integration test, not evidence of a test run. It does not exercise a live OAuth provider, Google Secret Manager, production IAM, distributed deployment, or callable wiring.
+
+
+## Revocation gate for in-flight token refresh
+
+The Firestore lease service now exposes `disable({accountId, connectionId})`. It atomically marks the per-connection lease record with `revocationPending: true`; the marker is monotonic and is not cleared by lease release. Lease acquisition and renewal reject a connection carrying that marker. The Secret Manager/Firestore CAS backend checks the same marker inside the transaction that updates the active secret-version pointer, so a refresh that started earlier cannot commit a newly rotated credential after revocation has won the transaction race.
+
+`createMailboxConnectionService` now requires an injected `disableRefresh` dependency. Revocation persists `revocation_pending`, disables refresh, and only then calls the vault deletion boundary. If disabling fails, vault deletion is not attempted and the connection remains non-active for retry/review. The caller must inject the Firestore lease service's `disable` operation for the same trusted account/connection mapping. Connection metadata and the lease gate are separate records; ingestion workers must also continue to honor the connection's non-active status.
+
+Synthetic tests cover disable-before-delete ordering, fail-closed behavior when the gate is unavailable, acquire/renew rejection, and the Firestore Emulator CAS transaction rejecting a valid-looking lease proof once `revocationPending` is set. The Emulator test has not been run here. This does not cancel an HTTP refresh request already sent to a provider, remotely revoke every provider session, or prove production wiring.
