@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-59 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-60 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1611,6 +1611,34 @@ Approved policy in principle:
 
 **Still required before implementation:** event taxonomy and severity mapping, source and collector architecture, integrity mechanism and key ownership, clock and ordering semantics, retention schedule, access roles, alert thresholds and responders, outage behavior, privacy review, evidence verification procedures and synthetic end-to-end tests. This policy does not authorize production log collection, monitoring integrations, retention changes or deployment.
 
+### L-60 — Secure service-to-service communication and machine identity
+
+**Question:** How should internal services, callable functions, background workers and external integrations authenticate one another and protect service-to-service traffic?
+
+Possible choices:
+- **A. Shared static credentials:** use a small set of long-lived shared secrets across services for operational simplicity.
+- **B. Workload-specific identity and short-lived credentials:** authenticate each workload independently, authorize explicit audiences and actions, and protect transport end to end.
+- **C. Network location as trust:** treat traffic from internal networks as trusted without strong per-workload authentication.
+
+**Approved 2026-11-27 — option B (workload-specific identity and short-lived credentials), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Assign each service, callable function, scheduled job and integration a distinct, attributable workload identity; prohibit shared human accounts and broad shared service credentials.
+- Authenticate workloads using an approved identity mechanism with short-lived, audience-bound credentials and verifiable issuer, subject, expiry and intended service.
+- Authorize every service-to-service operation server-side by explicit caller identity, target service, action, domain and resource scope; network location or possession of a generic internal token is never sufficient authorization.
+- Apply mutual TLS or an equivalent authenticated transport mechanism where supported and proportionate; validate certificates, trust roots, names, expiry and revocation, and protect against downgrade or insecure fallback.
+- Keep credentials and private keys in managed secret/key services, restrict access to the workload that needs them, rotate automatically where safely supported and revoke promptly on compromise or workload retirement.
+- Separate identities and credentials by environment and purpose; prohibit development, emulator, staging and production credential reuse.
+- Prevent end-user tokens from being repurposed as machine credentials; define explicit, validated delegation or token exchange when user context must flow to a downstream service.
+- Propagate only the minimum verified actor and authorization context required; downstream services must not trust caller-supplied role, tenant, employee, scope or audit claims without cryptographic validation and canonical authorization checks.
+- Bound permissions, quotas, request size, execution time and destinations; use allowlisted service endpoints and outbound controls to reduce SSRF and confused-deputy risks.
+- Make retries and asynchronous handoffs authenticated, scoped, replay-resistant where required, idempotent and auditable; bind messages to their intended workload and operation.
+- Fail closed for sensitive operations when workload identity, certificate validation, authorization or revocation status cannot be established; define safe degradation for non-sensitive availability paths.
+- Monitor workload identity issuance, credential use, unusual service-to-service calls, authorization failures, certificate expiry and revocation propagation without logging secrets or unnecessary payloads.
+- Test synthetic cases for forged service identities, audience confusion, cross-environment credential reuse, expired/revoked credentials, compromised workloads, replay, downgrade, unauthorized destinations and downstream scope escalation.
+
+**Still required before implementation:** workload and service inventory, identity provider and trust model, token/certificate profiles, service/action authorization matrix, user-context delegation contract, environment isolation, rotation and revocation integration, network/destination policy, incident ownership, monitoring and synthetic end-to-end tests. This policy does not authorize creating production identities, issuing real credentials, changing network configuration or deploying services.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1670,6 +1698,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-57 Cryptographic and signing key rotation and compromise response | Approved — option B governed key inventory, protected storage, scheduled/event-driven rotation, controlled verifier transition and rehearsed compromise response; implementation gated on key inventory, ownership, provider and integration tests |
 | L-58 Data retention, archival and verifiable deletion | Approved — option B governed schedules, restricted archives, authorized disposition and minimized evidence; implementation gated on domain schedules, legal/privacy review, propagation and tests |
 | L-59 Security log monitoring, retention and tamper detection | Approved — option B minimized, centrally protected and tamper-evident logs with monitored response; implementation gated on event taxonomy, integrity design, retention, access and tests |
+| L-60 Secure service-to-service communication and machine identity | Approved — option B distinct workload identities, short-lived audience-bound credentials and authenticated transport; implementation gated on identity model, service authorization, rotation, isolation and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
