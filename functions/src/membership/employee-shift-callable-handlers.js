@@ -162,10 +162,23 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
           if (proposal.accountId !== accountId || proposal.employeeId !== principal.employeeId ||
               !["pending", "rejected", "approved", "superseded"].includes(proposal.status) ||
               !Array.isArray(proposal.changes) || !Number.isSafeInteger(proposal.createdAt)) return null;
+          let safeChanges;
+          try { safeChanges = validateProposalChanges(proposal.changes); } catch { return null; }
+          const safeBefore = Array.isArray(proposal.before) && proposal.before.length === safeChanges.length
+            ? proposal.before.map(item => {
+                if (item === null) return null;
+                if (!item || typeof item !== "object" || Array.isArray(item)) return null;
+                const snapshot = Object.fromEntries(DTO_KEYS.filter(key =>
+                  Object.hasOwn(item, key) && ["string", "number", "boolean"].includes(typeof item[key])
+                ).map(key => [key, item[key]]));
+                if (Number.isSafeInteger(item.revision) && item.revision > 0) snapshot.revision = item.revision;
+                return snapshot;
+              })
+            : [];
           return {
             proposalId: snapshot.id, status: proposal.status, source: proposal.source,
-            createdAt: proposal.createdAt, changeCount: proposal.changes.length,
-            changes: proposal.changes, before: Array.isArray(proposal.before) && proposal.before.length === proposal.changes.length ? proposal.before : []
+            createdAt: proposal.createdAt, changeCount: safeChanges.length,
+            changes: safeChanges, before: safeBefore
           };
         }).filter(Boolean).sort((a, b) => b.createdAt - a.createdAt);
       });
