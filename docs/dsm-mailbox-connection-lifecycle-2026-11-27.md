@@ -399,3 +399,15 @@ sending succeeds but the clock or durable acknowledgement fails, the worker
 leaves the alert pending rather than recording a send failure; a later attempt
 reuses the same stable alert ID, so the provider must deduplicate repeated
 delivery attempts. This preserves the documented at-least-once contract.
+
+
+#### Regression for notification delivery followed by acknowledgement failure
+
+Added a worker test for the at-least-once recovery window where the alert provider
+accepts a notification but the durable Firestore acknowledgement fails. The
+worker persists a retry schedule, keeps the alert pending, and sends again on
+a later due invocation with the identical stable alert ID. The test verifies
+the retry timestamp is sampled after the acknowledgement failure and that a
+subsequent successful acknowledgement ends delivery retries. This is a
+synthetic adapter test; it does not exercise a live notification provider or
+Firestore Emulator.
