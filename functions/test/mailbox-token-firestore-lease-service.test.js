@@ -24,7 +24,7 @@ function fixture() {
     firestore,leaseRefForConnection:()=>ref,now:()=>clock,
     createOwnerId:()=>('owner_identifier_'+(++owner))
   });
-  return {service,advance:ms=>{clock+=ms;},get record(){return record;}};
+  return {service,advance:ms=>{clock+=ms;},set record(value){record=value;},get record(){return record;}};
 }
 
 const scope={accountId:'account_1',connectionId:'connection_1'};
@@ -113,5 +113,16 @@ test('cleanup gate assertion succeeds only after durable revocation disable',asy
  const f=fixture();
  await assert.rejects(()=>f.service.assertRevocationPending(scope),{code:'failed-precondition'});
  await f.service.disable(scope);
+ assert.deepEqual(await f.service.assertRevocationPending(scope),{status:'revocation_pending'});
+});
+
+
+test('cleanup gate assertion rejects malformed persisted fencing and expiry values',async()=>{
+ const f=fixture();
+ f.record={ownerId:null,fencingToken:-1,expiresAt:0,revocationPending:true};
+ await assert.rejects(()=>f.service.assertRevocationPending(scope),{code:'failed-precondition'});
+ f.record={ownerId:null,fencingToken:0,expiresAt:-1,revocationPending:true};
+ await assert.rejects(()=>f.service.assertRevocationPending(scope),{code:'failed-precondition'});
+ f.record={ownerId:null,fencingToken:0,expiresAt:0,revocationPending:true};
  assert.deepEqual(await f.service.assertRevocationPending(scope),{status:'revocation_pending'});
 });
