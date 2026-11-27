@@ -622,3 +622,12 @@ A malformed or cross-connection ticket cannot be transitioned to complete
 through this adapter, even if a document was altered outside the normal
 outbox creation path. A synthetic regression test mutates a stored ticket
 and verifies completion fails while its pending status remains unchanged.
+
+
+#### Scope rejection precedes revocation-gate access
+
+The cleanup-worker regressions now assert not only that malformed or
+cross-connection credential references never reach the vault, but also that
+they are rejected before the revocation-gate adapter is consulted. This keeps
+untrusted ticket metadata away from both downstream security boundaries. The
+checks use synthetic adapters; no Emulator or production services were run.
