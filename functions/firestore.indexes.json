@@ -55,7 +55,7 @@
           "order": "ASCENDING"
         },
         {
-          "fieldPath": "updatedAt",
+          "fieldPath": "alertNextAttemptAt",
           "order": "ASCENDING"
         }
       ]
