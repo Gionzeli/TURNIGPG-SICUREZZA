@@ -99,3 +99,22 @@ test("worker rejects cross-account tickets before calling the vault", async () =
   });
   assert.equal(revoked, 0);
 });
+
+
+test("worker does not alert exhaustion until the exhausted state is durably recorded", async () => {
+  const alerts = [];
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [{ ...ticket, attempts: 11 }],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => { throw Object.assign(new Error("storage unavailable"), { code: "unavailable" }); }
+    },
+    credentialVault: { revokeSecret: async () => { throw Object.assign(new Error("vault unavailable"), { code: "unavailable" }); } },
+    alert: async input => alerts.push(input),
+    now: () => 1000
+  });
+  assert.deepEqual(await worker.runOnce({ accountId: "synthetic-account" }), {
+    scanned: 1, completed: 0, deferred: 1, exhausted: 0
+  });
+  assert.equal(alerts.length, 0);
+});
