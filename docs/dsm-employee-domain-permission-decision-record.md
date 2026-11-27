@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-31 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-32 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -903,6 +903,30 @@ Approved policy in principle:
 
 **Still required before implementation:** designate vulnerability intake and response owners; define severity and remediation targets; choose advisory sources and scanning tools; complete component inventory and version policy; define disclosure and escalation process; establish exception approval and expiry; specify test, release and rollback evidence; and create synthetic workflow tests. This approval does not authorize automatic dependency updates, production patching or deployment.
 
+### L-32 — Privacy requests and personal-data rights handling
+
+**Question:** How should requests concerning access, correction, restriction or deletion of personal data be received and fulfilled?
+
+Possible choices:
+- **A. Informal handling:** allow staff or administrators to make ad hoc changes on request.
+- **B. Verified, tracked privacy workflow:** authenticate the requester, establish authority and scope, assess applicable obligations and retention constraints, require review for sensitive actions, and record the outcome.
+- **C. Immediate automated fulfillment:** execute access, correction or deletion requests automatically based only on a submitted identity claim.
+
+**Approved 2026-11-27 — option B (verified and tracked privacy-request workflow with scope, review and recorded outcomes), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Provide a documented intake and tracking process for requests concerning personal data, with clear ownership, status, deadlines to be determined by applicable requirements, and a secure communication channel.
+- Verify the identity of the requester and, where relevant, their authority to act for another person. Use proportionate verification and do not collect excessive additional identity information.
+- Determine the systems, domains, records, purposes and time periods in scope before accessing or changing data. Distinguish the requester's own data from third-party information and restricted employment, compensation, health, security and audit records.
+- Assess applicable legal, contractual, employment, retention and legal-hold constraints before disclosure, correction, restriction, deletion or anonymization. Escalate uncertain or conflicting cases to an authorized privacy/legal owner rather than making assumptions.
+- Require controlled review for sensitive or high-impact actions. Keep requests separate from ordinary operational permissions; an employee, manager or administrator must not gain broad access merely by handling a request.
+- Preserve provenance and integrity: record the request, verification outcome, scope, decision, authorized actor, affected systems, actions taken, exceptions and completion notice. Do not place unnecessary personal data or secrets in audit records.
+- Apply corrections through traceable workflows that preserve required history and prevent unauthorized alteration of payroll, employment or audit evidence. Deletion or anonymization must account for backups, replicas, downstream processors and applicable holds.
+- Communicate outcomes securely and explain partial fulfillment or refusal through an approved process, without disclosing another person's information or internal security-sensitive details.
+- Test request handling with synthetic identities and records, including identity mismatch, third-party data, conflicting retention obligations, legal holds, partial fulfillment and downstream-system failures.
+
+**Still required before implementation:** assign privacy-request ownership; define intake channels, identity proofing and authority checks; map personal-data stores and processors; establish applicable response timelines and escalation with qualified privacy/legal review; define redaction, correction, restriction, deletion and anonymization procedures including backup handling; and add synthetic end-to-end tests. This approval does not authorize bulk disclosure, automatic deletion, changes to legal retention, or processing of real personal data.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -945,6 +969,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-29 Security monitoring and event response | Approved — option B risk-based centralized monitoring, protected audit, actionable alerts, defined escalation and human-reviewed response; implementation gated on event taxonomy, ownership, retention, architecture and tests |
 | L-30 Data classification and handling | Approved — option B risk-based classification, minimization, purpose limitation, least-privilege field access, environment separation and retention/disposal controls; implementation gated on inventory, schedules, handling matrix and tests |
 | L-31 Vulnerability management and security updates | Approved — option B documented intake, risk-based triage, tracked remediation, verified fixes and controlled updates; implementation gated on ownership, SLAs, inventory, tooling and tests |
+| L-32 Privacy requests and personal-data rights | Approved — option B verified, scoped and tracked workflow with authority checks, retention/legal-hold review, controlled actions and recorded outcomes; implementation gated on privacy ownership, data mapping, procedures and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
