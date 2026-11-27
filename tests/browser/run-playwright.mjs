@@ -565,6 +565,42 @@ try {
   console.log("PASS — isolated composition demo startup failure: teardown and temporary IndexedDB deletion");
   await failedDemoPage.close();
 
+  const migrationPage = await browser.newPage();
+  const migrationErrors = [];
+  const migrationRequests = [];
+  migrationPage.on("pageerror", error => migrationErrors.push(error.message));
+  migrationPage.on("request", request => migrationRequests.push(request.url()));
+  await migrationPage.goto("http://127.0.0.1:8000/tests/browser/legacy-migration-page.html", { waitUntil: "load" });
+  const migrationPolicy = await migrationPage.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
+  assert.ok(migrationPolicy?.includes("default-src 'none'") &&
+    migrationPolicy.includes("connect-src 'none'") &&
+    migrationPolicy.includes("form-action 'none'"),
+    "La fixture migrazione DSM non applica la CSP restrittiva.");
+  const syntheticLegacyExport = {
+    app: "Turni Gpg/sicurezza online",
+    params: {},
+    profile: { ccnl: "CCNL sintetico", section: "demo", level: "1", role: "gpg", effective_date: "2026-01-01" },
+    shifts: [{ id: "synthetic-shift-1", date: "2026-11-27", type: "turno", post: "Sede sintetica", start_time: "08:00", end_time: "16:00", hours: 8 }],
+    extra: { skills: [], tpl: [], real: {} }
+  };
+  await migrationPage.locator('input[type="file"]').setInputFiles({
+    name: "backup-sintetico.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(syntheticLegacyExport))
+  });
+  await migrationPage.locator('form button[type="submit"]').click();
+  await migrationPage.getByText("Backup pronto per la revisione d'importazione").waitFor({ state: "visible" });
+  assert.match(await migrationPage.locator("#dsm-migration-root").textContent(), /Turni validi/);
+  assert.match(await migrationPage.locator("#dsm-migration-root").textContent(), /Il file non viene caricato, salvato o importato/);
+  assert.equal(migrationErrors.length, 0, migrationErrors.join("; "));
+  assert.ok(migrationRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "La pagina migrazione DSM ha effettuato richieste esterne.");
+  await migrationPage.locator('form button[type="reset"]').click();
+  assert.match(await migrationPage.locator('[role="status"]').textContent(), /Analisi azzerata/);
+  assert.equal(migrationErrors.length, 0, migrationErrors.join("; "));
+  console.log("PASS — embedded DSM migration preview: local-only analysis, synthetic export, reset, strict CSP, no external requests");
+  await migrationPage.close();
+
   console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
   await reportPage.close();
 } finally {
