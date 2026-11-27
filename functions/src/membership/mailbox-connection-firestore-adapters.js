@@ -213,7 +213,9 @@ export function createMailboxConnectionFirestoreAdapters(db) {
       if (!validId(accountId) || !validId(connectionId) ||
           !validSecretRef(secretRef, accountId, connectionId) ||
           !Number.isSafeInteger(attempts) || attempts < 2 || attempts > 1000 ||
-          !(nextAttemptAt === null || (Number.isSafeInteger(nextAttemptAt) && nextAttemptAt >= timestamp)) ||
+          !(attempts >= 12
+            ? nextAttemptAt === null
+            : Number.isSafeInteger(nextAttemptAt) && nextAttemptAt >= timestamp) ||
           typeof lastErrorCode !== "string" || !/^[a-z0-9_-]{1,64}$/.test(lastErrorCode) ||
           !Number.isSafeInteger(timestamp) || timestamp < 1) {
         invalid("Cleanup retry update is malformed.");
