@@ -443,3 +443,29 @@ test("exhausted cleanup alert retries persist backoff and reject stale attempts"
   assert.equal(pending.length, 1);
   assert.equal(pending[0].alertAttempts, 1);
 });
+
+
+test("cleanup alert retry counter is not artificially capped at one thousand", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const active = fixtureConnection();
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
+    timestamp: input.timestamp + 1
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  docs.get(path).alertAttempts = 1000;
+  await adapters.recordCleanupAlertFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    attempts: 1001, nextAttemptAt: input.timestamp + 60000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 2
+  });
+  assert.equal(docs.get(path).alertAttempts, 1001);
+});
