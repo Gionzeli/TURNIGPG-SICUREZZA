@@ -157,3 +157,45 @@ test("metadata rejects nested credential leakage and non-normalized or duplicate
     connection: { ...active, allowedSenders: ["turni@azienda.example", "turni@azienda.example"] }
   }), error => error.code === "invalid-argument");
 });
+
+
+test("credential cleanup outbox persists retry state and completes monotonically", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  assert.equal(docs.get(path).status, "pending");
+  assert.equal((await adapters.loadSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId
+  })).secretRef, active.credentialSecretRef);
+  await adapters.recordSecretCleanup({ ...input, timestamp: input.timestamp + 1 });
+  assert.equal(docs.get(path).attempts, 2);
+  await adapters.completeSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId,
+    timestamp: input.timestamp + 2
+  });
+  assert.equal(docs.get(path).status, "complete");
+  await assert.rejects(adapters.completeSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId,
+    timestamp: input.timestamp + 3
+  }), error => error.code === "failed-precondition");
+});
+
+test("cleanup outbox refuses a different secret reference for an existing connection ticket", async () => {
+  const { db } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await assert.rejects(adapters.recordSecretCleanup({
+    ...input, secretRef: "vault://different/secret"
+  }), error => error.code === "failed-precondition");
+});
