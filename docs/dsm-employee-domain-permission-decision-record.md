@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-94 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-95 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2397,6 +2397,29 @@ Approved policy in principle:
 
 **Still required before implementation:** complete worker/cache inventory; approved scope and script-origin rules; resource-by-resource cache classification; offline data threat model and explicit allowlist; account/lifecycle invalidation contract; update/activation and rollback state machine; cache-control policy; browser support matrix; emergency retirement runbook; and synthetic browser/Emulator tests. This decision does not authorize deployment of a service worker, enabling offline access to employee data or changing production cache headers.
 
+### L-95 — Browser storage isolation, cross-tab coordination and client-side state lifecycle
+
+**Question:** How should browser-managed storage and state shared across tabs, windows and browser contexts be partitioned and invalidated so that stale or cross-account client state cannot disclose employee information or influence authorization?
+
+**Approved 2026-11-27 — option B (account-scoped minimal client state, explicit cross-context invalidation and server-authoritative authorization), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Inventory every browser persistence and coordination mechanism used by the application, including LocalStorage, SessionStorage, IndexedDB, Cache Storage, cookies, BroadcastChannel, SharedWorker, service-worker messaging, window storage events, browser history/state, and in-memory stores. Record data classes, owners, retention and cleanup behavior.
+- Treat all browser-side state as untrusted and non-authoritative. It must never establish actor identity, employee ownership, tenant, organizational scope, role, permission, lifecycle status, approval or record revision. Derive those facts from verified server-side identity and canonical backend records on every protected operation.
+- Minimize persisted data. Do not store passwords, access/refresh tokens in script-readable storage, payroll or health information, broad employee records, privileged grants or reusable approval material in LocalStorage, SessionStorage, IndexedDB, browser history or cross-tab messages.
+- Where persistence is essential and separately approved, partition records by stable authenticated account and tenant identifiers obtained from trusted server context. Include schema/version and ownership metadata for safe lookup, but never treat those client-side keys or metadata as proof of authorization.
+- Enforce account-switch isolation. On sign-out, account change, membership change, suspension, termination or explicit revocation, stop pending work, detach listeners, clear sensitive in-memory state and remove applicable account-scoped browser data. Cleanup must be idempotent and must not erase unrelated accounts' data.
+- Coordinate tabs and windows using narrowly defined, non-sensitive invalidation events. Messages should carry only event type and opaque correlation/version identifiers; never include credentials, employee records, permissions or sensitive payloads. Validate message shape, origin/context and expected lifecycle before acting.
+- Treat storage events, BroadcastChannel messages, SharedWorker messages, service-worker messages, browser restore and tab focus as untrusted signals. They may trigger a fresh server check or local cleanup, but may not grant access or certify that another context remains authorized.
+- Revalidate the current authenticated session and server-side authorization after tab restoration, long suspension, account switch, detected policy/version change and before protected reads or mutations. A stale tab must fail closed when identity, tenant, membership or authorization state cannot be confirmed.
+- Prevent stale asynchronous responses from repopulating cleared state after logout or account switch. Associate requests with an account/session generation, cancel work where possible, and discard responses whose generation or identity context no longer matches.
+- Define transaction, version and conflict handling for shared IndexedDB records and queued operations. Do not silently merge state across accounts, overwrite newer server revisions or replay queued writes after identity/lifecycle changes; require fresh server authorization and explicit conflict outcomes.
+- Protect browser cookies with appropriate Secure, HttpOnly and SameSite attributes where applicable, and use CSRF protections for cookie-authenticated mutations. Scope cookies narrowly and avoid exposing session identifiers to script or URLs.
+- Define explicit retention and deletion behavior for each client-side data class, including crash recovery, browser profile sharing, backup/restore, private browsing and storage quota eviction. Avoid promising secure erasure from browser-managed media that the application cannot verify.
+- Provide safe diagnostics for storage failures and invalidation outcomes without logging stored values, tokens, personal data or full message payloads. Audit security-relevant server-side events; do not mistake client telemetry for authoritative audit evidence.
+- Test synthetic cross-tab account switching, stale-tab resume, logout races, delayed responses, spoofed coordination messages, shared-device profile reuse, cross-tenant key collisions, IndexedDB transaction conflicts, queued mutation replay, storage eviction and cleanup failures.
+
+**Still required before implementation:** browser-storage inventory and data classification; approved persistence allowlist; account/tenant partition key contract; session-generation and cancellation design; cross-tab event schema; cookie/CSRF configuration; retention and cleanup matrix; shared-device threat model; and synthetic multi-tab/browser integration tests. This decision does not authorize storing sensitive employee data in browser storage, enabling silent legacy migration or treating client cleanup as a substitute for server-side revocation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2491,6 +2514,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-92 DNS security, domain ownership and certificate lifecycle | Approved — option B governed domain inventory, protected DNS administration, DNSSEC where appropriate and automated certificate lifecycle; implementation gated on ownership, change control, key custody and tests |
 | L-93 Mobile application distribution, deep links and platform integrations | Approved — option B verified distribution, strict intent validation and server-authorized handoffs; implementation gated on platform matrix, signing, link contracts and tests |
 | L-94 Service worker, PWA lifecycle and browser cache integrity | Approved — option B strict worker scope, verified updates, non-sensitive cache policy and fail-closed lifecycle; implementation gated on inventory, cache allowlist and tests |
+| L-95 Browser storage isolation and cross-tab state lifecycle | Approved — option B minimal account-scoped state, explicit invalidation and server-authoritative authorization; implementation gated on inventory, partitioning, lifecycle and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
