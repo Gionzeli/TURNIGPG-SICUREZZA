@@ -140,6 +140,23 @@ export function createMailboxTokenFirestoreLeaseService({
     }
   }
 
+  async function assertRevocationPending({accountId, connectionId}) {
+    const ref = getRef(accountId, connectionId);
+    let snapshot;
+    try {
+      snapshot = await ref.get();
+    } catch {
+      throw leaseError("unavailable", "Mailbox revocation gate could not be verified.");
+    }
+    const current = snapshot?.data?.() || {};
+    if (!snapshot?.exists || current.revocationPending !== true ||
+        !Number.isSafeInteger(current.fencingToken) || current.fencingToken < 0 ||
+        !Number.isSafeInteger(current.expiresAt)) {
+      throw leaseError("failed-precondition", "Mailbox cleanup requires a durable revocation gate.");
+    }
+    return Object.freeze({status: "revocation_pending"});
+  }
+
   async function release({accountId, connectionId, lease}) {
     if (!lease || typeof lease.ownerId !== "string" || !Number.isSafeInteger(lease.fencingToken)) return false;
     const ref = getRef(accountId, connectionId);
@@ -157,5 +174,5 @@ export function createMailboxTokenFirestoreLeaseService({
     }
   }
 
-  return Object.freeze({acquire, renew, release, disable});
+  return Object.freeze({acquire, renew, release, disable, assertRevocationPending});
 }
