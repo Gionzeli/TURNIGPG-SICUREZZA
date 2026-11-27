@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 approved for employee self-read as recorded below; all other decisions remain open. This approval authorizes only the D-01 policy scope, not implementation or production activation.
+**Status:** D-01 through D-06 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, and test requirements. D-07 and lifecycle/historical access remain open. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -166,16 +166,24 @@ Required safeguards:
 
 Possible choices:
 - **A. Server-only:** no user-facing audit-read endpoint.
-- **B. Restricted security administrators:** metadata-only events, with explicit scope and retention.
-- **C. Domain managers:** only events needed for their delegated responsibilities, without sensitive field values.
+- **B. Scoped domain managers:** managers may read only the minimized events needed for delegated responsibilities, limited to their separately authorized site/department scope.
+- **C. Organization-wide security audit:** designated security administrators may read a broader organization-wide audit view under a separate policy.
 
-Required safeguards regardless of choice:
-- Actor, action, target and timestamp are server-generated.
-- Audit records do not copy compensation values, absence reasons, tokens or document contents.
-- Audit read is separate from ordinary profile or account administration.
-- Retention, export and incident-response ownership must be defined.
+**Approved 2026-11-27 — option B (scoped, minimized audit visibility for managers), by explicit user confirmation in the project conversation.**
 
-**Unapproved:** roles, event fields, retention, and export rights.
+Approved in principle:
+- Access is limited to events concerning resources and operations within the manager's separately authorized site/department scope.
+- Only minimized metadata may be shown: event timestamp, action/event type, relevant target reference, and actor reference where operationally necessary.
+- No event payloads, before/after field values, compensation, absence reasons or categories, health information, tokens, credentials, document contents, or unrelated technical/security details.
+- Audit visibility is read-only and does not grant permission to perform the audited action, manage audit records, export audit data, or view organization-wide events.
+
+Required safeguards:
+- Actor, action, target and timestamp are server-generated and immutable to clients.
+- Scope is enforced server-side against canonical resource placement and event time; client filters are not authorization.
+- Audit-read permission is distinct from ordinary profile, schedule, absence, and account administration permissions.
+- Access to the audit view itself is audited without copying sensitive event payloads.
+
+**Still required before implementation:** define eligible manager roles and site/department scope, event taxonomy and exact metadata fields, retention, incident-response ownership, and whether actor references can be shown or must be further pseudonymized. Export remains separately denied. No audit-read endpoint is authorized until these details and negative-scope tests are complete.
 
 ### D-07 — Export and reporting
 
@@ -233,8 +241,8 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | D-02 Own compensation | Approved — option B limited self-read; implementation gated on schema mapping |
 | D-03 Manager/team profile | Approved — option B minimal roster; implementation gated on role/scope and schema mapping |
 | D-04 Manager/team shifts | Approved — option B proposed changes with separate approval; implementation gated on roles/scope/workflow |
-| D-05 Manager absence visibility | Open — deny new endpoint; no health details |
-| D-06 Audit read | Open — server-only |
+| D-05 Manager absence visibility | Approved — option B minimal availability, dates and request status; implementation gated on roles/scope/schema |
+| D-06 Audit read | Approved — option B scoped, minimized manager event visibility; implementation gated on roles/scope/event taxonomy/retention |
 | D-07 Export/report | Open — disabled |
 | Lifecycle and historical access | Open — fail closed |
 
