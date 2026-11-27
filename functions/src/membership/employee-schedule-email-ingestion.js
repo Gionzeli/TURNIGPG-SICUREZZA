@@ -100,7 +100,7 @@ function buildChanges(incoming, existing) {
     }
     if (Object.keys(fields).length) {
       changes.push({ operation: "update", shiftId: match.shiftId, expectedRevision: match.revision, changes: fields });
-      before.push({ ...match });
+      before.push({ ...Object.fromEntries([...SHIFT_FIELDS].filter(key => Object.hasOwn(match, key)).map(key => [key, match[key]])), revision: match.revision });
     }
   }
   // Absence from a PDF is never interpreted as deletion: documents may be partial.
@@ -240,7 +240,8 @@ export function createEmployeeScheduleEmailIngestion({
               accountId, employeeId: employee.employeeId, employeeUid: employee.employeeUid,
               source: "employer_email", sourceVerified: true, proposerUid: employee.employeeUid,
               ingestionJobId: claim.jobId, attachmentSha256, receivedAt: message.receivedAt,
-              sender, changes: diff.changes, before: diff.before
+              sender, idempotencyKey: claim.jobId + "_" + employee.employeeId,
+              changes: diff.changes, before: diff.before
             });
             if (!created || typeof created.proposalId !== "string" || !ID.test(created.proposalId)) {
               blocked.push({ reason: "proposal_creation_failed" });
