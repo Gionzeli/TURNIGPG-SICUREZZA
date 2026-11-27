@@ -79,3 +79,9 @@ Added `functions/src/membership/mailbox-owner-identity-verifier.js` to verify pr
 - Synthetic tests use mocked responses only.
 
 Not integrated with callback/callable, vault, or live providers. Microsoft UPN may not represent primary SMTP; production policy for canonical mailbox matching still needs review. Caller must revalidate actor/membership and store tokens in a server vault immediately.
+
+## Credential vault adapter boundary (synthetic-only)
+
+Added `functions/src/membership/mailbox-credential-vault.js`, a server-side adapter contract for a secure secret backend. It accepts validated Google/Microsoft OAuth token material, generates a scoped opaque secret reference, and passes secret payload only to injected `backend.putSecret`. Revocation calls injected `deleteSecret` only for a secret ref matching the account/connection prefix. Backend errors are masked. Metadata remains separate; this adapter is not a concrete Secret Manager/KMS integration.
+
+Synthetic tests use an in-memory stub only. No live tokens, vault credentials, Firebase or cloud calls were used. Production requires a real managed vault implementation, IAM least-privilege, audit/retention controls, provider refresh/revocation policy, and a reviewed recovery path.
