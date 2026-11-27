@@ -713,3 +713,15 @@ attempts, a positive next-attempt timestamp, and a validated last error code).
 The Firestore adapter applies this invariant both when listing pending alerts
 and before retry/acknowledgement transitions, preventing partially populated
 metadata from being treated as an immediately due alert.
+
+
+
+#### Delivered cleanup-alert terminal-state validation
+
+Repeated delivery acknowledgements now validate the persisted terminal record
+before treating it as an idempotent success. The adapter requires a non-negative
+safe retry counter, no outstanding retry timestamp, a sanitized optional last
+error code, and a positive safe delivery timestamp. Corrupted delivered records
+fail with `failed-precondition` instead of being silently accepted. A synthetic
+adapter regression covers a malformed delivery timestamp; no live Firestore
+service was used.
