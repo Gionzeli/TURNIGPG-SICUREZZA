@@ -687,3 +687,28 @@ test("cleanup retry schedule must match whether the retry ceiling is exhausted",
   assert.equal(docs.get(path).status, "pending");
   assert.equal(docs.get(path).attempts, 1);
 });
+
+
+test("pending cleanup alert retries require a valid scheduled timestamp", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  for (const nextAttemptAt of [null, input.timestamp, input.timestamp - 1]) {
+    await assert.rejects(adapters.recordCleanupAlertFailure({
+      accountId: input.accountId, connectionId: input.connectionId,
+      attempts: 1, nextAttemptAt, lastErrorCode: "unavailable", timestamp: input.timestamp + 2
+    }), error => error.code === "invalid-argument");
+  }
+  assert.equal(docs.get(path).alertAttempts, 0);
+  assert.equal(docs.get(path).alertStatus, "pending");
+});
