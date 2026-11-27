@@ -31,7 +31,7 @@ const dependencies = {
   listOwnEmployeeShiftProposals: async data => [{ proposalId: "synthetic-proposal-01", status: "pending", source: "employee_manual", changeCount: 1, changes: [{ operation: "create", shift: { date: "2026-06-25", type: "turno", post: "Postazione nuova", start_time: "08:00", end_time: "16:00" } }] }],
   approveOwnEmployeeShiftProposal: async data => { window.__approvedProposal = data; return { status: "approved" }; },
   rejectOwnEmployeeShiftProposal: async data => ({ status: "rejected" }),
-  proposeOwnEmployeeShiftChanges: async data => ({ status: "pending" }),
+  proposeOwnEmployeeShiftChanges: async data => { window.__proposedShiftChanges = data; return { status: "pending" }; },
   listOwnEmployeeShifts: async data => {
     window.__shiftQuery = data;
     return [{
@@ -146,6 +146,23 @@ await new Promise((resolve, reject) => {
   };
   check();
 });
+const manualProposalForm = [...root.querySelectorAll("form")].find(form => form.querySelector('[aria-label="Data turno"]'));
+if (!manualProposalForm) throw new Error("Personal manual proposal form is missing.");
+manualProposalForm.querySelector('[aria-label="Data turno"]').value = "2026-06-28";
+manualProposalForm.querySelector('[aria-label="Tipo turno"]').value = "turno";
+manualProposalForm.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+await new Promise((resolve, reject) => {
+  const started = Date.now();
+  const check = () => {
+    if (window.__proposedShiftChanges?.changes?.[0]?.shift?.date === "2026-06-28") return resolve();
+    if (Date.now() - started > 5000) return reject(new Error("Manual shift proposal was not submitted."));
+    setTimeout(check, 20);
+  };
+  check();
+});
+if (window.__proposedShiftChanges.source !== "employee_manual") {
+  throw new Error("Manual proposal provenance was not preserved.");
+}
 if (session.accountContext.getActive()?.accountId !== accounts[1].accountId) {
   throw new Error("Second canonical account was not activated.");
 }
