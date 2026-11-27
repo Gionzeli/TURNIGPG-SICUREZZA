@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-96 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-97 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2443,6 +2443,29 @@ Approved policy in principle:
 
 **Still required before implementation:** complete script/tag/SDK inventory; route-by-route execution allowlist; provider and subprocessor assessments; CSP and SRI design; tag-manager governance; iframe sandbox and message schemas; consent and data-flow review; monitoring and emergency disablement runbooks; and synthetic browser security tests. This decision does not authorize adding third-party scripts, enabling analytics on sensitive screens or granting external providers access to production data.
 
+### L-97 — API schema evolution, compatibility and client/server contract integrity
+
+**Question:** How should API and data-contract changes be versioned, validated and retired so that older clients, newly deployed servers, background jobs and integrations cannot bypass authorization, corrupt records or interpret security-sensitive fields inconsistently?
+
+**Approved 2026-11-27 — option B (explicit versioned contracts, backward-compatible staged evolution, strict validation and fail-closed retirement), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Maintain an authoritative inventory of callable endpoints, HTTP APIs, event payloads, DTOs, persisted schemas, client versions, external consumers and contract owners. Record the security classification and authorization requirements of every operation and field.
+- Define explicit, versioned request and response schemas. Validate types, required fields, bounds, enumerations, formats, nested structures and cross-field invariants on the server before processing. Reject unknown security-sensitive fields and never accept client-supplied actor, tenant, ownership, role, scope, approval or permission claims as authority.
+- Keep authorization semantics independent of client version. Every request must authenticate the caller, derive canonical tenant and membership context, check lifecycle and current policy, constrain record ownership and scope, and enforce field-level permissions on the server.
+- Require additive, backward-compatible evolution where practical. Introduce new optional fields with safe defaults, deploy readers before writers where needed, and use explicit capability negotiation for genuinely incompatible behavior. Never silently reinterpret an existing field, enum value, null, missing field or timestamp.
+- Treat missing, unknown, malformed or unsupported security-relevant values as deny-by-default. Do not infer privileged defaults from absent role, status, tenant, approval or lifecycle properties. Unknown enum values must not fall through to permissive branches.
+- Version persisted records and event contracts separately from API routes. Define deterministic migration ownership, preconditions, idempotency, rollback or forward-recovery behavior, provenance preservation and compatibility windows. Do not perform silent legacy conversion or destructive migration without an approved workflow.
+- Preserve authorization invariants across mixed deployments. Old clients must not regain retired privileges; new clients must not assume a capability is active until the server confirms it; and server behavior must remain secure when clients omit optional fields or send stale versions.
+- For mutations, require explicit expected revisions or concurrency tokens where applicable. Validate them atomically with authorization and state transition; reject stale or incompatible writes with a defined conflict response rather than overwriting newer state.
+- Bound request size, nesting depth, collection cardinality, string length, numeric ranges and processing cost. Use canonical parsing and normalization to prevent duplicate-key ambiguity, encoding discrepancies, numeric coercion, prototype pollution and parser differential vulnerabilities.
+- Define stable error semantics that reveal no sensitive data. Distinguish authentication, authorization, validation, conflict and unsupported-version failures without exposing internal policy, employee existence, tenant membership or schema internals unnecessarily.
+- Coordinate API, event, queue and background-job evolution. Include schema version and producer identity as non-authoritative metadata; reauthenticate and reauthorize at execution time; safely quarantine unknown or invalid payloads; and prevent replay across tenants or contract versions.
+- Publish and enforce deprecation and retirement schedules with named owners, consumer inventory, usage evidence, migration guidance, explicit deadlines and emergency revocation. A compatibility window must never extend a known security vulnerability or obsolete authorization behavior.
+- Generate or validate client types and API documentation from reviewed canonical schemas where practical. Protect generated artifacts from drift and require contract-diff review for changes to requiredness, enums, authorization-relevant fields, data classification and mutation semantics.
+- Test synthetic old/new client combinations, mixed server versions, missing and unknown fields, null/empty distinctions, enum expansion, malformed nested payloads, duplicate keys, stale revisions, cross-tenant requests, queued old events, rollback and retired-version rejection.
+
+**Still required before implementation:** canonical API and persisted-schema registry; versioning and compatibility policy; server-side schema validation framework; unknown-field and enum handling rules; client capability negotiation contract; migration and rollback standards; event/queue compatibility plan; deprecation ownership and telemetry; and synthetic mixed-version contract tests. This decision does not authorize a production API migration, schema rewrite, legacy data conversion or relaxation of server-side authorization.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2539,6 +2562,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-94 Service worker, PWA lifecycle and browser cache integrity | Approved — option B strict worker scope, verified updates, non-sensitive cache policy and fail-closed lifecycle; implementation gated on inventory, cache allowlist and tests |
 | L-95 Browser storage isolation and cross-tab state lifecycle | Approved — option B minimal account-scoped state, explicit invalidation and server-authoritative authorization; implementation gated on inventory, partitioning, lifecycle and tests |
 | L-96 Third-party scripts, tag governance and client-side dependency execution | Approved — option B deny-by-default execution, reviewed providers, strict isolation and integrity controls; implementation gated on inventory, CSP, data-flow review and tests |
+| L-97 API schema evolution, compatibility and contract integrity | Approved — option B explicit versioned contracts, strict validation and fail-closed retirement; implementation gated on schema registry, migration plan and mixed-version tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
