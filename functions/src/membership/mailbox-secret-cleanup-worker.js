@@ -159,7 +159,9 @@ export function createMailboxSecretCleanupWorker({
             !(ticket.alertLastErrorCode === null || ticket.alertLastErrorCode === undefined ||
               (typeof ticket.alertLastErrorCode === "string" &&
                /^[a-z0-9_-]{1,64}$/.test(ticket.alertLastErrorCode)))) continue;
-        const alertTimestamp = readWorkerTimestamp(now);
+        let alertTimestamp;
+        try { alertTimestamp = readWorkerTimestamp(now); }
+        catch { return summary; }
         if (Number.isSafeInteger(ticket.alertNextAttemptAt) && ticket.alertNextAttemptAt > alertTimestamp) continue;
         const alertId = accountId + ":" + ticket.connectionId + ":cleanup-exhausted";
         try {
