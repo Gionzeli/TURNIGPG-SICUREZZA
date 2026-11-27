@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-15 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-16 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -515,6 +515,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define the administrative role and duty catalogue; map each role to exact domains, actions and scopes; identify high-risk operations requiring independent approval or dual control; specify service-identity boundaries and privileged-access procedures; define periodic access review and revocation; and add synthetic Emulator tests for cross-domain denial, scope escalation, self-approval, direct-write bypass and stale privilege revocation. No universal administrator permission or production administrative endpoint is authorized until these details are approved and tested.
 
+### L-16 — Periodic access reviews and event-driven permission review
+
+**Question:** How often should user and administrator permissions be reviewed, and which events require an immediate review?
+
+Possible choices:
+- **A. Issue-driven only:** review access only after a reported problem.
+- **B. Scheduled and event-driven review:** perform periodic reviews and additional reviews after transfers, role changes, suspension, or termination; promptly revoke permissions that are no longer justified.
+- **C. Annual review only:** review once per year without intermediate event-driven checks.
+
+**Approved 2026-11-27 — option B (scheduled and event-driven access reviews with prompt revocation of unjustified permissions), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- All human and delegated access grants must have an identifiable owner, purpose, domain/action set, organizational scope, approval reference, effective time and review status.
+- Access must be reviewed on a defined recurring schedule and additionally whenever a relevant lifecycle or organizational event occurs, including transfer, role or duty change, suspension, termination, reactivation, scope change, delegation expiry/revocation, and site/department archival or reassignment.
+- A triggering event must cause affected grants and pending delegated capabilities to be re-evaluated against the current canonical role, lifecycle, membership and placement state. Permissions no longer justified must be revoked promptly; no stale privilege may remain valid merely because its scheduled review date has not arrived.
+- Reviewers must be authorized and sufficiently independent from the grant requester or beneficiary for sensitive privileges. High-risk permissions require documented approval and, where defined, dual control.
+- Each review must record the reviewer, review time, grants and scopes examined, decision, justification, exceptions, remediation owner and completion status. Unreviewed, overdue, ambiguous or unsupported grants must be restricted or revoked according to a fail-closed policy.
+- Review evidence must be minimized and must not unnecessarily copy employee personal data, credentials, tokens or sensitive payloads.
+- Service identities and automated grants must also have an accountable owner, documented purpose, bounded permissions and periodic review; technical credentials do not create human data-access rights.
+- Access review does not itself grant, expand or renew a permission. Any new or expanded privilege must follow the applicable authorization and approval workflow.
+
+**Still required before implementation:** define review frequency by privilege risk, review owners and independence rules, event sources and delivery guarantees, revocation service-level targets, treatment of pending/in-flight operations and delegations, overdue-review escalation, exception handling, service-identity inventory, audit retention, and synthetic Emulator tests for transfer/role/lifecycle triggers, stale grants, missed events, overdue reviews and revocation propagation. No scheduled review job or production revocation integration is authorized until these details are approved and tested.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -548,7 +571,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-10 Sensitive data corrections | Approved — option B tracked request, operator verification, separate approval and recorded change history; implementation gated on field catalogue, workflow and tests |
 | L-11 Data deletion and retention | Approved — option B tracked request, retention review, permitted deletion/anonymization and recorded outcome; implementation gated on retention rules, scope and tests |
 | L-12 Employee access during a dispute | Approved — option B tracked access to relevant records with third-party/restricted-content redaction; implementation gated on scope, disclosure workflow and tests |
-| L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| L-15 Administrator access to employee data | Approved — option B least-privilege, duty-specific permissions with independent controls; implementation gated on role/action/scope mapping and tests |\n| Other lifecycle and historical access | Open — fail closed |
+| L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| L-15 Administrator access to employee data | Approved — option B least-privilege, duty-specific permissions with independent controls; implementation gated on role/action/scope mapping and tests |\n| L-16 Periodic and event-driven access reviews | Approved — option B scheduled and lifecycle-triggered reviews with prompt revocation; implementation gated on cadence, ownership, event and revocation controls and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
