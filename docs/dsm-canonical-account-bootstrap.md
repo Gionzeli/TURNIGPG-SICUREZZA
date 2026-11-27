@@ -36,7 +36,7 @@ The backend now includes a canonical membership invitation workflow. It is delib
 
 Callable endpoints: `proposeCanonicalMembershipInvite`, `approveCanonicalMembershipInvite`, and `claimCanonicalMembershipInvite`. The invite workflow does not send email or deliver a link: distribution of the opaque `inviteId` is an out-of-band operational step and no email provider is connected. A real deployment must provision a separate strong secret for `DSM_INVITE_EMAIL_HMAC_KEY`; never reuse the CI fixture key. No raw email is returned by the callable or stored in Firestore.
 
-This is backend scaffolding, not a complete user-facing onboarding experience. The UI does not yet provide the invite administration/claim screens, and no real Firebase project or collaborator has been configured. The synthetic owner fixture remains test bootstrap only.
+The legacy migration page now contains invitation proposal, second-admin approval and invite-claim screens, wired to the callable endpoints. They render only when the existing `TURNI_DSM_CANONICAL_AUTH_ENABLED` flag is explicitly true; the flag remains off by default. Browser tests use a synthetic Firebase identity and mock callables only. The UI does not deliver email: the invite code is distributed out-of-band. No real Firebase project or collaborator has been configured. The synthetic owner fixture remains test bootstrap only.
 
 ## Verification boundary
 
