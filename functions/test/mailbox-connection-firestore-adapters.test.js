@@ -712,3 +712,39 @@ test("pending cleanup alert retries require a valid scheduled timestamp", async 
   assert.equal(docs.get(path).alertAttempts, 0);
   assert.equal(docs.get(path).alertStatus, "pending");
 });
+
+
+test("cleanup alert transitions reject malformed persisted retry metadata", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  const original = docs.get(path);
+  for (const malformed of [
+    { alertAttempts: "0" },
+    { alertAttempts: -1 },
+    { alertNextAttemptAt: -1 },
+    { alertLastErrorCode: "INVALID CODE" }
+  ]) {
+    docs.set(path, { ...original, ...malformed });
+    await assert.rejects(adapters.recordCleanupAlertFailure({
+      accountId: input.accountId, connectionId: input.connectionId,
+      attempts: 1, nextAttemptAt: input.timestamp + 60000,
+      lastErrorCode: "unavailable", timestamp: input.timestamp + 2
+    }), error => error.code === "failed-precondition");
+    await assert.rejects(adapters.markCleanupAlertDelivered({
+      accountId: input.accountId, connectionId: input.connectionId,
+      timestamp: input.timestamp + 2
+    }), error => error.code === "failed-precondition");
+  }
+  assert.equal(docs.get(path).alertStatus, "pending");
+});
