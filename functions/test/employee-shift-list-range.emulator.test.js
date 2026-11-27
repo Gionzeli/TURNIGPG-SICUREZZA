@@ -160,6 +160,34 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     assert.equal((await collection.where("date", "==", "2026-06-23").get()).size, 0,
       "failed approval must not partially create shifts");
 
+    const unverifiedEmailProposalId = "synthetic-unverified-email";
+    await db.doc(`accounts/${accountId}/employeeShiftProposals/${unverifiedEmailProposalId}`).set({
+      proposalId: unverifiedEmailProposalId, accountId, employeeId, proposerUid: uid,
+      source: "employer_email", sourceVerified: false, status: "pending",
+      createdAt: Date.UTC(2026, 5, 1), changes: [{ operation: "create", shift: { date: "2026-06-25", type: "turno" } }]
+    });
+    await assert.rejects(
+      handlers.approveOwnProposal(proposalRequest({ accountId, proposalId: unverifiedEmailProposalId })),
+      error => error.code === "failed-precondition",
+      "an email proposal without verified provenance must not be approved"
+    );
+    const verifiedEmailProposalId = "synthetic-verified-email";
+    await db.doc(`accounts/${accountId}/employeeShiftProposals/${verifiedEmailProposalId}`).set({
+      proposalId: verifiedEmailProposalId, accountId, employeeId, proposerUid: uid,
+      source: "employer_email", sourceVerified: true, ingestionJobId: "synthetic-ingestion-job",
+      attachmentSha256: "a".repeat(64), receivedAt: Date.UTC(2026, 5, 1),
+      sender: "turni@azienda.example", status: "pending", createdAt: Date.UTC(2026, 5, 1),
+      changes: [{ operation: "create", shift: { date: "2026-06-25", type: "turno", post: "Reception", hours: 6 } }],
+      before: [null]
+    });
+    const emailApproval = await handlers.approveOwnProposal(proposalRequest({
+      accountId, proposalId: verifiedEmailProposalId
+    }));
+    assert.equal(emailApproval.status, "approved");
+    assert.equal(emailApproval.appliedCount, 1);
+    const emailDecision = (await db.doc(`accounts/${accountId}/employeeShiftProposalDecisions/${verifiedEmailProposalId}`).get()).data();
+    assert.equal(emailDecision.source, "employer_email");
+
     const approvalProposal = await handlers.proposeOwn(proposalRequest({
       accountId, source: "employee_manual",
       changes: [
