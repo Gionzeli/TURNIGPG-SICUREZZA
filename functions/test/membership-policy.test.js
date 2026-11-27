@@ -6,7 +6,13 @@ const base = { uid: "userA", accountId: "acct1", status: "active", validFrom: ne
 
 test("derives member permissions and ignores client-injected permissions", () => {
   const result = validateCanonicalMembership(base, "userA", "acct1");
-  assert.deepEqual(result.permissions, ["dsm:read:own-scope"]);
+  assert.deepEqual(result.permissions, [
+    "dsm:read:own-scope",
+    "dsm:employee:shift:read:self",
+    "dsm:employee:shift:create:self",
+    "dsm:employee:shift:update:self",
+    "dsm:employee:shift:delete:self"
+  ]);
   assert.equal(Object.isFrozen(result), true);
   assert.equal(Object.isFrozen(result.scopeIds), true);
 });
@@ -68,4 +74,19 @@ test("admin permission matrix contains explicit site and department archive gran
   }, "userA", "acct1");
   assert.ok(admin.permissions.includes("dsm:archive:site"));
   assert.ok(admin.permissions.includes("dsm:archive:department"));
+});
+
+
+test("manager and admin roles do not inherit employee self-shift permissions", () => {
+  const manager = validateCanonicalMembership({ ...base, role: "manager", scopeType: "site", scopeIds: ["site1"] }, "userA", "acct1");
+  const admin = validateCanonicalMembership({ ...base, role: "admin", scopeType: "account", scopeIds: [] }, "userA", "acct1");
+  for (const permission of [
+    "dsm:employee:shift:read:self",
+    "dsm:employee:shift:create:self",
+    "dsm:employee:shift:update:self",
+    "dsm:employee:shift:delete:self"
+  ]) {
+    assert.equal(manager.permissions.includes(permission), false);
+    assert.equal(admin.permissions.includes(permission), false);
+  }
 });
