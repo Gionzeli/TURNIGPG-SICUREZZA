@@ -9,6 +9,10 @@ export function mountDSMCanonicalAccountBridge(container, {
   listCanonicalAccounts,
   resolveAuthorization,
   listOwnEmployeeShifts,
+  listOwnEmployeeShiftProposals,
+  approveOwnEmployeeShiftProposal,
+  rejectOwnEmployeeShiftProposal,
+  proposeOwnEmployeeShiftChanges,
   readOwnEmployeeEmploymentProfile,
   createAuthAdapter,
   openDatabase,
@@ -96,11 +100,21 @@ export function mountDSMCanonicalAccountBridge(container, {
   shiftsResults.setAttribute("aria-live", "polite");
   shiftsPanel.append(shiftsTitle, shiftsIntro, shiftsForm, shiftsStatus, shiftsResults);
 
-  container.replaceChildren(title, status, select, button, note, profilePanel, shiftsPanel);
+  const proposalPanel = document.createElement("section");
+  proposalPanel.className = "card"; proposalPanel.hidden = true;
+  const proposalTitle = document.createElement("h3"); proposalTitle.textContent = "Verifica le modifiche ai tuoi turni";
+  const proposalIntro = document.createElement("p"); proposalIntro.className = "hint";
+  proposalIntro.textContent = "Le proposte diventano effettive solo dopo la tua approvazione. Il responsabile non approva i tuoi turni.";
+  const proposalStatus = document.createElement("p"); proposalStatus.className = "hint";
+  proposalStatus.setAttribute("role", "status"); proposalStatus.setAttribute("aria-live", "polite");
+  const proposalResults = document.createElement("div"); proposalResults.setAttribute("aria-live", "polite");
+  proposalPanel.append(proposalTitle, proposalIntro, proposalStatus, proposalResults);
+  container.replaceChildren(title, status, select, button, note, profilePanel, shiftsPanel, proposalPanel);
 
   let disposed = false;
   let generation = 0;
   let shiftQueryGeneration = 0;
+  let proposalQueryGeneration = 0;
   let profileQueryGeneration = 0;
   let selectionRevision = 0;
   let selectedAccountId = null;
@@ -169,12 +183,57 @@ export function mountDSMCanonicalAccountBridge(container, {
     });
   }
 
+  function clearProposalView() { proposalPanel.hidden = true; proposalResults.replaceChildren(); proposalStatus.textContent = ""; }
+  async function loadOwnProposals(accountId) {
+    if (typeof listOwnEmployeeShiftProposals !== "function" || typeof approveOwnEmployeeShiftProposal !== "function" || typeof rejectOwnEmployeeShiftProposal !== "function") return;
+    const current = ++proposalQueryGeneration;
+    proposalPanel.hidden = false; proposalStatus.textContent = "Caricamento delle proposte personali…"; proposalResults.replaceChildren();
+    try {
+      const items = await listOwnEmployeeShiftProposals({ accountId });
+      if (disposed || current !== proposalQueryGeneration || activeFirebaseAccountId() !== accountId || selectedAccountId !== accountId) return;
+      proposalResults.replaceChildren();
+      if (!Array.isArray(items) || !items.length) proposalResults.append(document.createTextNode("Non hai proposte di modifica in attesa."));
+      for (const proposal of (Array.isArray(items) ? items : [])) {
+        const article = document.createElement("article"); article.className = "card";
+        const heading = document.createElement("h4"); heading.textContent = "Proposta " + proposal.proposalId;
+        const detail = document.createElement("p"); detail.textContent = proposal.status + " — " + proposal.changeCount + " variazioni — origine: inserimento manuale";
+        article.append(heading, detail);
+        for (const change of proposal.changes ?? []) {
+          const line = document.createElement("p");
+          line.textContent = change.operation === "create"
+            ? "Nuovo turno: " + (change.shift?.date ?? "") + ", " + (change.shift?.type ?? "") + ", " + (change.shift?.post ?? "") + ", " + (change.shift?.start_time ?? "") + "-" + (change.shift?.end_time ?? "")
+            : (change.operation === "delete" ? "Eliminazione" : "Modifica") + " turno " + change.shiftId + " (revisione attesa " + change.expectedRevision + ")";
+          article.append(line);
+        }
+        if (proposal.status === "pending") {
+          const approve = document.createElement("button"); approve.type = "button"; approve.className = "pri"; approve.textContent = "Approva e aggiorna il calendario";
+          approve.addEventListener("click", async () => {
+            approve.disabled = true; proposalStatus.textContent = "Verifica e applicazione atomica in corso…";
+            try { await approveOwnEmployeeShiftProposal({ accountId, proposalId: proposal.proposalId }); proposalStatus.textContent = "Modifica approvata e calendario aggiornato."; await loadOwnProposals(accountId); if (fromInput.value && toInput.value) shiftsForm.requestSubmit(); }
+            catch { proposalStatus.textContent = "Approvazione non riuscita: la proposta resta invariata. Verifica la revisione e riprova."; approve.disabled = false; }
+          });
+          const reject = document.createElement("button"); reject.type = "button"; reject.textContent = "Rifiuta";
+          reject.addEventListener("click", async () => {
+            reject.disabled = true; proposalStatus.textContent = "Registrazione del rifiuto…";
+            try { await rejectOwnEmployeeShiftProposal({ accountId, proposalId: proposal.proposalId }); proposalStatus.textContent = "Proposta rifiutata."; await loadOwnProposals(accountId); }
+            catch { proposalStatus.textContent = "Non è stato possibile registrare il rifiuto."; reject.disabled = false; }
+          });
+          article.append(approve, reject);
+        }
+        proposalResults.append(article);
+      }
+      proposalStatus.textContent = "Proposte caricate: " + items.length + ".";
+    } catch { if (!disposed && current === proposalQueryGeneration) { proposalResults.replaceChildren(); proposalStatus.textContent = "Proposte non disponibili. Verifica accesso e riprova."; } }
+  }
+
   function clearShiftResults() {
     shiftsResults.replaceChildren();
   }
 
   function hideShiftView() {
     shiftQueryGeneration += 1;
+    proposalQueryGeneration += 1;
+    clearProposalView();
     shiftsPanel.hidden = true;
     shiftsForm.reset();
     clearShiftResults();
@@ -376,6 +435,7 @@ export function mountDSMCanonicalAccountBridge(container, {
       setStatus(`Identità verificata e account DSM ${selected.accountId} collegato. Puoi consultare i tuoi dati personali autorizzati.`);
       showShiftView();
       loadEmploymentProfile(selected.accountId);
+      void loadOwnProposals(selected.accountId);
     })();
     activationPromise = task;
     try {
@@ -395,6 +455,8 @@ export function mountDSMCanonicalAccountBridge(container, {
       disposed = true;
       generation += 1;
       shiftQueryGeneration += 1;
+      proposalQueryGeneration += 1;
+      clearProposalView();
       clearProfileView();
       authUnsubscribe?.();
       select.removeEventListener("change", onSelectChange);
