@@ -180,7 +180,7 @@ test("Firestore Emulator: organization create/archive generates IDs and enforces
       "department.archived", "department.created", "site.archived", "site.created"
     ]);
     const auditDocs = (await audits.get()).docs.map(doc => doc.data());
-    assert.ok(auditDocs.every(event => event.actorUid && event.eventId && event.occurredAt instanceof Date));
+    assert.ok(auditDocs.every(event => event.actorUid && event.eventId && (event.occurredAt instanceof Date || typeof event.occurredAt?.toDate === "function")));
     assert.ok(auditDocs.every(event => !("token" in event) && !("expiresAt" in event)));
   } finally {
     const [auditDocs, departmentDocs, siteDocs, placementDocs, memberDocs] = await Promise.all([

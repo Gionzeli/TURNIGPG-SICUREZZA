@@ -520,3 +520,5 @@ Aggiunto servizio interno per creare site e department con ID Firestore auto-gen
 - Corretto l'escape della regex ISO-date nel controllo degli intervalli storici placement prima dell'archiviazione; ora riconosce correttamente date canoniche YYYY-MM-DD.
 
 - Estesi test Emulator: manager può creare reparto solo nella sede assegnata; account multi-membership dello stesso UID viene risolto solo tramite account selector e membership canonica distinta; audit organizzativo verificato senza token/TTL.
+
+- Corretto il test audit Firestore per riconoscere il tipo Timestamp restituito dall'SDK (con `toDate()`), oltre agli oggetti Date in memoria. Nessuna modifica al contratto audit.
