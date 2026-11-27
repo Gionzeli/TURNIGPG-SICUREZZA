@@ -261,6 +261,10 @@ export function mountDSMCanonicalAccountBridge(container, {
     shiftQueryGeneration += 1;
     proposalQueryGeneration += 1;
     clearProposalView();
+    latestShiftItems = [];
+    targetInput.replaceChildren();
+    const noTarget = document.createElement("option"); noTarget.value = ""; noTarget.textContent = "Cerca prima i tuoi turni"; targetInput.append(noTarget);
+    proposalForm.reset(); updateProposalFormMode();
     shiftsPanel.hidden = true;
     shiftsForm.reset();
     clearShiftResults();
