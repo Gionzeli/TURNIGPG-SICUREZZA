@@ -149,8 +149,8 @@ export function mountDSMCanonicalAccountBridge(container, {
       session = await sessionPromise;
       const result = await session.activateFirebase();
       if (disposed) return;
-      if (!result || result.state !== "active" || result.identitySource !== "firebase" ||
-          result.accountId !== selected.accountId) {
+      if (!result || result.state !== "active" || result.accountId !== selected.accountId ||
+          session.accountContext.getActive()?.identitySource !== "firebase") {
         throw new Error("Il contesto DSM non corrisponde all'account selezionato.");
       }
       setStatus(`Identità verificata e account DSM ${selected.accountId} collegato. Dati operativi e API Employee restano disabilitati finché non saranno completati e verificati.`);
@@ -167,19 +167,18 @@ export function mountDSMCanonicalAccountBridge(container, {
   });
 
   return Object.freeze({
-    destroy() {
+    async destroy() {
       if (disposed) return;
       disposed = true;
       generation += 1;
       authUnsubscribe?.();
       authAdapter.dispose();
-      select.removeEventListener("change", () => {});
-      button.removeEventListener("click", () => {});
-      const cleanup = async () => {
+      try { await activationPromise; } catch {}
+      try {
         if (session) await session.dispose();
+      } finally {
         if (db) await closeDatabase();
-      };
-      void cleanup().catch(() => {});
+      }
       container.replaceChildren();
     }
   });
