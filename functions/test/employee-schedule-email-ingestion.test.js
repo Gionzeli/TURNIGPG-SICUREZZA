@@ -121,6 +121,23 @@ test("unverified sender is rejected before an ingestion job or PDF scan", async 
   assert.equal(calls.scans, 0);
 });
 
+test("an absent optional flag in a PDF does not clear a previously recorded value", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [{
+      employeeMatchKey: "verified-employee-code", confidence: 0.999,
+      shifts: [{ date: "2026-06-02", type: "turno", post: "Reception", start_time: "08:00", end_time: "13:00", hours: 5 }]
+    }] }),
+    loadEmployeeShifts: async () => [{
+      accountId, employeeId: "synthetic-employee", shiftId: "existing-shift",
+      date: "2026-06-02", type: "turno", post: "Reception",
+      start_time: "08:00", end_time: "13:00", hours: 5, is_night: true, revision: 4
+    }]
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "unchanged");
+  assert.equal(calls.proposals.length, 0);
+});
+
 test("authenticated but non-allowlisted sender is rejected", async () => {
   const { service, calls } = harness({
     loadMailboxConnection: async () => ({
