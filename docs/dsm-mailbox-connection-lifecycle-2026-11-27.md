@@ -725,3 +725,15 @@ error code, and a positive safe delivery timestamp. Corrupted delivered records
 fail with `failed-precondition` instead of being silently accepted. A synthetic
 adapter regression covers a malformed delivery timestamp; no live Firestore
 service was used.
+
+
+
+#### Completed cleanup-ticket terminal-state validation
+
+Repeated cleanup completion acknowledgements now validate the persisted terminal
+record before returning idempotent success. The adapter requires a positive
+completion timestamp, a consistent update timestamp, and a valid terminal alert
+state. When transitioning a ticket, a pending exhaustion alert must itself have
+valid retry metadata before it can be resolved; malformed or unsupported alert
+states fail closed. A synthetic regression corrupts the completion timestamp
+and verifies that a repeated acknowledgement is rejected without mutation.
