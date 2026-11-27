@@ -630,3 +630,34 @@ test("worker refuses secret deletion when durable revocation gate is absent", as
   assert.equal(calls.length, 1);
   assert.equal(calls[0].attempts, ticket.attempts + 1);
 });
+
+
+test("worker fails closed when the clock becomes invalid before alert delivery", async () => {
+  let clockReads = 0;
+  let alertCalls = 0;
+  const alertTicket = {
+    accountId: "synthetic-account", connectionId: "clock-alert",
+    status: "exhausted", alertStatus: "pending", attempts: 12,
+    lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
+  };
+  const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [alertTicket],
+      recordCleanupAlertFailure: async () => assert.fail("must not schedule a retry"),
+      markCleanupAlertDelivered: async () => assert.fail("must not acknowledge an alert")
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async () => { alertCalls++; },
+    now: () => (++clockReads === 1 ? 1000 : Number.NaN)
+  });
+
+  assert.deepEqual(await worker.runOnce({ accountId: "synthetic-account" }), {
+    scanned: 0, completed: 0, deferred: 0, exhausted: 0
+  });
+  assert.equal(alertCalls, 0);
+  assert.equal(clockReads, 2);
+});
