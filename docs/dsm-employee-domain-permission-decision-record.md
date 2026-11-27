@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-60 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-61 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1639,6 +1639,33 @@ Approved policy in principle:
 
 **Still required before implementation:** workload and service inventory, identity provider and trust model, token/certificate profiles, service/action authorization matrix, user-context delegation contract, environment isolation, rotation and revocation integration, network/destination policy, incident ownership, monitoring and synthetic end-to-end tests. This policy does not authorize creating production identities, issuing real credentials, changing network configuration or deploying services.
 
+### L-61 — Privacy protection for test data, fixtures and development environments
+
+**Question:** How should test fixtures, development datasets, debugging captures and non-production environments avoid exposing real employee or collaborator information while remaining useful for verification?
+
+Possible choices:
+- **A. Reuse production copies:** periodically copy production data into development and test environments.
+- **B. Synthetic-first and controlled de-identification:** use generated synthetic data by default, with narrowly governed exceptions only after privacy and security review.
+- **C. Developer-managed samples:** allow teams to create and retain local extracts as needed.
+
+**Approved 2026-11-27 — option B (synthetic-first testing and tightly governed exceptions), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Use generated synthetic fixtures as the default and required baseline for development, demonstrations, automated tests, documentation, screenshots and bug reproduction.
+- Do not copy production databases, employee records, payroll, absence information, identity documents, credentials, logs or support exports into non-production environments.
+- Ensure synthetic records use fictional identities, domains, contact details, identifiers and organizational structures that cannot reasonably be mistaken for real people or real accounts; never embed real UID, email, phone, IBAN, tokens or secrets.
+- Keep fixture generation deterministic where reproducibility is needed, while ensuring generated values cannot collide with real account identifiers or grant access to real systems.
+- Treat pseudonymized, masked, hashed or otherwise transformed real data as personal data unless a documented assessment establishes effective anonymization for the intended context.
+- Permit any exceptional use of real-derived data only after documented necessity, purpose limitation, data minimization, privacy/security review, legal basis/authority confirmation, owner approval and a time-bounded access plan; synthetic alternatives must be assessed first.
+- If an exception is approved, use an isolated controlled environment, minimum field and record scope, strong access restrictions, encryption, audit, expiry and verified deletion; prohibit local uncontrolled copies and onward sharing.
+- Keep development, test, Emulator, staging and production identities, credentials, storage and network access separate; test environments must not silently connect to production services or send real notifications.
+- Use fake providers, sandbox endpoints and deterministic test doubles for email, SMS, payment, identity and external integrations; ensure test messages cannot reach real recipients.
+- Prevent secrets and personal data from entering source control, issue trackers, crash reports, screenshots, CI artifacts, logs, recordings and AI prompts; scan and redact accidental disclosures.
+- Define fixture ownership, provenance, versioning, retention and cleanup; include safe reset procedures that cannot target production data.
+- Test synthetic cases for direct and indirect identifiers, rare combinations, free-text leakage, fixture collision, cross-environment access, artifact retention and accidental outbound communication.
+
+**Still required before implementation:** fixture-generation standard and ownership, synthetic data schema/catalogue, environment and credential isolation, approved fake-provider strategy, exception and privacy-review workflow, scanning/redaction controls, artifact retention and cleanup rules, and automated negative tests. This policy does not authorize copying, importing or processing real employee/collaborator data in test or development environments, nor production access or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1699,6 +1726,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-58 Data retention, archival and verifiable deletion | Approved — option B governed schedules, restricted archives, authorized disposition and minimized evidence; implementation gated on domain schedules, legal/privacy review, propagation and tests |
 | L-59 Security log monitoring, retention and tamper detection | Approved — option B minimized, centrally protected and tamper-evident logs with monitored response; implementation gated on event taxonomy, integrity design, retention, access and tests |
 | L-60 Secure service-to-service communication and machine identity | Approved — option B distinct workload identities, short-lived audience-bound credentials and authenticated transport; implementation gated on identity model, service authorization, rotation, isolation and tests |
+| L-61 Privacy protection for test data, fixtures and development environments | Approved — option B synthetic-first data with tightly governed exceptions; implementation gated on fixture standards, environment isolation, exception review, scanning and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
