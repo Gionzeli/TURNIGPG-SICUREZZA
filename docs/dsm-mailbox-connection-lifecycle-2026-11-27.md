@@ -95,3 +95,8 @@ Added `functions/src/membership/mailbox-oauth-refresh-service.js`. It refreshes 
 ## OAuth remote revocation helper (synthetic-only)
 
 Added `mailbox-oauth-revocation-service.js`. Google access/refresh tokens can be submitted to Google's fixed revoke endpoint with POST and redirects disabled; bounded response validation and masked errors apply. For Microsoft delegated OAuth, the helper deliberately does not claim remote token revocation: ordinary delegated clients lack a general user-token revoke endpoint. Local connection disablement and vault deletion remain required; consent/session revocation may require user or admin action. Synthetic tests only. Not callable-wired or used with live accounts.
+
+
+## Token lifecycle coordinator (synthetic-only)
+
+Added `mailbox-token-lifecycle-coordinator.js` to orchestrate an injected vault read/write adapter and OAuth refresh helper. It checks expiry with a five-minute safety window, retains the existing refresh token when rotation is omitted, persists refreshed material before returning a fresh access token, and deduplicates concurrent refresh requests in a single process. The adapter contract is `loadSecret({secretRef})` and `storeSecret({secretRef, secretMaterial})`, which is not yet implemented by the existing vault adapter. The lock is process-local, not distributed; production requires per-connection distributed lease/transaction coordination to avoid refresh rotation races. This is not integrated or executed; synthetic tests only.
