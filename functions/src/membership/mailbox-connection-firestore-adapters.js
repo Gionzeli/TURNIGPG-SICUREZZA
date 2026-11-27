@@ -70,7 +70,8 @@ function sameImmutableFields(before, after) {
 function allowedTransition(before, after) {
   if (!before) return after.status === "active";
   if (!sameImmutableFields(before, after)) return false;
-  if (before.status === "active") return after.status === "revocation_pending";
+  if (before.status === "active") return after.status === "revocation_pending" &&
+    after.credentialSecretRef === before.credentialSecretRef;
   if (before.status === "revocation_pending") {
     return (after.status === "revocation_pending" &&
         after.credentialSecretRef === before.credentialSecretRef) ||
