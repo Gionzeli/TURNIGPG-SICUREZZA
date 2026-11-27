@@ -6,7 +6,7 @@ import { resolveOwnEmployeeFromFirestore } from "../src/membership/employee-fire
 
 const enabled = Boolean(process.env.FIRESTORE_EMULATOR_HOST);
 
-test("Firestore Emulator: resolves only consistent active UID↔Employee bindings", { skip: !enabled }, async () => {
+test("Firestore Emulator: resolves consistent active UID↔Employee bindings without exposing document fields", { skip: !enabled }, async () => {
   const app = initializeApp({ projectId: "demo-dsm-membership" }, "employee-firestore-loaders");
   const db = getFirestore(app);
   const accountId = "synthetic-employee-account";
@@ -28,7 +28,7 @@ test("Firestore Emulator: resolves only consistent active UID↔Employee binding
       account.set({ accountId, status: "active", revision: 1 }),
       byUid.set(binding),
       byEmployee.set(binding),
-      employee.set({ employeeId, accountId, status: "active", revision: 1 })
+      employee.set({ employeeId, accountId, status: "active", revision: 1, ccnl: "SYNTHETIC-CCNL", section: "SYNTHETIC-SECTION", level: "SYNTHETIC-LEVEL", role: "SYNTHETIC-ROLE", effective_date: "2026-01-01", basePay: 999999, iban: "SYNTHETIC-IBAN", absenceReason: "SYNTHETIC-HEALTH-DATA" })
     ]);
     const resolved = await resolveOwnEmployeeFromFirestore({ db, principal });
     assert.deepEqual(resolved, {
