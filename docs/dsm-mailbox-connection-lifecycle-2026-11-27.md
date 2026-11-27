@@ -315,3 +315,14 @@ successfully records the ticket as `exhausted`. If Firestore cannot persist
 that transition, the worker leaves the ticket deferred and emits no alert;
 a later run can retry the transition without generating duplicate exhaustion
 alerts. A synthetic regression covers this persistence-failure path.
+
+
+#### Worker regression fixture aligned with durable exhaustion
+
+The backend Emulator CI run exposed a stale worker-test fixture: its in-memory
+adapter left a ticket in the pending list after recording attempt 12, unlike
+the Firestore adapter which moves it to `exhausted`. The fixture now mirrors
+that durable state transition and filters exhausted tickets from subsequent
+pending batches. The earlier run had 233 passing tests and one failure caused
+by this fixture mismatch; the updated test has been committed but awaits a
+fresh CI execution.
