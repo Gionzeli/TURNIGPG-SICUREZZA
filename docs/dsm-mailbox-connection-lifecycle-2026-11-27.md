@@ -675,3 +675,13 @@ setup-failure cleanup or user-requested revocation can delete credentials.
 A void, false, or differently-stated response fails closed and leaves the
 connection non-active without attempting vault deletion. This mirrors the
 cleanup worker's explicit gate-confirmation contract.
+
+
+#### Cleanup retry schedule boundary validation
+
+The Firestore cleanup outbox now enforces a consistent retry schedule: attempts
+below the retry ceiling require a future-or-current `nextAttemptAt` timestamp,
+while exhausted attempts require `nextAttemptAt: null`. Malformed combinations
+are rejected before any ticket mutation, preventing a pending ticket from being
+persisted without its intended backoff or an exhausted ticket from carrying a
+misleading scheduled retry.
