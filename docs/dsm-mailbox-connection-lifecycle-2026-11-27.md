@@ -391,3 +391,11 @@ Completion and alert-delivery acknowledgement timestamps are sampled after the
 respective external side effect succeeds (vault deletion or notification
 delivery), not before it begins. This keeps audit timestamps aligned with
 completed operations even when an adapter call is slow.
+
+
+Alert delivery and acknowledgement are handled as separate phases. A failure
+to send records a retry using the timestamp sampled after the send failure. If
+sending succeeds but the clock or durable acknowledgement fails, the worker
+leaves the alert pending rather than recording a send failure; a later attempt
+reuses the same stable alert ID, so the provider must deduplicate repeated
+delivery attempts. This preserves the documented at-least-once contract.
