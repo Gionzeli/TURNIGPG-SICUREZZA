@@ -158,3 +158,5 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - `organization-mutation-service.js` creates sites/departments with server-generated Firestore IDs and atomic audit.
 - Site/department archival requires dedicated admin permissions and refuses active dependencies (departments, Employee placements, or active membership scopes).
 - These are internal service primitives, not callable exports. No account archive, production wiring, Rules change, migration or deployment is included.
+
+- `resolveAuthorization` checks the canonical account document (matching ID, active status, positive schemaVersion/version) in addition to the verified UID's selected-account membership. Archived or malformed accounts fail closed.

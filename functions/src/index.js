@@ -50,7 +50,18 @@ export const resolveAuthorization = onCall(async (request) => {
     throw new HttpsError("invalid-argument", "A valid accountId selector is required.");
   }
   try {
-    const snapshot = await getFirestore().doc(`accounts/${accountId}/members/${identity.uid}`).get();
+    const db = getFirestore();
+    const [accountSnapshot, snapshot] = await Promise.all([
+      db.doc(`accounts/${accountId}`).get(),
+      db.doc(`accounts/${accountId}/members/${identity.uid}`).get()
+    ]);
+    if (!accountSnapshot.exists) throw new HttpsError("permission-denied", "Active canonical account required.");
+    const account = accountSnapshot.data();
+    if (account.accountId !== accountId || accountSnapshot.id !== accountId ||
+        account.status !== "active" || !Number.isSafeInteger(account.schemaVersion) ||
+        account.schemaVersion < 1 || !Number.isSafeInteger(account.version) || account.version < 1) {
+      throw new HttpsError("permission-denied", "Account is inactive or malformed.");
+    }
     if (!snapshot.exists) throw new HttpsError("permission-denied", "Active membership required.");
     const principal = resolveCanonicalMembership({ uid: identity.uid, accountId, membership: snapshot.data() });
     if (!principal) throw new HttpsError("permission-denied", "Membership is inactive or malformed.");

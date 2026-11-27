@@ -23,6 +23,8 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
   const secondAccountId = `auth-test-second-${uidSuffix}`;
   const members = db.collection(`accounts/${accountId}/members`);
   const secondMembers = db.collection(`accounts/${secondAccountId}/members`);
+  const accountRef = db.doc(`accounts/${accountId}`);
+  const secondAccountRef = db.doc(`accounts/${secondAccountId}`);
   let uid;
   let idToken;
   const email = `dsm-emulator-${uidSuffix}@example.invalid`;
@@ -72,6 +74,10 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
     const malformedToken = await callAuthorization({ token: "not-a-firebase-id-token" });
     assert.equal((await errorStatus(malformedToken)).status, "UNAUTHENTICATED");
 
+    await Promise.all([
+      accountRef.set({ accountId, status: "active", schemaVersion: 1, version: 1 }),
+      secondAccountRef.set({ accountId: secondAccountId, status: "active", schemaVersion: 1, version: 1 })
+    ]);
     await members.doc(uid).set({
       uid,
       accountId,
@@ -119,6 +125,10 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
       validFrom: new Date(0), validUntil: null,
       role: "member", scopeType: "department", scopeIds: ["synthetic-department-second"]
     });
+    await secondAccountRef.update({ status: "archived" });
+    const archivedAccount = await callAuthorization({ selector: secondAccountId });
+    assert.equal((await errorStatus(archivedAccount)).status, "PERMISSION_DENIED");
+    await secondAccountRef.update({ status: "active" });
     const secondAccountAccepted = await callAuthorization({ selector: secondAccountId });
     const secondAccountBody = await secondAccountAccepted.json();
     assert.equal(secondAccountAccepted.ok, true, JSON.stringify(secondAccountBody));
@@ -166,6 +176,8 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
     if (uid) {
       await members.doc(uid).delete().catch(() => {});
       await secondMembers.doc(uid).delete().catch(() => {});
+      await accountRef.delete().catch(() => {});
+      await secondAccountRef.delete().catch(() => {});
       await auth.deleteUser(uid).catch(() => {});
     }
     await deleteApp(app);

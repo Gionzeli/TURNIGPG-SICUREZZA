@@ -522,3 +522,5 @@ Aggiunto servizio interno per creare site e department con ID Firestore auto-gen
 - Estesi test Emulator: manager può creare reparto solo nella sede assegnata; account multi-membership dello stesso UID viene risolto solo tramite account selector e membership canonica distinta; audit organizzativo verificato senza token/TTL.
 
 - Corretto il test audit Firestore per riconoscere il tipo Timestamp restituito dall'SDK (con `toDate()`), oltre agli oggetti Date in memoria. Nessuna modifica al contratto audit.
+
+- Il callable `resolveAuthorization` ora rilegge anche il documento account canonico e ne richiede ID, schemaVersion, version e status active. Il test Auth/Functions/Firestore Emulator verifica account archiviato e membership multi-account dello stesso UID.
