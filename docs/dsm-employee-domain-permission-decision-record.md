@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-74 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-75 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1975,6 +1975,27 @@ Approved policy in principle:
 
 **Still required before implementation:** canonical tenant and organization ownership schema; membership and hierarchy invariants; tenant-context resolution contract; per-endpoint and per-worker authorization inventory; query/index/storage/cache/artifact isolation design; exceptional cross-tenant approval matrix; revocation and cache-invalidation semantics; generic error and monitoring requirements; and synthetic Emulator tests demonstrating isolation across all data and processing paths. This decision does not create a tenant hierarchy, authorize cross-tenant administration, establish legal entity boundaries, approve real-data processing or permit production activation.
 
+### L-75 — Tenant onboarding, boundary changes, mergers and split operations
+
+**Question:** How should an organization or tenant be created, linked, renamed, transferred, merged or split without accidentally combining identities, exposing records across boundaries or silently changing historical ownership?
+
+**Approved 2026-11-27 — option B (explicit, staged and independently approved boundary-change workflows with immutable provenance and fail-closed cutover), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat tenant creation, legal/organizational linkage, merger, split, transfer, closure and boundary correction as distinct high-impact administrative workflows. A display-name change or client-side configuration must never implicitly change tenant ownership or authorization.
+- Establish each tenant's canonical immutable identifier, accountable owner, status, authoritative hierarchy and effective dates through a verified onboarding workflow. Require documented authority, independent approval and conflict checks before any tenant becomes operational.
+- Before a merger, split or transfer, produce a reviewed impact inventory covering employee and account bindings, memberships, roles, assignments, shifts, approvals, payroll and absence records, documents, audit evidence, legal holds, integrations, storage paths, caches, indexes, exports, backups and background jobs.
+- Define the legal and operational ownership of every affected record category before execution. Do not infer that a new organization inherits all employee records, permissions, contracts, historical visibility or legal obligations merely because it succeeds, acquires or manages another unit.
+- Preserve original tenant ownership, source identifiers, provenance and historical effective periods. Represent approved succession or cross-tenant references explicitly; do not rewrite historical records in place or erase their former boundary.
+- Require a per-resource migration or disposition plan specifying source tenant, destination tenant (if any), permitted fields/actions, legal basis, approver, effective time, retention/hold treatment, integrity checks and rollback/recovery behavior. Records without an approved mapping remain in the source boundary and inaccessible to the destination by default.
+- Separate identity continuity from organizational membership. Revalidate each person's identity, employment relationship, canonical UID↔Employee binding, destination membership, role and scope. Never copy credentials, sessions, delegations or manager permissions as a side effect of a merger or split.
+- Keep source and destination authorization isolated throughout staging and cutover. Use a controlled freeze or equivalent concurrency strategy, revision checks, idempotent bounded batches, reconciliation and explicit completion criteria; do not permit dual ownership or partial visibility during an uncertain transition.
+- Review integrations, service identities, external processors, invitations, notification recipients, tenant-scoped keys and secrets, quotas, domains and routing configuration. Reissue or rotate credentials and update allowlists only through their own governed workflows.
+- Require independent approval of the final impact preview and post-change reconciliation. Record counts and integrity outcomes without exposing unnecessary personal data. Provide a tested abort and partial-failure recovery path; never silently retry a non-idempotent transfer.
+- Retain source audit evidence and legal holds under their original governance. A boundary change must not release holds, shorten retention, authorize bulk export or erase source records. Any cross-tenant historical access remains subject to L-71 and L-74.
+- Test synthetic cases for unauthorized tenant creation, duplicate identifiers, incomplete ownership mapping, cross-tenant identity collision, merger/split partial failure, concurrent writes, orphaned references, stale sessions, credential reuse, hold/retention conflicts, rollback and unauthorized destination visibility.
+
+**Still required before implementation:** tenant identity and hierarchy schema; authorized onboarding and boundary-change approver matrix; record-category ownership and legal review; migration inventory and per-resource mapping format; identity/membership revalidation workflow; concurrency, freeze, cutover and rollback design; integration/key rotation plan; retention and hold reconciliation; reconciliation evidence and acceptance criteria; and synthetic Emulator tests across all affected domains. This decision does not declare legal succession, authorize a real tenant merger or split, move real employee data, grant cross-tenant access, or approve production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2049,6 +2070,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-72 Legal-hold release and post-hold disposition | Approved — option B verified hold release followed by separate retention-based disposition; implementation gated on legal authority, overlapping-hold checks, copy propagation and tests |
 | L-73 Audit evidence access, disclosure and evidentiary export | Approved — option B purpose-bound read-only evidence access and controlled disclosure; implementation gated on evidence scope, redaction, custody, recipient and test controls |
 | L-74 Tenant and organizational-boundary isolation | Approved — option B canonical server-derived tenant context and deny-by-default isolation; implementation gated on ownership schema, complete path inventory, revocation and cross-tenant tests |
+| L-75 Tenant onboarding, mergers, splits and boundary changes | Approved — option B staged, independently approved transitions with provenance and fail-closed cutover; implementation gated on ownership mapping, legal review, reconciliation and recovery tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
