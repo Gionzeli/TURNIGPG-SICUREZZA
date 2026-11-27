@@ -18,10 +18,10 @@ function field(labelText, type, value = "") {
 
 /** User-facing invitation controls. Authorization remains exclusively server-side. */
 export function mountDSMMembershipInvitePage(container, {
-  auth, onAuthStateChanged, proposeInvite, approveInvite, claimInvite
+  auth, onAuthStateChanged, proposeInvite, approveInvite, claimInvite, proposeEmployee, approveEmployee
 } = {}) {
   if (!container || !auth || typeof onAuthStateChanged !== "function" || typeof proposeInvite !== "function" ||
-      typeof approveInvite !== "function" || typeof claimInvite !== "function") {
+      typeof approveInvite !== "function" || typeof claimInvite !== "function" || typeof proposeEmployee !== "function" || typeof approveEmployee !== "function") {
     throw new TypeError("Configurazione inviti DSM non valida.");
   }
   const heading = element("h3", "", "Inviti collaboratori DSM");
@@ -50,6 +50,26 @@ export function mountDSMMembershipInvitePage(container, {
   adminForm.append(element("h4", "", "Amministratori"), account.label, inviteId.label,
     siteId.label, email.label, propose, approve);
 
+  const employeeProposalId = field("ID proposta Employee", "text");
+  employeeProposalId.input.maxLength = 128;
+  employeeProposalId.input.pattern = "[A-Za-z0-9_-]{1,128}";
+  const targetUid = field("Firebase UID del collaboratore", "text");
+  targetUid.input.maxLength = 128;
+  targetUid.input.pattern = "[A-Za-z0-9_-]{1,128}";
+  const employeeId = field("ID Employee", "text");
+  employeeId.input.maxLength = 128;
+  employeeId.input.pattern = "[A-Za-z0-9_-]{1,128}";
+  const verificationRef = field("Riferimento verifica identità (ticket interno)", "text");
+  verificationRef.input.maxLength = 128;
+  verificationRef.input.pattern = "[A-Za-z0-9_-]{1,128}";
+  const proposeEmployeeButton = element("button", "pri", "Proponi associazione Employee");
+  proposeEmployeeButton.type = "button";
+  const approveEmployeeButton = element("button", "", "Approva associazione Employee");
+  approveEmployeeButton.type = "button";
+  const employeeForm = element("section", "card");
+  employeeForm.append(element("h4", "", "Associazione Employee (passaggio separato)"), employeeProposalId.label,
+    targetUid.label, employeeId.label, verificationRef.label, proposeEmployeeButton, approveEmployeeButton);
+
   const claimCode = field("Codice invito ricevuto", "text");
   claimCode.input.maxLength = 128;
   claimCode.input.pattern = "[A-Za-z0-9_-]{1,128}";
@@ -58,7 +78,7 @@ export function mountDSMMembershipInvitePage(container, {
   const claimForm = element("section", "card");
   claimForm.append(element("h4", "", "Collaboratore"), claimCode.label, claim);
 
-  container.replaceChildren(heading, explanation, adminForm, claimForm, status);
+  container.replaceChildren(heading, explanation, adminForm, employeeForm, claimForm, status);
   let disposed = false;
   let busy = false;
 
@@ -67,7 +87,7 @@ export function mountDSMMembershipInvitePage(container, {
   }
   function setBusy(value) {
     busy = value;
-    for (const button of [propose, approve, claim]) button.disabled = value || !identityReady();
+    for (const button of [propose, approve, proposeEmployeeButton, approveEmployeeButton, claim]) button.disabled = value || !identityReady();
   }
   async function run(action, success) {
     if (busy || !identityReady()) {
@@ -92,12 +112,22 @@ export function mountDSMMembershipInvitePage(container, {
   const onApprove = () => run(() => approveInvite({
     accountId: ACCOUNT_ID, inviteId: inviteId.input.value.trim()
   }), "Approvazione registrata. Il collaboratore può riscattare il codice dopo aver verificato la propria email Firebase.");
+  const onProposeEmployee = () => run(() => proposeEmployee({
+    accountId: ACCOUNT_ID, proposalId: employeeProposalId.input.value.trim(),
+    targetUid: targetUid.input.value.trim(), employeeId: employeeId.input.value.trim(),
+    verificationRef: verificationRef.input.value.trim()
+  }), "Proposta Employee registrata. Un secondo amministratore deve approvarla.");
+  const onApproveEmployee = () => run(() => approveEmployee({
+    accountId: ACCOUNT_ID, proposalId: employeeProposalId.input.value.trim()
+  }), "Associazione Employee approvata. UID e Employee sono stati collegati dal server.");
   const onClaim = () => run(() => claimInvite({
     accountId: ACCOUNT_ID, inviteId: claimCode.input.value.trim()
   }), "Invito riscattato. La membership canonica è stata attivata; l'associazione Employee resta un passaggio separato.");
   propose.addEventListener("click", onPropose);
   approve.addEventListener("click", onApprove);
   claim.addEventListener("click", onClaim);
+  proposeEmployeeButton.addEventListener("click", onProposeEmployee);
+  approveEmployeeButton.addEventListener("click", onApproveEmployee);
   const unsubscribeAuth = onAuthStateChanged(auth, () => setBusy(false), () => setBusy(true));
   setBusy(false);
 
@@ -109,6 +139,8 @@ export function mountDSMMembershipInvitePage(container, {
       propose.removeEventListener("click", onPropose);
       approve.removeEventListener("click", onApprove);
       claim.removeEventListener("click", onClaim);
+      proposeEmployeeButton.removeEventListener("click", onProposeEmployee);
+      approveEmployeeButton.removeEventListener("click", onApproveEmployee);
       container.replaceChildren();
     }
   });
