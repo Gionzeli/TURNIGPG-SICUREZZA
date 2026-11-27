@@ -94,3 +94,49 @@ test("invite claim rejects expiry and duplicate membership", async () => {
     actorIdentity: { ...identity("new-uid"), email: "x@example.test" }, now: () => NOW
   }), e => e.code === "permission-denied");
 });
+
+
+test("approved invite cannot be claimed after its site becomes inactive", async () => {
+  const { db, docs } = store(seed());
+  await proposeCanonicalMembershipInvite({
+    db, accountId: "turnigpg-sicurezza", actorUid: "admin-a", actorIdentity: identity("admin-a"),
+    inviteId: "site-retired", email: "new.member@example.test", siteId: "site-1",
+    emailHmacKey: KEY, now: () => NOW
+  });
+  await approveCanonicalMembershipInvite({
+    db, accountId: "turnigpg-sicurezza", actorUid: "admin-b", actorIdentity: identity("admin-b"),
+    inviteId: "site-retired", now: () => NOW
+  });
+  docs.get(sitePath).status = "archived";
+  await assert.rejects(claimCanonicalMembershipInvite({
+    db, accountId: "turnigpg-sicurezza", inviteId: "site-retired", actorUid: "new-uid",
+    actorIdentity: { ...identity("new-uid"), email: "new.member@example.test" },
+    emailHmacKey: KEY, now: () => NOW
+  }), e => e.code === "failed-precondition");
+  assert.equal(docs.has(`${accountPath}/members/new-uid`), false);
+});
+
+test("approved invite cannot create a second membership for an existing UID", async () => {
+  const fixture = seed();
+  fixture[`${accountPath}/members/existing-uid`] = {
+    accountId: "turnigpg-sicurezza", uid: "existing-uid", status: "active",
+    role: "member", scopeType: "site", scopeIds: ["site-1"],
+    validFrom: new Date(NOW - 1000), validUntil: null
+  };
+  const { db, docs } = store(fixture);
+  await proposeCanonicalMembershipInvite({
+    db, accountId: "turnigpg-sicurezza", actorUid: "admin-a", actorIdentity: identity("admin-a"),
+    inviteId: "duplicate-uid", email: "existing@example.test", siteId: "site-1",
+    emailHmacKey: KEY, now: () => NOW
+  });
+  await approveCanonicalMembershipInvite({
+    db, accountId: "turnigpg-sicurezza", actorUid: "admin-b", actorIdentity: identity("admin-b"),
+    inviteId: "duplicate-uid", now: () => NOW
+  });
+  await assert.rejects(claimCanonicalMembershipInvite({
+    db, accountId: "turnigpg-sicurezza", inviteId: "duplicate-uid", actorUid: "existing-uid",
+    actorIdentity: { ...identity("existing-uid"), email: "existing@example.test" },
+    emailHmacKey: KEY, now: () => NOW
+  }), e => e.code === "already-exists");
+  assert.equal(docs.get(`${accountPath}/membershipInviteProposals/duplicate-uid`).status, "approved_pending_claim");
+});
