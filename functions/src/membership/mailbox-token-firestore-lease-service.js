@@ -151,7 +151,7 @@ export function createMailboxTokenFirestoreLeaseService({
     const current = snapshot?.data?.() || {};
     if (!snapshot?.exists || current.revocationPending !== true ||
         !Number.isSafeInteger(current.fencingToken) || current.fencingToken < 0 ||
-        !Number.isSafeInteger(current.expiresAt)) {
+        !Number.isSafeInteger(current.expiresAt) || current.expiresAt < 0) {
       throw leaseError("failed-precondition", "Mailbox cleanup requires a durable revocation gate.");
     }
     return Object.freeze({status: "revocation_pending"});
