@@ -165,7 +165,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         throw error;
       }
       const snapshot = await db.collection(`accounts/${accountId}/mailboxCredentialCleanup`)
-        .where("status", "==", "pending").orderBy("createdAt", "asc").limit(limit).get();
+        .where("status", "==", "pending").orderBy("nextAttemptAt", "asc").limit(limit).get();
       return snapshot.docs.map(doc => {
         const value = doc.data();
         if (!value || value.accountId !== accountId ||
@@ -191,7 +191,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
       const value = snapshot.data();
       if (!value || value.accountId !== accountId || value.connectionId !== connectionId ||
           typeof value.secretRef !== "string" || value.secretRef.length < 1 ||
-          !["pending", "complete"].includes(value.status) ||
+          !["pending", "exhausted", "complete"].includes(value.status) ||
           !Number.isSafeInteger(value.attempts) || value.attempts < 1) return null;
       return value;
     },
@@ -216,12 +216,12 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
             previous.secretRef !== secretRef || previous.status !== "pending" ||
-            attempts < previous.attempts) {
+            attempts <= previous.attempts) {
           const error = new Error("Cleanup retry ticket is stale or conflicting.");
           error.code = "failed-precondition";
           throw error;
         }
-        tx.set(ref, { ...previous, attempts, nextAttemptAt, lastErrorCode, updatedAt: timestamp });
+        tx.set(ref, { ...previous, status: attempts >= 12 ? "exhausted" : "pending", attempts, nextAttemptAt: attempts >= 12 ? null : nextAttemptAt, lastErrorCode, updatedAt: timestamp });
       });
     },
 
