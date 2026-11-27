@@ -105,3 +105,8 @@ Added `mailbox-token-lifecycle-coordinator.js` to orchestrate an injected vault 
 ## Token lifecycle vault adapter (synthetic-only)
 
 Added `mailbox-token-lifecycle-vault-adapter.js` to implement the coordinator's `loadSecret`/`storeSecret` contract against injected `readSecret`/`replaceSecret` backend operations, with strict opaque-reference format checks, token payload validation, and masked backend errors. The backend's `replaceSecret` must guarantee atomic/versioned replacement and access control. This is a separate adapter contract and is not wired to the existing create/revoke vault adapter or a cloud Secret Manager. Synthetic tests only; not run.
+
+
+## Atomic token-secret rotation contract
+
+The lifecycle vault adapter now requires versioned reads (`{payload, version}`) and compare-and-swap writes (`replaceSecret({secretRef, payload, expectedVersion}) -> {version}`). The backend MUST implement the comparison and replacement atomically; a version mismatch must reject with `code: conflict`. The coordinator passes the loaded version to the write, and the adapter preserves conflict errors rather than treating them as generic persistence failures. This prevents a stale refresh operation from overwriting a newer secret version, but it does not by itself provide a distributed refresh lease or guarantee provider refresh-token replay safety. The existing generic credential vault is not yet wired to this contract. Synthetic tests only; not executed.
