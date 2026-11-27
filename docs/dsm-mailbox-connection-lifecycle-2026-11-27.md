@@ -469,3 +469,15 @@ accepts the duplicate finalization as a no-op and preserves the first
 `revokedAt` and `updatedAt`. Other attempts to change a revoked connection
 remain rejected. A synthetic adapter regression test covers the stale
 finalization race.
+
+
+#### Setup-failure cleanup guard
+
+Connection setup compensation no longer swallows failures from the transition
+to `revocation_pending` and refresh-disable gate. The service re-reads persisted
+metadata after a failed transition: it may clean up the new secret only when
+the pending state is durable, or when no connection metadata exists. If
+metadata still says `active`, or its state cannot be established, cleanup is
+not attempted. This avoids a durable cleanup ticket or worker deleting a
+credential still referenced by an active connection. A synthetic regression
+test covers failed audit plus failed pending transition.
