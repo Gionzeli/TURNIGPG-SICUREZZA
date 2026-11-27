@@ -63,6 +63,8 @@ export const health = onCall(async () => ({
   ownEmploymentProfileReadImplemented: true,
   protectedEmployeeShiftApisImplemented: true,
   employeeShiftSelfAuthorizationImplemented: true,
+  directEmployeeShiftMutationsEnabled: false,
+  employeeShiftPersonalApprovalRequired: true,
   employeeDelegatedShiftAuthorizationImplemented: false,
   employeeDomainAuthorizationImplemented: true,
   bootstrapImplemented: false,
