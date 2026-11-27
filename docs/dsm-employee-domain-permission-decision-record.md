@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-62 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-63 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1694,6 +1694,35 @@ Approved policy in principle:
 
 **Still required before implementation:** source and branch protection configuration, build platform and runner isolation, dependency/registry policy, reproducibility requirements, provenance format and verifier, signing-key custody/rotation, approval matrix, artifact registry, promotion and rollback workflows, emergency release controls, retention and synthetic end-to-end tests. This policy does not authorize a production build, signing with real keys, artifact distribution, deployment or release activation.
 
+### L-63 — Controlled deployment and infrastructure change management
+
+**Question:** How should verified software artifacts and infrastructure/configuration changes be authorized, deployed, monitored and rolled back without allowing unreviewed or untraceable changes to affect protected environments?
+
+Possible choices:
+- **A. Operator-directed changes:** authorized operators deploy or change infrastructure manually using local procedures.
+- **B. Governed deployment with explicit approvals and verified rollback:** deploy immutable verified artifacts through controlled environment gates, reviewed infrastructure changes, monitored rollout and tested recovery.
+- **C. Automatic promotion:** deploy changes automatically after build completion, without environment-specific authorization or operational readiness checks.
+
+**Approved 2026-11-27 — option B (governed deployment with explicit approvals and verified rollback), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat deployment and infrastructure modification as privileged, separately authorized actions; successful build or artifact signing alone does not authorize deployment.
+- Deploy only immutable artifacts whose source revision, provenance, signatures, digests and required verification evidence have been independently validated.
+- Require environment-specific approval gates, separation of duties and named accountable owners; production approval must be distinct from code authorship and ordinary repository administration.
+- Define and review infrastructure/configuration as code where practical; require peer review, policy validation, change history and protected state before applying changes.
+- Restrict deployment identities and runners to the minimum environment, resources and actions required; use short-lived credentials and prohibit untrusted pull-request workflows from obtaining deployment secrets.
+- Separate development, test, Emulator, staging and production accounts, networks, data stores, secrets and permissions; block accidental cross-environment targeting by default.
+- Validate readiness before rollout, including required tests, migrations compatibility, dependency/service health, capacity, security controls, monitoring and backup/restore prerequisites.
+- Use staged rollout, health checks and measurable stop/rollback criteria proportionate to change risk; pause automatically on defined safety signals and require human review for high-impact changes.
+- Apply schema and data changes through versioned, backward-compatible and explicitly approved migration plans; prohibit destructive or irreversible production data changes without separate authorization, verified backup and recovery plan.
+- Preserve a known-good deployment reference and test rollback procedures; distinguish application rollback from database/state rollback and do not assume data changes are automatically reversible.
+- Detect and investigate configuration drift and out-of-band changes; reconcile only through reviewed, authorized workflows and preserve evidence of emergency changes.
+- Record actor, approver, target environment, artifact digest, source revision, configuration version, change ticket, timestamps, health outcome and rollback actions in protected audit records without secrets or unnecessary personal data.
+- Provide a narrowly scoped emergency path with documented reason, time limit, independent retrospective review and prompt restoration of normal controls; emergency access must not become a standing bypass.
+- Test synthetic scenarios for wrong-environment targeting, unauthorized deployment, artifact substitution, compromised deploy identity, failed health checks, partial rollout, incompatible schema changes, rollback failure, drift and emergency-path abuse.
+
+**Still required before implementation:** environment inventory and boundaries, deployment role/approval matrix, infrastructure-as-code standards, protected runner and credential design, readiness criteria, rollout/stop thresholds, migration compatibility rules, rollback and restore runbooks, drift detection, emergency procedure, audit schema, retention and synthetic end-to-end tests. This policy does not authorize production deployment, real infrastructure changes, real data migrations, Firebase activation or release execution.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1756,6 +1785,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-60 Secure service-to-service communication and machine identity | Approved — option B distinct workload identities, short-lived audience-bound credentials and authenticated transport; implementation gated on identity model, service authorization, rotation, isolation and tests |
 | L-61 Privacy protection for test data, fixtures and development environments | Approved — option B synthetic-first data with tightly governed exceptions; implementation gated on fixture standards, environment isolation, exception review, scanning and tests |
 | L-62 Secure software release, build and distribution pipeline | Approved — option B isolated, reproducible and attestable pipeline with signed immutable artifacts and controlled promotion; implementation gated on source protection, runner isolation, provenance, signing and release workflow tests |
+| L-63 Controlled deployment and infrastructure change management | Approved — option B explicit environment approvals, verified immutable artifacts, staged rollout, monitored stop/rollback and audited infrastructure changes; implementation gated on environment boundaries, approval matrix, runner controls and recovery tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
