@@ -348,3 +348,36 @@ test("pending cleanup query sorts never-attempted and due work ahead of future r
   assert.equal(batch.length, 1);
   assert.equal(batch[0].connectionId, "new-due");
 });
+
+
+test("exhausted cleanup alert is durably queued and acknowledged", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
+    timestamp: input.timestamp + 1
+  });
+  const queued = await adapters.listPendingCleanupAlerts({ accountId: input.accountId });
+  assert.equal(queued.length, 1);
+  assert.equal(queued[0].alertStatus, "pending");
+  assert.equal(queued[0].connectionId, input.connectionId);
+  await adapters.markCleanupAlertDelivered({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  });
+  const stored = docs.get("accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection");
+  assert.equal(stored.alertStatus, "delivered");
+  assert.equal(stored.alertDeliveredAt, input.timestamp + 2);
+  assert.deepEqual(await adapters.listPendingCleanupAlerts({ accountId: input.accountId }), []);
+  await adapters.markCleanupAlertDelivered({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 3
+  });
+});
