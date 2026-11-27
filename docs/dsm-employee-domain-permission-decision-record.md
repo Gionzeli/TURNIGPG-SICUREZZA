@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-121 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-122 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -3024,6 +3024,30 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory the actual database engine, roles, grants, row policies, views, functions, privileged identities and all direct-access paths; map each workload to a narrowly scoped identity; define safe context propagation and pool reset; and produce reproducible synthetic Emulator/non-production tests proving deny-by-default behavior and bypass-path containment. No real database grant, row policy, credential, Firebase configuration or production change is authorized by this decision.
 
+### L-122 — Database replication, read replicas, change-data capture and downstream data feeds
+
+**Question:** How should replicated databases, read replicas, change-data capture (CDC), event feeds and downstream consumers preserve authorization boundaries, data minimization, revocation and lifecycle controls without exposing broader or stale employee data?
+
+**Decision:** Approved — option B, treat every replica and downstream feed as a separately governed data surface with explicit purpose, field and tenant scope, controlled identities, bounded freshness and revocation-aware delivery. This is a policy decision only.
+
+**Required controls:**
+- Inventory every replica, read-only endpoint, CDC stream, change log, event topic, export pipeline, analytics sink and downstream consumer. Record owner, purpose, data classes, tenant coverage, fields, retention, region/location, processor and deletion behavior.
+- Approve each replication path independently against a documented business purpose and minimum required fields. Do not assume that authorization to read the primary database automatically authorizes access to replicas, analytics stores or event streams.
+- Use distinct workload identities and least-privilege grants for replication agents, consumers and operators. Restrict network paths, credentials, administrative access and cross-environment movement; do not expose replication credentials to clients.
+- Preserve tenant and ownership boundaries in every replicated record and message. Derive tenant/identity metadata from trusted source-side records, validate it at ingestion and reject malformed, missing or conflicting security metadata rather than guessing or defaulting to a broad tenant.
+- Apply field-level minimization before data leaves the authoritative store wherever feasible. Exclude credentials, tokens, secrets, unnecessary personal data, payroll and health-related fields unless a separate documented approval explicitly permits the precise purpose and fields.
+- Treat CDC payloads, transaction logs, tombstones, snapshots and schema-change events as sensitive data. Prevent unauthorized access to raw logs and ensure they do not become an unreviewed bypass around application DTOs, field permissions or tenant filters.
+- Define and measure replication lag and consistency guarantees. For authorization-sensitive decisions, do not treat a potentially stale replica as authoritative for current membership, lifecycle, permission, ownership or revocation state; validate against the canonical authorization source or fail closed when freshness cannot be established.
+- Propagate revocations, corrections, deletion dispositions, legal holds and retention changes through replicas and downstream copies with traceable completion. Define bounded propagation objectives, retry/dead-letter handling, reconciliation and escalation for incomplete or failed delivery.
+- Make consumer processing idempotent and replay-safe. Authenticate producers, validate message schemas and provenance, constrain replay windows and ordering assumptions, and prevent duplicate or out-of-order events from restoring revoked access or resurrecting deleted records.
+- Separate snapshot/bootstrap access from ongoing change feeds. Require scoped, approved snapshots; reconcile snapshot position with the CDC checkpoint; and prevent gaps or overlap from silently losing security-relevant changes.
+- Apply independent retention, backup, access review and secure-disposal controls to each copy. A source deletion or access revocation must not be represented as complete until the defined downstream disposition has been verified or an explicitly documented lawful exception applies.
+- Prevent analytics and reporting consumers from turning replicated data into broad employee lookup or inference channels. Apply aggregation, small-group protections, query bounds and separate authorization where applicable.
+- Test synthetic multi-tenant datasets for cross-tenant leakage, overbroad fields, stale authorization, delayed revocation, replay, duplicate/out-of-order events, schema evolution, consumer outage, checkpoint loss, deletion propagation and restore/reconciliation behavior.
+- Monitor feed health, lag, rejected records, dead-letter queues, unauthorized access and incomplete disposition. Keep protected evidence of approvals, checkpoints, exceptions and reconciliation outcomes without recording secrets or unnecessary personal data.
+
+**Implementation gates:** Build a complete data-flow and consumer inventory; document each feed's purpose, schema, tenant/field scope, identity, region, retention and lifecycle obligations; define freshness and revocation service levels; and produce reproducible synthetic replication/CDC tests, including outage, replay, restore and deletion reconciliation. No real replica, CDC pipeline, production data export, downstream integration or production configuration is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3145,6 +3169,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-119 Database transaction boundaries, connection-pool isolation and session-context cleanup | Approved — option B transaction-bound server context, verified pool reset and fail-closed isolation; implementation gated on driver/pool review and cross-tenant tests |
 | L-120 Database schema migrations, data backfills and authorization-invariant preservation | Approved — option B reviewed staged migrations, bounded idempotent backfills and invariant/recovery gates; implementation gated on schema inventory and synthetic migration tests |
 | L-121 Database privilege boundaries and row-level security | Approved — option B least-privilege roles, defense-in-depth row policies and constrained bypass paths; implementation gated on privilege inventory and synthetic tests |
+| L-122 Database replication, read replicas and CDC feeds | Approved — option B separately governed, minimized and revocation-aware replication; implementation gated on feed inventory and synthetic lifecycle tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
