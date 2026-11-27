@@ -163,8 +163,16 @@ test("FR-26 canonical employee, profile, compensation, binding and shift records
   });
 
   for (const path of paths) {
-    await assertFails(getDoc(doc(verifiedUser(), path)), `verified employee unexpectedly read ${path}`);
-    await assertFails(getDoc(doc(adminUser(), path)), `synthetic admin unexpectedly read ${path}`);
+    const employeeDb = verifiedUser();
+    const adminDb = adminUser();
+    await assertFails(getDoc(doc(employeeDb, path)), `verified employee unexpectedly read ${path}`);
+    await assertFails(getDoc(doc(adminDb, path)), `synthetic admin unexpectedly read ${path}`);
+    await assertFails(setDoc(doc(employeeDb, path), { marker: "employee-write-attempt" }), `verified employee unexpectedly wrote ${path}`);
+    await assertFails(updateDoc(doc(employeeDb, path), { marker: "employee-update-attempt" }), `verified employee unexpectedly updated ${path}`);
+    await assertFails(deleteDoc(doc(employeeDb, path)), `verified employee unexpectedly deleted ${path}`);
+    await assertFails(setDoc(doc(adminDb, path), { marker: "admin-write-attempt" }), `synthetic admin unexpectedly wrote ${path}`);
+    await assertFails(updateDoc(doc(adminDb, path), { marker: "admin-update-attempt" }), `synthetic admin unexpectedly updated ${path}`);
+    await assertFails(deleteDoc(doc(adminDb, path)), `synthetic admin unexpectedly deleted ${path}`);
   }
 });
 
