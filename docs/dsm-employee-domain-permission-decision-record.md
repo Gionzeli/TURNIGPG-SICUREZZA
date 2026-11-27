@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-86 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-87 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2221,6 +2221,27 @@ Approved policy in principle:
 
 **Still required before implementation:** reporting-domain and audience matrix; approved purposes and sensitive-domain exclusions; cohort thresholds and complementary-suppression rules; query-combination and budget model; cache expiry/invalidation objectives; report-sharing contract; export parity controls; audit taxonomy; and synthetic disclosure-risk tests. This decision does not authorize employee-level analytics, compensation/health aggregation, external analytics sharing or production activation.
 
+### L-87 — Device registration, endpoint trust and device-risk changes
+
+**Question:** How should the system govern registered devices and endpoint trust signals without treating device possession, a device identifier or a client-reported posture as a substitute for verified identity and server-side authorization?
+
+**Approved 2026-11-27 — option B (risk-based device registration and lifecycle controls as supplemental signals, never standalone authorization), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat device identifiers, browser fingerprints, client claims, local storage and reported security posture as untrusted or probabilistic signals. They do not prove identity, ownership, employment, tenant membership or permission.
+- If device registration is introduced, bind registrations to a verified user and an explicit device lifecycle workflow using approved authentication and proof-of-possession methods. Do not silently register a device solely because it presented a valid session token.
+- Define the minimum necessary device metadata, purpose, lawful basis, retention, visibility and access controls. Avoid covert or excessive fingerprinting, persistent cross-context tracking and collection of unrelated personal device data.
+- Keep device trust separate from employee identity, canonical UID↔Employee binding, tenant membership, role and domain permissions. A trusted device cannot expand resource scope or bypass workflow approval.
+- Use device risk only as a supplemental, proportionate input to controls such as step-up authentication, session restriction or temporary denial. Document signal quality, false-positive handling, appeal/recovery and accessibility alternatives.
+- Re-evaluate relevant device registration and risk state at protected request boundaries and after material events, including device loss, compromise report, ownership change, OS/browser security change where reliably known, credential reset, account switch and session revocation.
+- Provide explicit user-visible procedures to review registered devices, report loss or compromise, revoke a device and recover access through independently verified identity procedures. Device revocation must invalidate associated sessions and device-bound credentials within a defined maximum latency.
+- Protect device-bound keys and credentials in platform-supported secure storage where available. Use short-lived, audience-bound credentials and proof-of-possession where supported; never expose private keys or reusable secrets to application JavaScript or logs.
+- Do not rely on unsupported attestation claims or assume that a browser, rooted/jailbroken status, emulator flag or vendor signal is universally available or conclusive. Fail safely and offer equivalent approved authentication paths where device signals are absent.
+- Prevent device sharing, reassignment or resale from transferring trust to a new user. Rebinding requires fresh identity verification, revocation of prior bindings and auditable approval where risk warrants.
+- Minimize device-related telemetry and audit only security-relevant registration, verification, risk transitions, revocation and recovery events. Restrict access and define retention/deletion rules.
+- Test synthetic stolen/lost devices, cloned identifiers, forged posture, stale attestation, device reassignment, revoked sessions, unavailable signals, false positives, account switching and recovery abuse.
+
+**Still required before implementation:** decision whether device registration is needed; supported platform and signal inventory; device-to-user binding protocol; minimum metadata and privacy assessment; risk thresholds and fallback controls; revocation latency objective; secure key-storage/proof-of-possession design; loss/recovery workflow; retention and audit schema; and synthetic tests. This decision does not authorize fingerprinting, mandatory device attestation, collection of personal device contents or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2307,6 +2328,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-84 Deletion propagation, derived copies and verifiable disposition | Approved — option B centrally tracked disposition, dependency inventory, propagation controls and verifiable completion; implementation gated on system inventory, tombstone contract and tests |
 | L-85 File attachments, upload processing and secure retrieval | Approved — option B quarantined uploads, defense-in-depth inspection and per-request authorized retrieval; implementation gated on storage, scanning, preview and access contracts |
 | L-86 Aggregate reporting, small-group disclosure and inference resistance | Approved — option B purpose-scoped aggregates, disclosure controls, query governance and server-enforced boundaries; implementation gated on cohort, suppression and test rules |
+| L-87 Device registration, endpoint trust and device-risk changes | Approved — option B risk-based supplemental device signals, explicit registration/revocation and no device-only authorization; implementation gated on platform, privacy and recovery controls |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
