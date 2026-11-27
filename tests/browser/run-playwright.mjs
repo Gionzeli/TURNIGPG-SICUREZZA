@@ -565,6 +565,30 @@ try {
   console.log("PASS — isolated composition demo startup failure: teardown and temporary IndexedDB deletion");
   await failedDemoPage.close();
 
+  const bridgePage = await browser.newPage();
+  const bridgeErrors = [];
+  const bridgeRequests = [];
+  bridgePage.on("pageerror", error => bridgeErrors.push(error.message));
+  bridgePage.on("request", request => bridgeRequests.push(request.url()));
+  await bridgePage.goto("http://127.0.0.1:8000/tests/browser/dsm-canonical-account-bridge.html", { waitUntil: "load" });
+  const bridgePolicy = await bridgePage.locator('meta[http-equiv="Content-Security-Policy"]').getAttribute("content");
+  assert.ok(bridgePolicy?.includes("default-src 'none'") &&
+    bridgePolicy.includes("connect-src 'none'") &&
+    bridgePolicy.includes("form-action 'none'"),
+    "La fixture account bridge non applica la CSP restrittiva.");
+  await bridgePage.waitForFunction(() => document.documentElement.dataset.bridgeResult === "complete", null, { timeout: 15000 });
+  assert.equal(bridgeErrors.length, 0, bridgeErrors.join("; "));
+  assert.ok(bridgeRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "Il test account bridge ha effettuato richieste esterne.");
+  const bridgeDbName = await bridgePage.evaluate(() => window.__bridgeDatabaseName);
+  assert.ok(bridgeDbName.startsWith("dsm-canonical-bridge-"));
+  const remainingBridgeDatabases = await bridgePage.evaluate(async () =>
+    (await indexedDB.databases()).map(database => database.name));
+  assert.ok(!remainingBridgeDatabases.includes(bridgeDbName),
+    "Il test account bridge ha lasciato un database IndexedDB temporaneo.");
+  console.log("PASS — canonical DSM account bridge: synthetic Firebase identity, server authorization adapter, account selection, fail-closed missing membership, teardown and no external requests");
+  await bridgePage.close();
+
   const migrationPage = await browser.newPage();
   const migrationErrors = [];
   const migrationRequests = [];
