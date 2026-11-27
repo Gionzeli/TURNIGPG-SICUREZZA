@@ -419,3 +419,50 @@ test("worker bases retry backoff on the failure time, not the batch start", asyn
   assert.equal(recorded[0].timestamp, 9000);
   assert.equal(recorded[0].nextAttemptAt, 129000);
 });
+
+
+test("worker timestamps cleanup acknowledgement after vault deletion completes", async () => {
+  let clock = 1000;
+  let completedAt = null;
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [ticket],
+      completeSecretCleanup: async input => { completedAt = input.timestamp; },
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => { clock = 7000; } },
+    alert: async () => {},
+    now: () => clock
+  });
+  const result = await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(result.completed, 1);
+  assert.equal(completedAt, 7000);
+});
+
+test("worker timestamps alert acknowledgement after notification completes", async () => {
+  let clock = 1000;
+  let deliveredAt = null;
+  const alertTicket = {
+    accountId: "synthetic-account", connectionId: "safe-connection",
+    status: "exhausted", alertStatus: "pending", attempts: 12,
+    lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
+  };
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [alertTicket],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async input => { deliveredAt = input.timestamp; }
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async () => { clock = 8000; },
+    now: () => clock
+  });
+  await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(deliveredAt, 8000);
+});
