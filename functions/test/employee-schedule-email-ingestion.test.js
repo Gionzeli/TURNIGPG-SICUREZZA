@@ -93,7 +93,7 @@ test("a PDF containing multiple collaborators is partitioned into separate perso
     }),
     loadEmployeeShifts: async ({ employeeId }) => [{
       accountId, employeeId, shiftId: "existing-" + employeeId,
-      date: "2026-06-02", type: "turno", post: "Old post",
+      date: "2026-06-02", type: "turno", post: employeeId === "employee-A" ? "Reception A" : "Reception B",
       start_time: "07:00", end_time: "13:00", hours: 6, revision: 1
     }],
     createEmployeeProposal: async input => {
