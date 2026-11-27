@@ -82,3 +82,26 @@ test('does not persist refreshed credentials when revocation invalidates the lea
  assert.equal(writes,0);
  assert.equal(releases,1);
 });
+
+test('fails closed on invalid or overflowing token lifecycle clocks before vault access', async () => {
+  for (const clock of [() => Number.NaN, () => -1, () => Number.MAX_SAFE_INTEGER]) {
+    let reads = 0, refreshes = 0, writes = 0;
+    const coordinator = createMailboxTokenLifecycleCoordinator({
+      vault: {
+        loadSecret: async () => { reads++; return expired; },
+        storeSecret: async () => { writes++; }
+      },
+      refreshService: { refresh: async () => { refreshes++; return {
+        accessToken: 'synthetic-new-access-token', refreshToken: 'synthetic-new-refresh-token', expiresInSeconds: 3600
+      }; } },
+      now: clock
+    });
+    await assert.rejects(() => coordinator.ensureFresh({
+      accountId: 'acct', connectionId: 'conn', provider: 'gmail_api', secretRef: 'opaque',
+      clientId: 'client-id-12345', clientSecret: 'secret'
+    }), { code: 'unavailable' });
+    assert.equal(reads, 0);
+    assert.equal(refreshes, 0);
+    assert.equal(writes, 0);
+  }
+});
