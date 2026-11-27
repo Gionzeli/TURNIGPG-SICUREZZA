@@ -562,3 +562,15 @@ clock again after the provider response before calculating or persisting a new
 expiry. Invalid or overflowing timestamps fail closed without writing rotated
 tokens. Synthetic regressions cover stale freshness decisions and a clock that
 becomes invalid during refresh.
+
+
+#### Token lifecycle scope isolation
+
+The token refresh coordinator now validates account and connection identifiers
+against the same bounded identifier alphabet used by the Firestore lease layer,
+and bounds opaque secret references before any vault access. Its in-process
+single-flight key uses an unambiguous tuple encoding. Concurrent calls for the
+same account/connection may share a result only when both the provider and
+secret reference match; conflicting credential scope is rejected rather than
+sharing a potentially unrelated access token. Synthetic tests cover malformed
+identifiers and concurrent secret-reference mismatch.
