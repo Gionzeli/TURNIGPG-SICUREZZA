@@ -44,7 +44,8 @@ export function createEmployeeShiftFirestoreAuthorization({ db, now = () => Date
         !Number.isSafeInteger(accountSnap.data().schemaVersion) || accountSnap.data().schemaVersion < 1 ||
         !Number.isSafeInteger(accountSnap.data().version) || accountSnap.data().version < 1 || !memberSnap.exists) deny();
     const principal = resolveCanonicalMembership({ uid: actorUid, accountId, membership: memberSnap.data(), nowMs: timestamp });
-    if (!principal || principal.role !== "member" || !bindingSnap.exists) deny();
+    if (!principal || principal.role !== "member" ||
+        !principal.permissions.includes(OPERATIONS[operation]) || !bindingSnap.exists) deny();
     const binding = bindingSnap.data();
     if (binding.accountId !== accountId || binding.uid !== actorUid || !validId(binding.employeeId) ||
         binding.status !== "active" || !Number.isSafeInteger(binding.revision) || binding.revision < 1) deny();
