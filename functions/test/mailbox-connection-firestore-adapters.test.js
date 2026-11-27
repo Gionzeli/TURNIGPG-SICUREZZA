@@ -386,6 +386,30 @@ test("exhausted cleanup alert is durably queued and acknowledged", async () => {
 });
 
 
+test("pending cleanup alert listing excludes malformed retry metadata", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
+    timestamp: input.timestamp + 1
+  });
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  const valid = docs.get(path);
+  docs.set(path, { ...valid, alertAttempts: "many" });
+  assert.deepEqual(await adapters.listPendingCleanupAlerts({ accountId: input.accountId }), []);
+  docs.set(path, { ...valid, alertNextAttemptAt: "send-now" });
+  assert.deepEqual(await adapters.listPendingCleanupAlerts({ accountId: input.accountId }), []);
+  docs.set(path, { ...valid, alertLastErrorCode: "provider error details" });
+  assert.deepEqual(await adapters.listPendingCleanupAlerts({ accountId: input.accountId }), []);
+});
+
 test("exhausted cleanup alert retries persist backoff and reject stale attempts", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
