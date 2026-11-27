@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
-const EMAIL = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;
+const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const STATUSES = new Set(["active", "revocation_pending", "revoked"]);
 const MODES = new Set(["personal", "shared"]);
 const PROVIDERS = new Set(["imap", "gmail_api", "microsoft_graph", "custom_api"]);
