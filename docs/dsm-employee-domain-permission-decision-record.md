@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-84 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-85 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2177,6 +2177,28 @@ Approved policy in principle:
 
 **Still required before implementation:** data-copy and processor inventory; disposition-state and tombstone contract; per-system deletion/anonymization capabilities; propagation objectives and retry/escalation policy; backup-restore suppression procedure; anonymization assessment; exception and legal-hold workflow; evidence/acknowledgement schema; and synthetic integration tests. This decision does not authorize deletion of real data, alteration of immutable logs, changes to backup retention or production activation.
 
+### L-85 — File attachments, upload processing and secure retrieval
+
+**Question:** How must employee-domain file attachments and uploaded documents be accepted, inspected, stored, accessed and disposed of so that malicious files, deceptive content types, public object exposure or unsafe previews cannot compromise users or disclose protected records?
+
+**Approved 2026-11-27 — option B (quarantined uploads, defense-in-depth inspection and per-request authorized retrieval), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat every uploaded file, filename, extension, MIME type, metadata, archive entry and embedded active content as untrusted. Client-side validation is only a usability aid and never a security boundary.
+- Require an explicit domain/action permission for upload, attachment, replacement, preview, download and deletion. Bind each object server-side to a canonical tenant, resource, owner, purpose, classification and retention rule; client-supplied paths and identifiers cannot establish authority.
+- Enforce strict size, count, rate, format and decompression limits. Reject unsupported, malformed, encrypted or suspicious containers according to a documented allowlist; defend against archive bombs, path traversal, polyglot files and parser exhaustion.
+- Verify actual file signatures and safely parse content in an isolated, least-privilege processing environment. Apply malware scanning and, where appropriate, content disarm/reconstruction; quarantine files until required checks complete. A clean scanner result does not itself establish that content is safe or authorized.
+- Store quarantined and approved objects outside executable web roots and public buckets, with private-by-default access, encryption, governed key access and separation between upload-processing and application workloads.
+- Prevent active content execution and unsafe inline rendering. Use safe download disposition, content-type enforcement, anti-sniffing controls and isolated preview/transformation services; never embed untrusted HTML, SVG, scripts or document macros in privileged application origins.
+- Authorize every preview and retrieval at request time using current actor, tenant, lifecycle, resource relationship, scope, purpose and field/document permission. Do not rely on an earlier page check, guessed object key, obscure URL or possession of a long-lived link.
+- If temporary download capabilities are unavoidable, use short-lived, narrowly scoped, non-enumerable tokens bound to the exact object and intended operation; prevent public listing, cross-tenant reuse, uncontrolled forwarding and access after revocation or expiry.
+- Apply replacement and deletion as governed lifecycle operations. Preserve required provenance and audit evidence while ensuring stale versions, thumbnails, extracted text, previews, caches and derived copies follow the approved retention/disposition policy.
+- Limit metadata and extracted text exposure. Do not place sensitive filenames, employee identifiers, document contents, credentials or signed URLs in analytics, logs, error messages or notifications.
+- Protect against cross-site request forgery, cross-origin leakage, unauthorized object reference, race conditions and confused-deputy behavior in upload completion, scanning callbacks, preview generation and retrieval.
+- Audit upload initiation, quarantine, inspection outcome, approval, access denial, preview/download, replacement, deletion and exceptional access with minimized metadata and server-generated timestamps.
+- Test synthetic benign, malformed and malicious samples; MIME/extension mismatch; polyglot and archive-bomb cases; oversized files; parser failures; cross-tenant object IDs; expired/revoked links; permission changes after upload; preview isolation; and deletion of derived artifacts.
+
+**Still required before implementation:** attachment domain inventory and classification; upload/retrieval permission matrix; file-type and resource limits; quarantine and scanning architecture; isolated parser/preview design; private object-storage policy; temporary-link contract; derived-artifact lifecycle; retention and deletion integration; audit taxonomy; and synthetic security tests. This decision does not authorize real employee document uploads, public storage, new storage providers or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2261,6 +2283,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-82 Bulk operations, batch authorization and partial-failure safety | Approved — option B scoped batch capabilities, per-item authorization, bounded execution and explicit partial outcomes; implementation gated on atomicity, limits, approvals and tests |
 | L-83 Inbound webhooks, callbacks and external event authenticity | Approved — option B authenticated, allowlisted and replay-resistant ingress with server-side domain authorization; implementation gated on provider contracts, key lifecycle and tests |
 | L-84 Deletion propagation, derived copies and verifiable disposition | Approved — option B centrally tracked disposition, dependency inventory, propagation controls and verifiable completion; implementation gated on system inventory, tombstone contract and tests |
+| L-85 File attachments, upload processing and secure retrieval | Approved — option B quarantined uploads, defense-in-depth inspection and per-request authorized retrieval; implementation gated on storage, scanning, preview and access contracts |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
