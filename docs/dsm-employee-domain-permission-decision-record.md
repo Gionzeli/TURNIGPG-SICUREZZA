@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-124 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-125 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -3095,6 +3095,31 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory all database observability and diagnostic sinks; define a reviewed telemetry allowlist and source-side redaction policy; configure production-safe defaults and role-scoped access; establish retention and exceptional diagnostic approval workflows; and produce reproducible synthetic leakage and access-control tests across the full telemetry pipeline. No real production logging change, raw-query capture, external processor connection or diagnostic privilege grant is authorized by this decision.
 
+### L-125 — Database availability, failover, disaster recovery and authorization-safe restoration
+
+**Question:** How should database high availability, failover, disaster recovery and restoration be governed so that continuity measures do not weaken tenant isolation, identity binding, lifecycle restrictions, revocation, data integrity or auditability?
+
+**Decision:** Approved — option B, use tested, environment-isolated recovery procedures with explicit integrity and authorization validation, controlled failover authority, and fail-closed behavior whenever the recovered security state cannot be established. This is a policy decision only.
+
+**Required controls:**
+- Define service criticality, recovery time objectives (RTO), recovery point objectives (RPO), acceptable data-loss windows and dependencies for each protected domain. Obtain business and security owner approval; do not assume one recovery target fits all data classes.
+- Maintain documented failure scenarios for primary database outage, regional/provider disruption, corruption, ransomware, compromised credentials or keys, accidental deletion, replication lag and loss of audit evidence.
+- Separate backup, replication, failover and restore identities from routine application and human accounts. Use least privilege, environment-specific credentials, protected key custody and independent approval for high-impact recovery actions.
+- Protect backups and recovery artifacts with encryption, integrity verification, restricted access, retention governance and separation from the primary failure domain. Ensure immutable or offline copies where justified by the threat model.
+- Treat replicated copies as potentially stale. Before failover, establish their recovery point, consistency and authorization-state freshness; do not serve sensitive employee data from a replica whose tenant, ownership, membership, lifecycle or revocation state is uncertain.
+- Define an explicit failover state machine and authority. Validate candidate targets, replication health, schema compatibility, key availability, tenant boundaries and audit continuity before routing production traffic; prevent split-brain writers and uncontrolled promotion of stale replicas.
+- On restoration, reconcile canonical user identities, UID↔Employee bindings, tenant membership, role/scope grants, suspensions, terminations, delegations, legal holds and revocations against trusted authoritative state. Do not restore historical permissions merely because they existed in a backup.
+- Preserve deny-by-default behavior during recovery. If authorization metadata, trusted time, key material, policy version or audit integrity cannot be verified, isolate the affected domain or keep protected operations unavailable until a controlled reconciliation succeeds.
+- Define recovery ordering for dependent services and schemas, including identity/authentication, authorization policy, database constraints, audit infrastructure, key services, application workloads and downstream feeds. Do not enable employee-facing reads/writes before required controls are healthy.
+- Require two-person approval or equivalent separation of duties for destructive restore, point-in-time rollback, region promotion, key recovery and any action that can alter authorization history or erase audit evidence.
+- Make recovery steps repeatable, version-controlled and attributable. Record selected restore point, operators, approvals, integrity checks, policy/version reconciliation, exceptions and final validation in protected evidence.
+- Test clean restore, partial restore, corrupted backup, stale replica, interrupted failover, split-brain prevention, key unavailability, revoked-user recovery, cross-tenant isolation, audit continuity and downstream reconciliation using synthetic data in isolated non-production environments.
+- Conduct periodic recovery exercises with measured RTO/RPO, documented findings, assigned remediation and retesting. A backup job reporting success is not evidence that the application can safely recover.
+- After an incident or exercise, reconcile changes made during degraded operation, identify data loss or duplicate effects, verify idempotency and authorization invariants, and obtain independent sign-off before restoring normal service.
+- Communicate service status without exposing employee records, security architecture details or recovery credentials. Keep incident, privacy and legal notification decisions within their separately governed workflows.
+
+**Implementation gates:** Inventory database and service dependencies, backup/replica topology, key custody, recovery identities and current restore procedures; approve domain-specific RTO/RPO and failover authority; define authorization-state reconciliation and split-brain controls; and produce reproducible synthetic recovery exercises with recorded integrity, isolation, revocation and audit checks. No real backup restore, failover, regional promotion, production recovery action or service activation is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3219,6 +3244,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-122 Database replication, read replicas and CDC feeds | Approved — option B separately governed, minimized and revocation-aware replication; implementation gated on feed inventory and synthetic lifecycle tests |
 | L-123 Database encryption boundaries and key custody | Approved — option B layered encryption, protected key use and field-level controls; implementation gated on inventory and synthetic cryptographic tests |
 | L-124 Database observability and sensitive diagnostic data | Approved — option B allowlisted telemetry, source-side redaction and audited diagnostic access; implementation gated on sink inventory and synthetic leakage tests |
+| L-125 Database availability, failover and recovery | Approved — option B tested recovery with authorization reconciliation and fail-closed restoration; implementation gated on topology inventory and synthetic exercises |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
