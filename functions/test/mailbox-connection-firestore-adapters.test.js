@@ -468,3 +468,36 @@ test("cleanup alert retry counter is not artificially capped at one thousand", a
   });
   assert.equal(docs.get(path).alertAttempts, 1001);
 });
+
+
+test("audit event identity is deterministic and repeated writes preserve first timestamp", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const event = {
+    accountId: active.accountId, actorUid: active.ownerUid,
+    action: "mailbox_connection_revoked", connectionId: active.connectionId,
+    mode: active.mode, provider: active.provider, timestamp: active.createdAt + 10
+  };
+  await adapters.writeAudit(event);
+  await adapters.writeAudit({ ...event, timestamp: event.timestamp + 5000 });
+  const entries = [...docs.entries()].filter(([path]) =>
+    path.includes("/mailboxConnectionAudit/"));
+  assert.equal(entries.length, 1);
+  assert.equal(entries[0][1].timestamp, event.timestamp);
+});
+
+test("deterministic audit identity rejects incompatible event contents", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const event = {
+    accountId: active.accountId, actorUid: active.ownerUid,
+    action: "mailbox_connection_revoked", connectionId: active.connectionId,
+    mode: active.mode, provider: active.provider, timestamp: active.createdAt + 10
+  };
+  await adapters.writeAudit(event);
+  await assert.rejects(adapters.writeAudit({
+    ...event, actorUid: "different-actor", timestamp: event.timestamp + 1
+  }), error => error.code === "failed-precondition");
+  assert.equal([...docs.keys()].filter(path =>
+    path.includes("/mailboxConnectionAudit/")).length, 1);
+});
