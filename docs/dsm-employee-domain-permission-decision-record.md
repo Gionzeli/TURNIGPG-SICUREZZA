@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-03 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-04 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -277,8 +277,24 @@ Approved policy in principle:
 
 **Still required before implementation:** define the maximum access duration, exact document types and fields, delivery/viewing method, identity re-verification, revocation and expiry behavior, retention/legal-hold handling, and synthetic negative tests. No post-termination self-service endpoint or document access is authorized until these details are approved.
 
+### L-04 — Reactivation after suspension or termination
+
+**Question:** What authorization process applies when an employee is reactivated?
+
+**Approved 2026-11-27 — option B (re-verify identity, employment relationship, placement and permissions; restore only newly approved permissions), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Reactivation does not automatically restore prior sessions, credentials, roles, delegated privileges, approvals, or access grants.
+- Before access is restored, the backend must re-verify the employee's identity binding, current employment relationship/lifecycle state, canonical account membership, and current site/department placement.
+- Each role, domain permission, organizational scope, and exceptional self-service grant must be explicitly re-authorized under the current policy; historical permissions are not authoritative.
+- Previously revoked credentials/sessions remain revoked. Reauthentication and fresh authorization are required.
+- Conflicting, duplicate, missing, or ambiguous bindings and lifecycle records fail closed; reactivation must not create a second Employee record merely to bypass prior history.
+- Historical records remain governed by their own retention and access rules; reactivation does not broaden historical access.
+
+**Still required before implementation:** define authorized actors and any dual-approval requirement, canonical reactivation state transition and effective timestamp, identity re-verification strength, binding conflict resolution, permission re-approval workflow, and synthetic tests for stale sessions and privilege non-restoration. No automatic permission restoration or reactivation endpoint is authorized until these details are approved.
+
 Other lifecycle decisions remain open and fail closed:
-- leave, termination and reactivation;
+- leave and other lifecycle transitions;
 - account/site/department archive and restoration;
 - binding revocation, reassignment and duplicate/conflicting bindings;
 - access to historical shifts, absences, profiles and payroll after termination or other lifecycle changes;
@@ -302,6 +318,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-01 Transfer and prior-manager historical access | Approved — option B limited to operational records within former assignment interval; implementation gated on temporal semantics and tests |
 | L-02 Suspension access | Approved — option B operational access revoked; narrowly necessary self-service only if separately authorized; implementation gated on status/revocation details |
 | L-03 Termination access | Approved — option B operational access revoked; temporary, limited personal document access only if separately authorized; implementation gated on duration/document allowlist/revocation |
+| L-04 Reactivation | Approved — option B re-verify identity, employment, placement and permissions; restore only newly approved permissions; implementation gated on transition/approval details and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
