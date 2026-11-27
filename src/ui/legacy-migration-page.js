@@ -38,6 +38,13 @@ export function mountLegacyMigrationPage(container) {
       node("p", "hint", "Il ponte con l'autenticazione Firebase e la verifica server-side delle appartenenze è predisposto nel codice. È disattivato in questa build: non viene contattato il progetto Firebase reale e non viene attivato alcun account.")
     );
   }
+  const inviteRoot = node("section", "card");
+  inviteRoot.id = "dsm-membership-invite-root";
+  if (window.TURNI_DSM_CANONICAL_AUTH_ENABLED === true) {
+    inviteRoot.append(node("p", "hint", "Inizializzazione gestione inviti DSM…"));
+  } else {
+    inviteRoot.append(node("h3", "", "Inviti collaboratori DSM"), node("p", "hint", "Gestione inviti predisposta ma disattivata insieme al collegamento Firebase. Non vengono effettuate chiamate remote."));
+  }
   const form = node("form", "card noprint");
   const label = node("label", "", "Seleziona un backup JSON dell'app");
   const file = node("input");
@@ -58,7 +65,7 @@ export function mountLegacyMigrationPage(container) {
   const results = node("section", "");
   results.setAttribute("aria-live", "polite");
   form.append(label, actions);
-  container.replaceChildren(heading, intro, privacy, bridge, form, status, results);
+  container.replaceChildren(heading, intro, privacy, bridge, inviteRoot, form, status, results);
 
   if (window.TURNI_DSM_CANONICAL_AUTH_ENABLED === true) {
     import("./dsm-canonical-account-bootstrap.js").catch(() => {
