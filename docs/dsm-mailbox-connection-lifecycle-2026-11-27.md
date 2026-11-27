@@ -260,3 +260,24 @@ to the worker: `nextAttemptAt` must be null or a positive safe integer, and
 `lastErrorCode` must be null or a bounded machine-code string. Malformed
 tickets are excluded from execution rather than treated as due. A synthetic
 adapter regression covers invalid scheduling and error-code fields.
+
+
+#### Cleanup worker adapter composition and account isolation
+
+The cleanup worker now receives the existing Firestore cleanup adapter and
+credential-vault adapter directly, rather than independent callback functions.
+Each invocation requires an explicit validated `accountId`; the pending query
+is scoped to that account, and a ticket whose embedded account does not match
+the invocation is skipped before vault access. The worker validates retry
+metadata again at its own boundary.
+
+Re-recording an existing cleanup request is now idempotent and does not
+increment retry attempts. Only a recorded worker failure advances the counter,
+so repeated revocation/setup recovery calls cannot consume the retry budget.
+Synthetic tests cover scoped adapter calls, cross-account ticket rejection,
+and idempotent ticket re-recording.
+
+This is still a callable worker primitive, not an activated schedule: a trusted
+scheduler must enumerate authorized account scopes and invoke bounded runs.
+No global account enumeration, scheduled trigger, Cloud Tasks queue, alert
+provider, or production adapter wiring is enabled.
