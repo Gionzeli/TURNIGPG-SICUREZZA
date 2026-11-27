@@ -74,7 +74,7 @@ export function createMailboxTokenFirestoreLeaseService({
         else transaction.create(ref, lease);
       });
     } catch (error) {
-      if (["lease-held", "invalid-argument", "unavailable"].includes(error?.code)) throw error;
+      if (["lease-held", "failed-precondition", "invalid-argument", "unavailable"].includes(error?.code)) throw error;
       throw leaseError("unavailable", "Mailbox lease acquisition failed.");
     }
     return lease;
