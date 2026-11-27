@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-100 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-101 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2532,6 +2532,28 @@ Approved policy in principle:
 
 **Implementation gates:** Produce a copy-and-media inventory, data-class retention schedule, disposition state machine, approval matrix, cryptographic-erasure design, backup restore reconciliation procedure, processor evidence contract, and reproducible verification tests. No real data deletion, key destruction, device sanitization, or production infrastructure change is authorized by this decision.
 
+### L-101 — Clipboard, screen capture and operating-system sharing controls
+
+**Question:** How must the application control secondary disclosure paths such as clipboard copying, screenshots, screen recording, operating-system share sheets, drag-and-drop, and handoff to other applications?
+
+**Decision:** Approved — option B, classify these paths as distinct disclosure channels, minimize sensitive content exposed to them, and apply explicit, proportionate controls based on data classification and device capabilities. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Inventory copy, cut, paste, clipboard APIs, context menus, drag-and-drop, screenshots, screen recording, browser sharing, OS share sheets, accessibility extraction, and inter-application handoff for each supported platform.
+- Define permitted actions by data class, domain, actor, purpose, and device context; do not assume that hiding a UI control or disabling a browser shortcut enforces a security boundary.
+- Minimize the data rendered into the DOM and accessibility tree; avoid placing secrets, tokens, full employee records, or unnecessary sensitive fields in hidden elements, attributes, page titles, or client state.
+- Where platform APIs support reliable controls, restrict copying or sharing of specifically classified sensitive fields and provide a clear explanation; where controls cannot be enforced, treat the endpoint as an untrusted disclosure surface and minimize exposure.
+- Never copy credentials, session tokens, authorization headers, or hidden security metadata to the clipboard; use short-lived, purpose-bound sharing mechanisms instead of copying privileged URLs.
+- For any approved share/export handoff, reauthorize server-side, disclose the exact recipient and fields, require explicit user confirmation, and apply expiry, revocation, and audit controls where technically supported.
+- Prevent sensitive data from entering third-party keyboards, clipboard managers, analytics, crash reports, or OS share targets without a reviewed purpose and provider authorization.
+- Clear application-controlled clipboard content after a bounded interval only where platform behavior and user expectations permit; do not claim control over clipboard history, synced clipboards, screenshots, or external applications that the platform does not expose.
+- Provide secure masking and reveal-on-demand for highly sensitive values, without treating masking as a substitute for authorization; ensure revealed values are not retained unnecessarily in client state.
+- Define safeguards for shared and managed devices, including screen lock, session expiry, rapid reauthentication, and user guidance for public or unattended displays.
+- Record only minimized audit metadata for authorized share actions; do not log copied values, screenshot content, or clipboard contents.
+- Test copy/paste, clipboard persistence and synchronization, screen capture, screen recording, OS share targets, accessibility exposure, stale permissions, and cross-account leakage on a documented platform matrix using synthetic records.
+
+**Implementation gates:** Establish a data-class-to-disclosure-channel matrix; inventory platform and browser capabilities and limitations; define supported managed-device controls and user disclosures; implement server-authorized share workflows where needed; and provide reproducible tests for each supported platform. No device-management policy, OS-level restriction, or production sharing integration is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2632,6 +2654,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-98 Safe document preview, rendering and active-content isolation | Approved — option B isolated rendering, format allowlists, bounded processing and per-request authorization; implementation gated on sandbox, parser inventory, lifecycle and tests |
 | L-99 Secure printing, print queues and physical document handling | Approved — option B separate print authorization, minimized output, controlled release and auditable lifecycle; implementation gated on printer inventory, job controls and tests |
 | L-100 Secure data disposal, media sanitization and end-of-life asset handling | Approved — option B governed, evidence-backed disposition across copies and media; implementation gated on inventory, retention, restore reconciliation and verification tests |
+| L-101 Clipboard, screen capture and operating-system sharing controls | Approved — option B classify disclosure channels, minimize sensitive exposure and enforce only platform-supported controls; implementation gated on platform matrix and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
