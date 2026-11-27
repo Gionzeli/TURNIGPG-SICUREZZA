@@ -102,7 +102,9 @@ test("worker rejects cross-account tickets before calling the vault", async () =
         { ...ticket, accountId: "different-account" }
       ],
       completeSecretCleanup: async () => {},
-      recordSecretCleanupFailure: async () => {}
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [],
+      markCleanupAlertDelivered: async () => {}
     },
     credentialVault: { revokeSecret: async () => { revoked++; } },
     alert: async () => {}, now: () => 1000
@@ -132,4 +134,38 @@ test("worker does not alert exhaustion until the exhausted state is durably reco
     scanned: 1, completed: 0, deferred: 1, exhausted: 0
   });
   assert.equal(alerts.length, 0);
+});
+
+
+test("worker retries failed exhaustion alert delivery on a later invocation", async () => {
+  let alertStatus = "pending";
+  let attempts = 12;
+  let calls = 0;
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async ({ accountId }) => alertStatus === "pending"
+        ? [{ accountId, connectionId: "exhausted-connection", status: "exhausted",
+            alertStatus, attempts, lastErrorCode: "unavailable" }]
+        : [],
+      markCleanupAlertDelivered: async () => { alertStatus = "delivered"; }
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async input => {
+      calls++;
+      assert.equal(input.alertId, "synthetic-account:exhausted-connection:cleanup-exhausted");
+      if (calls === 1) throw Object.assign(new Error("alert transport unavailable"), { code: "unavailable" });
+    },
+    now: () => 2000
+  });
+  const first = await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(first.scanned, 0);
+  assert.equal(alertStatus, "pending");
+  await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(calls, 2);
+  assert.equal(alertStatus, "delivered");
+  await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(calls, 2, "delivered alert is not sent again");
 });
