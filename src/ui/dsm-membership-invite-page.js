@@ -18,9 +18,9 @@ function field(labelText, type, value = "") {
 
 /** User-facing invitation controls. Authorization remains exclusively server-side. */
 export function mountDSMMembershipInvitePage(container, {
-  auth, proposeInvite, approveInvite, claimInvite
+  auth, onAuthStateChanged, proposeInvite, approveInvite, claimInvite
 } = {}) {
-  if (!container || !auth || typeof proposeInvite !== "function" ||
+  if (!container || !auth || typeof onAuthStateChanged !== "function" || typeof proposeInvite !== "function" ||
       typeof approveInvite !== "function" || typeof claimInvite !== "function") {
     throw new TypeError("Configurazione inviti DSM non valida.");
   }
@@ -56,7 +56,7 @@ export function mountDSMMembershipInvitePage(container, {
   const claim = element("button", "pri", "Riscatta invito");
   claim.type = "button";
   const claimForm = element("section", "card");
-  claimForm.append(element("h4", "", "Collaboratore"), account.label.cloneNode(true), claimCode.label, claim);
+  claimForm.append(element("h4", "", "Collaboratore"), claimCode.label, claim);
 
   container.replaceChildren(heading, explanation, adminForm, claimForm, status);
   let disposed = false;
@@ -98,12 +98,14 @@ export function mountDSMMembershipInvitePage(container, {
   propose.addEventListener("click", onPropose);
   approve.addEventListener("click", onApprove);
   claim.addEventListener("click", onClaim);
+  const unsubscribeAuth = onAuthStateChanged(auth, () => setBusy(false), () => setBusy(true));
   setBusy(false);
 
   return Object.freeze({
     destroy() {
       if (disposed) return;
       disposed = true;
+      unsubscribeAuth?.();
       propose.removeEventListener("click", onPropose);
       approve.removeEventListener("click", onApprove);
       claim.removeEventListener("click", onClaim);
