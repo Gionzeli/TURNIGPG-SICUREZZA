@@ -600,3 +600,15 @@ ticket reads apply the same check. This prevents malformed or cross-connection
 references from entering the durable deletion queue through another trusted
 server call path. Regression tests cover cross-scope metadata and cleanup
 tickets, plus malformed references.
+
+
+#### Cleanup worker independently validates ticket scope
+
+The retry worker now validates the exact credential-reference format and checks
+that its embedded account and connection identifiers match the requested run
+scope and ticket before consulting the revocation gate or calling the vault.
+This duplicates the Firestore adapter's boundary check intentionally: the
+worker may also be composed with other trusted adapters, so a malformed or
+cross-connection ticket must never trigger deletion merely because an adapter
+returned it. Synthetic regression tests verify both malformed and mismatched
+references are deferred with no vault side effect.
