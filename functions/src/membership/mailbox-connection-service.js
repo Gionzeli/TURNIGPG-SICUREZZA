@@ -158,11 +158,19 @@ export function createMailboxConnectionService({
         accountId, connectionId, secretRef: connection.credentialSecretRef,
         reason: "connection_revoked"
       });
-      const revoked = { ...pending, status: "revoked", credentialSecretRef: null, revokedAt: timestamp };
+      // Record revocation completion only after the refresh gate and vault
+      // cleanup have both completed; long-running deletion must not produce a
+      // misleading earlier revokedAt timestamp.
+      const completedAt = now();
+      const revoked = {
+        ...pending, status: "revoked", credentialSecretRef: null,
+        updatedAt: completedAt, revokedAt: completedAt
+      };
       await saveConnection({ accountId, connectionId, connection: revoked });
       await writeAudit({
         accountId, actorUid: principal.uid, action: "mailbox_connection_revoked",
-        connectionId, mode: connection.mode, provider: connection.provider, timestamp
+        connectionId, mode: connection.mode, provider: connection.provider,
+        timestamp: completedAt
       });
       return { connectionId, status: "revoked" };
     }
