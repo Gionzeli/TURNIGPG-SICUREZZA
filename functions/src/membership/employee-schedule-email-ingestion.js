@@ -22,10 +22,13 @@ function normalizedEmail(value) {
   const email = value.trim().toLowerCase();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : null;
 }
-function normalizeShift(input) {
+function normalizeShift(input, { existing = false } = {}) {
   if (!input || typeof input !== "object" || Array.isArray(input) ||
       Object.keys(input).some(key => !SHIFT_FIELDS.has(key))) fail("invalid-argument", "Unsupported parsed shift fields.");
   if (!validDate(input.date) || !TYPES.has(input.type)) fail("invalid-argument", "Parsed shift has an invalid date or type.");
+  if (!existing && ["post", "start_time", "end_time", "hours"].some(key => !Object.hasOwn(input, key))) {
+    fail("invalid-argument", "Parsed shift must explicitly include post, start/end times and hours.");
+  }
   const post = input.post ?? "";
   const start_time = input.start_time ?? "";
   const end_time = input.end_time ?? "";
@@ -40,6 +43,7 @@ function normalizeShift(input) {
   }
   const result = { date: input.date, type: input.type, post, start_time, end_time, hours };
   for (const key of ["is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"]) {
+    if (!existing && !Object.hasOwn(input, key)) continue;
     const value = input[key] ?? false;
     if (typeof value !== "boolean") fail("invalid-argument", "Parsed shift contains an invalid flag.");
     result[key] = value;
@@ -50,8 +54,7 @@ function shiftKey(shift) {
   return [shift.date, shift.post.toLowerCase(), shift.start_time, shift.end_time].join("|");
 }
 function sameShift(a, b) {
-  return [...SHIFT_FIELDS].every(key => (a[key] ?? (key === "post" ? "" : key === "hours" ? 0 : false)) ===
-    (b[key] ?? (key === "post" ? "" : key === "hours" ? 0 : false)));
+  return Object.keys(a).every(key => a[key] === b[key]);
 }
 function buildChanges(incoming, existing) {
   const existingRows = existing.map(row => ({ ...row }));
@@ -91,7 +94,7 @@ function buildChanges(incoming, existing) {
     used.add(match.shiftId);
     if (sameShift(shift, match)) continue;
     const fields = {};
-    for (const key of SHIFT_FIELDS) {
+    for (const key of Object.keys(shift)) {
       if (key === "date") continue;
       const oldValue = match[key] ?? (key === "post" ? "" : key === "hours" ? 0 : false);
       const newValue = shift[key] ?? (key === "post" ? "" : key === "hours" ? 0 : false);
@@ -242,7 +245,7 @@ export function createEmployeeScheduleEmailIngestion({
                 const fields = Object.fromEntries([...SHIFT_FIELDS].filter(key => Object.hasOwn(row, key)).map(key => [key, row[key]]));
                 return {
                   ...normalizeShift({ ...fields, post: fields.post ?? "", start_time: fields.start_time ?? "",
-                    end_time: fields.end_time ?? "", hours: fields.hours ?? 0 }),
+                    end_time: fields.end_time ?? "", hours: fields.hours ?? 0 }, { existing: true }),
                   accountId, employeeId: employee.employeeId, shiftId: row.shiftId, revision: row.revision
                 };
               });
