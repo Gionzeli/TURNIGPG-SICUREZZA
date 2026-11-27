@@ -172,6 +172,11 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
       error => error.code === "failed-precondition",
       "an email proposal without verified provenance must not be approved"
     );
+    await assert.rejects(
+      handlers.rejectOwnProposal(proposalRequest({ accountId, proposalId: unverifiedEmailProposalId })),
+      error => error.code === "failed-precondition",
+      "an email proposal without verified provenance must not be decided"
+    );
     const verifiedEmailProposalId = "synthetic-verified-email";
     await db.doc(`accounts/${accountId}/employeeShiftProposals/${verifiedEmailProposalId}`).set({
       proposalId: verifiedEmailProposalId, accountId, employeeId, proposerUid: uid,
