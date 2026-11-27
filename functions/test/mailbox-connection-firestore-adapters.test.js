@@ -123,3 +123,16 @@ test("audit records are immutable creates and contain no credential material", a
   assert.equal(audit[1].action, "mailbox_connection_created");
   assert.equal(Object.hasOwn(audit[1], "credentialSecretRef"), false);
 });
+
+test("email validation rejects whitespace and malformed sender addresses", async () => {
+  const { db } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  await assert.rejects(adapters.saveConnection({
+    accountId: active.accountId, connectionId: active.connectionId,
+    connection: { ...active, mailboxAddress: "bad address@example.invalid" }
+  }), error => error.code === "invalid-argument");
+  await assert.rejects(adapters.saveConnection({
+    accountId: active.accountId, connectionId: active.connectionId,
+    connection: { ...active, allowedSenders: ["turni@azienda.example\nattacker"] }
+  }), error => error.code === "invalid-argument");
+});
