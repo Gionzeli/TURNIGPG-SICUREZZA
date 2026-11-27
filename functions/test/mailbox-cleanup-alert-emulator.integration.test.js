@@ -58,3 +58,57 @@ test('Firestore Emulator durably queues and acknowledges exhausted cleanup alert
     await deleteApp(app);
   }
 });
+
+
+test('Firestore Emulator prevents a stale alert retry from reopening a delivered notification', {
+  skip: !emulatorAvailable
+}, async () => {
+  const projectId = process.env.GCLOUD_PROJECT || 'demo-dsm-mailbox';
+  const app = initializeApp({ projectId }, 'mailbox-cleanup-alert-race-' + process.pid);
+  const db = getFirestore(app);
+  const suffix = process.pid + '-' + Date.now();
+  const accountId = 'it_account_' + suffix;
+  const connectionId = 'it_connection_' + suffix;
+  const ref = db.doc('accounts/' + accountId + '/mailboxCredentialCleanup/' + connectionId);
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const secretRef = 'vault://synthetic/' + suffix;
+  const timestamp = Date.now();
+
+  try {
+    await adapters.recordSecretCleanup({
+      accountId, connectionId, secretRef, reason: 'connection_revoked', timestamp
+    });
+    await adapters.recordSecretCleanupFailure({
+      accountId, connectionId, secretRef, attempts: 12, nextAttemptAt: null,
+      lastErrorCode: 'unavailable', timestamp: timestamp + 1
+    });
+
+    await adapters.markCleanupAlertDelivered({
+      accountId, connectionId, timestamp: timestamp + 2
+    });
+    // A delayed worker from an earlier delivery attempt must not turn a
+    // delivered alert back into a pending retry.
+    await assert.rejects(
+      adapters.recordCleanupAlertFailure({
+        accountId, connectionId, attempts: 1,
+        nextAttemptAt: timestamp + 60000,
+        lastErrorCode: 'unavailable', timestamp: timestamp + 3
+      }),
+      error => error.code === 'failed-precondition'
+    );
+    // A repeated acknowledgement is safe and does not rewrite delivery time.
+    await adapters.markCleanupAlertDelivered({
+      accountId, connectionId, timestamp: timestamp + 4
+    });
+
+    const stored = (await ref.get()).data();
+    assert.equal(stored.alertStatus, 'delivered');
+    assert.equal(stored.alertDeliveredAt, timestamp + 2);
+    assert.equal(stored.alertAttempts, 0);
+    assert.equal(stored.alertNextAttemptAt, null);
+    assert.deepEqual(await adapters.listPendingCleanupAlerts({ accountId }), []);
+  } finally {
+    await ref.delete();
+    await deleteApp(app);
+  }
+});
