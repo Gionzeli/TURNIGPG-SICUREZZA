@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-75 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-76 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1996,6 +1996,26 @@ Approved policy in principle:
 
 **Still required before implementation:** tenant identity and hierarchy schema; authorized onboarding and boundary-change approver matrix; record-category ownership and legal review; migration inventory and per-resource mapping format; identity/membership revalidation workflow; concurrency, freeze, cutover and rollback design; integration/key rotation plan; retention and hold reconciliation; reconciliation evidence and acceptance criteria; and synthetic Emulator tests across all affected domains. This decision does not declare legal succession, authorize a real tenant merger or split, move real employee data, grant cross-tenant access, or approve production activation.
 
+### L-76 — Data subject identity matching and duplicate employee-record resolution
+
+**Question:** How should possible duplicate employee records, identity mismatches and conflicting person-to-account links be detected and resolved without merging different people, exposing records or transferring permissions on the basis of weak identifiers?
+
+**Approved 2026-11-27 — option B (verified, human-reviewed identity resolution with quarantined ambiguity and no automatic record merge), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat person identity, employee record, authentication account, UID binding, employment relationship and organizational membership as separate concepts with independently governed identifiers and lifecycle states. Similar names, email addresses, phone numbers, tax identifiers supplied by a client or matching profile attributes do not by themselves prove that two records belong to the same person.
+- Detect potential duplicates through controlled backend reconciliation using approved authoritative attributes, provenance and confidence rules. Keep candidate matching distinct from confirmed identity; never expose candidate records to an ordinary user or grant access based on a probabilistic match.
+- Quarantine ambiguous or conflicting bindings from sensitive operations. Fail closed for self-service, payroll, absence, manager scope, provisioning, account recovery and export until the identity and ownership conflict is resolved by an authorized workflow.
+- Require independent identity evidence appropriate to the risk and source authority, with human review by designated personnel. High-impact resolution must use separation of duties; the requester or record creator cannot be the sole approver of a merge or binding correction.
+- Before any merge, split, reassignment or correction, preview all affected accounts, employee records, UID bindings, historical assignments, shifts, approvals, payroll references, absence records, documents, audit evidence, legal holds, integrations and pending workflows. Identify the authoritative surviving record and field-level source precedence explicitly.
+- Preserve original identifiers, provenance, source values, historical relationships and a reversible linkage history. Do not destructively merge records, overwrite conflicting fields, delete the losing record or rewrite audit evidence as a side effect of identity resolution.
+- Change canonical UID↔Employee bindings only through the separately approved binding workflow, including verification, two-person approval, conflict checks, immediate revocation of obsolete bindings and atomic enforcement. Never copy credentials, sessions, MFA factors, recovery methods, delegations or grants between accounts.
+- Revalidate employment, tenant, organizational placement, role and current authorization after resolution. A corrected identity does not automatically confer prior manager scope, payroll access, historical access or any other permission.
+- Notify only the minimum authorized parties needed to resolve the conflict. Do not disclose another person's account existence, contact details, employee history or sensitive records to a candidate match or an unverified requester.
+- Record evidence references, decision rationale, approvers, changed bindings, retained source records and reconciliation outcomes in protected audit logs, minimizing personal data in the audit payload. Provide a dispute and correction route for affected individuals under the governed privacy-request process.
+- Test synthetic cases for same-name employees, recycled email addresses, shared contact details, duplicate imports, conflicting UID bindings, mistaken merge requests, split corrections, stale sessions, payroll cross-linking, tenant boundary violations, concurrent resolution and attempted permission inheritance.
+
+**Still required before implementation:** authoritative identity-source catalogue and precedence; approved matching attributes and confidence thresholds; quarantine behavior; reviewer and independent-approver matrix; evidence and dispute workflow; field-level merge/split policy; canonical binding transaction and revocation design; provenance and reversibility schema; notification/privacy controls; and synthetic Emulator tests for false positives, false negatives, conflicts and cross-tenant cases. This decision does not authorize biometric matching, automated identity merges, bulk reconciliation of real employee data, changes to real UID bindings, or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2071,6 +2091,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-73 Audit evidence access, disclosure and evidentiary export | Approved — option B purpose-bound read-only evidence access and controlled disclosure; implementation gated on evidence scope, redaction, custody, recipient and test controls |
 | L-74 Tenant and organizational-boundary isolation | Approved — option B canonical server-derived tenant context and deny-by-default isolation; implementation gated on ownership schema, complete path inventory, revocation and cross-tenant tests |
 | L-75 Tenant onboarding, mergers, splits and boundary changes | Approved — option B staged, independently approved transitions with provenance and fail-closed cutover; implementation gated on ownership mapping, legal review, reconciliation and recovery tests |
+| L-76 Employee identity matching and duplicate-record resolution | Approved — option B verified human review, quarantine of ambiguity and no automatic merge; implementation gated on authoritative sources, binding workflow, provenance and false-match tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
