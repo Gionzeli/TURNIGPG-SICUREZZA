@@ -201,7 +201,16 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
         const proposal = proposalSnap.data();
         if (proposal.accountId !== accountId || proposal.employeeId !== principal.employeeId ||
             proposal.proposerUid !== identity.uid) fail("permission-denied", "Proposal does not belong to this employee.");
-        if (proposal.status !== "pending" || proposal.source !== "employee_manual") fail("failed-precondition", "Only pending employee-entered proposals can be approved.");
+        const verifiedEmployerProposal = proposal.source === "employer_email" &&
+          proposal.sourceVerified === true && validId(proposal.ingestionJobId) &&
+          typeof proposal.attachmentSha256 === "string" && /^[a-f0-9]{64}$/.test(proposal.attachmentSha256) &&
+          Number.isSafeInteger(proposal.receivedAt) && proposal.receivedAt > 0 &&
+          typeof proposal.sender === "string" && proposal.sender.length <= 254 &&
+          /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(proposal.sender);
+        if (proposal.status !== "pending" ||
+            (proposal.source !== "employee_manual" && !verifiedEmployerProposal)) {
+          fail("failed-precondition", "Only pending employee-entered or verified employer-email proposals can be approved.");
+        }
         if (decisionSnap.exists) fail("already-exists", "Proposal decision already exists.");
         const changes = validateProposalChanges(proposal.changes);
         const timestamp = now();
