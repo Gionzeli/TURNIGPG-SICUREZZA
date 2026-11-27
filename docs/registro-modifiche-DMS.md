@@ -534,3 +534,10 @@ Collegati cinque endpoint callable per creazione sede/reparto, archiviazione sed
 - La query di dipendenze placement per archiviazione reparto è ora tenant-scoped su accountId + departmentId; aggiunto indice composito collection-group dedicato, evitando scansioni di placement appartenenti ad altri account.
 
 - Aggiornato health metadata per distinguere le callable organizzative protette già implementate dalle API dati Employee ancora non esposte; uniformato il messaggio di errore interno generico per tutte le callable.
+
+
+## 2026-11-27 — API turni Employee self-service protette
+
+Aggiunti adapter Firestore transazionali e callable per lettura, creazione, modifica ed eliminazione dei soli turni del dipendente autenticato. Ogni richiesta verifica token Firebase con controllo revoca e ricarica account, membership effective-dated, binding UID↔Employee bidirezionale, Employee/control e placement storico canonico; per operazioni ordinarie richiede anche sede/reparto attivi. UID deriva dal token; employeeId e contesto organizzativo non sono accettati dal client. Gli ID dei nuovi turni e audit sono server-generated; update/delete usano expectedRevision e data immutabile; audit delle mutazioni è atomico. La lettura restituisce DTO allowlist limitato a 200 record.
+
+La policy è volutamente self-only: manager/admin non hanno accesso delegato ai turni, poiché i permessi operation-specific delegati non sono ancora definiti. Payroll e assenze restano non esposti. Aggiunto documento `docs/dsm-employee-shift-api-policy.md`. CI Emulator sul nuovo SHA da verificare; nessun deploy, Rules operative, migrazione, dati reali, merge o modifica a `main`.

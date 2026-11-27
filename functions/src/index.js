@@ -6,10 +6,16 @@ import { verifyIdentity } from "./auth/verify-identity.js";
 import { resolveCanonicalMembership } from "./membership/membership-policy.js";
 import { createEmployeeProvisioningHandlers } from "./membership/employee-provisioning-callable-handlers.js";
 import { createOrganizationCallableHandlers } from "./membership/organization-callable-handlers.js";
+import { createEmployeeShiftCallableHandlers } from "./membership/employee-shift-callable-handlers.js";
 
 initializeApp();
 
 const organization = createOrganizationCallableHandlers({
+  db: getFirestore(),
+  verifyToken: (token, checkRevoked) => getAuth().verifyIdToken(token, checkRevoked)
+});
+
+const employeeShifts = createEmployeeShiftCallableHandlers({
   db: getFirestore(),
   verifyToken: (token, checkRevoked) => getAuth().verifyIdToken(token, checkRevoked)
 });
@@ -26,7 +32,7 @@ function callableError(error) {
   ]);
   if (error instanceof HttpsError) return error;
   if (allowed.has(error?.code)) return new HttpsError(error.code, error.message);
-  return new HttpsError("internal", "Employee provisioning operation failed.");
+  return new HttpsError("internal", "Protected operation failed.");
 }
 
 export const health = onCall(async () => ({
@@ -36,7 +42,10 @@ export const health = onCall(async () => ({
   organizationMutationCallablesImplemented: true,
   organizationMutationAuthorizationImplemented: true,
   protectedEmployeeDataApisImplemented: false,
-  employeeDomainAuthorizationImplemented: false,
+  protectedEmployeeShiftApisImplemented: true,
+  employeeShiftSelfAuthorizationImplemented: true,
+  employeeDelegatedShiftAuthorizationImplemented: false,
+  employeeDomainAuthorizationImplemented: true,
   bootstrapImplemented: false,
   employeeProvisioningCallablesImplemented: true
 }));
@@ -113,5 +122,22 @@ export const archiveOrganizationSite = onCall(async request => {
 });
 export const transferOrganizationDepartment = onCall(async request => {
   try { return await organization.transferDepartment(request); }
+  catch (error) { throw callableError(error); }
+});
+
+export const listOwnEmployeeShifts = onCall(async request => {
+  try { return await employeeShifts.listOwn(request); }
+  catch (error) { throw callableError(error); }
+});
+export const createOwnEmployeeShift = onCall(async request => {
+  try { return await employeeShifts.create(request); }
+  catch (error) { throw callableError(error); }
+});
+export const updateOwnEmployeeShift = onCall(async request => {
+  try { return await employeeShifts.update(request); }
+  catch (error) { throw callableError(error); }
+});
+export const deleteOwnEmployeeShift = onCall(async request => {
+  try { return await employeeShifts.delete(request); }
   catch (error) { throw callableError(error); }
 });
