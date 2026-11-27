@@ -297,3 +297,53 @@ test("worker skips an oversized alert batch without sending notifications", asyn
   });
   assert.equal(alertCalls, 0);
 });
+
+
+test("worker rejects duplicate cleanup tickets before any vault side effect", async () => {
+  let vaultCalls = 0;
+  const duplicate = { ...ticket };
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [ticket, duplicate],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => { vaultCalls++; } },
+    alert: async () => {},
+    now: () => 1000
+  });
+  await assert.rejects(
+    worker.runOnce({ accountId: "synthetic-account" }),
+    error => error.code === "failed-precondition"
+  );
+  assert.equal(vaultCalls, 0);
+});
+
+test("worker does not send duplicate alert tickets from a malformed adapter batch", async () => {
+  let alertCalls = 0;
+  const alertTicket = {
+    accountId: "synthetic-account", connectionId: "same-connection",
+    status: "exhausted", alertStatus: "pending", attempts: 12,
+    lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
+  };
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [alertTicket, { ...alertTicket }],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async () => { alertCalls++; },
+    now: () => 1000
+  });
+  assert.deepEqual(await worker.runOnce({ accountId: "synthetic-account" }), {
+    scanned: 0, completed: 0, deferred: 0, exhausted: 0
+  });
+  assert.equal(alertCalls, 0);
+});
