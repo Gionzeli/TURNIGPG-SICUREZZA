@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-33 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-34 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -950,6 +950,30 @@ Approved policy in principle:
 
 **Still required before implementation:** perform business impact and dependency analysis; assign recovery owners; define and approve RTO/RPO; specify backup architecture, encryption/key custody, isolation, retention and access; define recovery validation and failback steps; establish exercise schedule and evidence; and add synthetic tests for backup failure, corrupted restores, stale authorization, identity/session revocation, data reconciliation and compromised recovery scenarios. This approval does not authorize production backups, Firebase changes, failover, restore or deployment.
 
+### L-34 — Third-party integrations and external service access
+
+**Question:** How should external integrations, vendors, APIs and data processors be admitted and governed?
+
+Possible choices:
+- **A. Convenience-first integration:** connect services with minimal review and broad default permissions.
+- **B. Risk-reviewed integration governance:** evaluate purpose, data scope, provider risk, permissions, credentials, contract/privacy considerations, monitoring and offboarding before approval.
+- **C. Prohibit all external integrations:** no external service may be connected under any circumstances.
+
+**Approved 2026-11-27 — option B (risk-reviewed, least-privilege integration governance), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Maintain an inventory of external services, providers, integrations, API endpoints, data flows, owners, purpose, permission scopes, environments and lifecycle status.
+- Review security, privacy, contractual and operational risks before enabling an integration. Assess provider access, subprocessors where relevant, data residency/retention, incident notification, availability, authentication, auditability, and exit/deletion options.
+- Limit data shared to the minimum necessary for an explicitly approved purpose. Do not send employee data, payroll, health/absence details, credentials, secrets or audit data to external services without specific authorization, necessity and safeguards.
+- Use dedicated integration identities and narrowly scoped credentials; store secrets in an approved secret-management system, rotate/revoke them, and never embed credentials in source, client code, logs or test fixtures.
+- Require controlled review of scopes, callback URLs, webhook authenticity, signature/secret validation, replay protections, rate limits, schema validation and error handling. Treat external responses and payloads as untrusted input.
+- Separate integration credentials and data across environments; use synthetic fixtures in tests. Do not allow external providers to gain implicit access to internal authorization, employee identity or lifecycle controls.
+- Monitor integration access, errors, unusual activity, permission changes and provider incidents. Keep minimized, protected audit evidence and defined incident escalation.
+- Define ownership, periodic access review, renewal, revocation, offboarding and data deletion/return obligations. Disable unused or unapproved integrations and revoke associated secrets promptly.
+- Require a documented exception approval, scope, expiry and compensating controls for any deviation from these requirements.
+
+**Still required before implementation:** complete integration/provider inventory; assign service owners; perform security and privacy reviews; define approved data flows, scopes, contracts and retention; select authentication and webhook protections; set monitoring and review cadence; define offboarding and credential revocation; and add synthetic tests for malicious payloads, credential compromise, replay, excessive scope and provider outage. This approval does not authorize any third-party integration, external data transfer or real provider connection.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -994,6 +1018,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-31 Vulnerability management and security updates | Approved — option B documented intake, risk-based triage, tracked remediation, verified fixes and controlled updates; implementation gated on ownership, SLAs, inventory, tooling and tests |
 | L-32 Privacy requests and personal-data rights | Approved — option B verified, scoped and tracked workflow with authority checks, retention/legal-hold review, controlled actions and recorded outcomes; implementation gated on privacy ownership, data mapping, procedures and tests |
 | L-33 Business continuity and incident recovery | Approved — option B planned continuity, domain-specific RTO/RPO, protected backups, tested restores and integrity/authorization validation; implementation gated on impact analysis, architecture, owners and exercises |
+| L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
