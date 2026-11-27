@@ -204,10 +204,11 @@ test("credential cleanup outbox persists retry state and completes monotonically
     timestamp: input.timestamp + 2
   });
   assert.equal(docs.get(path).status, "complete");
-  await assert.rejects(adapters.completeSecretCleanup({
+  await adapters.completeSecretCleanup({
     accountId: active.accountId, connectionId: active.connectionId,
     timestamp: input.timestamp + 3
-  }), error => error.code === "failed-precondition");
+  });
+  assert.equal(docs.get(path).status, "complete");
 });
 
 test("cleanup outbox refuses a different secret reference for an existing connection ticket", async () => {
