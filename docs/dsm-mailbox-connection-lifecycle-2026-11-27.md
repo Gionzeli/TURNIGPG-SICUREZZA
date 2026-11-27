@@ -59,3 +59,7 @@ This is not a provider integration: redirect URI validation, OAuth client config
 ## Firestore OAuth transaction storage (server-only, synthetic tests)
 
 A concrete Admin-SDK adapter for the PKCE transaction store now uses a Firestore transaction to read and delete a state-hash document atomically. Document IDs are SHA-256 state hashes; raw OAuth state is never persisted. The adapter validates record shape, provider allowlist, verifier format, and the fixed ten-minute lifetime. Expired/malformed transactions are deleted on consumption and fail closed. This adapter is not wired to Firebase or a callable; provider callback and configuration remain absent.
+
+## Fixed OAuth authorization URL builder
+
+Added a pure builder for Gmail and Microsoft authorization URLs. Endpoints and scopes are fixed in code (Gmail readonly; Microsoft Mail.Read), with PKCE S256 and a constrained Microsoft tenant selector. The redirect URI must be supplied by trusted server configuration and registered exactly with the provider; this builder validates HTTPS and rejects query/fragment but is not itself an allowlist and must never receive a client-controlled redirect. It is not callable-wired or connected to provider clients.
