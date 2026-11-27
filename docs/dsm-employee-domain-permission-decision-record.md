@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-50 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-51 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1366,6 +1366,33 @@ Approved policy in principle:
 
 **Still required before implementation:** export catalogue and field allowlists, sensitivity/volume thresholds, approval matrix, template governance, safe-rendering rules, storage/delivery architecture, retention schedule, artifact integrity design and synthetic test coverage. This policy does not authorize real-data exports, payroll/health reporting, bulk extraction or production activation.
 
+### L-51 — Secure search and query authorization
+
+**Question:** How should search, filtering, sorting, aggregation and query results be constrained to prevent indirect disclosure, enumeration and unauthorized access?
+
+Possible choices:
+- **A. UI-filtered search:** rely primarily on client-side filters and hide unauthorized fields in the interface.
+- **B. Server-enforced query security:** authorize each query and constrain its execution and results by identity, domain, action, scope and approved fields.
+- **C. Broad search with post-filtering:** query a wide dataset and remove unauthorized results after retrieval.
+
+**Approved 2026-11-27 — option B (server-enforced query authorization and result minimization), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat search terms, filters, sort keys, pagination tokens, aggregations and requested projections as untrusted input.
+- Authenticate and revalidate the actor, membership and lifecycle state for every request; enforce domain/action permissions, canonical ownership and organizational scope on the server before data access.
+- Construct queries from server-controlled allowlists and scope constraints; never accept client-supplied tenant, organization, employee ownership or authorization predicates as authoritative.
+- Apply authorization before retrieval and aggregation, not merely by hiding fields or filtering results in the client.
+- Restrict searchable and sortable fields to explicitly approved attributes; deny sensitive payroll, health, identity and other restricted fields unless separately authorized for the specific purpose and scope.
+- Prevent enumeration through bounded pagination, rate limits, minimum necessary result detail, controlled autocomplete and protection against sequential identifiers and wildcard scans.
+- Treat counts, facets, suggestions, existence checks, error differences and timing as potential information channels; minimize or suppress them where they could reveal unauthorized records.
+- Bind cursors and continuation tokens to actor, scope, query constraints and expiry; reject tampered, stale or cross-user token reuse.
+- Enforce query complexity, execution-time, result-size and resource budgets; reject unsupported operators, malformed expressions and expensive unrestricted queries.
+- Revalidate authorization and relevant revisions when serving subsequent pages or materialized results; fail closed when membership, lifecycle or scope changes.
+- Audit sensitive searches and denied attempts with minimized metadata; avoid recording raw sensitive search terms unless justified and protected.
+- Test synthetic cases for IDOR, scope expansion, filter manipulation, unauthorized counts, autocomplete leakage, pagination-token replay, stale membership and query abuse.
+
+**Still required before implementation:** searchable-field catalogue, domain/action/scope matrix, query builder and cursor design, aggregation disclosure rules, rate/complexity thresholds, audit policy and synthetic security test coverage. This policy does not authorize broader employee search, access to real personal data, unrestricted analytics or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1416,6 +1443,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| L-41 Web application and API abuse protection | Approved — option B defense-in-depth validation, authorization, browser protections, outbound controls and abuse limits; implementation gated on route inventory, policies, monitoring and tests |\n| L-42 Stored data and local cache protection | Approved — option B layered encryption, minimization, key governance and strict local/offline persistence limits; implementation gated on classification, retention, storage, lifecycle cleanup and tests |\n| L-43 Administrative operations and insider-abuse controls | Approved — option B least privilege, separation of duties, independent approvals, time-limited elevation and protected audit; implementation gated on role matrix, approver rules, monitoring and tests |\n| L-44 Data loss prevention and controlled data egress | Approved — option B risk-based classification, egress permissions, minimized exports, protected audit and anomaly review; implementation gated on domain rules, workflows and tests |\n| L-45 Secure notifications and messaging channels | Approved — option B minimal authenticated notifications, protected links, scoped recipient checks and provider governance; implementation gated on channel rules, workflows and tests |\n| L-46 Backend resource protection and automated abuse controls | Approved — option B layered quotas, bounded workloads, fair-use isolation, abuse detection and safe degradation; implementation gated on resource budgets, monitoring and tests |\n| L-47 Secure error handling and diagnostic information protection | Approved — option B generic client errors, minimized protected diagnostics, redaction and audited access; implementation gated on schemas, retention, access controls and leakage tests |\n| L-48 Configuration integrity and environment security | Approved — option B governed configuration changes, environment separation, validation, drift detection and audited rollback; implementation gated on inventory, workflows, validation and tests |
 | L-49 Secure data import and ingestion | Approved — option B defense-in-depth validation, staged review, scoped authorization, provenance, safe parsing and protected audit; implementation gated on formats, schemas, workflows, limits and tests |
 | L-50 Secure export and document generation | Approved — option B end-to-end scoped authorization, minimized fields, safe rendering, protected delivery, artifact lifecycle and audit; implementation gated on catalogue, thresholds, workflows and tests |
+| L-51 Secure search and query authorization | Approved — option B server-enforced identity, scope and field constraints, minimized results, bounded queries and protected audit; implementation gated on field catalogue, query design, thresholds and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
