@@ -161,13 +161,37 @@ export function createMailboxSecretCleanupWorker({
             alertId, accountId, connectionId: ticket.connectionId,
             attempts: ticket.attempts, code: ticket.lastErrorCode
           });
+        } catch (error) {
+          const attempts = (ticket.alertAttempts ?? 0) + 1;
+          let timestamp;
+          try { timestamp = readWorkerTimestamp(now); }
+          catch { continue; }
+          try {
+            await cleanupAdapters.recordCleanupAlertFailure({
+              accountId, connectionId: ticket.connectionId, attempts,
+              nextAttemptAt: timestamp + retryDelay(attempts),
+              lastErrorCode: safeCode(error), timestamp
+            });
+          } catch {
+            // If persistence fails, leave the prior pending record unchanged.
+          }
+          continue;
+        }
+
+        // Sending succeeded. If the clock or acknowledgement fails now, leave
+        // the durable alert pending and retry with the same idempotency key.
+        let deliveredAt;
+        try { deliveredAt = readWorkerTimestamp(now); }
+        catch { continue; }
+        try {
           await cleanupAdapters.markCleanupAlertDelivered({
-            accountId, connectionId: ticket.connectionId, timestamp: readWorkerTimestamp(now)
+            accountId, connectionId: ticket.connectionId, timestamp: deliveredAt
           });
         } catch (error) {
-          // Persist bounded exponential backoff; the durable alert remains pending.
           const attempts = (ticket.alertAttempts ?? 0) + 1;
-          const timestamp = alertTimestamp;
+          let timestamp;
+          try { timestamp = readWorkerTimestamp(now); }
+          catch { continue; }
           try {
             await cleanupAdapters.recordCleanupAlertFailure({
               accountId, connectionId: ticket.connectionId, attempts,
