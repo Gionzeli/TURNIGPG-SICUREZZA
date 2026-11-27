@@ -31,8 +31,10 @@ function validateConnection(accountId, connectionId, value) {
       !STATUSES.has(value.status) || !normalizedEmail(value.mailboxAddress) ||
       !validId(value.createdByUid) || !Number.isSafeInteger(value.createdAt) ||
       !Number.isSafeInteger(value.updatedAt) ||
-      typeof value.credentialSecretRef !== "string" ||
-      value.credentialSecretRef.length < 1 || value.credentialSecretRef.length > 512 ||
+      (value.status === "revoked"
+        ? value.credentialSecretRef !== null
+        : (typeof value.credentialSecretRef !== "string" ||
+           value.credentialSecretRef.length < 1 || value.credentialSecretRef.length > 512)) ||
       !Array.isArray(value.allowedSenders) || value.allowedSenders.length < 1 ||
       value.allowedSenders.length > 30 ||
       value.allowedSenders.some(item => !normalizedEmail(item))) {
@@ -62,7 +64,7 @@ function validateConnection(accountId, connectionId, value) {
 function sameImmutableFields(before, after) {
   return ["accountId", "connectionId", "provider", "mode", "mailboxAddress",
     "allowedSenders", "ownerUid", "ownerEmployeeId", "createdByUid", "createdAt",
-    "credentialSecretRef", "consent"].every(key =>
+    "consent"].every(key =>
       JSON.stringify(before[key]) === JSON.stringify(after[key]));
 }
 function allowedTransition(before, after) {
@@ -70,7 +72,10 @@ function allowedTransition(before, after) {
   if (!sameImmutableFields(before, after)) return false;
   if (before.status === "active") return after.status === "revocation_pending";
   if (before.status === "revocation_pending") {
-    return after.status === "revocation_pending" || after.status === "revoked";
+    return (after.status === "revocation_pending" &&
+        after.credentialSecretRef === before.credentialSecretRef) ||
+      (after.status === "revoked" && before.credentialSecretRef !== null &&
+        after.credentialSecretRef === null);
   }
   return after.status === "revoked";
 }
