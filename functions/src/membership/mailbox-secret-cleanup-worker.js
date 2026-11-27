@@ -23,6 +23,8 @@ export function createMailboxSecretCleanupWorker({
     ["listPendingSecretCleanup", cleanupAdapters?.listPendingSecretCleanup],
     ["completeSecretCleanup", cleanupAdapters?.completeSecretCleanup],
     ["recordSecretCleanupFailure", cleanupAdapters?.recordSecretCleanupFailure],
+    ["listPendingCleanupAlerts", cleanupAdapters?.listPendingCleanupAlerts],
+    ["markCleanupAlertDelivered", cleanupAdapters?.markCleanupAlertDelivered],
     ["revokeSecret", credentialVault?.revokeSecret],
     ["alert", alert]
   ];
@@ -97,13 +99,37 @@ export function createMailboxSecretCleanupWorker({
           } catch {
             // Ticket remains pending; do not surface sensitive backend details.
           }
-          if (exhausted && retryRecorded) {
-            summary.exhausted++;
-            try {
-              await alert({ accountId: ticket.accountId, connectionId: ticket.connectionId,
-                attempts, code: safeCode(error) });
-            } catch {}
-          } else summary.deferred++;
+          if (exhausted && retryRecorded) summary.exhausted++;
+          else summary.deferred++;
+        }
+      }
+
+      // Deliver alerts from the durable outbox. Sending before acknowledging
+      // gives at-least-once delivery: providers should deduplicate by alertId.
+      let pendingAlerts = [];
+      try {
+        pendingAlerts = await cleanupAdapters.listPendingCleanupAlerts({ accountId, limit });
+      } catch {
+        return summary;
+      }
+      for (const ticket of pendingAlerts) {
+        if (!ticket || ticket.accountId !== accountId ||
+            typeof ticket.connectionId !== "string" ||
+            ticket.status !== "exhausted" || ticket.alertStatus !== "pending" ||
+            !Number.isSafeInteger(ticket.attempts) || ticket.attempts < MAX_ATTEMPTS ||
+            typeof ticket.lastErrorCode !== "string" ||
+            !/^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode)) continue;
+        const alertId = accountId + ":" + ticket.connectionId + ":cleanup-exhausted";
+        try {
+          await alert({
+            alertId, accountId, connectionId: ticket.connectionId,
+            attempts: ticket.attempts, code: ticket.lastErrorCode
+          });
+          await cleanupAdapters.markCleanupAlertDelivered({
+            accountId, connectionId: ticket.connectionId, timestamp: now()
+          });
+        } catch {
+          // Leave the durable alert pending for the next worker invocation.
         }
       }
       return summary;
