@@ -47,7 +47,7 @@ test("Firestore Emulator: canonical Employee shift adapter proves self binding a
     });
 
     const allowed = await db.runTransaction(tx => adapter.authorizeActor(tx, {
-      accountId, actorUid: uid, operation: "create", date: "2026-02-01"
+      accountId, actorUid: uid, operation: "read", date: "2026-02-01"
     }));
     assert.equal(allowed.employeeId, employeeId);
     assert.equal(allowed.placement.placementId, "synthetic-placement");
@@ -77,7 +77,7 @@ test("Firestore Emulator: canonical Employee shift adapter proves self binding a
     });
     await assert.rejects(
       db.runTransaction(tx => adapter.authorizeActor(tx, {
-        accountId, actorUid: uid, operation: "create", date: "2026-02-01"
+        accountId, actorUid: uid, operation: "read", date: "2026-02-01"
       })),
       error => error.code === "permission-denied"
     );
@@ -87,7 +87,7 @@ test("Firestore Emulator: canonical Employee shift adapter proves self binding a
 
     await assert.rejects(
       db.runTransaction(tx => adapter.authorizeActor(tx, {
-        accountId, actorUid: uid, employeeId: "client-selected-other", operation: "create", date: "2026-02-01"
+        accountId, actorUid: uid, employeeId: "client-selected-other", operation: "read", date: "2026-02-01"
       })),
       error => error.code === "permission-denied"
     );
