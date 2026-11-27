@@ -492,7 +492,7 @@ test("worker leaves a sent alert pending if acknowledgement clock validation fai
       sends++;
       assert.equal(input.alertId, "synthetic-account:safe-connection:cleanup-exhausted");
     },
-    now: () => (++clockReads === 1 ? 1000 : Number.NaN)
+    now: () => (++clockReads <= 2 ? 1000 : Number.NaN)
   });
   await worker.runOnce({ accountId: "synthetic-account" });
   assert.equal(sends, 1);
