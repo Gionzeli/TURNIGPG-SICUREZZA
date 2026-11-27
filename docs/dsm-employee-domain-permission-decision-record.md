@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-104 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-105 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2622,6 +2622,29 @@ Approved policy in principle:
 
 **Implementation gates:** Produce a provider trust register, protocol-specific threat model, issuer/audience/redirect contract, canonical subject-binding workflow, claim-mapping allowlist, key/metadata lifecycle procedure, outage and recovery policy, and reproducible federation negative tests. No real identity provider, production SSO configuration, account linking, or privilege mapping is authorized by this decision.
 
+### L-105 — Secure authentication factor enrollment, replacement and recovery lifecycle
+
+**Question:** How must authentication factors such as passkeys, security keys, authenticator applications, and recovery methods be enrolled, replaced, removed, or recovered without allowing account takeover through weak enrollment or social engineering?
+
+**Decision:** Approved — option B, require verified, risk-proportionate factor lifecycle workflows with independent safeguards for privileged accounts, explicit notifications, immediate revocation of lost or compromised factors, and no support-agent or email-only bypass. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Maintain a server-authoritative inventory of each account's enrolled factors, type, credential identifier, creation and last-use metadata, assurance properties, status, and revocation history; never store reusable authenticator secrets in plaintext.
+- Require an authenticated session with appropriate recent reauthentication and step-up assurance before adding, replacing, or removing factors; bind enrollment challenges to the correct account, origin, relying party, and single-use server challenge.
+- Verify possession and protocol properties of a new factor before activation; prevent enrollment through untrusted client assertions, cross-account races, replayed challenges, or client-supplied account identifiers.
+- For privileged, administrative, or high-impact accounts, require phishing-resistant factors and independent approval or a second existing factor for sensitive lifecycle changes; do not allow a newly added factor alone to authorize its own elevation.
+- Notify the account owner through a previously verified channel when factors are added, removed, replaced, recovered, or disabled; notifications are alerts, not authorization mechanisms.
+- Provide a controlled lost-device and recovery process based on independent identity verification and risk review; email access, employee details, manager request, helpdesk knowledge, or possession of a device alone must not be sufficient.
+- Apply temporary restrictions or enhanced review after recovery, factor replacement, suspicious enrollment, or compromise; protect payroll, permission, export, and administrative actions with step-up or delay where risk warrants.
+- Revoke lost, stolen, compromised, and superseded credentials server-side across sessions and relying services; invalidate affected sessions and delegated grants without relying on client cleanup or upstream logout.
+- Prevent factor downgrade and removal of the last strong factor without a verified replacement or an explicitly approved recovery path; retain emergency access as separately governed, time-limited, audited break-glass rather than a hidden bypass.
+- Rate-limit enrollment and recovery attempts, detect repeated failures and unusual device/location patterns proportionately, and protect support workflows against impersonation and coercion.
+- Keep recovery codes hashed or otherwise protected, single-use, high entropy, rate-limited, and revocable; never send reusable recovery secrets in email or expose them again after issuance.
+- Record minimized, tamper-evident audit evidence for enrollment, replacement, removal, recovery, approvals, and revocations without logging secrets, codes, biometric templates, or challenge material.
+- Test stolen-session enrollment, race conditions, replay, phishing, support impersonation, lost-device recovery, factor downgrade, last-factor removal, privileged-account recovery, and revocation propagation using synthetic accounts and isolated authenticators.
+
+**Implementation gates:** Define an account assurance and factor policy matrix; specify protocol-specific enrollment and recovery contracts; document independent verification and privileged-account approval; implement server-side credential inventory, notification, revocation, and audit; and provide reproducible negative tests. No real user factor enrollment, credential reset, or production authentication change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2726,6 +2749,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-102 Secure email delivery, outbound document links and recipient verification | Approved — option B notification-only by default, authenticated scoped retrieval and verified recipients; implementation gated on provider review, link lifecycle and tests |
 | L-103 Secure inbound email, attachments and untrusted message ingestion | Approved — option B quarantine untrusted input, isolate parsing and require authenticated human workflow; implementation gated on mail inventory, scanner isolation and tests |
 | L-104 Secure identity federation, SSO trust and identity-provider lifecycle | Approved — option B registered providers, strict assertion validation, verified canonical binding and fail-closed trust lifecycle; implementation gated on provider register and protocol tests |
+| L-105 Authentication factor enrollment, replacement and recovery lifecycle | Approved — option B verified enrollment, strong recovery, downgrade resistance and server-side revocation; implementation gated on assurance matrix and lifecycle tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
