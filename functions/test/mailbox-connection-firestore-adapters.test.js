@@ -368,6 +368,9 @@ test("exhausted cleanup alert is durably queued and acknowledged", async () => {
   assert.equal(queued.length, 1);
   assert.equal(queued[0].alertStatus, "pending");
   assert.equal(queued[0].connectionId, input.connectionId);
+  assert.equal(queued[0].alertAttempts, 0);
+  assert.equal(Object.hasOwn(queued[0], "secretRef"), false);
+  assert.equal(Object.hasOwn(queued[0], "reason"), false);
   await adapters.markCleanupAlertDelivered({
     accountId: input.accountId, connectionId: input.connectionId,
     timestamp: input.timestamp + 2
