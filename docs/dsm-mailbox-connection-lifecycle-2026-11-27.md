@@ -326,3 +326,24 @@ that durable state transition and filters exhausted tickets from subsequent
 pending batches. The earlier run had 233 passing tests and one failure caused
 by this fixture mismatch; the updated test has been committed but awaits a
 fresh CI execution.
+
+
+#### Durable exhausted-cleanup alert outbox
+
+When cleanup reaches the 12-attempt ceiling, the Firestore ticket transitions
+to `exhausted` and atomically records `alertStatus: pending`. The worker now
+loads those alert records independently from the pending-deletion queue,
+delivers the alert, and only then marks it `delivered`. A failed alert send or
+acknowledgement leaves the record pending for a later invocation.
+
+Delivery is **at least once**, not exactly once: a process can send successfully
+and fail before acknowledging the record. The worker therefore supplies a
+stable `alertId` (`accountId:connectionId:cleanup-exhausted`) so an alert
+provider can deduplicate retries. Alert payloads contain identifiers, attempt
+count and a sanitized error code only, never the secret reference or provider
+error text. A compound Firestore index supports the account-scoped exhausted
+alert query.
+
+A Firestore Emulator integration test covers durable queueing and
+acknowledgement. This does not provision a scheduler, alert provider, IAM or
+production index; those remain deployment work and are not enabled here.
