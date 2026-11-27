@@ -53,8 +53,11 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
               shift.date > data.toDate || !validId(shift.placementId) || !validId(shift.siteId) ||
               !validId(shift.departmentId) || !Number.isSafeInteger(shift.revision) || shift.revision < 1) continue;
           const placement = await authorization.loadPlacementAt(tx, accountId, principal.employeeId, shift.date);
-          if (placement.placementId !== shift.placementId || placement.siteId !== shift.siteId ||
-              placement.departmentId !== shift.departmentId) continue;
+          const inMembershipScope = principal.scopeType === "site"
+            ? principal.scopeIds.includes(placement.siteId)
+            : principal.scopeType === "department" && principal.scopeIds.includes(placement.departmentId);
+          if (!inMembershipScope || placement.placementId !== shift.placementId ||
+              placement.siteId !== shift.siteId || placement.departmentId !== shift.departmentId) continue;
           const dto = { shiftId: snapshot.id };
           for (const key of DTO_KEYS) if (Object.hasOwn(shift, key)) dto[key] = shift[key];
           dto.revision = shift.revision;
