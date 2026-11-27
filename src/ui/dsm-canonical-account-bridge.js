@@ -105,16 +105,42 @@ export function mountDSMCanonicalAccountBridge(container, {
   const proposalTitle = document.createElement("h3"); proposalTitle.textContent = "Verifica le modifiche ai tuoi turni";
   const proposalIntro = document.createElement("p"); proposalIntro.className = "hint";
   proposalIntro.textContent = "Le proposte diventano effettive solo dopo la tua approvazione. Il responsabile non approva i tuoi turni.";
+  const proposalForm = document.createElement("form"); proposalForm.className = "row";
+  const operationLabel = document.createElement("label"); operationLabel.textContent = "Tipo di modifica";
+  const operationInput = document.createElement("select"); operationInput.setAttribute("aria-label", "Tipo di modifica");
+  for (const [value, label] of [["create", "Aggiungi turno"], ["update", "Modifica turno esistente"], ["delete", "Elimina turno esistente"]]) { const option = document.createElement("option"); option.value = value; option.textContent = label; operationInput.append(option); }
+  operationLabel.append(operationInput);
+  const targetLabel = document.createElement("label"); targetLabel.textContent = "Turno da modificare";
+  const targetInput = document.createElement("select"); targetInput.setAttribute("aria-label", "Turno da modificare");
+  const targetPlaceholder = document.createElement("option"); targetPlaceholder.value = ""; targetPlaceholder.textContent = "Cerca prima i tuoi turni"; targetInput.append(targetPlaceholder); targetLabel.append(targetInput);
+  const proposalDateLabel = document.createElement("label"); proposalDateLabel.textContent = "Data turno";
+  const proposalDateInput = document.createElement("input"); proposalDateInput.type = "date"; proposalDateInput.setAttribute("aria-label", "Data turno"); proposalDateLabel.append(proposalDateInput);
+  const proposalTypeLabel = document.createElement("label"); proposalTypeLabel.textContent = "Tipo turno";
+  const proposalTypeInput = document.createElement("select"); proposalTypeInput.setAttribute("aria-label", "Tipo turno");
+  for (const value of ["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"]) { const option = document.createElement("option"); option.value = value; option.textContent = value; proposalTypeInput.append(option); } proposalTypeLabel.append(proposalTypeInput);
+  const proposalPostLabel = document.createElement("label"); proposalPostLabel.textContent = "Postazione";
+  const proposalPostInput = document.createElement("input"); proposalPostInput.type = "text"; proposalPostInput.maxLength = 80; proposalPostInput.placeholder = "Postazione ricevuta"; proposalPostInput.setAttribute("aria-label", "Postazione proposta"); proposalPostLabel.append(proposalPostInput);
+  const proposalStartLabel = document.createElement("label"); proposalStartLabel.textContent = "Inizio";
+  const proposalStartInput = document.createElement("input"); proposalStartInput.type = "time"; proposalStartInput.setAttribute("aria-label", "Inizio proposto"); proposalStartLabel.append(proposalStartInput);
+  const proposalEndLabel = document.createElement("label"); proposalEndLabel.textContent = "Fine";
+  const proposalEndInput = document.createElement("input"); proposalEndInput.type = "time"; proposalEndInput.setAttribute("aria-label", "Fine proposta"); proposalEndLabel.append(proposalEndInput);
+  const proposalHoursLabel = document.createElement("label"); proposalHoursLabel.textContent = "Ore";
+  const proposalHoursInput = document.createElement("input"); proposalHoursInput.type = "number"; proposalHoursInput.min = "0"; proposalHoursInput.max = "48"; proposalHoursInput.step = "0.25"; proposalHoursInput.placeholder = "Ore"; proposalHoursInput.setAttribute("aria-label", "Ore proposte"); proposalHoursLabel.append(proposalHoursInput);
+  const proposalSubmit = document.createElement("button"); proposalSubmit.type = "submit"; proposalSubmit.className = "pri"; proposalSubmit.textContent = "Invia proposta personale";
+  proposalForm.append(operationLabel, targetLabel, proposalDateLabel, proposalTypeLabel, proposalPostLabel, proposalStartLabel, proposalEndLabel, proposalHoursLabel, proposalSubmit);
+  const updateProposalFormMode = () => { const mode = operationInput.value; targetLabel.hidden = mode === "create"; proposalDateLabel.hidden = mode !== "create"; proposalDateInput.required = mode === "create"; const hideFields = mode === "delete"; for (const element of [proposalTypeLabel, proposalPostLabel, proposalStartLabel, proposalEndLabel, proposalHoursLabel]) element.hidden = hideFields; proposalTypeInput.required = mode === "create"; };
+  operationInput.addEventListener("change", updateProposalFormMode); updateProposalFormMode();
   const proposalStatus = document.createElement("p"); proposalStatus.className = "hint";
   proposalStatus.setAttribute("role", "status"); proposalStatus.setAttribute("aria-live", "polite");
   const proposalResults = document.createElement("div"); proposalResults.setAttribute("aria-live", "polite");
-  proposalPanel.append(proposalTitle, proposalIntro, proposalStatus, proposalResults);
+  proposalPanel.append(proposalTitle, proposalIntro, proposalForm, proposalStatus, proposalResults);
   container.replaceChildren(title, status, select, button, note, profilePanel, shiftsPanel, proposalPanel);
 
   let disposed = false;
   let generation = 0;
   let shiftQueryGeneration = 0;
   let proposalQueryGeneration = 0;
+  let latestShiftItems = [];
   let profileQueryGeneration = 0;
   let selectionRevision = 0;
   let selectedAccountId = null;
@@ -247,6 +273,10 @@ export function mountDSMCanonicalAccountBridge(container, {
   }
 
   function renderShifts(items) {
+    latestShiftItems = Array.isArray(items) ? items : [];
+    targetInput.replaceChildren();
+    const emptyTarget = document.createElement("option"); emptyTarget.value = ""; emptyTarget.textContent = latestShiftItems.length ? "Seleziona il turno" : "Cerca prima i tuoi turni"; targetInput.append(emptyTarget);
+    for (const shift of latestShiftItems) { const option = document.createElement("option"); option.value = shift.shiftId; option.textContent = shift.date + " — " + shift.type + " — " + (shift.post ?? "") + " — rev. " + shift.revision; targetInput.append(option); }
     clearShiftResults();
     if (!items.length) {
       shiftsResults.append(document.createTextNode("Nessun turno trovato nell'intervallo selezionato."));
@@ -371,6 +401,39 @@ export function mountDSMCanonicalAccountBridge(container, {
     button.disabled = !selectedAccountId || Boolean(activationPromise);
   };
   select.addEventListener("change", onSelectChange);
+
+  proposalForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const accountId = activeFirebaseAccountId();
+    if (!accountId || accountId !== selectedAccountId || typeof proposeOwnEmployeeShiftChanges !== "function") { proposalStatus.textContent = "Sessione personale non attiva o invio proposta non disponibile."; return; }
+    const operation = operationInput.value;
+    let change;
+    if (operation === "create") {
+      if (!proposalDateInput.value || !proposalTypeInput.value) { proposalStatus.textContent = "Inserisci data e tipo del nuovo turno."; return; }
+      const shift = { date: proposalDateInput.value, type: proposalTypeInput.value };
+      if (proposalPostInput.value) shift.post = proposalPostInput.value;
+      if (proposalStartInput.value || proposalEndInput.value) { if (!proposalStartInput.value || !proposalEndInput.value) { proposalStatus.textContent = "Inserisci entrambe le ore del turno."; return; } shift.start_time = proposalStartInput.value; shift.end_time = proposalEndInput.value; }
+      if (proposalHoursInput.value !== "") shift.hours = Number(proposalHoursInput.value);
+      change = { operation, shift };
+    } else {
+      const target = latestShiftItems.find(item => item.shiftId === targetInput.value);
+      if (!target) { proposalStatus.textContent = "Seleziona un turno presente nel tuo calendario caricato."; return; }
+      if (operation === "delete") change = { operation, shiftId: target.shiftId, expectedRevision: target.revision };
+      else {
+        const changes = {};
+        if (proposalTypeInput.value) changes.type = proposalTypeInput.value;
+        if (proposalPostInput.value) changes.post = proposalPostInput.value;
+        if (proposalStartInput.value || proposalEndInput.value) { if (!proposalStartInput.value || !proposalEndInput.value) { proposalStatus.textContent = "Inserisci entrambe le ore del turno."; return; } changes.start_time = proposalStartInput.value; changes.end_time = proposalEndInput.value; }
+        if (proposalHoursInput.value !== "") changes.hours = Number(proposalHoursInput.value);
+        if (!Object.keys(changes).length) { proposalStatus.textContent = "Inserisci almeno un campo da modificare."; return; }
+        change = { operation, shiftId: target.shiftId, expectedRevision: target.revision, changes };
+      }
+    }
+    proposalSubmit.disabled = true; proposalStatus.textContent = "Invio della proposta personale…";
+    try { await proposeOwnEmployeeShiftChanges({ accountId, source: "employee_manual", changes: [change] }); proposalForm.reset(); updateProposalFormMode(); proposalStatus.textContent = "Proposta inviata. Il calendario non cambia finché non la approvi."; await loadOwnProposals(accountId); }
+    catch { proposalStatus.textContent = "Proposta non inviata. Controlla i dati e riprova."; }
+    finally { proposalSubmit.disabled = false; }
+  });
 
   shiftsForm.addEventListener("submit", async event => {
     event.preventDefault();
