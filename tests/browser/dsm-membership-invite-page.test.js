@@ -14,7 +14,9 @@ const controller = mountDSMMembershipInvitePage(root, {
   },
   proposeInvite: async data => { calls.push(["propose", data]); return { status: "pending" }; },
   approveInvite: async data => { calls.push(["approve", data]); return { status: "approved_pending_claim" }; },
-  claimInvite: async data => { calls.push(["claim", data]); return { status: "claimed" }; }
+  claimInvite: async data => { calls.push(["claim", data]); return { status: "claimed" }; },
+  proposeEmployee: async data => { calls.push(["proposeEmployee", data]); return { status: "pending" }; },
+  approveEmployee: async data => { calls.push(["approveEmployee", data]); return { status: "approved" }; }
 });
 try {
   const inputs = root.querySelectorAll("input");
@@ -27,14 +29,24 @@ try {
   root.querySelectorAll("button")[1].click();
   await new Promise(resolve => setTimeout(resolve, 0));
   if (calls[1]?.[0] !== "approve" || calls[1][1].inviteId !== "invite-ui-test") throw new Error("Approvazione UI non inoltrata correttamente.");
-  inputs[4].value = "invite-ui-test";
+  inputs[4].value = "employee-proposal-ui";
+  inputs[5].value = "synthetic-uid";
+  inputs[6].value = "synthetic-employee";
+  inputs[7].value = "manual-verification-ticket";
   root.querySelectorAll("button")[2].click();
   await new Promise(resolve => setTimeout(resolve, 0));
-  if (calls[2]?.[0] !== "claim" || calls[2][1].inviteId !== "invite-ui-test") throw new Error("Riscatto UI non inoltrato correttamente.");
+  if (calls[2]?.[0] !== "proposeEmployee" || calls[2][1].targetUid !== "synthetic-uid") throw new Error("Proposta Employee UI non inoltrata correttamente.");
+  root.querySelectorAll("button")[3].click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  if (calls[3]?.[0] !== "approveEmployee" || calls[3][1].proposalId !== "employee-proposal-ui") throw new Error("Approvazione Employee UI non inoltrata correttamente.");
+  inputs[8].value = "invite-ui-test";
+  root.querySelectorAll("button")[4].click();
+  await new Promise(resolve => setTimeout(resolve, 0));
+  if (calls[4]?.[0] !== "claim" || calls[4][1].inviteId !== "invite-ui-test") throw new Error("Riscatto UI non inoltrato correttamente.");
   auth.currentUser = { uid: "synthetic-invite-user", emailVerified: false };
   for (const listener of listeners) listener(auth.currentUser);
   if (!root.querySelector("button").disabled) throw new Error("UI non blocca identità non verificata.");
-  summary.textContent = "PASS — UI inviti: proposta, approvazione, riscatto e blocco identità non verificata";
+  summary.textContent = "PASS — UI inviti e Employee: proposta, doppia approvazione, riscatto e blocco identità non verificata";
   summary.dataset.result = "pass";
 } catch (error) {
   summary.textContent = error.stack || error.message;
