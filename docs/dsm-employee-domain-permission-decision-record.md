@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-83 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-84 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2156,6 +2156,27 @@ Approved policy in principle:
 
 **Still required before implementation:** provider and event inventory; signature-verification contracts; endpoint/audience allowlists; key lifecycle and compromise runbook; event schema/version policy; durable deduplication and idempotency design; ordering/revision rules; transactional processing and dead-letter controls; payload retention/redaction; monitoring and audit taxonomy; and synthetic Emulator/integration tests. This decision does not authorize a new provider integration, production webhook endpoint, external data transfer or production activation.
 
+### L-84 — Deletion propagation, derived copies and verifiable disposition
+
+**Question:** How must an approved deletion, anonymization or retention disposition propagate across derived datasets, indexes, caches, replicas, exports and processors so that removed information is not silently reintroduced or left accessible in secondary copies?
+
+**Approved 2026-11-27 — option B (centrally tracked disposition workflows with dependency inventory, propagation controls and verifiable completion), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat a deletion or anonymization decision as a governed, resource-scoped disposition workflow, not as a single database delete. Verify requester/approver authority, purpose, subject/resource identity, retention schedule, legal holds, contractual duties and permitted disposition before execution.
+- Maintain an inventory of systems and copies that may contain the affected data: canonical stores, replicas, search indexes, analytics/derived datasets, caches, offline stores, exports, generated documents, backups, logs and approved processors. Assign an accountable owner and supported disposition method to each class.
+- Establish a canonical disposition state and stable operation identifier. Propagate a minimal, access-restricted tombstone or equivalent suppression marker where necessary to prevent stale replicas, delayed jobs, restored backups or incoming synchronization from resurrecting disposed records.
+- Apply disposition through authenticated, scoped and idempotent workflows. Each downstream processor or subsystem must independently validate the instruction, affected scope and current legal/retention state; a caller-provided identifier alone is not authority.
+- Define service-level objectives and retry/escalation rules for propagation. Track pending, completed, failed, deferred and legally retained targets explicitly; never report global completion while required copies remain unverified.
+- Where immediate physical deletion is not technically or legally possible, restrict access, isolate the copy, document the legal/technical basis, owner, expiry/review date and compensating controls, and resume disposition when the constraint ends.
+- Treat backups and immutable audit records according to their separately approved retention design. Prevent routine restoration from reintroducing disposed data by applying current tombstones/disposition records before restored data becomes accessible; do not rewrite immutable evidence outside governed procedures.
+- Ensure anonymization is assessed against realistic re-identification risk and does not merely replace direct identifiers while leaving linkable attributes or stable join keys. Record the method and validation evidence without retaining unnecessary source data.
+- Prevent derived datasets, reports, exports and processor copies from being regenerated with disposed information. Rebuild or filter indexes and derived products from authoritative current state, with controlled checkpoints and verification.
+- Preserve minimal evidence of the disposition decision and execution: authorization, scope, applicable rule, system acknowledgements, exceptions, timestamps and final outcome. Avoid retaining deleted payloads or unnecessary personal data in evidence, error logs or support artifacts.
+- Provide a controlled exception and reconciliation process for partial failure, unavailable processors, disputed identity matches and legal holds. Exceptions require accountable review, time limits, restricted access and a documented reattempt or alternative disposition.
+- Test synthetic end-to-end scenarios covering multi-system propagation, delayed and duplicate jobs, stale replica resurrection, backup restoration, processor outage, legal-hold deferral/release, index rebuilds, anonymization quality and proof of incomplete versus completed disposition.
+
+**Still required before implementation:** data-copy and processor inventory; disposition-state and tombstone contract; per-system deletion/anonymization capabilities; propagation objectives and retry/escalation policy; backup-restore suppression procedure; anonymization assessment; exception and legal-hold workflow; evidence/acknowledgement schema; and synthetic integration tests. This decision does not authorize deletion of real data, alteration of immutable logs, changes to backup retention or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2239,6 +2260,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-81 Data synchronization, offline queues and conflict-safe reconciliation | Approved — option B untrusted client queues, server reauthorization, revision-based reconciliation and explicit conflicts; implementation gated on domain contracts, replay protection and tests |
 | L-82 Bulk operations, batch authorization and partial-failure safety | Approved — option B scoped batch capabilities, per-item authorization, bounded execution and explicit partial outcomes; implementation gated on atomicity, limits, approvals and tests |
 | L-83 Inbound webhooks, callbacks and external event authenticity | Approved — option B authenticated, allowlisted and replay-resistant ingress with server-side domain authorization; implementation gated on provider contracts, key lifecycle and tests |
+| L-84 Deletion propagation, derived copies and verifiable disposition | Approved — option B centrally tracked disposition, dependency inventory, propagation controls and verifiable completion; implementation gated on system inventory, tombstone contract and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
