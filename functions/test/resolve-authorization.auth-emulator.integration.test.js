@@ -144,9 +144,6 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
     assert.deepEqual(acceptedBody.result?.principal?.permissions, [
     "dsm:read:own-scope",
     "dsm:employee:shift:read:self",
-    "dsm:employee:shift:create:self",
-    "dsm:employee:shift:update:self",
-    "dsm:employee:shift:delete:self",
     "dsm:employee:employment-profile:read:self"
   ]);
 
