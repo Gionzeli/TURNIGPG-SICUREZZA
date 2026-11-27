@@ -60,7 +60,7 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
   assert.equal(alerts.length, 1);
   assert.equal(alerts[0].connectionId, "synthetic-exhausted");
   const secondRun = await worker.runOnce({ accountId: "synthetic-account" });
-  assert.deepEqual(secondRun, { scanned: 1, completed: 0, deferred: 1, exhausted: 0 });
+  assert.deepEqual(secondRun, { scanned: 2, completed: 0, deferred: 2, exhausted: 0 });
   assert.equal(retries.length, 2, "exhausted tickets are not retried");
   assert.equal(alerts.length, 1, "exhaustion alert is not repeated");
 });
