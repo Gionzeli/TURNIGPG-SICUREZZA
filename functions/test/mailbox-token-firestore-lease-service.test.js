@@ -149,3 +149,21 @@ test('acquire and disable reject negative persisted lease expiry',async()=>{
  await assert.rejects(()=>f.service.disable(scope),{code:'unavailable'});
  assert.equal(f.record.expiresAt,-1);
 });
+
+
+test('acquire and disable reject a malformed persisted revocation marker',async()=>{
+ const acquireFixture=fixture();
+ acquireFixture.record={ownerId:null,fencingToken:0,expiresAt:0,revocationPending:'false'};
+ await assert.rejects(()=>acquireFixture.service.acquire({...scope}),{code:'unavailable'});
+ const disableFixture=fixture();
+ disableFixture.record={ownerId:null,fencingToken:0,expiresAt:0,revocationPending:'false'};
+ await assert.rejects(()=>disableFixture.service.disable(scope),{code:'unavailable'});
+ assert.equal(disableFixture.record.revocationPending,'false');
+});
+
+test('renew rejects a malformed persisted revocation marker',async()=>{
+ const f=fixture();
+ const lease=await f.service.acquire({...scope});
+ f.record={...f.record,revocationPending:'false'};
+ await assert.rejects(()=>f.service.renew({...scope,lease}),{code:'lease-lost'});
+});
