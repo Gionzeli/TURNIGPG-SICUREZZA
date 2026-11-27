@@ -219,6 +219,41 @@ test("credential cleanup outbox persists retry state and completes monotonically
   assert.equal(docs.get(path).status, "complete");
 });
 
+test("successful deletion resolves an exhausted cleanup ticket and its pending alert", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  assert.equal(docs.get(path).status, "exhausted");
+  assert.equal(docs.get(path).alertStatus, "pending");
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  });
+  const stored = docs.get(path);
+  assert.equal(stored.status, "complete");
+  assert.equal(stored.alertStatus, "resolved");
+  assert.equal(stored.alertResolvedAt, input.timestamp + 2);
+  assert.deepEqual(await adapters.listPendingCleanupAlerts({
+    accountId: input.accountId
+  }), []);
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 3
+  });
+  assert.equal(docs.get(path).completedAt, input.timestamp + 2);
+});
+
 test("cleanup outbox refuses a different secret reference for an existing connection ticket", async () => {
   const { db } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
