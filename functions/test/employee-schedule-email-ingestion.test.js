@@ -86,6 +86,21 @@ test("unverified sender is rejected before an ingestion job or PDF scan", async 
   assert.equal(calls.scans, 0);
 });
 
+test("authenticated but non-allowlisted sender is rejected", async () => {
+  const { service, calls } = harness({
+    loadMailboxConnection: async () => ({
+      accountId, connectionId, provider: "imap", status: "active",
+      allowedSenders: ["ufficio@azienda.example"]
+    })
+  });
+  await assert.rejects(
+    service.ingest({ accountId, connectionId, message, attachments: [attachment] }),
+    error => error.code === "permission-denied"
+  );
+  assert.equal(calls.claims.length, 0);
+  assert.equal(calls.scans, 0);
+});
+
 test("duplicate provider message and attachment are idempotently skipped", async () => {
   const { service, calls } = harness({
     claimIngestionJob: async input => {
