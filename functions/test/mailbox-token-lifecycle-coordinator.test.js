@@ -105,3 +105,39 @@ test('fails closed on invalid or overflowing token lifecycle clocks before vault
     assert.equal(writes, 0);
   }
 });
+
+test('rechecks freshness after a slow vault read instead of using a stale initial clock', async () => {
+  let clockReads = 0, refreshes = 0;
+  const coordinator = createMailboxTokenLifecycleCoordinator({
+    vault: {
+      loadSecret: async () => ({ ...expired, expiresAt: 301001 }),
+      storeSecret: async () => {}
+    },
+    refreshService: { refresh: async () => { refreshes++; return {
+      accessToken: 'synthetic-new-access-token', refreshToken: null, expiresInSeconds: 3600
+    }; } },
+    now: () => (++clockReads === 1 ? 1000 : 2000)
+  });
+  const result = await coordinator.ensureFresh({
+    accountId: 'acct', connectionId: 'conn', provider: 'gmail_api', secretRef: 'opaque',
+    clientId: 'client-id-12345', clientSecret: 'secret'
+  });
+  assert.equal(result.refreshed, true);
+  assert.equal(refreshes, 1);
+});
+
+test('does not persist refreshed tokens if the clock becomes invalid after provider response', async () => {
+  let clockReads = 0, writes = 0;
+  const coordinator = createMailboxTokenLifecycleCoordinator({
+    vault: { loadSecret: async () => expired, storeSecret: async () => { writes++; } },
+    refreshService: { refresh: async () => ({
+      accessToken: 'synthetic-new-access-token', refreshToken: null, expiresInSeconds: 3600
+    }) },
+    now: () => (++clockReads === 1 ? 1000 : Number.NaN)
+  });
+  await assert.rejects(() => coordinator.ensureFresh({
+    accountId: 'acct', connectionId: 'conn', provider: 'gmail_api', secretRef: 'opaque',
+    clientId: 'client-id-12345', clientSecret: 'secret'
+  }), { code: 'unavailable' });
+  assert.equal(writes, 0);
+});
