@@ -205,7 +205,13 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         }
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
-            typeof previous.secretRef !== "string" || previous.status !== "pending") {
+            typeof previous.secretRef !== "string") {
+          const error = new Error("Cleanup record is malformed.");
+          error.code = "failed-precondition";
+          throw error;
+        }
+        if (previous.status === "complete") return;
+        if (previous.status !== "pending") {
           const error = new Error("Cleanup record is not pending.");
           error.code = "failed-precondition";
           throw error;
