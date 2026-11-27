@@ -133,7 +133,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
           if (shift.accountId !== accountId || shift.employeeId !== principal.employeeId || shift.status !== "active" ||
               shift.revision !== change.expectedRevision || !validDate(shift.date)) fail("failed-precondition", "A referenced shift changed or is not owned by this employee.");
           const placement = await authorization.loadPlacementAt(tx, accountId, principal.employeeId, shift.date);
-          if (placement.placementId !== shift.placementId || placement.siteId !== shift.siteId || placement.departmentId !== shift.departmentId) fail("permission-denied", "Shift placement no longer matches canonical history.");
+          if (placement.placementId !== shift.placementId || placement.siteId !== shift.siteId || placement.departmentId !== shift.departmentId || !principal.scopeIds.includes(principal.scopeType === "site" ? placement.siteId : placement.departmentId)) fail("permission-denied", "Shift placement no longer matches canonical membership history.");
         }
         const timestamp = now();
         if (!Number.isSafeInteger(timestamp)) fail("failed-precondition", "Invalid trusted clock.");
@@ -152,7 +152,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
       return db.runTransaction(async tx => {
         const principal = await authorization.loadOwnPrincipal(tx, { accountId, actorUid: identity.uid, operation: "read" });
         const query = db.collection(`accounts/${accountId}/employeeShiftProposals`)
-          .where("employeeId", "==", principal.employeeId).orderBy("createdAt", "desc").limit(50);
+          .where("employeeId", "==", principal.employeeId).limit(50);
         const snapshots = await tx.get(query);
         return snapshots.docs.map(snapshot => {
           const proposal = snapshot.data();
@@ -164,7 +164,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
             createdAt: proposal.createdAt, changeCount: proposal.changes.length,
             changes: proposal.changes
           };
-        }).filter(Boolean);
+        }).filter(Boolean).sort((a, b) => b.createdAt - a.createdAt);
       });
     },
 
@@ -228,7 +228,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
           }
           const placement = await authorization.loadPlacementAt(tx, accountId, principal.employeeId, current.date);
           if (placement.placementId !== current.placementId || placement.siteId !== current.siteId ||
-              placement.departmentId !== current.departmentId) fail("permission-denied", "Shift placement no longer matches canonical history.");
+              placement.departmentId !== current.departmentId || !principal.scopeIds.includes(principal.scopeType === "site" ? placement.siteId : placement.departmentId)) fail("permission-denied", "Shift placement no longer matches canonical membership history.");
           const merged = {
             date: current.date, type: current.type, post: current.post ?? "",
             start_time: current.start_time ?? "", end_time: current.end_time ?? "",
@@ -243,7 +243,8 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
             if (typeof merged.type !== "string" || !["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"].includes(merged.type)) fail("failed-precondition", "Existing shift data is not valid for an update.");
             if (merged.start_time && merged.end_time && merged.start_time === merged.end_time) fail("invalid-argument", "Shift start and end times must differ.");
           }
-          prepared.push({ operation: change.operation, shiftId: change.shiftId, shiftRef, current, normalized: merged, index });
+          const historyRef = db.doc(`accounts/${accountId}/employeeShiftRevisions/${change.shiftId}_${current.revision}`);
+          prepared.push({ operation: change.operation, shiftId: change.shiftId, shiftRef, historyRef, current, normalized: merged, index });
         }
 
         for (const item of prepared) {
@@ -251,6 +252,10 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
           const auditSnap = await tx.get(auditRef);
           if (auditSnap.exists) fail("already-exists", "Proposal audit event already exists.");
           item.auditRef = auditRef;
+          if (item.historyRef) {
+            const historySnap = await tx.get(item.historyRef);
+            if (historySnap.exists) fail("already-exists", "Shift revision history already exists.");
+          }
         }
         // No writes have occurred before this point.
         for (const item of prepared) {
@@ -269,6 +274,12 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
               shiftId: item.shiftId, proposalId, actorUid: identity.uid, occurredAt: timestamp, revision: 1
             });
           } else if (item.operation === "update") {
+            tx.create(item.historyRef, {
+              ...Object.fromEntries(DTO_KEYS.filter(key => Object.hasOwn(item.current, key)).map(key => [key, item.current[key]])),
+              accountId, employeeId: principal.employeeId, shiftId: item.shiftId,
+              status: item.current.status, revision: item.current.revision,
+              snapshotAt: timestamp, supersededByProposalId: proposalId
+            });
             const revision = item.current.revision + 1;
             if (!Number.isSafeInteger(revision)) fail("failed-precondition", "Shift revision exhausted.");
             tx.update(item.shiftRef, {
@@ -281,6 +292,12 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
               shiftId: item.shiftId, proposalId, actorUid: identity.uid, occurredAt: timestamp, revision
             });
           } else {
+            tx.create(item.historyRef, {
+              ...Object.fromEntries(DTO_KEYS.filter(key => Object.hasOwn(item.current, key)).map(key => [key, item.current[key]])),
+              accountId, employeeId: principal.employeeId, shiftId: item.shiftId,
+              status: item.current.status, revision: item.current.revision,
+              snapshotAt: timestamp, supersededByProposalId: proposalId
+            });
             const revision = item.current.revision + 1;
             if (!Number.isSafeInteger(revision)) fail("failed-precondition", "Shift revision exhausted.");
             tx.update(item.shiftRef, {
