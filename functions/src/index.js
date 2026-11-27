@@ -7,6 +7,7 @@ import { resolveCanonicalMembership } from "./membership/membership-policy.js";
 import { createEmployeeProvisioningHandlers } from "./membership/employee-provisioning-callable-handlers.js";
 import { createOrganizationCallableHandlers } from "./membership/organization-callable-handlers.js";
 import { createEmployeeShiftCallableHandlers } from "./membership/employee-shift-callable-handlers.js";
+import { createOwnEmploymentProfileCallableHandlers } from "./membership/employee-employment-profile-callable-handlers.js";
 import { createCanonicalAccountCallableHandlers } from "./membership/canonical-account-callable-handlers.js";
 import { createCanonicalMembershipInviteHandlers } from "./membership/canonical-membership-invite-callable-handlers.js";
 
@@ -18,6 +19,11 @@ const organization = createOrganizationCallableHandlers({
 });
 
 const employeeShifts = createEmployeeShiftCallableHandlers({
+  db: getFirestore(),
+  verifyToken: (token, checkRevoked) => getAuth().verifyIdToken(token, checkRevoked)
+});
+
+const ownEmploymentProfile = createOwnEmploymentProfileCallableHandlers({
   db: getFirestore(),
   verifyToken: (token, checkRevoked) => getAuth().verifyIdToken(token, checkRevoked)
 });
@@ -53,7 +59,8 @@ export const health = onCall(async () => ({
   identityAndMembershipResolutionImplemented: true,
   organizationMutationCallablesImplemented: true,
   organizationMutationAuthorizationImplemented: true,
-  protectedEmployeeDataApisImplemented: false,
+  protectedEmployeeDataApisImplemented: true,
+  ownEmploymentProfileReadImplemented: true,
   protectedEmployeeShiftApisImplemented: true,
   employeeShiftSelfAuthorizationImplemented: true,
   employeeDelegatedShiftAuthorizationImplemented: false,
@@ -171,5 +178,10 @@ export const updateOwnEmployeeShift = onCall(async request => {
 });
 export const deleteOwnEmployeeShift = onCall(async request => {
   try { return await employeeShifts.delete(request); }
+  catch (error) { throw callableError(error); }
+});
+
+export const readOwnEmployeeEmploymentProfile = onCall(async request => {
+  try { return await ownEmploymentProfile.read(request); }
   catch (error) { throw callableError(error); }
 });
