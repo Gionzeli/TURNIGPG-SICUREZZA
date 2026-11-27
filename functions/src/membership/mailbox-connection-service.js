@@ -166,12 +166,15 @@ export function createMailboxConnectionService({
         ...pending, status: "revoked", credentialSecretRef: null,
         updatedAt: completedAt, revokedAt: completedAt
       };
-      await saveConnection({ accountId, connectionId, connection: revoked });
+      // Write the immutable audit event before finalizing metadata. If audit
+      // persistence fails, the connection remains revocation_pending and a
+      // later retry can safely repeat cleanup and attempt the audit again.
       await writeAudit({
         accountId, actorUid: principal.uid, action: "mailbox_connection_revoked",
         connectionId, mode: connection.mode, provider: connection.provider,
         timestamp: completedAt
       });
+      await saveConnection({ accountId, connectionId, connection: revoked });
       return { connectionId, status: "revoked" };
     }
   });
