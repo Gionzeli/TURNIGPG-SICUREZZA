@@ -139,3 +139,8 @@ The Google Secret Manager/Firestore CAS backend accepts an optional lease proof 
 
 
 The Secret Manager CAS backend now requires a lease proof by default (requireLeaseProof: true) and rejects construction without a trusted lease-reference mapper. The explicit requireLeaseProof: false compatibility mode is used only by isolated pointer-CAS contract fixtures; production wiring must retain the default.
+
+
+### Coordinator-to-vault lease-proof regression
+
+The coordinator regression test now asserts that the owner ID and fencing token returned by the renewed lease are forwarded unchanged to the vault write. This verifies the hand-off contract between the refresh coordinator and the Secret Manager/Firestore CAS backend at the unit boundary. It remains a synthetic unit test; no emulator or cloud service was exercised.
