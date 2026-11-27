@@ -95,49 +95,23 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
       assert.equal(Object.hasOwn(item, "internalAudit"), false);
     }
 
-    const created = await handlers.create({
-      rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
-      data: { accountId, data: { date: "2026-06-20", type: "turno", hours: 8 } }
+    const mutationRequest = data => ({
+      rawRequest: { headers: { authorization: "Bearer synthetic-token" } }, data
     });
-    assert.equal(created.revision, 1);
-    assert.equal(created.status, "active");
-
-    const updated = await handlers.update({
-      rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
-      data: { accountId, shiftId: created.shiftId, expectedRevision: 1, changes: { hours: 7.5 } }
-    });
-    assert.equal(updated.revision, 2);
-
-    // Two writers race with the same expected revision. Firestore must commit
-    // exactly one update; the retrying transaction must observe the new revision.
-    const concurrentUpdates = await Promise.allSettled(["7", "6.5"].map(hours =>
-      handlers.update({
-        rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
-        data: { accountId, shiftId: created.shiftId, expectedRevision: 2, changes: { hours: Number(hours) } }
-      })
-    ));
-    const winners = concurrentUpdates.filter(result => result.status === "fulfilled");
-    const losers = concurrentUpdates.filter(result => result.status === "rejected");
-    assert.equal(winners.length, 1);
-    assert.equal(losers.length, 1);
-    assert.equal(losers[0].reason.code, "failed-precondition");
-    assert.equal(winners[0].value.revision, 3);
-
-    const deleted = await handlers.delete({
-      rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
-      data: { accountId, shiftId: created.shiftId, expectedRevision: 3 }
-    });
-    assert.equal(deleted.revision, 4);
-    assert.equal(deleted.status, "deleted");
-
-    const stored = (await collection.doc(created.shiftId).get()).data();
-    assert.equal(stored.status, "deleted");
-    assert.equal(stored.revision, 4);
+    await assert.rejects(
+      handlers.create(mutationRequest({ accountId, data: { date: "2026-06-20", type: "turno", hours: 8 } })),
+      error => error.code === "failed-precondition"
+    );
+    await assert.rejects(
+      handlers.update(mutationRequest({ accountId, shiftId: "synthetic-shift", expectedRevision: 1, changes: { hours: 7 } })),
+      error => error.code === "failed-precondition"
+    );
+    await assert.rejects(
+      handlers.delete(mutationRequest({ accountId, shiftId: "synthetic-shift", expectedRevision: 1 })),
+      error => error.code === "failed-precondition"
+    );
     const audit = await db.collection(`accounts/${accountId}/employeeAudit`).get();
-    assert.equal(audit.size, 4);
-    assert.deepEqual(audit.docs.map(doc => doc.data().type).sort(), [
-      "employee.shift.created", "employee.shift.deleted", "employee.shift.updated", "employee.shift.updated"
-    ]);
+    assert.equal(audit.size, 0);
   } finally {
     await db.recursiveDelete(root);
     await deleteApp(app);
