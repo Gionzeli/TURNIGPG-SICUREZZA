@@ -226,12 +226,25 @@ export function mountDSMCanonicalAccountBridge(container, {
         const heading = document.createElement("h4"); heading.textContent = "Proposta " + proposal.proposalId;
         const detail = document.createElement("p"); detail.textContent = proposal.status + " — " + proposal.changeCount + " variazioni — origine: " + String(proposal.source ?? "non indicata");
         article.append(heading, detail);
-        for (const change of proposal.changes ?? []) {
+        for (let changeIndex = 0; changeIndex < (proposal.changes ?? []).length; changeIndex++) {
+          const change = proposal.changes[changeIndex];
+          const before = proposal.before?.[changeIndex] ?? null;
           const line = document.createElement("p");
-          line.textContent = change.operation === "create"
-            ? "Nuovo turno: " + (change.shift?.date ?? "") + ", " + (change.shift?.type ?? "") + ", " + (change.shift?.post ?? "") + ", " + (change.shift?.start_time ?? "") + "-" + (change.shift?.end_time ?? "")
-            : (change.operation === "delete" ? "Eliminazione" : "Modifica") + " turno " + change.shiftId + " (revisione attesa " + change.expectedRevision + ")";
-          article.append(line);
+          if (change.operation === "create") {
+            line.textContent = "Nuovo turno: " + (change.shift?.date ?? "") + ", " + (change.shift?.type ?? "") + ", " + (change.shift?.post ?? "") + ", " + (change.shift?.start_time ?? "") + "-" + (change.shift?.end_time ?? "");
+            article.append(line);
+          } else if (change.operation === "delete") {
+            line.textContent = "Eliminazione turno: " + (before?.date ?? "") + ", " + (before?.type ?? "") + ", " + (before?.post ?? "") + ", " + (before?.start_time ?? "") + "-" + (before?.end_time ?? "");
+            article.append(line);
+          } else {
+            line.textContent = "Modifica turno del " + (before?.date ?? "") + " (revisione " + change.expectedRevision + ")";
+            article.append(line);
+            for (const [field, value] of Object.entries(change.changes ?? {})) {
+              const diff = document.createElement("p");
+              diff.textContent = field + ": " + String(before?.[field] ?? "—") + " → " + String(value);
+              article.append(diff);
+            }
+          }
         }
         if (proposal.status === "pending") {
           const approve = document.createElement("button"); approve.type = "button"; approve.className = "pri"; approve.textContent = "Approva e aggiorna il calendario";
