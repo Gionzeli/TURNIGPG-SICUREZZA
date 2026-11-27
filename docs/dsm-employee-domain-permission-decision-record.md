@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-116 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-117 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2911,6 +2911,33 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory and document each WebSocket endpoint and handshake contract; configure ingress and application origin/subprotocol allowlists; establish secure browser authentication and CSRF-resistant handshake behavior; enforce bounded resource controls and per-message authorization; and provide reproducible synthetic integration tests for handshake abuse, cross-origin attempts and mid-connection revocation. No production WebSocket, proxy or authentication configuration change is authorized by this decision.
 
+### L-117 — Server-Sent Events, streaming response authorization and connection lifecycle
+
+**Question:** How should one-way real-time HTTP streams, including Server-Sent Events and long-lived streaming responses, preserve authorization, data minimization and prompt revocation after the initial request has completed?
+
+**Decision:** Approved — option B, treat each stream as a bounded, continuously governed data-access channel: authorize at establishment, constrain every emitted event to the current permitted scope, and terminate or reauthorize streams when identity, lifecycle or policy changes. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Inventory all SSE endpoints and other long-lived HTTP response streams, including proxy buffering, reconnect behavior, heartbeat handling, server timeouts and intermediary connection limits; disable unneeded streaming routes.
+- Require authenticated HTTPS transport and validate the initial request against the canonical tenant, actor, session, lifecycle, domain permission, resource relationship and scope.
+- Treat stream establishment as permission to open a channel only, not as a durable authorization grant for every future event or record.
+- Derive subscriptions and event filters exclusively from canonical server-side authorization context; reject client-supplied tenant, employee, role, site, department or permission claims as authority.
+- Authorize every emitted event or bounded event batch against the current permitted resource and field scope; minimize payloads and prevent event metadata, counts or timing from disclosing out-of-scope activity.
+- Revalidate authorization on a defined bounded interval and on relevant policy, membership, role, tenant, employment lifecycle or session events; terminate affected streams promptly when permission is revoked or cannot be verified.
+- Define maximum connection duration, idle timeout, heartbeat interval, event rate, queued bytes and concurrent streams per actor, tenant and source; enforce backpressure and bounded buffers for slow consumers.
+- Ensure event queues do not become an authorization bypass: re-check access at dispatch time, discard queued events that are no longer authorized and prevent stale events from being delivered after revocation.
+- Use opaque, short-lived, scope-bound reconnect identifiers where required; protect them against tampering and cross-context reuse, avoid sensitive data in Last-Event-ID values and never treat a reconnect token as a standalone access grant.
+- On reconnect, authenticate and authorize from current canonical state before resuming; do not replay historical events outside the newly permitted scope or beyond the documented retention window.
+- Avoid credentials or sensitive personal data in stream URLs; apply the URL, referrer, cache and logging safeguards already defined for protected HTTP endpoints.
+- Set response headers appropriate to the stream, including no-store for sensitive employee data and anti-buffering controls where supported; ensure intermediaries do not cache or share authenticated stream content.
+- Define safe handling for browser cookies, CSRF-sensitive stream initiation and cross-origin access; use an explicit origin policy and do not mistake CORS response headers for authorization.
+- Treat all event payloads as untrusted client-visible data; encode content for its eventual rendering context and never send executable markup or privileged internal diagnostics.
+- Ensure graceful termination, network interruption and server restart do not leave subscriptions, authorization state or queued sensitive payloads alive beyond their permitted lifecycle.
+- Record minimized stream establishment, termination, revocation and policy-denial events in protected audit trails; avoid logging tokens, raw event payloads or sensitive query strings.
+- Test mid-stream role and membership revocation, tenant reassignment, session expiry, stale queue dispatch, reconnect after permission change, slow-consumer exhaustion, cross-scope event filtering, cache leakage and proxy buffering using synthetic identities and events.
+
+**Implementation gates:** Inventory streaming routes and intermediaries; define per-event authorization, revalidation and revocation latency requirements; implement bounded stream and queue lifecycles; establish safe reconnect semantics and non-cacheable delivery; and provide reproducible synthetic tests for mid-stream revocation, stale event suppression and cross-scope isolation. No production streaming or proxy configuration change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3027,6 +3054,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-114 HTTP method override, route canonicalization and authorization-path consistency | Approved — option B explicit methods, canonical route interpretation and authorization/handler alignment; implementation gated on route inventory and differential tests |
 | L-115 API media-type enforcement, content negotiation and parser consistency | Approved — option B endpoint media-type allowlists, strict unified parsing and bounded processing; implementation gated on parser inventory and differential tests |
 | L-116 WebSocket upgrade handshake, origin validation and subprotocol security | Approved — option B validated upgrades, trusted-origin and subprotocol allowlists, and ongoing server-side authorization; implementation gated on handshake and revocation tests |
+| L-117 Server-Sent Events, streaming response authorization and connection lifecycle | Approved — option B per-event scope enforcement, bounded streams and prompt revocation; implementation gated on queue, reconnect and mid-stream revocation tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
