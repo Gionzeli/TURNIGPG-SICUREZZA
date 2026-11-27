@@ -27,12 +27,18 @@ function normalizedEmail(value) {
     value === value.trim().toLowerCase() && EMAIL.test(value);
 }
 function validPendingAlertState(value) {
-  return Number.isSafeInteger(value.alertAttempts ?? 0) && (value.alertAttempts ?? 0) >= 0 &&
-    (value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined ||
-      (Number.isSafeInteger(value.alertNextAttemptAt) && value.alertNextAttemptAt >= 1)) &&
-    (value.alertLastErrorCode === null || value.alertLastErrorCode === undefined ||
-      (typeof value.alertLastErrorCode === "string" &&
-       /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode)));
+  const attempts = value.alertAttempts ?? 0;
+  if (!Number.isSafeInteger(attempts) || attempts < 0) return false;
+  const initial = attempts === 0;
+  const retryScheduled = Number.isSafeInteger(value.alertNextAttemptAt) &&
+    value.alertNextAttemptAt >= 1 &&
+    typeof value.alertLastErrorCode === "string" &&
+    /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode);
+  if (initial) {
+    return (value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined) &&
+      (value.alertLastErrorCode === null || value.alertLastErrorCode === undefined);
+  }
+  return retryScheduled;
 }
 function validateConnection(accountId, connectionId, value) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
@@ -282,12 +288,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
             !Number.isSafeInteger(value.attempts) || value.attempts < 12 ||
             typeof value.lastErrorCode !== "string" ||
             !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode) ||
-            !Number.isSafeInteger(value.alertAttempts ?? 0) || (value.alertAttempts ?? 0) < 0 ||
-            !(value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined ||
-              (Number.isSafeInteger(value.alertNextAttemptAt) && value.alertNextAttemptAt >= 1)) ||
-            !(value.alertLastErrorCode === null || value.alertLastErrorCode === undefined ||
-              (typeof value.alertLastErrorCode === "string" &&
-               /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode)))) return null;
+            !validPendingAlertState(value)) return null;
         // Alert consumers receive a strict DTO; never expose secretRef,
         // provider metadata, or unrelated ticket fields to the notifier.
         return {
