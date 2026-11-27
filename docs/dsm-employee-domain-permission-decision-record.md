@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-73 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-74 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1955,6 +1955,26 @@ Approved policy in principle:
 
 **Still required before implementation:** evidence classification and source inventory; case-purpose and requester authority matrix; custodian/investigator/reviewer separation-of-duties model; query and field allowlists; redaction rules; integrity and chain-of-custody format; derived-artifact storage, delivery and expiry design; external-recipient verification; hold/retention linkage; access review and revocation procedures; and synthetic Emulator tests. This decision does not authorize unrestricted raw-log access, bulk employee surveillance, general-purpose evidence exports, external disclosure without review, or production activation.
 
+### L-74 — Tenant and organizational-boundary isolation
+
+**Question:** How should tenant, organization and subordinate-unit boundaries be established and enforced across requests and stored data so that a valid identity or role in one organization cannot access another organization's records?
+
+**Approved 2026-11-27 — option B (canonical server-derived tenant context with deny-by-default isolation at every data access layer), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Resolve the tenant and organizational context from the authenticated principal's verified, active canonical membership and authoritative backend records on every request. Never trust a client-supplied tenant, organization, site, department, employee, owner or scope identifier as proof of membership or authority.
+- Bind each protected record and operation to an authoritative tenant/organization ownership model. Validate the relationship between tenant, organization, unit, employee, assignment and resource on the server; reject missing, ambiguous, conflicting, inactive or cross-boundary references.
+- Enforce tenant isolation in every read, write, query, search, aggregation, export, document lookup, notification, callable, scheduled job, background worker and service-to-service operation. A UI filter or client-side path partition is not an authorization boundary.
+- Derive query constraints from the verified principal and approved scope before retrieving data. Do not fetch broad collections and filter unauthorized records after retrieval. Validate returned references and fields as well as the initial request.
+- Keep tenant identity and authorization context explicit in workload identities and internal service calls. Authenticate the calling service, constrain its audience and permitted tenant scope, and reauthorize the requested operation against current server-side membership and grants.
+- Treat cross-tenant administration, support, migration, analytics and incident investigation as exceptional capabilities, not inherent administrator rights. Require a documented purpose, explicit tenant set, minimum fields/actions, time limit, independent approval and protected audit; no wildcard tenant access by default.
+- Prevent identifiers, counters, storage paths, caches, search indexes, object URLs, exports and generated artifacts from becoming cross-tenant reference channels. Use tenant-aware keys and authorization checks at retrieval time; unguessable identifiers alone are not access control.
+- Invalidate or re-evaluate cached authorization and tenant context after membership, binding, role, organization, lifecycle or session changes. Never reuse a previous user's or tenant's context on shared devices or pooled workers.
+- Fail closed on tenant resolution outages, stale membership, conflicting ownership metadata, unknown schema versions and partial migrations. Do not fall back to a global/default tenant or silently widen scope.
+- Record minimized tenant-scoped access and denial evidence with protected integrity controls. Avoid leaking whether another tenant's resource exists through error messages, timing-sensitive responses or diagnostics.
+- Test synthetic adversarial cases for forged tenant identifiers, swapped resource IDs, nested-unit traversal, duplicate bindings, inactive memberships, query omissions, export/document URL bypass, cache poisoning, pooled-worker context leakage, service identity confusion, concurrent membership revocation and exceptional cross-tenant access.
+
+**Still required before implementation:** canonical tenant and organization ownership schema; membership and hierarchy invariants; tenant-context resolution contract; per-endpoint and per-worker authorization inventory; query/index/storage/cache/artifact isolation design; exceptional cross-tenant approval matrix; revocation and cache-invalidation semantics; generic error and monitoring requirements; and synthetic Emulator tests demonstrating isolation across all data and processing paths. This decision does not create a tenant hierarchy, authorize cross-tenant administration, establish legal entity boundaries, approve real-data processing or permit production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2028,6 +2048,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-71 Historical employee records after termination or lifecycle change | Approved — option B purpose-limited, read-only, time-bounded historical access; implementation gated on lawful-purpose review, historical scope model, revocation, query enforcement and tests |
 | L-72 Legal-hold release and post-hold disposition | Approved — option B verified hold release followed by separate retention-based disposition; implementation gated on legal authority, overlapping-hold checks, copy propagation and tests |
 | L-73 Audit evidence access, disclosure and evidentiary export | Approved — option B purpose-bound read-only evidence access and controlled disclosure; implementation gated on evidence scope, redaction, custody, recipient and test controls |
+| L-74 Tenant and organizational-boundary isolation | Approved — option B canonical server-derived tenant context and deny-by-default isolation; implementation gated on ownership schema, complete path inventory, revocation and cross-tenant tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
