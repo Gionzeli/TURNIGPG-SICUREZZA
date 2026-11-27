@@ -24,7 +24,7 @@ function setup(overrides = {}) {
 
 test("organization callable derives actor only from revocation-checked verified token", async () => {
   const { handlers, calls, verifyCalls } = setup();
-  await handlers.createSite(request({ accountId: "account-1", displayName: "Site A", reasonCode: "setup", actorUid: "attacker" }));
+  await handlers.createSite(request({ accountId: "account-1", displayName: "Site A", reasonCode: "setup" }));
   assert.deepEqual(verifyCalls, [{ token: "valid-token", checkRevoked: true }]);
   assert.equal(calls[0].args.actorUid, "verified-admin");
   assert.equal(calls[0].args.now(), 123456);
@@ -59,6 +59,6 @@ test("organization callables validate identifiers, reason codes and transfer ver
   const { handlers, calls } = setup();
   await assert.rejects(handlers.createDepartment(request({ accountId: "../other", siteId: "s1", displayName: "Dept", reasonCode: "setup" })), e => e.code === "invalid-argument");
   await assert.rejects(handlers.archiveSite(request({ accountId: "a1", siteId: "s1", reasonCode: "not allowed" })), e => e.code === "invalid-argument");
-  await handlers.transferDepartment(request({ accountId: "a1", departmentId: "d1", sourceSiteId: "s1", destinationSiteId: "s2", expectedVersion: "4", reasonCode: "move" }));
-  assert.equal(calls[0].args.expectedVersion, "4");
+  await assert.rejects(handlers.transferDepartment(request({ accountId: "a1", departmentId: "d1", sourceSiteId: "s1", destinationSiteId: "s2", expectedVersion: "4", reasonCode: "move" })), e => e.code === "invalid-argument");
+  assert.equal(calls.length, 0);
 });

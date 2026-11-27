@@ -528,3 +528,5 @@ Aggiunto servizio interno per creare site e department con ID Firestore auto-gen
 ## 2026-11-27 — Callable organizzative con identità verificata
 
 Collegati cinque endpoint callable per creazione sede/reparto, archiviazione sede/reparto e trasferimento reparto. Ogni handler verifica il bearer ID token con controllo revoca, deriva actorUid esclusivamente dalle claims verificate, rifiuta campi client non ammessi e passa ai servizi transazionali soltanto i selettori/parametri di dominio. I servizi ricaricano account, membership effective-dated, scope e dipendenze dentro la transazione; il trasferimento usa la policy canonica su entrambe le sedi. Aggiunti test unitari della boundary per token mancante/revocato, actor spoofing, campi extra e validazione input. Gli endpoint sono nel codice Functions ma restano non deployati; Rules, migrazioni, bootstrap admin e dati reali restano esclusi.
+
+- Rafforzata la boundary callable: expectedVersion del trasferimento deve essere un intero sicuro positivo prima di invocare il servizio. Allineati i test: l'actorUid client è rifiutato come campo extra; il test di derivazione identità usa payload privo di identità client.

@@ -62,6 +62,7 @@ export function createOrganizationCallableHandlers({
     },
     async transferDepartment(request) {
       const data = dataObject(request, ["accountId", "departmentId", "sourceSiteId", "destinationSiteId", "expectedVersion", "reasonCode"]);
+      if (!Number.isSafeInteger(data.expectedVersion) || data.expectedVersion < 1) fail("invalid-argument", "Invalid expected department version.");
       const identity = await actor(request);
       return services.transferDepartment({ db, accountId: requiredId(data.accountId), departmentId: requiredId(data.departmentId),
         sourceSiteId: requiredId(data.sourceSiteId), destinationSiteId: requiredId(data.destinationSiteId),
