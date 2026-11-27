@@ -245,3 +245,29 @@ test("audit failure keeps revocation pending and a later retry can finish it", a
   assert.equal(calls.saved.at(-1).connection.credentialSecretRef, null);
   assert.equal(auditAttempts, 3);
 });
+
+
+test("setup failure never deletes credentials while persisted metadata remains active", async () => {
+  let saves = 0;
+  const { service, calls } = harness({
+    saveConnection: async input => {
+      saves++;
+      calls.saved.push(input);
+      if (input.connection.status === "revocation_pending") {
+        throw Object.assign(new Error("synthetic transition failure"), { code: "failed-precondition" });
+      }
+    },
+    loadConnection: async () => ({
+      accountId: base.accountId, connectionId: "synthetic-connection",
+      provider: "imap", mode: "personal", status: "active",
+      credentialSecretRef: "vault://synthetic/secret-1",
+      ownerUid: base.actorUid, ownerEmployeeId: "synthetic-employee"
+    }),
+    writeAudit: async () => { throw new Error("synthetic audit outage"); }
+  });
+  await assert.rejects(service.connect(base), /synthetic audit outage/);
+  assert.equal(saves, 2);
+  assert.equal(calls.disabled.length, 0);
+  assert.equal(calls.revoked.length, 0);
+  assert.equal(calls.cleanupRecorded.length, 0);
+});
