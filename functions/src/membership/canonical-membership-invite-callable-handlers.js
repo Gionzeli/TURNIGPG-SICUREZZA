@@ -19,7 +19,7 @@ function dataObject(request, keys) {
   }
   return data;
 }
-export function createCanonicalMembershipInviteHandlers({ db, verifyToken, now = () => Date.now() } = {}) {
+export function createCanonicalMembershipInviteHandlers({ db, verifyToken, emailHmacKey = process.env.DSM_INVITE_EMAIL_HMAC_KEY, now = () => Date.now() } = {}) {
   if (!db || typeof db.doc !== "function" || typeof db.runTransaction !== "function" ||
       typeof verifyToken !== "function" || typeof now !== "function") throw new TypeError("Trusted Firestore, token verifier and clock required.");
   async function identity(request) {
@@ -30,7 +30,7 @@ export function createCanonicalMembershipInviteHandlers({ db, verifyToken, now =
     async propose(request) {
       const data = dataObject(request, ["accountId", "inviteId", "email", "siteId"]);
       const actor = await identity(request);
-      return proposeCanonicalMembershipInvite({ db, accountId: data.accountId, inviteId: data.inviteId, email: data.email, siteId: data.siteId, actorUid: actor.uid, actorIdentity: actor, now });
+      return proposeCanonicalMembershipInvite({ db, accountId: data.accountId, inviteId: data.inviteId, email: data.email, siteId: data.siteId, emailHmacKey, actorUid: actor.uid, actorIdentity: actor, now });
     },
     async approve(request) {
       const data = dataObject(request, ["accountId", "inviteId"]);
@@ -40,7 +40,7 @@ export function createCanonicalMembershipInviteHandlers({ db, verifyToken, now =
     async claim(request) {
       const data = dataObject(request, ["accountId", "inviteId"]);
       const actor = await identity(request);
-      return claimCanonicalMembershipInvite({ db, accountId: data.accountId, inviteId: data.inviteId, actorUid: actor.uid, actorIdentity: actor, now });
+      return claimCanonicalMembershipInvite({ db, accountId: data.accountId, inviteId: data.inviteId, actorUid: actor.uid, actorIdentity: actor, emailHmacKey, now });
     }
   });
 }
