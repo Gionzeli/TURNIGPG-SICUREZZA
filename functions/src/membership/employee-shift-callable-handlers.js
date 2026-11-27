@@ -71,7 +71,7 @@ function isVerifiedEmployerProposal(proposal) {
     /^[a-f0-9]{64}$/.test(proposal.attachmentSha256) &&
     Number.isSafeInteger(proposal.receivedAt) && proposal.receivedAt > 0 &&
     typeof proposal.sender === "string" && proposal.sender.length <= 254 &&
-    /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(proposal.sender);
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(proposal.sender);
 }
 function canEmployeeDecideProposal(proposal) {
   return proposal?.source === "employee_manual" || isVerifiedEmployerProposal(proposal);
