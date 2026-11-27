@@ -125,6 +125,73 @@ export function createMailboxConnectionFirestoreAdapters(db) {
       return connection;
     },
 
+    async recordSecretCleanup({ accountId, connectionId, secretRef, reason, timestamp = Date.now() }) {
+      if (!validId(accountId) || !validId(connectionId) ||
+          typeof secretRef !== "string" || secretRef.length < 1 || secretRef.length > 2048 ||
+          typeof reason !== "string" || !/^[a-z0-9_-]{1,64}$/.test(reason) ||
+          !Number.isSafeInteger(timestamp) || timestamp < 1) {
+        invalid("Mailbox secret cleanup record is malformed.");
+      }
+      const ref = db.doc(`accounts/${accountId}/mailboxCredentialCleanup/${connectionId}`);
+      await db.runTransaction(async tx => {
+        const snapshot = await tx.get(ref);
+        if (snapshot.exists) {
+          const previous = snapshot.data();
+          if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
+              previous.secretRef !== secretRef) {
+            const error = new Error("A conflicting cleanup record already exists.");
+            error.code = "failed-precondition";
+            throw error;
+          }
+          if (previous.status === "complete") return;
+          tx.set(ref, { ...previous, updatedAt: timestamp, attempts: previous.attempts + 1 });
+          return;
+        }
+        tx.set(ref, {
+          accountId, connectionId, secretRef, reason, status: "pending",
+          attempts: 1, createdAt: timestamp, updatedAt: timestamp
+        });
+      });
+    },
+
+    async loadSecretCleanup({ accountId, connectionId }) {
+      if (!validId(accountId) || !validId(connectionId)) return null;
+      const snapshot = await db.doc(
+        `accounts/${accountId}/mailboxCredentialCleanup/${connectionId}`
+      ).get();
+      if (!snapshot.exists) return null;
+      const value = snapshot.data();
+      if (!value || value.accountId !== accountId || value.connectionId !== connectionId ||
+          typeof value.secretRef !== "string" || value.secretRef.length < 1 ||
+          !["pending", "complete"].includes(value.status) ||
+          !Number.isSafeInteger(value.attempts) || value.attempts < 1) return null;
+      return value;
+    },
+
+    async completeSecretCleanup({ accountId, connectionId, timestamp = Date.now() }) {
+      if (!validId(accountId) || !validId(connectionId) ||
+          !Number.isSafeInteger(timestamp) || timestamp < 1) {
+        invalid("Mailbox secret cleanup completion is malformed.");
+      }
+      const ref = db.doc(`accounts/${accountId}/mailboxCredentialCleanup/${connectionId}`);
+      await db.runTransaction(async tx => {
+        const snapshot = await tx.get(ref);
+        if (!snapshot.exists) {
+          const error = new Error("Cleanup record not found.");
+          error.code = "not-found";
+          throw error;
+        }
+        const previous = snapshot.data();
+        if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
+            typeof previous.secretRef !== "string" || previous.status !== "pending") {
+          const error = new Error("Cleanup record is not pending.");
+          error.code = "failed-precondition";
+          throw error;
+        }
+        tx.set(ref, { ...previous, status: "complete", completedAt: timestamp, updatedAt: timestamp });
+      });
+    },
+
     async writeAudit(event) {
       if (!event || !validId(event.accountId) || !validId(event.actorUid) ||
           !validId(event.connectionId) ||
