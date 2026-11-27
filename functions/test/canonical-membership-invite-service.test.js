@@ -6,6 +6,7 @@ import {
   claimCanonicalMembershipInvite
 } from "../src/membership/canonical-membership-invite-service.js";
 
+const KEY = "synthetic-test-invite-hmac-key-000000000000000000000000";
 const NOW = Date.parse("2026-11-27T12:00:00.000Z");
 const admin = (uid) => ({
   accountId: "turnigpg-sicurezza", uid, status: "active", role: "admin",
@@ -38,7 +39,7 @@ test("invite needs two distinct recent admins and verified invitee email before 
   const { db, docs } = store(seed());
   const proposal = await proposeCanonicalMembershipInvite({
     db, accountId: "turnigpg-sicurezza", actorUid: "admin-a", actorIdentity: identity("admin-a"),
-    inviteId: "invite-1", email: "New.Member@example.test", siteId: "site-1", now: () => NOW
+    inviteId: "invite-1", email: "New.Member@example.test", siteId: "site-1", emailHmacKey: KEY, now: () => NOW
   });
   assert.equal(proposal.status, "pending");
   await assert.rejects(approveCanonicalMembershipInvite({
@@ -51,11 +52,11 @@ test("invite needs two distinct recent admins and verified invitee email before 
   });
   await assert.rejects(claimCanonicalMembershipInvite({
     db, accountId: "turnigpg-sicurezza", inviteId: "invite-1", actorUid: "new-uid",
-    actorIdentity: { ...identity("new-uid"), email: "attacker@example.test" }, now: () => NOW
+    actorIdentity: { ...identity("new-uid"), email: "attacker@example.test" }, emailHmacKey: KEY, now: () => NOW
   }), e => e.code === "permission-denied");
   const claimed = await claimCanonicalMembershipInvite({
     db, accountId: "turnigpg-sicurezza", inviteId: "invite-1", actorUid: "new-uid",
-    actorIdentity: { ...identity("new-uid"), email: "new.member@example.test" }, now: () => NOW
+    actorIdentity: { ...identity("new-uid"), email: "new.member@example.test" }, emailHmacKey: KEY, now: () => NOW
   });
   assert.equal(claimed.status, "claimed");
   const member = docs.get(`${accountPath}/members/new-uid`);
@@ -71,12 +72,12 @@ test("invite proposal rejects non-admin, stale MFA and inactive site", async () 
   const { db } = store(fixture);
   await assert.rejects(proposeCanonicalMembershipInvite({
     db, accountId: "turnigpg-sicurezza", actorUid: "admin-a", actorIdentity: identity("admin-a"),
-    inviteId: "invite-2", email: "x@example.test", siteId: "site-1", now: () => NOW
+    inviteId: "invite-2", email: "x@example.test", siteId: "site-1", emailHmacKey: KEY, now: () => NOW
   }), e => e.code === "failed-precondition");
   await assert.rejects(proposeCanonicalMembershipInvite({
     db, accountId: "turnigpg-sicurezza", actorUid: "admin-a",
     actorIdentity: { ...identity("admin-a"), authTime: 1 },
-    inviteId: "invite-3", email: "x@example.test", siteId: "site-1", now: () => NOW
+    inviteId: "invite-3", email: "x@example.test", siteId: "site-1", emailHmacKey: KEY, now: () => NOW
   }), e => e.code === "permission-denied");
 });
 
