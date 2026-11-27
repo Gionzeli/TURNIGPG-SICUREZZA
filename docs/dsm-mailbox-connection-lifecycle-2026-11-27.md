@@ -648,3 +648,11 @@ A synthetic regression now verifies that a Firestore read outage while
 asserting the durable revocation gate returns a sanitized `unavailable` error.
 The worker therefore cannot interpret an unavailable gate read as confirmation
 and does not proceed to credential deletion.
+
+
+#### Persisted lease expiry validation
+
+Lease acquisition and revocation-disable transitions now reject negative
+persisted `expiresAt` values rather than treating them as expired leases or
+preserving malformed state. The regression test verifies both operations fail
+closed and leave the malformed record unchanged.
