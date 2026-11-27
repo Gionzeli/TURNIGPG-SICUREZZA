@@ -750,3 +750,15 @@ cannot remain pending. The Firestore listing, direct ticket read, and retry
 transaction all enforce this invariant, so malformed persisted records are
 neither returned to workers nor advanced by stale retry calls. Synthetic tests
 cover inconsistent counters and retry metadata.
+
+
+
+#### Exhausted cleanup ticket state validation
+
+Direct cleanup-ticket reads and pending-alert queries now validate the full
+exhausted state, not just the attempt counter. Exhaustion requires at least
+twelve cleanup attempts, no further cleanup retry timestamp, and a sanitized
+last error code. Its alert must be in a consistent pending, delivered, or
+resolved state; malformed retry metadata is excluded from worker/notifier
+DTOs and direct reads fail closed. Synthetic regression coverage corrupts an
+exhausted alert retry record and confirms it is not exposed.
