@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-11 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-12 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -423,6 +423,30 @@ Approved policy in principle:
 
 **Still required before implementation:** define data categories and canonical locations, applicable retention schedules and legal-hold rules with qualified review, authorized request/review/approval roles and separation of duties, identity verification, response deadlines and appeal handling, deletion/anonymization standards, treatment of backups and third-party processors, propagation to exports and derived data, minimized audit evidence, and synthetic Emulator tests for partial fulfillment, retention holds, unauthorized deletion, scope errors and verifiable completion. No deletion endpoint, bulk purge or automatic account/data erasure is authorized until these details are approved and tested.
 
+### L-12 — Employee access during a dispute
+
+**Question:** What information may an employee access when disputing a record or decision concerning them?
+
+Possible choices:
+- **A. Full immediate access:** provide all related data and logs without filtering.
+- **B. Tracked, relevant access:** provide only information relevant to the dispute, with appropriate redaction of third-party and restricted content.
+- **C. Administrator-mediated access only:** the employee cannot directly consult dispute-related information.
+
+**Approved 2026-11-27 — option B (tracked access to dispute-relevant information, with redaction of third-party and restricted content), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- A dispute-related access request must be authenticated, attributable to the employee, linked to a defined dispute or review reference, and limited to records concerning that employee and the issue raised.
+- Access is limited to information reasonably relevant to understanding and challenging the disputed record or decision. It does not create general access to the employee's entire profile, payroll, absence history, audit trail, or unrelated records.
+- Information concerning other employees or third parties, confidential security controls, credentials, secrets, privileged material, and unrelated sensitive content must be excluded or appropriately redacted.
+- Where an explanation or meaningful extract can satisfy the request, raw internal logs, unrestricted database documents and full audit payloads must not be disclosed.
+- The response must preserve context sufficient to make the information understandable, including relevant dates, status, decision basis and correction/review path where disclosure is authorized.
+- Each request, review, disclosure, redaction and refusal must be recorded with minimized metadata. Access to the disclosure workflow is itself authorized and audited.
+- The person reviewing or approving disclosure must have an explicitly authorized role and must not use the process to alter the disputed source record. Corrections follow L-10; deletion/retention requests follow L-11.
+- Dispute access does not suspend ordinary retention rules or authorize alteration/deletion of evidence. Where preservation is required, a separately authorized hold must be applied without expanding who may read the held data.
+- Missing dispute scope, uncertain identity, mixed records that cannot be safely separated, or unclear disclosure authority fails closed pending review.
+
+**Still required before implementation:** define dispute categories and eligible records, request and response workflow/deadlines, reviewer and approval roles, criteria for relevance and redaction, treatment of third-party/confidential/security information, evidence preservation and legal holds, disclosure format and secure delivery, appeal/escalation, minimized audit fields, and synthetic Emulator tests for cross-employee leakage, overbroad log disclosure, redaction failures and unauthorized record mutation. No dispute-access endpoint or unrestricted audit/log view is authorized until these details are approved and tested.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -455,6 +479,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-09 Emergency break-glass | Approved — option B temporary, justified, scoped and audited access with notification and independent review; implementation gated on incident criteria, action allowlist and oversight workflow |
 | L-10 Sensitive data corrections | Approved — option B tracked request, operator verification, separate approval and recorded change history; implementation gated on field catalogue, workflow and tests |
 | L-11 Data deletion and retention | Approved — option B tracked request, retention review, permitted deletion/anonymization and recorded outcome; implementation gated on retention rules, scope and tests |
+| L-12 Employee access during a dispute | Approved — option B tracked access to relevant records with third-party/restricted-content redaction; implementation gated on scope, disclosure workflow and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
