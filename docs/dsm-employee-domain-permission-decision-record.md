@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-99 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-100 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2510,6 +2510,28 @@ Approved policy in principle:
 
 **Implementation gates:** Define document-class and print-permission matrices; inventory browser, OS, printer, spooler, and external print-provider paths; specify release authentication, job lifecycle, quotas, retention, physical handling and audit schemas; and implement reproducible negative tests. No production printer, print provider, or physical document workflow is authorized by this decision.
 
+### L-100 — Secure data disposal, media sanitization and end-of-life asset handling
+
+**Question:** How must data and cryptographic material be securely disposed of across application storage, backups, replicas, exports, devices, and third-party services when retention expires or an authorized disposition event occurs?
+
+**Decision:** Approved — option B, require a governed, evidence-backed disposal lifecycle that covers all known copies and media, distinguishes deletion from cryptographic erasure and physical destruction, and fails closed when disposition cannot be verified. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Maintain an authoritative data-location and copy inventory covering primary stores, replicas, indexes, caches, browser/device storage, backups, snapshots, exports, attachments, print artifacts, logs, analytics, and processor-held copies.
+- Define retention and disposition rules by data class, purpose, jurisdiction, system, and copy type; reconcile them with legal holds, active disputes, statutory retention, and approved exceptions before disposal.
+- Treat a deletion request or UI action as a workflow trigger, not proof that all copies have been erased; track scope, approvals, dependencies, execution, verification, exceptions, and final outcome.
+- Use deletion, logical invalidation, cryptographic erasure, or physical destruction only where appropriate to the media and threat model; document key dependencies and ensure key destruction does not invalidate unrelated retained data.
+- Ensure backup and immutable snapshot expiry is bounded and documented; where immediate selective erasure is infeasible, restrict access, prevent restoration into active service without reapplying disposition tombstones, and record the residual retention window.
+- Propagate disposition to derived artifacts, search indexes, replicas, caches, exports, preview files, print spools, and third-party processors under contractual and technical controls; obtain evidence or record an explicit unresolved exception.
+- Sanitize reusable devices and media using recognized, risk-appropriate methods before reassignment or disposal; use verified destruction for media that cannot be reliably sanitized.
+- Restrict and independently approve high-impact disposal actions; use least-privilege service identities, dual control where warranted, immutable/tamper-evident audit evidence, and protection against malicious or accidental bulk deletion.
+- Verify completion through reconciliation and sampling or media-specific verification; distinguish confirmed deletion, scheduled expiry, inaccessible residual copies, and unverified processor outcomes without overstating assurance.
+- Prevent sensitive content from appearing in disposal evidence, tickets, logs, or certificates; retain only minimal identifiers, method, scope, timestamps, approvers, verifier, and exceptions.
+- Define secure recovery behavior: restored backups and replicas must reapply current retention, deletion, legal-hold, account-revocation, and tenant-boundary state before becoming accessible.
+- Test partial failures, stale replicas, delayed backup expiry, processor non-compliance, key destruction dependencies, restoration after deletion, and unauthorized disposal using synthetic records and isolated environments.
+
+**Implementation gates:** Produce a copy-and-media inventory, data-class retention schedule, disposition state machine, approval matrix, cryptographic-erasure design, backup restore reconciliation procedure, processor evidence contract, and reproducible verification tests. No real data deletion, key destruction, device sanitization, or production infrastructure change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2609,6 +2631,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-97 API schema evolution, compatibility and contract integrity | Approved — option B explicit versioned contracts, strict validation and fail-closed retirement; implementation gated on schema registry, migration plan and mixed-version tests |
 | L-98 Safe document preview, rendering and active-content isolation | Approved — option B isolated rendering, format allowlists, bounded processing and per-request authorization; implementation gated on sandbox, parser inventory, lifecycle and tests |
 | L-99 Secure printing, print queues and physical document handling | Approved — option B separate print authorization, minimized output, controlled release and auditable lifecycle; implementation gated on printer inventory, job controls and tests |
+| L-100 Secure data disposal, media sanitization and end-of-life asset handling | Approved — option B governed, evidence-backed disposition across copies and media; implementation gated on inventory, retention, restore reconciliation and verification tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
