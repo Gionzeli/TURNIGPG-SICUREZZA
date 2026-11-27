@@ -209,3 +209,8 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 GCLOUD_PROJECT=demo-dsm-mailbox node --te
 ```
 
 The test is added but has not been executed in this environment. It uses Firestore Emulator plus synthetic in-memory Secret Manager and provider transports; it is not evidence of live provider cancellation, cloud Secret Manager behavior, production IAM, or callable/worker wiring.
+
+
+### Cleanup attempt for malformed vault references
+
+Connection setup now makes a best-effort scoped vault-revocation call when secret storage returns a non-empty but invalid/oversized reference. The malformed reference is never written to connection metadata. A synthetic regression verifies cleanup is attempted and no connection record is saved. Cleanup failure is intentionally suppressed at this boundary, so operational vault review may still be required; this does not prove that an arbitrary malformed reference can be revoked by a concrete vault backend.
