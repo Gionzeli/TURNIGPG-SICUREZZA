@@ -248,7 +248,10 @@ export function mountDSMCanonicalAccountBridge(container, {
             }
           }
         }
-        if (proposal.status === "pending") {
+        if (proposal.status === "pending" && proposal.canDecide !== true) {
+          const warning = document.createElement("p"); warning.textContent = "Proposta non verificata: non è possibile approvarla o rifiutarla."; article.append(warning);
+        }
+        if (proposal.status === "pending" && proposal.canDecide === true) {
           const approve = document.createElement("button"); approve.type = "button"; approve.className = "pri"; approve.textContent = "Approva e aggiorna il calendario";
           approve.addEventListener("click", async () => {
             approve.disabled = true; proposalStatus.textContent = "Verifica e applicazione atomica in corso…";
