@@ -49,8 +49,13 @@ export function createMailboxSecretCleanupWorker({
         if (!ticket || ticket.accountId !== accountId ||
             typeof ticket.connectionId !== "string" ||
             typeof ticket.secretRef !== "string" || ticket.secretRef.length < 1 ||
-            ticket.status !== "pending" || !Number.isInteger(ticket.attempts) ||
-            ticket.attempts < 1) {
+            ticket.secretRef.length > 2048 || ticket.status !== "pending" ||
+            !Number.isSafeInteger(ticket.attempts) || ticket.attempts < 1 ||
+            !(ticket.nextAttemptAt === null ||
+              (Number.isSafeInteger(ticket.nextAttemptAt) && ticket.nextAttemptAt >= 1)) ||
+            !(ticket.lastErrorCode === undefined || ticket.lastErrorCode === null ||
+              (typeof ticket.lastErrorCode === "string" &&
+               /^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode)))) {
           summary.deferred++;
           continue;
         }
