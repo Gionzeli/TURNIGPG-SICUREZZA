@@ -492,3 +492,17 @@ whose monotonic `revocationPending` flag is true. Missing, malformed, or
 not-yet-disabled gates prevent vault deletion and are recorded as retryable
 cleanup failures. A durable cleanup ticket alone is not authorization to
 delete a credential. The gate is never cleared by the lease lifecycle.
+
+
+#### Stale cleanup and alert retry writes
+
+The Firestore outbox adapter rejects a delayed cleanup-failure write after a
+ticket has reached the complete state, and rejects a delayed alert-failure
+write after the exhaustion notification has reached the delivered state. Both
+checks run inside the transaction against the current persisted status, so a
+stale worker cannot reopen completed cleanup or schedule another notification
+after delivery. Synthetic adapter regressions cover both state transitions.
+Concurrent alert sends can still occur before either worker acknowledges
+delivery; this remains an at-least-once integration contract and requires the
+downstream notifier to deduplicate the stable alert ID. These tests do not
+establish exactly-once delivery or replace a distributed worker claim/lease.
