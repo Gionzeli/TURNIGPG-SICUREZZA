@@ -458,3 +458,14 @@ adapter fails closed with `failed-precondition`. This closes the duplicate
 audit window between successful audit creation and a failed final connection
 metadata write. Synthetic adapter tests cover repeat delivery and conflicting
 event contents.
+
+
+#### Terminal revocation state under concurrent retries
+
+The Firestore connection adapter now treats `revoked` as terminal. If a
+concurrent request reaches finalization using a stale `revocation_pending`
+snapshot after another request has already committed `revoked`, the adapter
+accepts the duplicate finalization as a no-op and preserves the first
+`revokedAt` and `updatedAt`. Other attempts to change a revoked connection
+remain rejected. A synthetic adapter regression test covers the stale
+finalization race.
