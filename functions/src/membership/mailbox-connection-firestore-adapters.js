@@ -400,9 +400,43 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           error.code = "failed-precondition";
           throw error;
         }
-        if (previous.status === "complete") return;
+        if (previous.status === "complete") {
+          const alertStateValid = previous.alertStatus === undefined || previous.alertStatus === null ||
+            (previous.alertStatus === "delivered" &&
+              Number.isSafeInteger(previous.alertDeliveredAt) && previous.alertDeliveredAt >= 1 &&
+              (previous.alertNextAttemptAt === null || previous.alertNextAttemptAt === undefined)) ||
+            (previous.alertStatus === "resolved" &&
+              Number.isSafeInteger(previous.alertResolvedAt) && previous.alertResolvedAt >= 1 &&
+              (previous.alertNextAttemptAt === null || previous.alertNextAttemptAt === undefined));
+          if (!Number.isSafeInteger(previous.completedAt) || previous.completedAt < 1 ||
+              !Number.isSafeInteger(previous.updatedAt) || previous.updatedAt < previous.completedAt ||
+              !alertStateValid) {
+            const error = new Error("Completed cleanup record metadata is malformed.");
+            error.code = "failed-precondition";
+            throw error;
+          }
+          return;
+        }
         if (!["pending", "exhausted"].includes(previous.status)) {
           const error = new Error("Cleanup record is not pending or exhausted.");
+          error.code = "failed-precondition";
+          throw error;
+        }
+        if (previous.alertStatus === "pending" && !validPendingAlertState(previous)) {
+          const error = new Error("Pending cleanup alert metadata is malformed.");
+          error.code = "failed-precondition";
+          throw error;
+        }
+        if (previous.alertStatus !== undefined && previous.alertStatus !== null &&
+            previous.alertStatus !== "pending" && previous.alertStatus !== "delivered") {
+          const error = new Error("Cleanup alert state is not valid for completion.");
+          error.code = "failed-precondition";
+          throw error;
+        }
+        if (previous.alertStatus === "delivered" &&
+            (!Number.isSafeInteger(previous.alertDeliveredAt) || previous.alertDeliveredAt < 1 ||
+             (previous.alertNextAttemptAt !== null && previous.alertNextAttemptAt !== undefined))) {
+          const error = new Error("Delivered cleanup alert metadata is malformed.");
           error.code = "failed-precondition";
           throw error;
         }
