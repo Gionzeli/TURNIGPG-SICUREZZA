@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-65 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-66 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1780,6 +1780,35 @@ Approved policy in principle:
 
 **Still required before implementation:** reporting-channel ownership and availability, triage severity matrix and response targets, responsible disclosure terms, incident/communications authority, privacy/legal notification decision workflow, provider contract requirements, evidence handling, advisory publication process, retention and exercise schedule. This policy does not assert that an incident has occurred, that notifications have been made, or that any vulnerability has been remediated; it does not authorize public disclosure of private data or exploit details.
 
+### L-66 — Privacy governance, data protection impact and change review
+
+**Question:** How should privacy risks, personal-data processing changes and data-subject impacts be assessed, approved, monitored and revisited throughout the system lifecycle?
+
+Possible choices:
+- **A. Initial notice only:** document privacy information at project start and revisit only after a complaint or incident.
+- **B. Continuous, risk-based privacy governance:** maintain processing records, assess material changes before release, apply privacy-by-design controls and review residual risks throughout the lifecycle.
+- **C. Blanket prohibition:** prohibit all processing of personal data, including strictly necessary employment and account operations.
+
+**Approved 2026-11-27 — option B (continuous, risk-based privacy governance), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Maintain an accurate inventory of personal-data processing purposes, categories, data subjects, sources, recipients, processors, locations, retention periods, access roles and applicable safeguards.
+- Identify and document the applicable controller, processor and other organizational responsibilities before enabling a processing activity; do not infer legal roles solely from technical architecture.
+- Establish a lawful-purpose and necessity review for each processing purpose, with data minimization, purpose limitation, accuracy, transparency, storage limitation and confidentiality safeguards.
+- Assess privacy implications during design and before material changes to data categories, access, profiling/automation, integrations, exports, retention, hosting locations or processing purposes.
+- Perform a formal data protection impact assessment where legally required or where the nature, scope, context and purposes indicate likely high risk; document screening rationale when a full assessment is not required.
+- Consult qualified privacy/legal specialists and, where legally required, the competent supervisory authority before processing that cannot proceed lawfully without prior consultation.
+- Apply privacy by design and default: deny optional collection and exposure, separate domains and purposes, minimize identifiers, restrict access, use synthetic data in non-production and avoid sensitive data in logs, notifications, analytics and AI prompts.
+- Document data-subject rights workflows, identity and authority verification, response ownership, deadlines, exceptions, legal holds, third-party coordination and evidence of outcomes.
+- Govern processors and other recipients through documented due diligence, instructions, purpose and scope limits, security obligations, subprocessors, location/transfer review, incident cooperation, audit rights and secure termination/deletion.
+- Review international or cross-border data transfers and applicable safeguards before enabling them; do not assume a provider's location, contract or encryption alone resolves transfer requirements.
+- Define retention and deletion by data domain and purpose, including backups, exports, logs, derived data and processor copies; preserve only legally justified records and document exceptions.
+- Reassess privacy risks after incidents, complaints, audit findings, new vulnerabilities, legal changes, material product changes or changes in organizational roles and processing context.
+- Maintain accountable owners, review dates, decisions, residual risks, mitigations and evidence; require independent review for material or high-risk processing and time-bound approval of any permissible exception.
+- Test synthetic scenarios for excess collection, unauthorized secondary use, cross-scope disclosure, rights-request failure, processor offboarding, retention expiry, cross-border transfer gaps and privacy leakage through diagnostics or AI tooling.
+
+**Still required before implementation:** controller/processor role determination, processing inventory and purposes, lawful-basis assessment by qualified counsel/privacy owner, data retention schedule, DPIA screening and assessment criteria, rights-request procedures, processor register and contracts, transfer assessment, privacy review gates, accountable owners and synthetic validation. This policy is not legal advice, does not establish a lawful basis or complete a DPIA, and does not authorize new personal-data processing, real-data imports, production activation or disclosure.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1845,6 +1874,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-63 Controlled deployment and infrastructure change management | Approved — option B explicit environment approvals, verified immutable artifacts, staged rollout, monitored stop/rollback and audited infrastructure changes; implementation gated on environment boundaries, approval matrix, runner controls and recovery tests |
 | L-64 Security assurance, independent review and risk acceptance | Approved — option B risk-based independent assurance, traceable evidence and time-bounded exceptions; implementation gated on review ownership, evidence standards, blocking criteria and expiry enforcement |
 | L-65 Security incident disclosure and coordinated vulnerability reporting | Approved — option B protected reporting, risk-based triage, coordinated remediation and legally reviewed timely communications; implementation gated on ownership, severity targets, notification workflow and exercises |
+| L-66 Privacy governance, data protection impact and change review | Approved — option B continuous risk-based privacy governance and pre-change assessment; implementation gated on processing inventory, lawful-basis review, DPIA screening, rights workflows and processor/transfer controls |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
