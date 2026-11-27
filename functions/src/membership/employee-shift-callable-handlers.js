@@ -185,11 +185,11 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
         const decisionRef = db.doc(`accounts/${accountId}/employeeShiftProposalDecisions/${proposalId}`);
         const [proposalSnap, decisionSnap] = await Promise.all([tx.get(proposalRef), tx.get(decisionRef)]);
         if (!proposalSnap.exists) fail("not-found", "Proposal not found.");
-        if (decisionSnap.exists) fail("already-exists", "Proposal decision already exists.");
         const proposal = proposalSnap.data();
         if (proposal.accountId !== accountId || proposal.employeeId !== principal.employeeId ||
             proposal.proposerUid !== identity.uid) fail("permission-denied", "Proposal does not belong to this employee.");
         if (proposal.status !== "pending" || proposal.source !== "employee_manual") fail("failed-precondition", "Only pending employee-entered proposals can be approved.");
+        if (decisionSnap.exists) fail("already-exists", "Proposal decision already exists.");
         const changes = validateProposalChanges(proposal.changes);
         const timestamp = now();
         if (!Number.isSafeInteger(timestamp)) fail("failed-precondition", "Invalid trusted clock.");
@@ -334,10 +334,10 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
         const decisionRef = db.doc(`accounts/${accountId}/employeeShiftProposalDecisions/${proposalId}`);
         const [snapshot, decisionSnap] = await Promise.all([tx.get(ref), tx.get(decisionRef)]);
         if (!snapshot.exists) fail("not-found", "Proposal not found.");
-        if (decisionSnap.exists) fail("already-exists", "Proposal decision already exists.");
         const proposal = snapshot.data();
         if (proposal.accountId !== accountId || proposal.employeeId !== principal.employeeId || proposal.proposerUid !== identity.uid) fail("permission-denied", "Proposal does not belong to this employee.");
         if (proposal.status !== "pending") fail("failed-precondition", "Only pending proposals can be rejected.");
+        if (decisionSnap.exists) fail("already-exists", "Proposal decision already exists.");
         const timestamp = now();
         if (!Number.isSafeInteger(timestamp)) fail("failed-precondition", "Invalid trusted clock.");
         tx.update(ref, { status: "rejected", decidedAt: timestamp, decidedBy: identity.uid, updatedAt: timestamp });
