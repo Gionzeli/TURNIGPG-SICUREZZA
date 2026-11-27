@@ -517,3 +517,16 @@ closes an exception path where the clock could become invalid after the initial
 batch validation but before an alert was sent. A synthetic regression verifies
 that no notification or outbox mutation occurs. No live scheduler, notifier,
 or production runtime was exercised.
+
+
+#### Revocation gate for malformed vault references
+
+If the vault returns a non-empty but invalid secret reference before connection
+metadata is created, setup compensation now disables refresh through the same
+durable per-connection revocation gate before attempting deletion or recording
+the cleanup ticket. This is necessary because the retry worker refuses to
+delete from a ticket without that gate. If gate creation fails, the service
+does not delete the secret or enqueue cleanup; the caller receives the existing
+fail-closed setup error and the orphan requires vault review. Synthetic tests
+cover both the gate-before-cleanup order and gate failure. No live vault or
+Firestore service was used.
