@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-76 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-77 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2016,6 +2016,26 @@ Approved policy in principle:
 
 **Still required before implementation:** authoritative identity-source catalogue and precedence; approved matching attributes and confidence thresholds; quarantine behavior; reviewer and independent-approver matrix; evidence and dispute workflow; field-level merge/split policy; canonical binding transaction and revocation design; provenance and reversibility schema; notification/privacy controls; and synthetic Emulator tests for false positives, false negatives, conflicts and cross-tenant cases. This decision does not authorize biometric matching, automated identity merges, bulk reconciliation of real employee data, changes to real UID bindings, or production activation.
 
+### L-77 — Authorization policy versioning and enforcement consistency
+
+**Question:** How should authorization rules remain consistent, current and auditable across independently executing backend endpoints, queries, exports, callable functions, background workers and user interfaces as policies and permissions change?
+
+**Approved 2026-11-27 — option B (versioned canonical policy with server-enforced decisions, bounded propagation and fail-closed behavior on stale or inconsistent policy state), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Maintain one governed, versioned source of authorization policy for roles, domains, actions, fields, ownership, tenant boundaries, lifecycle conditions and scope semantics. A user interface, client SDK, cached client state or duplicated service-local role map is never an authoritative grant.
+- Define explicit policy ownership, review, approval, version identifiers, effective times, compatibility rules and change history. Separate policy authoring from approval and deployment; high-impact permission changes require independent review.
+- Every server-side enforcement point must evaluate the applicable policy against freshly verified actor identity, canonical membership and lifecycle state, resource ownership, tenant context, requested action, field set and scope. This includes reads, writes, search, exports, documents, notifications, callable functions, scheduled work, workers and service-to-service operations.
+- Make each authorization decision traceable to the policy version and relevant canonical authorization inputs. Record only minimized decision metadata and stable reason codes; never expose sensitive policy internals or another person's resource existence through client errors.
+- Treat cached decisions and policy snapshots as bounded optimizations, not authority. Define maximum staleness, invalidation and refresh behavior. Role, membership, lifecycle, binding, tenant-boundary or policy changes must invalidate affected grants and cached decisions; uncertain invalidation fails closed for protected operations.
+- Prevent mixed-version execution during policy rollout. Specify compatibility and activation rules so a request or job cannot combine permissive fragments from different policy versions. Long-running jobs must re-evaluate authorization at execution and at sensitive checkpoints using a current approved policy.
+- On policy retrieval failure, malformed policy, unknown version, signature/integrity failure, unsupported policy feature or disagreement between enforcement points, deny protected access and surface a generic safe error. Do not fall back to client-side checks, permissive defaults, stale grants or an older version unless a separately approved, bounded rollback procedure explicitly establishes that version as current.
+- Govern policy rollout and rollback as security-sensitive changes: immutable reviewed artifacts, integrity verification, staged validation, explicit approval, monitoring, rollback criteria and protected audit evidence. Rollback must not restore revoked users, obsolete memberships or expired delegations.
+- Keep authorization policy distinct from business workflow state and data validation. Passing one check never substitutes for the others; a valid schema, UI-hidden control, successful authentication or workflow status does not itself authorize an operation.
+- Provide a documented conformance suite that runs the same positive and negative authorization cases against every enforcement adapter and supported execution path. Include tenant isolation, self-versus-manager access, field-level restrictions, lifecycle revocation, delegated access expiry, policy updates during sessions/jobs, cache invalidation, unknown versions, service outages and mixed-version attempts.
+- Block release when a protected path lacks an identified enforcement point, policy version traceability, current-state revalidation or passing conformance evidence. Record exceptions with owner, scope, rationale, compensating controls, expiry and independent approval; no indefinite bypass.
+
+**Still required before implementation:** canonical policy representation and ownership; policy authoring/approval workflow; version and compatibility model; enforcement-point inventory; decision input and reason-code schema; cache staleness and invalidation guarantees; rollout, integrity and rollback design; job revalidation checkpoints; adapter conformance suite; release-blocking criteria; and synthetic Emulator tests. This decision does not certify existing services as consistent, authorize permissive fallback, or approve production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2092,6 +2112,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-74 Tenant and organizational-boundary isolation | Approved — option B canonical server-derived tenant context and deny-by-default isolation; implementation gated on ownership schema, complete path inventory, revocation and cross-tenant tests |
 | L-75 Tenant onboarding, mergers, splits and boundary changes | Approved — option B staged, independently approved transitions with provenance and fail-closed cutover; implementation gated on ownership mapping, legal review, reconciliation and recovery tests |
 | L-76 Employee identity matching and duplicate-record resolution | Approved — option B verified human review, quarantine of ambiguity and no automatic merge; implementation gated on authoritative sources, binding workflow, provenance and false-match tests |
+| L-77 Authorization policy versioning and enforcement consistency | Approved — option B canonical versioned policy, server enforcement, bounded propagation and fail-closed stale-state handling; implementation gated on enforcement inventory, rollout controls and conformance tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
