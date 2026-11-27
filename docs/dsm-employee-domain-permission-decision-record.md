@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-49 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-50 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1341,6 +1341,31 @@ Approved policy in principle:
 
 **Still required before implementation:** supported-format inventory, size/resource thresholds, schema and field mappings, provenance requirements, staging/approval workflow, duplicate/conflict policy, quarantine and retention design, audit fields and synthetic test coverage. This policy does not authorize importing real personal data, automatic legacy migration, production data changes or deployment.
 
+### L-50 — Secure export and document generation
+
+**Question:** How should generated reports and exported documents preserve confidentiality, authorization, integrity and traceability throughout creation, delivery and retention?
+
+Possible choices:
+- **A. Basic export controls:** authorize the export request and generate files using ordinary application defaults.
+- **B. End-to-end governed export:** enforce scoped authorization, minimized data, safe rendering, protected delivery, integrity and lifecycle controls.
+- **C. Unrestricted document generation:** allow broad report generation and rely on recipient discretion.
+
+**Approved 2026-11-27 — option B (end-to-end governed export and document generation), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Authorize every export server-side against the current actor, membership and lifecycle state, domain/action permission, organizational scope, purpose, requested fields and target records; do not rely on UI visibility or prior authorization.
+- Apply data minimization and approved field allowlists to every report, PDF, spreadsheet, CSV and generated document; deny payroll, health and other restricted fields unless a separate domain-specific policy explicitly permits them.
+- Require preview, explicit confirmation and independent approval where export volume, sensitivity or impact crosses defined thresholds; enforce quotas and anti-enumeration limits.
+- Generate files in isolated, bounded processing contexts; escape untrusted content, prevent spreadsheet formula injection, disable active content and avoid unsafe template evaluation.
+- Use controlled templates and versioned generation logic; validate output structure, metadata, formulas, embedded objects, links and unintended hidden content before release.
+- Protect generated artifacts with encryption in transit and at rest where stored, access-controlled delivery, short-lived download links and recipient/scope verification; never expose public or guessable file URLs.
+- Bind each artifact to an export request and record actor, purpose, scope, fields, template/version, time, approval, recipient, integrity reference and outcome in protected audit evidence without logging sensitive file contents.
+- Define retention, expiry, revocation and secure deletion for temporary and delivered artifacts; prevent stale links or cached copies from remaining accessible after authorization or lifecycle changes.
+- Add appropriate provenance markings or watermarks where justified by risk, without inserting unnecessary personal data into documents.
+- Test synthetic cases for out-of-scope fields, stale authorization, recipient mismatch, formula injection, metadata leakage, hidden spreadsheet content, link expiry, tampering and bulk-export abuse.
+
+**Still required before implementation:** export catalogue and field allowlists, sensitivity/volume thresholds, approval matrix, template governance, safe-rendering rules, storage/delivery architecture, retention schedule, artifact integrity design and synthetic test coverage. This policy does not authorize real-data exports, payroll/health reporting, bulk extraction or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1390,6 +1415,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
 | L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| L-41 Web application and API abuse protection | Approved — option B defense-in-depth validation, authorization, browser protections, outbound controls and abuse limits; implementation gated on route inventory, policies, monitoring and tests |\n| L-42 Stored data and local cache protection | Approved — option B layered encryption, minimization, key governance and strict local/offline persistence limits; implementation gated on classification, retention, storage, lifecycle cleanup and tests |\n| L-43 Administrative operations and insider-abuse controls | Approved — option B least privilege, separation of duties, independent approvals, time-limited elevation and protected audit; implementation gated on role matrix, approver rules, monitoring and tests |\n| L-44 Data loss prevention and controlled data egress | Approved — option B risk-based classification, egress permissions, minimized exports, protected audit and anomaly review; implementation gated on domain rules, workflows and tests |\n| L-45 Secure notifications and messaging channels | Approved — option B minimal authenticated notifications, protected links, scoped recipient checks and provider governance; implementation gated on channel rules, workflows and tests |\n| L-46 Backend resource protection and automated abuse controls | Approved — option B layered quotas, bounded workloads, fair-use isolation, abuse detection and safe degradation; implementation gated on resource budgets, monitoring and tests |\n| L-47 Secure error handling and diagnostic information protection | Approved — option B generic client errors, minimized protected diagnostics, redaction and audited access; implementation gated on schemas, retention, access controls and leakage tests |\n| L-48 Configuration integrity and environment security | Approved — option B governed configuration changes, environment separation, validation, drift detection and audited rollback; implementation gated on inventory, workflows, validation and tests |
 | L-49 Secure data import and ingestion | Approved — option B defense-in-depth validation, staged review, scoped authorization, provenance, safe parsing and protected audit; implementation gated on formats, schemas, workflows, limits and tests |
+| L-50 Secure export and document generation | Approved — option B end-to-end scoped authorization, minimized fields, safe rendering, protected delivery, artifact lifecycle and audit; implementation gated on catalogue, thresholds, workflows and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
