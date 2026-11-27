@@ -77,6 +77,38 @@ test("trusted email ingestion creates per-employee proposals but never mutates t
   assert.equal(calls.finished[0].status, "proposals_created");
 });
 
+test("a PDF containing multiple collaborators is partitioned into separate personal proposals", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [
+      { employeeMatchKey: "employee-A", confidence: 0.999, shifts: [
+        { date: "2026-06-02", type: "turno", post: "Reception A", start_time: "08:00", end_time: "14:00", hours: 6 }
+      ] },
+      { employeeMatchKey: "employee-B", confidence: 0.999, shifts: [
+        { date: "2026-06-02", type: "turno", post: "Reception B", start_time: "14:00", end_time: "20:00", hours: 6 }
+      ] }
+    ] }),
+    resolveEmployee: async ({ employeeMatchKey }) => ({
+      accountId, employeeId: employeeMatchKey, employeeUid: "uid-" + employeeMatchKey,
+      status: "active", mappingVerified: true
+    }),
+    loadEmployeeShifts: async ({ employeeId }) => [{
+      accountId, employeeId, shiftId: "existing-" + employeeId,
+      date: "2026-06-02", type: "turno", post: "Old post",
+      start_time: "07:00", end_time: "13:00", hours: 6, revision: 1
+    }],
+    createEmployeeProposal: async input => {
+      calls.proposals.push(input);
+      return { proposalId: "proposal-" + input.employeeId };
+    }
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].proposals.length, 2);
+  assert.deepEqual(calls.proposals.map(item => item.employeeId).sort(), ["employee-A", "employee-B"]);
+  assert.equal(calls.proposals.find(item => item.employeeId === "employee-A").changes[0].changes.post, "Reception A");
+  assert.equal(calls.proposals.find(item => item.employeeId === "employee-B").changes[0].changes.post, "Reception B");
+  assert.equal(result[0].proposals.every(item => item.status === "pending"), true);
+});
+
 test("unverified sender is rejected before an ingestion job or PDF scan", async () => {
   const { service, calls } = harness({
     verifyMessage: async () => ({ authenticated: false, senderAllowed: false, dmarc: "fail", dkim: "fail", spf: "fail" })
