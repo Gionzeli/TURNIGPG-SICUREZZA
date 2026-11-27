@@ -360,3 +360,10 @@ Retries remain unbounded (with a six-hour maximum delay); this is an operational
 notification retry, not a credential deletion retry. The stable alert ID remains
 unchanged across retries so the downstream provider can deduplicate duplicates.
 A matching composite Firestore index is included in source configuration.
+
+
+Alert outbox reads return a narrow notification DTO (account/connection IDs,
+exhaustion state, retry count and sanitized error codes). The credential
+`secretRef`, cleanup reason and unrelated metadata are deliberately excluded
+before data reaches the alert worker. Unit and Firestore Emulator assertions
+guard this boundary.
