@@ -372,12 +372,19 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           throw error;
         }
         if (previous.status === "complete") return;
-        if (previous.status !== "pending") {
-          const error = new Error("Cleanup record is not pending.");
+        if (!["pending", "exhausted"].includes(previous.status)) {
+          const error = new Error("Cleanup record is not pending or exhausted.");
           error.code = "failed-precondition";
           throw error;
         }
-        tx.set(ref, { ...previous, status: "complete", completedAt: timestamp, updatedAt: timestamp });
+        // A later successful/manual deletion may recover a ticket after the
+        // automated retry ceiling. Resolve its undelivered exhaustion alert.
+        tx.set(ref, {
+          ...previous, status: "complete", completedAt: timestamp, updatedAt: timestamp,
+          ...(previous.alertStatus === "pending"
+            ? {alertStatus: "resolved", alertResolvedAt: timestamp, alertNextAttemptAt: null}
+            : {})
+        });
       });
     },
 
