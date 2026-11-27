@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-48 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-49 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1314,6 +1314,33 @@ Approved policy in principle:
 
 **Still required before implementation:** configuration inventory and ownership, environment matrix, schema and policy validation, change/approval workflow, promotion controls, secret references, drift detection, rollback procedure and synthetic test coverage. This policy does not authorize production configuration changes, feature-flag activation, real credentials or deployment.
 
+### L-49 — Secure data import and ingestion
+
+**Question:** How should files and externally supplied records be validated and processed to prevent malicious content, corruption, unauthorized data changes and unsafe imports?
+
+Possible choices:
+- **A. Basic file validation:** check file extension and required columns, then import records.
+- **B. Defense-in-depth ingestion:** validate provenance, type, size, schema, content, authorization, integrity and business constraints; stage and review changes before commit.
+- **C. Trusted-source bypass:** accept files from designated users or systems with minimal validation.
+
+**Approved 2026-11-27 — option B (defense-in-depth data ingestion with staged validation), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat all uploaded files, imported rows, archives and external payloads as untrusted, regardless of sender or file extension.
+- Allowlist required formats and enforce size, row, column, archive-expansion, processing-time and resource limits; reject malformed, encrypted or unsupported content unless a separately reviewed workflow supports it.
+- Validate actual file structure and content rather than trusting names, MIME types, extensions or client-supplied metadata.
+- Parse CSV and spreadsheet data safely; neutralize formula injection in values that may later be opened by spreadsheet software, and never execute macros, formulas, embedded scripts or active content during ingestion.
+- Enforce strict schema, field allowlists, type/range constraints, encoding checks, canonical identifiers and domain-specific business rules; reject unknown authority-bearing fields.
+- Authenticate the actor and independently authorize the exact import action, domain, organization/site scope, target records and permitted fields on the server.
+- Stage imports for preview and validation; report row-level errors without exposing sensitive data, and require explicit confirmation or independent approval for high-impact or bulk changes.
+- Detect duplicate, conflicting, stale and replayed records; use idempotency and concurrency/revision checks to prevent unintended overwrites.
+- Preserve provenance and protected audit evidence, including source, actor, time, validation result, approval and outcome, while minimizing retained source content.
+- Ensure imports cannot bypass lifecycle, ownership, UID binding, retention, legal-hold or domain authorization controls.
+- Quarantine rejected files and temporary artifacts; apply malware scanning where supported, controlled retention and secure deletion.
+- Test synthetic cases for malicious files, parser edge cases, formula injection, oversized inputs, duplicate/replayed rows, scope violations, partial failure and rollback.
+
+**Still required before implementation:** supported-format inventory, size/resource thresholds, schema and field mappings, provenance requirements, staging/approval workflow, duplicate/conflict policy, quarantine and retention design, audit fields and synthetic test coverage. This policy does not authorize importing real personal data, automatic legacy migration, production data changes or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1362,6 +1389,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
 | L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
 | L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| L-41 Web application and API abuse protection | Approved — option B defense-in-depth validation, authorization, browser protections, outbound controls and abuse limits; implementation gated on route inventory, policies, monitoring and tests |\n| L-42 Stored data and local cache protection | Approved — option B layered encryption, minimization, key governance and strict local/offline persistence limits; implementation gated on classification, retention, storage, lifecycle cleanup and tests |\n| L-43 Administrative operations and insider-abuse controls | Approved — option B least privilege, separation of duties, independent approvals, time-limited elevation and protected audit; implementation gated on role matrix, approver rules, monitoring and tests |\n| L-44 Data loss prevention and controlled data egress | Approved — option B risk-based classification, egress permissions, minimized exports, protected audit and anomaly review; implementation gated on domain rules, workflows and tests |\n| L-45 Secure notifications and messaging channels | Approved — option B minimal authenticated notifications, protected links, scoped recipient checks and provider governance; implementation gated on channel rules, workflows and tests |\n| L-46 Backend resource protection and automated abuse controls | Approved — option B layered quotas, bounded workloads, fair-use isolation, abuse detection and safe degradation; implementation gated on resource budgets, monitoring and tests |\n| L-47 Secure error handling and diagnostic information protection | Approved — option B generic client errors, minimized protected diagnostics, redaction and audited access; implementation gated on schemas, retention, access controls and leakage tests |\n| L-48 Configuration integrity and environment security | Approved — option B governed configuration changes, environment separation, validation, drift detection and audited rollback; implementation gated on inventory, workflows, validation and tests |
+| L-49 Secure data import and ingestion | Approved — option B defense-in-depth validation, staged review, scoped authorization, provenance, safe parsing and protected audit; implementation gated on formats, schemas, workflows, limits and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
