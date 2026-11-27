@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-10 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-11 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -399,6 +399,30 @@ Approved policy in principle:
 
 **Still required before implementation:** define the sensitive field catalogue and correction eligibility per field; acceptable evidence and verification standards; authorized operator and approver roles and separation-of-duties rules; request states, deadlines, withdrawal and dispute handling; atomic application and conflict resolution; notifications; restricted history access and retention; and synthetic Emulator tests for unauthorized edits, self-approval, forged ownership, stale revisions, rejected requests and audit completeness. No correction endpoint or direct sensitive-field mutation is authorized until these details are approved and tested.
 
+### L-11 — Data deletion and retention
+
+**Question:** How should the system handle an employee's request to delete personal data when some records may be subject to legal, contractual, accounting, security or other retention requirements?
+
+Possible choices:
+- **A. Immediate deletion:** delete the employee's data immediately upon request.
+- **B. Tracked request and retention review:** verify the request and applicable retention obligations; delete or anonymize only data that no longer needs to be retained; record the decision and outcome.
+- **C. Administrator-only discretion:** no deletion is performed on request; an administrator decides without a defined review workflow.
+
+**Approved 2026-11-27 — option B (tracked request, retention review, deletion or anonymization where permitted, and recorded outcome), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- A request must be authenticated, attributable to the requester, scoped to the requester's own data through the canonical identity/binding process, and tracked to a documented outcome.
+- Before deletion, an authorized reviewer must identify the relevant data categories and assess applicable retention duties, legal holds, active disputes, security/audit requirements and other documented reasons for continued retention. A request does not itself authorize immediate deletion.
+- Data that is no longer necessary and is not subject to a valid retention requirement must be deleted or, where deletion is not appropriate or feasible, irreversibly anonymized using an approved process.
+- Data that must be retained remains restricted to its approved purpose, access scope and retention period. The requester must receive an appropriate explanation of any refusal, partial fulfillment or deferred deletion, without disclosing protected information.
+- Deletion/anonymization must cover defined copies and derivatives under system control, including applicable indexes, caches, exports, attachments and backups according to documented lifecycle and backup-expiry procedures. No claim of complete erasure may be made where retained backups or legal holds remain.
+- Referential integrity and legally required records must be handled through an explicit, reviewed retention/anonymization design; deletion must not silently rewrite audit history or falsify historical events.
+- The system must retain a minimized record of the request, review basis, decision, categories affected, actions performed or deferred, responsible actors, timestamps and outcome. This evidence must not unnecessarily reproduce the personal data being deleted.
+- The workflow must distinguish deletion from account deactivation, access revocation, correction, archival and anonymization. These operations are not interchangeable.
+- No administrator may bypass the review, retention controls, approval requirements or audit trail through direct database edits or broad deletion operations.
+
+**Still required before implementation:** define data categories and canonical locations, applicable retention schedules and legal-hold rules with qualified review, authorized request/review/approval roles and separation of duties, identity verification, response deadlines and appeal handling, deletion/anonymization standards, treatment of backups and third-party processors, propagation to exports and derived data, minimized audit evidence, and synthetic Emulator tests for partial fulfillment, retention holds, unauthorized deletion, scope errors and verifiable completion. No deletion endpoint, bulk purge or automatic account/data erasure is authorized until these details are approved and tested.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -430,6 +454,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-08 Temporary delegation | Approved — option B explicit, scoped and time-limited delegation with expiry and early revocation; implementation gated on delegable actions, approval workflow and tests |
 | L-09 Emergency break-glass | Approved — option B temporary, justified, scoped and audited access with notification and independent review; implementation gated on incident criteria, action allowlist and oversight workflow |
 | L-10 Sensitive data corrections | Approved — option B tracked request, operator verification, separate approval and recorded change history; implementation gated on field catalogue, workflow and tests |
+| L-11 Data deletion and retention | Approved — option B tracked request, retention review, permitted deletion/anonymization and recorded outcome; implementation gated on retention rules, scope and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
