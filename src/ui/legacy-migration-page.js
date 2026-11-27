@@ -35,6 +35,7 @@ export function mountLegacyMigrationPage(container) {
   file.accept = ".json,application/json";
   file.required = true;
   file.setAttribute("aria-label", "Seleziona un backup JSON");
+  label.append(file);
   const actions = node("div", "row");
   const analyze = node("button", "pri", "Analizza backup");
   analyze.type = "submit";
@@ -46,7 +47,7 @@ export function mountLegacyMigrationPage(container) {
   status.setAttribute("aria-live", "polite");
   const results = node("section", "");
   results.setAttribute("aria-live", "polite");
-  form.append(label, file, actions);
+  form.append(label, actions);
   container.replaceChildren(heading, intro, privacy, form, status, results);
 
   let disposed = false;
@@ -58,7 +59,7 @@ export function mountLegacyMigrationPage(container) {
 
   function render(preview) {
     clearResults();
-    const readiness = preview.snapshot.importable &&
+    const readiness = preview.snapshot.importable && preview.warnings.length === 0 &&
       (!preview.extras || (
         preview.extras.credentialsDetected === false &&
         preview.extras.skillsQuarantined === 0 &&
