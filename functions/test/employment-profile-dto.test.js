@@ -49,7 +49,23 @@ test("D-01 mapper rejects malformed text and invalid dates", () => {
   assert.throws(() => mapApprovedEmploymentProfileFields({ level: 4 }), /Invalid employment profile field: level/);
   assert.throws(() => mapApprovedEmploymentProfileFields({ role: "x".repeat(101) }), /Invalid employment profile field: role/);
   assert.throws(() => mapApprovedEmploymentProfileFields({ effectiveDate: "2026-02-30" }), /Invalid employment profile field: effectiveDate/);
+  assert.throws(() => mapApprovedEmploymentProfileFields({ effectiveDate: "2026-02-29" }), /Invalid employment profile field: effectiveDate/);
   assert.throws(() => mapApprovedEmploymentProfileFields({ effectiveDate: "01/09/2026" }), /Invalid employment profile field: effectiveDate/);
+});
+
+test("D-01 mapper validates leap days and four-digit years without Date.UTC year coercion", () => {
+  assert.equal(
+    mapApprovedEmploymentProfileFields({ effectiveDate: "2024-02-29" }).effectiveDate,
+    "2024-02-29"
+  );
+  assert.equal(
+    mapApprovedEmploymentProfileFields({ effectiveDate: "0000-02-29" }).effectiveDate,
+    "0000-02-29"
+  );
+  assert.equal(
+    mapApprovedEmploymentProfileFields({ effectiveDate: "0096-02-29" }).effectiveDate,
+    "0096-02-29"
+  );
 });
 
 test("D-01 mapper rejects non-object source values", () => {
