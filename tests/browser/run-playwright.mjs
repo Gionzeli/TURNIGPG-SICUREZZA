@@ -625,6 +625,22 @@ try {
   console.log("PASS — embedded DSM migration preview: local-only analysis, synthetic export, reset, strict CSP, no external requests");
   await migrationPage.close();
 
+  const invitePage = await browser.newPage();
+  const inviteErrors = [];
+  const inviteRequests = [];
+  invitePage.on("pageerror", error => inviteErrors.push(error.message));
+  invitePage.on("request", request => inviteRequests.push(request.url()));
+  await invitePage.goto("http://127.0.0.1:8000/tests/browser/dsm-membership-invite-ui.html", { waitUntil: "load" });
+  await invitePage.waitForFunction(() => document.querySelector("#summary")?.dataset.result === "pass" ||
+    document.querySelector("#summary")?.dataset.result === "fail", null, { timeout: 10000 });
+  assert.equal(await invitePage.locator("#summary").getAttribute("data-result"), "pass",
+    await invitePage.locator("#summary").textContent());
+  assert.equal(inviteErrors.length, 0, inviteErrors.join("; "));
+  assert.ok(inviteRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "La fixture inviti ha effettuato richieste esterne.");
+  console.log(await invitePage.locator("#summary").textContent());
+  await invitePage.close();
+
   console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
   await reportPage.close();
 } finally {
