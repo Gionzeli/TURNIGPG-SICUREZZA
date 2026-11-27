@@ -44,3 +44,20 @@ test('fails closed without refresh token and masks vault errors', async () => {
  const vaultFail=createMailboxTokenLifecycleCoordinator({vault:{loadSecret:async()=>{throw new Error('sensitive');},storeSecret:async()=>{}},refreshService:{refresh:async()=>{}},now:()=>1});
  await assert.rejects(()=>vaultFail.ensureFresh({accountId:'a',connectionId:'c',provider:'gmail_api',secretRef:'r',clientId:'client-id-12345',clientSecret:'secret'}),/Mailbox credential unavailable/);
 });
+
+test('uses distributed lease before refresh and renews before persisting rotated credentials',async()=>{
+ const events=[];
+ const coordinator=createMailboxTokenLifecycleCoordinator({
+  vault:{loadSecret:async()=>expired,storeSecret:async args=>{events.push(['store',args.expectedVersion]);}},
+  refreshService:{refresh:async()=>{events.push(['refresh']);return {accessToken:'synthetic-new-access-token',refreshToken:'synthetic-new-refresh-token',expiresInSeconds:3600};}},
+  leaseService:{
+   acquire:async args=>{events.push(['acquire',args.ttlMs]);return {ownerId:'owner_identifier_123',fencingToken:4,expiresAt:200000};},
+   renew:async args=>{events.push(['renew',args.lease.fencingToken]);return {...args.lease,expiresAt:300000};},
+   release:async args=>{events.push(['release',args.lease.fencingToken]);return true;}
+  },
+  now:()=>5000
+ });
+ const result=await coordinator.ensureFresh({accountId:'acct',connectionId:'conn',provider:'gmail_api',secretRef:'opaque',clientId:'client-id-12345',clientSecret:'secret'});
+ assert.equal(result.refreshed,true);
+ assert.deepEqual(events.map(x=>x[0]),['acquire','refresh','renew','store','release']);
+});
