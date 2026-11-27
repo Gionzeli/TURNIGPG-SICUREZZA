@@ -92,7 +92,6 @@ export async function claimCanonicalMembershipInvite({ db, accountId, inviteId, 
   const accountRef = db.doc(`accounts/${accountId}`);
   const inviteRef = db.doc(`accounts/${accountId}/membershipInviteProposals/${inviteId}`);
   const memberRef = db.doc(`accounts/${accountId}/members/${actorUid}`);
-  const siteRef = db.doc(`accounts/${accountId}/sites/${inviteId}`);
   const auditRef = db.doc(`accounts/${accountId}/membershipInviteAudit/claim-${inviteId}`);
   return db.runTransaction(async tx => {
     const [account, invite, member, audit] = await Promise.all([tx.get(accountRef), tx.get(inviteRef), tx.get(memberRef), tx.get(auditRef)]);
