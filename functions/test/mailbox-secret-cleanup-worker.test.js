@@ -13,7 +13,9 @@ test("worker deletes secret and marks durable ticket complete", async () => {
     cleanupAdapters: {
       listPendingSecretCleanup: async input => { calls.push({ listed: input }); return [ticket]; },
       completeSecretCleanup: async input => calls.push({ completed: input }),
-      recordSecretCleanupFailure: async () => assert.fail("unexpected retry")
+      recordSecretCleanupFailure: async () => assert.fail("unexpected retry"),
+      listPendingCleanupAlerts: async () => [],
+      markCleanupAlertDelivered: async () => {}
     },
     credentialVault: { revokeSecret: async input => calls.push(input) },
     alert: async () => assert.fail("unexpected alert"),
@@ -36,10 +38,19 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
       listPendingSecretCleanup: async ({ accountId }) => records.filter(item => item.accountId === accountId && item.status !== "exhausted"),
       completeSecretCleanup: async () => {},
       recordSecretCleanupFailure: async input => {
-      retries.push(input);
-      records = records.map(item => item.connectionId === input.connectionId
-        ? { ...item, status: input.attempts >= 12 ? "exhausted" : "pending", attempts: input.attempts, nextAttemptAt: input.attempts >= 12 ? null : input.nextAttemptAt }
-        : item);
+        retries.push(input);
+        records = records.map(item => item.connectionId === input.connectionId
+          ? { ...item, status: input.attempts >= 12 ? "exhausted" : "pending",
+              alertStatus: input.attempts >= 12 ? "pending" : null,
+              attempts: input.attempts, nextAttemptAt: input.attempts >= 12 ? null : input.nextAttemptAt,
+              lastErrorCode: input.lastErrorCode }
+          : item);
+      },
+      listPendingCleanupAlerts: async ({ accountId }) => records.filter(item =>
+        item.accountId === accountId && item.status === "exhausted" && item.alertStatus === "pending"),
+      markCleanupAlertDelivered: async ({ connectionId }) => {
+        records = records.map(item => item.connectionId === connectionId
+          ? { ...item, alertStatus: "delivered" } : item);
       }
     },
     credentialVault: {
@@ -70,7 +81,9 @@ test("worker validates batch bounds and ignores malformed tickets", async () => 
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [{ secretRef: "invalid" }],
       completeSecretCleanup: async () => {},
-      recordSecretCleanupFailure: async () => {}
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [],
+      markCleanupAlertDelivered: async () => {}
     },
     credentialVault: { revokeSecret: async () => {} },
     alert: async () => {}, now: () => 500
@@ -107,7 +120,9 @@ test("worker does not alert exhaustion until the exhausted state is durably reco
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [{ ...ticket, attempts: 11 }],
       completeSecretCleanup: async () => {},
-      recordSecretCleanupFailure: async () => { throw Object.assign(new Error("storage unavailable"), { code: "unavailable" }); }
+      recordSecretCleanupFailure: async () => { throw Object.assign(new Error("storage unavailable"), { code: "unavailable" }); },
+      listPendingCleanupAlerts: async () => [],
+      markCleanupAlertDelivered: async () => {}
     },
     credentialVault: { revokeSecret: async () => { throw Object.assign(new Error("vault unavailable"), { code: "unavailable" }); } },
     alert: async input => alerts.push(input),
