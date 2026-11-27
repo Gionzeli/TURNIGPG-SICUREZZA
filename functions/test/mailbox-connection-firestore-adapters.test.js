@@ -140,3 +140,20 @@ test("email validation rejects whitespace and malformed sender addresses", async
     connection: { ...active, allowedSenders: ["turni@azienda.example\nattacker"] }
   }), error => error.code === "invalid-argument");
 });
+
+test("metadata rejects nested credential leakage and non-normalized or duplicate sender addresses", async () => {
+  const { db } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  await assert.rejects(adapters.saveConnection({
+    accountId: active.accountId, connectionId: active.connectionId,
+    connection: { ...active, consent: { ...active.consent, accessToken: "must-not-persist" } }
+  }), error => error.code === "invalid-argument");
+  await assert.rejects(adapters.saveConnection({
+    accountId: active.accountId, connectionId: active.connectionId,
+    connection: { ...active, allowedSenders: ["TURNI@AZIENDA.EXAMPLE"] }
+  }), error => error.code === "invalid-argument");
+  await assert.rejects(adapters.saveConnection({
+    accountId: active.accountId, connectionId: active.connectionId,
+    connection: { ...active, allowedSenders: ["turni@azienda.example", "turni@azienda.example"] }
+  }), error => error.code === "invalid-argument");
+});
