@@ -14,6 +14,8 @@ const resolveAuthorization = httpsCallable(functions, "resolveAuthorization");
 const proposeMembershipInvite = httpsCallable(functions, "proposeCanonicalMembershipInvite");
 const approveMembershipInvite = httpsCallable(functions, "approveCanonicalMembershipInvite");
 const claimMembershipInvite = httpsCallable(functions, "claimCanonicalMembershipInvite");
+const proposeEmployeeProvisioning = httpsCallable(functions, "proposeEmployeeProvisioning");
+const approveEmployeeProvisioning = httpsCallable(functions, "approveEmployeeProvisioning");
 
 const controller = mountDSMCanonicalAccountBridge(root, {
   auth,
@@ -41,7 +43,9 @@ const inviteController = inviteRoot ? mountDSMMembershipInvitePage(inviteRoot, {
   onAuthStateChanged: watchAuth,
   proposeInvite: async data => (await proposeMembershipInvite(data)).data,
   approveInvite: async data => (await approveMembershipInvite(data)).data,
-  claimInvite: async data => (await claimMembershipInvite(data)).data
+  claimInvite: async data => (await claimMembershipInvite(data)).data,
+  proposeEmployee: async data => (await proposeEmployeeProvisioning(data)).data,
+  approveEmployee: async data => (await approveEmployeeProvisioning(data)).data
 }) : null;
 
 export default Object.freeze({ accountBridge: controller, membershipInvites: inviteController });
