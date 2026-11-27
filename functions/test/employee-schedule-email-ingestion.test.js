@@ -64,6 +64,9 @@ test("trusted email ingestion creates per-employee proposals but never mutates t
   assert.equal(proposal.sourceVerified, true);
   assert.equal(proposal.proposerUid, "synthetic-employee-uid");
   assert.equal(proposal.employeeId, "synthetic-employee");
+  assert.match(proposal.idempotencyKey, /^synthetic-job-01_synthetic-employee$/);
+  assert.match(proposal.attachmentSha256, /^[a-f0-9]{64}$/);
+  assert.equal(Object.hasOwn(proposal, "bytes"), false, "raw PDF bytes must not enter the proposal record");
   assert.equal(proposal.changes.length, 2);
   assert.equal(proposal.changes[0].operation, "update");
   assert.equal(proposal.changes[0].expectedRevision, 4);
