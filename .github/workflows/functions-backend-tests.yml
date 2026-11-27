@@ -35,4 +35,4 @@ jobs:
           --only auth,functions,firestore
           --project demo-dsm-membership
           --config firebase.json
-          "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 DSM_FUNCTIONS_EMULATOR_HOST=127.0.0.1:5001 GCLOUD_PROJECT=demo-dsm-membership npm test"
+          "FIREBASE_AUTH_EMULATOR_HOST=127.0.0.1:9099 FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 DSM_FUNCTIONS_EMULATOR_HOST=127.0.0.1:5001 GCLOUD_PROJECT=demo-dsm-membership DSM_INVITE_EMAIL_HMAC_KEY=synthetic-ci-invite-hmac-key-000000000000000000000000 npm test"
