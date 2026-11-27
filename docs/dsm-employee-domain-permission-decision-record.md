@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-113 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-114 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2834,6 +2834,30 @@ Approved policy in principle:
 
 **Implementation gates:** Produce an end-to-end ingress and trust-boundary inventory; document canonical parser/framing rules and protocol translation; harden proxy and origin network access; configure consistent resource limits and rejection behavior; and provide reproducible synthetic integration tests across the actual proxy-to-origin chain. No production gateway, proxy or application configuration change is authorized by this decision.
 
+### L-114 — HTTP method override, route canonicalization and authorization-path consistency
+
+**Question:** How should API gateways and application routers prevent method tunneling, path-normalization differences and ambiguous route matching from causing security controls to authorize one operation or resource while the handler executes another?
+
+**Decision:** Approved — option B, use explicit HTTP methods and one canonical route interpretation, reject unapproved method-override mechanisms and ambiguous paths, and ensure routing, authorization, audit and handler execution share the same canonical operation and resource identity. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Define an explicit allowlist of HTTP methods for each endpoint and reject unsupported or unexpected methods; do not infer permissions from client-supplied method labels.
+- Disable method override by default, including override headers, query parameters, form fields and framework-specific tunneling conventions; permit an exception only for a documented compatibility need with equivalent gateway, authorization and audit enforcement.
+- Ensure gateways, proxies, routers, middleware and application handlers agree on the effective method; do not allow an upstream layer to authorize one method while a downstream layer executes another.
+- Define a single canonical path representation before route matching and authorization; reject ambiguous or malformed encodings rather than attempting permissive repair.
+- Explicitly handle percent-encoding, encoded path separators, dot segments, repeated separators, trailing separators, backslashes, semicolon path parameters, Unicode normalization and case sensitivity according to a documented platform-specific policy.
+- Prevent double decoding and inconsistent decoding across layers; each component must consume the same canonical path and must not reinterpret already-decoded data.
+- Ensure route selection is deterministic and reject conflicting route matches, ambiguous parameter boundaries and unexpected path suffixes; avoid permissive fallback routes for privileged operations.
+- Bind authorization decisions to the canonical route identifier, effective method, canonical resource identifier and requested action; the handler must execute precisely that authorized operation.
+- Derive employee, tenant, site, department and record identifiers from validated canonical route parameters and server-side relationships; never treat a path parameter as proof of ownership or scope.
+- Apply the same canonical interpretation to CSRF protections, CORS policy, cache keys, rate limits, idempotency keys and audit records so that alternate path or method spellings cannot bypass a control.
+- Prevent authorization middleware bypass through route aliases, alternate content-type handlers, trailing-path variants, case variants or framework-specific dispatch behavior.
+- Reject method and path combinations not explicitly covered by the endpoint contract; return safe generic errors without revealing restricted resource existence.
+- Record the canonical operation and resource reference in protected audit events, with sensitive path values redacted or minimized; do not log raw secrets or personal data embedded in paths.
+- Test method override attempts, encoded separators, double encoding, dot-segment traversal, Unicode and case variants, route aliases, gateway/router disagreement, cache-key divergence and authorization-to-handler mismatch using synthetic requests.
+
+**Implementation gates:** Inventory API routes and all method-override behavior; document canonical method and path rules for each supported protocol and framework; align gateway, middleware, router, cache and audit semantics; reject ambiguous aliases; and provide reproducible synthetic integration tests proving that authorization and handler dispatch use the same canonical operation and resource. No production routing or gateway configuration change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2947,6 +2971,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-111 Secure URL design, sensitive parameters and referrer leakage | Approved — option B no secrets or sensitive personal data in URLs, scoped opaque references and strict redirect/referrer controls; implementation gated on route inventory and leakage tests |
 | L-112 Secure pagination cursors, snapshot consistency and authorization continuity | Approved — option B opaque query-bound cursors, per-page reauthorization and explicit consistency semantics; implementation gated on cursor design and revocation/concurrency tests |
 | L-113 HTTP request parsing consistency, proxy trust and request-smuggling resistance | Approved — option B consistent parsing, rejection of ambiguous framing and trusted-proxy boundaries; implementation gated on ingress inventory and differential tests |
+| L-114 HTTP method override, route canonicalization and authorization-path consistency | Approved — option B explicit methods, canonical route interpretation and authorization/handler alignment; implementation gated on route inventory and differential tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
