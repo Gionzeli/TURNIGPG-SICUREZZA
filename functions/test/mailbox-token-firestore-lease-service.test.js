@@ -62,3 +62,28 @@ test('validates scope and bounded lease duration',async()=>{
  await assert.rejects(()=>f.service.acquire({accountId:'../bad',connectionId:'conn'}),{code:'invalid-argument'});
  await assert.rejects(()=>f.service.acquire({...scope,ttlMs:999999}),{code:'invalid-argument'});
 });
+
+
+test('rejects malformed persisted lease state instead of resetting fencing',async()=>{
+ let record={ownerId:null,fencingToken:0,expiresAt:0};
+ const ref={get:async()=>({exists:true,data:()=>record})};
+ const firestore={runTransaction:async callback=>callback({
+  get:async()=>({exists:true,data:()=>record}),
+  update:(_ref,value)=>{record={...record,...value};}
+ })};
+ const service=createMailboxTokenFirestoreLeaseService({
+  firestore,leaseRefForConnection:()=>ref,now:()=>1000,
+  createOwnerId:()=> 'owner_identifier_malformed'
+ });
+ await assert.rejects(()=>service.acquire({...scope}),{code:'unavailable'});
+});
+
+test('rejects invalid clock values',async()=>{
+ const ref={get:async()=>({exists:false,data:()=>({})})};
+ const firestore={runTransaction:async callback=>callback({get:async()=>({exists:false,data:()=>({})}),create:()=>{}})};
+ const service=createMailboxTokenFirestoreLeaseService({
+  firestore,leaseRefForConnection:()=>ref,now:()=>Number.NaN,
+  createOwnerId:()=> 'owner_identifier_clock'
+ });
+ await assert.rejects(()=>service.acquire({...scope}),{code:'unavailable'});
+});
