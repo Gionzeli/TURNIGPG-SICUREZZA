@@ -281,3 +281,18 @@ This is still a callable worker primitive, not an activated schedule: a trusted
 scheduler must enumerate authorized account scopes and invoke bounded runs.
 No global account enumeration, scheduled trigger, Cloud Tasks queue, alert
 provider, or production adapter wiring is enabled.
+
+
+#### Pending cleanup queue fairness and exhausted state
+
+The pending cleanup query now orders by `nextAttemptAt` ascending rather than
+creation time. New tickets (null retry time) and the earliest due retries are
+therefore selected before future-dated retries, preventing a batch of deferred
+older tickets from starving newly created cleanup work. When the retry ceiling
+is reached, the adapter changes the ticket status to `exhausted`; it remains
+available through the single-ticket inspection path but no longer occupies the
+pending worker query. Retry updates must advance the attempt counter strictly.
+The Firestore query now orders by `status` and `nextAttemptAt`; production
+deployment must provision and verify the corresponding composite index. The
+new regressions are synthetic tests and have not been executed against the
+Emulator.
