@@ -112,6 +112,29 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     );
     const audit = await db.collection(`accounts/${accountId}/employeeAudit`).get();
     assert.equal(audit.size, 0);
+
+    const proposalRequest = data => ({
+      rawRequest: { headers: { authorization: "Bearer synthetic-token" } }, data
+    });
+    const proposed = await handlers.proposeOwn(proposalRequest({
+      accountId,
+      source: "employee_manual",
+      changes: [{ operation: "create", shift: { date: "2026-06-22", type: "turno", post: "Postazione A", start_time: "08:00", end_time: "16:00", hours: 8 } }]
+    }));
+    assert.equal(proposed.status, "pending");
+    assert.equal(proposed.changeCount, 1);
+    let proposals = await handlers.listOwnProposals(proposalRequest({ accountId }));
+    assert.equal(proposals.length, 1);
+    assert.equal(proposals[0].proposalId, proposed.proposalId);
+    assert.equal(proposals[0].status, "pending");
+    assert.equal(proposals[0].source, "employee_manual");
+    assert.equal(proposals[0].changes[0].shift.post, "Postazione A");
+    const rejected = await handlers.rejectOwnProposal(proposalRequest({ accountId, proposalId: proposed.proposalId }));
+    assert.deepEqual(rejected, { proposalId: proposed.proposalId, status: "rejected" });
+    proposals = await handlers.listOwnProposals(proposalRequest({ accountId }));
+    assert.equal(proposals[0].status, "rejected");
+    const liveSchedule = await collection.where("date", "==", "2026-06-22").get();
+    assert.equal(liveSchedule.size, 0, "proposal submission/rejection must never mutate the live schedule");
   } finally {
     await db.recursiveDelete(root);
     await deleteApp(app);
