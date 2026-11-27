@@ -1,5 +1,5 @@
 /* Turni GPG/sicurezza - service worker. Cambia VERSION a ogni nuova versione dell'app. */
-const VERSION="tg-v3.174";
+const VERSION="tg-v3.175";
 const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","local-reader.js","src/ui/legacy-migration-page.js?v=1","src/ui/dsm-canonical-account-bridge.js","src/ui/dsm-canonical-account-bootstrap.js","src/ui/dsm-membership-invite-page.js","src/adapters/firebase/firebase-auth-adapter.js","src/core/legacy/legacy-read-adapter.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
 
 self.addEventListener("install", event => {
