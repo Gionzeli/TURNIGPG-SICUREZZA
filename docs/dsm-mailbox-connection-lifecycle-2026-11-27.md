@@ -446,3 +446,15 @@ retry. There remains an at-least-once edge if audit creation succeeds but the
 subsequent final metadata write fails: a retry may create a duplicate audit
 event. A deterministic audit idempotency key or transactional audit/state
 adapter is still required to eliminate that duplicate window.
+
+
+#### Idempotent audit event identity
+
+Mailbox audit document IDs are now deterministic SHA-256 keys over account,
+connection, and action. Repeating the same event acknowledges the existing
+immutable record and preserves its first timestamp. If the deterministic key
+already exists with a different actor, mode, provider, or event identity, the
+adapter fails closed with `failed-precondition`. This closes the duplicate
+audit window between successful audit creation and a failed final connection
+metadata write. Synthetic adapter tests cover repeat delivery and conflicting
+event contents.
