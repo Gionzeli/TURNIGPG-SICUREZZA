@@ -114,3 +114,9 @@ The lifecycle vault adapter now requires versioned reads (`{payload, version}`) 
 ### CAS concurrency regression coverage
 
 The token-lifecycle vault adapter test suite now includes a concurrent stale-writer case: two refresh writers start from the same secret version, exactly one compare-and-swap succeeds, and the other receives a version conflict. This is a synthetic in-memory contract test only; it does not prove a deployed Secret Manager/KMS backend implements atomic conditional replacement. Production integration still requires a provider-specific atomic version/ETag primitive and a distributed per-connection refresh lease.
+
+## Google Secret Manager version-pointer CAS backend (not deployed)
+
+Added `google-secret-manager-token-cas-backend.js`. It stores serialized token payloads only as immutable Google Secret Manager versions; Firestore stores only the active numeric version pointer. A writer creates a new immutable secret version, then uses a Firestore transaction to compare the pointer with `expectedVersion` and advance it. A stale writer receives `code: conflict`; its already-created Secret Manager version can remain orphaned and must be cleaned up by a separately controlled retention process. The pointer document must be provisioned server-side with the initial version, and client writes to pointer documents must be denied.
+
+The adapter accepts injected Admin SDK clients and trusted server-only resource mapping functions; it does not add cloud SDK dependencies, create cloud resources, grant IAM, or wire callable endpoints. Tests use synthetic in-memory clients only. Production still requires IAM least privilege, Firestore rules/authorization for pointer paths, Secret Manager lifecycle/retention policy, orphan-version cleanup, distributed refresh leases, and integration tests against the selected Google Cloud project. No live credentials or Firebase project were used.
