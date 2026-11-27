@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-101 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-102 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2554,6 +2554,29 @@ Approved policy in principle:
 
 **Implementation gates:** Establish a data-class-to-disclosure-channel matrix; inventory platform and browser capabilities and limitations; define supported managed-device controls and user disclosures; implement server-authorized share workflows where needed; and provide reproducible tests for each supported platform. No device-management policy, OS-level restriction, or production sharing integration is authorized by this decision.
 
+### L-102 — Secure email delivery, outbound document links and recipient verification
+
+**Question:** How must employee-related information and documents be delivered by email or external messaging so that recipient mistakes, forwarding, mailbox compromise, and long-lived links do not bypass the application's authorization model?
+
+**Decision:** Approved — option B, keep the application as the authoritative access point and treat outbound messages as a minimized notification channel; any exceptional document delivery requires explicit purpose, recipient verification, scoped authorization, and controlled expiry. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Default to notifications that contain no sensitive employee, payroll, absence, credential, or document content; direct recipients to authenticate to the application to view authorized information.
+- Do not treat a mailbox address, successful email delivery, possession of a link, or prior authentication as proof of current application authorization.
+- Verify and bind recipients to canonical identities and approved organizational relationships before any exceptional disclosure; detect address changes, aliases, external domains, and ambiguous recipients.
+- Use short-lived, single-purpose, non-guessable links that reveal no personal data in URL paths or query strings; redeem them only after authentication and fresh server-side authorization for the exact record, tenant, action, and fields.
+- Do not place bearer secrets or reusable access tokens in email links; prevent leakage through referrers, browser history, analytics, link-preview crawlers, security scanners, and third-party redirectors.
+- Require explicit review and confirmation for external recipients, multiple recipients, attachments, forwarding, or bulk distribution; apply recipient allowlists and independent approval for high-risk disclosures.
+- Generate any approved attachment from a minimized server-authorized DTO, apply suitable document classification and protection, and verify that the recipient and content match the approved purpose before release.
+- Prevent sensitive information from appearing in subject lines, notification previews, filenames, calendar invitations, bounce diagnostics, or provider telemetry.
+- Apply rate limits, anti-enumeration protections, delivery idempotency, and replay controls to link issuance and redemption; avoid revealing whether a particular employee or record exists.
+- Define revocation and expiry behavior for links, pending deliveries, and attachments; access revocation must take effect on the next protected retrieval even if an email cannot be recalled.
+- Govern email and messaging providers as processors or third parties with reviewed data flows, retention, region, access, incident, and deletion controls; do not send sensitive content to unapproved providers.
+- Record minimized evidence of purpose, recipient identity, scope, approval, delivery outcome, and redemption without logging message bodies, attachment contents, or bearer material.
+- Test misaddressed mail, external forwarding, mailbox compromise assumptions, link scanners, stale/revoked grants, recipient changes, enumeration, replay, and cross-tenant access using synthetic identities and isolated mail sinks.
+
+**Implementation gates:** Define notification classes and recipient-verification rules; inventory outbound providers and data flows; specify link issuance/redemption and revocation contracts; establish attachment approval and minimization rules; and implement reproducible synthetic mail-sink and negative authorization tests. No real email provider, employee notification, or document delivery is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2655,6 +2678,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-99 Secure printing, print queues and physical document handling | Approved — option B separate print authorization, minimized output, controlled release and auditable lifecycle; implementation gated on printer inventory, job controls and tests |
 | L-100 Secure data disposal, media sanitization and end-of-life asset handling | Approved — option B governed, evidence-backed disposition across copies and media; implementation gated on inventory, retention, restore reconciliation and verification tests |
 | L-101 Clipboard, screen capture and operating-system sharing controls | Approved — option B classify disclosure channels, minimize sensitive exposure and enforce only platform-supported controls; implementation gated on platform matrix and tests |
+| L-102 Secure email delivery, outbound document links and recipient verification | Approved — option B notification-only by default, authenticated scoped retrieval and verified recipients; implementation gated on provider review, link lifecycle and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
