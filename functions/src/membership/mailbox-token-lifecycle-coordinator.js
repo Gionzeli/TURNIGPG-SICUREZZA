@@ -1,5 +1,17 @@
 const ALLOWED = new Set(["gmail_api", "microsoft_graph"]);
 const REFRESH_SKEW_MS = 5 * 60 * 1000;
+const MAX_TOKEN_LIFETIME_MS = 31_536_000 * 1000;
+
+function readClock(now) {
+  const value = now();
+  if (!Number.isSafeInteger(value) || value < 0 ||
+      value > Number.MAX_SAFE_INTEGER - MAX_TOKEN_LIFETIME_MS - REFRESH_SKEW_MS) {
+    const error = new Error("Mailbox token lifecycle clock is invalid.");
+    error.code = "unavailable";
+    throw error;
+  }
+  return value;
+}
 
 export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, leaseService, now = () => Date.now() }) {
   if (!vault || typeof vault.loadSecret !== "function" || typeof vault.storeSecret !== "function" ||
@@ -21,6 +33,7 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
       const operation=(async()=>{
         let lease;
         try {
+          const initialNow = readClock(now);
           const load=async()=>{
             let value;
             try { value=await vault.loadSecret({secretRef}); }
@@ -31,7 +44,7 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
             return value;
           };
           let stored=await load();
-          if(Number.isSafeInteger(stored.expiresAt) && stored.expiresAt>now()+REFRESH_SKEW_MS) {
+          if(Number.isSafeInteger(stored.expiresAt) && stored.expiresAt>initialNow+REFRESH_SKEW_MS) {
             return Object.freeze({status:"active",accessToken:stored.accessToken,expiresAt:stored.expiresAt,refreshed:false});
           }
           if(leaseService) {
@@ -39,7 +52,7 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
             catch { const error=new Error("Mailbox refresh coordination is unavailable."); error.code="unavailable"; throw error; }
             // Re-read under the lease: a competing instance may have refreshed after our first read.
             stored=await load();
-            if(Number.isSafeInteger(stored.expiresAt) && stored.expiresAt>now()+REFRESH_SKEW_MS) {
+            if(Number.isSafeInteger(stored.expiresAt) && stored.expiresAt>readClock(now)+REFRESH_SKEW_MS) {
               return Object.freeze({status:"active",accessToken:stored.accessToken,expiresAt:stored.expiresAt,refreshed:false});
             }
           }
@@ -59,7 +72,11 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
              (fresh.refreshToken!=null && (typeof fresh.refreshToken!=="string" || fresh.refreshToken.length<16))) {
             const error=new Error("Mailbox provider returned invalid token material."); error.code="unavailable"; throw error;
           }
-          const newExpiry=now()+fresh.expiresInSeconds*1000;
+          const refreshedAt = readClock(now);
+          const newExpiry=refreshedAt+fresh.expiresInSeconds*1000;
+          if (!Number.isSafeInteger(newExpiry)) {
+            const error=new Error("Mailbox token expiry is invalid."); error.code="unavailable"; throw error;
+          }
           const nextSecret={
             accessToken:fresh.accessToken,
             refreshToken:fresh.refreshToken||stored.refreshToken,
