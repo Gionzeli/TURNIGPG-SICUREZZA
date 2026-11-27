@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-56 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-57 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1529,6 +1529,33 @@ Approved policy in principle:
 
 **Still required before implementation:** device classes and risk profiles, timeout values, authentication/session provider capabilities, cookie and browser policy, local-data inventory, offline-access decision, device incident workflow, audit schema and synthetic cross-user isolation tests. This policy does not authorize device enrollment, real credential handling, workstation configuration changes or production activation.
 
+### L-57 — Cryptographic and signing key rotation and compromise response
+
+**Question:** How should cryptographic keys, signing keys, certificates and related secrets be generated, stored, rotated, retired and handled when compromise is suspected or confirmed?
+
+Possible choices:
+- **A. Manual replacement on incident:** rotate keys only when an operator identifies a concrete problem.
+- **B. Governed lifecycle and rehearsed compromise response:** centrally inventory and protect keys, rotate on schedule and risk events, support controlled overlap and revocation, and verify recovery.
+- **C. Long-lived keys for operational simplicity:** minimize rotation to reduce integration changes.
+
+**Approved 2026-11-27 — option B (governed key lifecycle and rehearsed compromise response), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Maintain an authoritative inventory of cryptographic keys, signing keys, certificates, service credentials and key owners, recording purpose, environment, scope, creation time, rotation deadline, dependencies and retirement state without exposing secret material.
+- Generate keys using approved cryptographic libraries and secure random generation; prohibit hard-coded, shared, manually copied or source-controlled production secrets.
+- Store private keys and high-value secrets in an appropriately protected secret or key-management service, with least-privilege access, separation of duties, access logging and environment isolation.
+- Define key purpose, algorithm, strength, permitted use and cryptoperiod; prohibit algorithm or key reuse across incompatible purposes and environments.
+- Rotate keys on a documented schedule and immediately when required by suspected exposure, personnel or provider changes, cryptographic weakness, policy breach or incident response.
+- Support controlled key-version transitions: publish or distribute new verification material safely, limit any dual-key acceptance window, track dependent services and reject retired or revoked keys after the defined transition.
+- For signed artifacts and tokens, define key identifiers, verification rules, expiry and revocation behavior; ensure verifiers do not accept unknown, downgraded, expired or revoked keys.
+- Protect backup and recovery copies of key material with equivalent controls; test restoration without weakening access restrictions or mixing environments.
+- Establish a compromise playbook covering containment, key revocation, replacement, dependent credential rotation, impact assessment, validation of affected signatures/tokens, notification and evidence preservation.
+- Make rotation and revocation operations authorized, reviewable, idempotent and auditable; never log private keys, secret values or recovery material.
+- Monitor certificate expiry, failed rotations, unexpected key use, access anomalies and incomplete propagation; assign accountable owners and escalation paths.
+- Test synthetic key generation, scheduled rotation, emergency rotation, old-key rejection, verifier overlap, rollback safety, backup recovery and partial integration failure.
+
+**Still required before implementation:** key and certificate inventory, ownership and classification, approved algorithms and cryptoperiods, key-management provider and access model, dependent-service transition plan, compromise severity/runbooks, recovery controls, monitoring and synthetic integration tests. This policy does not authorize creating, importing, rotating or revoking real production keys or credentials.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1585,6 +1612,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-54 Secure onboarding, invitations and account activation | Approved — option B verified identity, expiring scoped invitations, canonical binding, independent approval and protected audit; implementation gated on identity proofing, workflows, binding contract and tests |
 | L-55 Secure account deactivation and credential revocation | Approved — option B coordinated server-side revocation, lifecycle-aware authorization, dependent-job cancellation and protected audit; implementation gated on event catalogue, propagation, integrations and tests |
 | L-56 Secure shared-device and workstation sessions | Approved — option B centrally enforced session expiry, reauthentication, server-side revocation and local-data minimization; implementation gated on device profiles, session configuration and cross-user isolation tests |
+| L-57 Cryptographic and signing key rotation and compromise response | Approved — option B governed key inventory, protected storage, scheduled/event-driven rotation, controlled verifier transition and rehearsed compromise response; implementation gated on key inventory, ownership, provider and integration tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
