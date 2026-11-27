@@ -173,6 +173,11 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     const updatedShift = (await collection.doc("in-range-2026-06-04").get()).data();
     assert.equal(updatedShift.hours, 7);
     assert.equal(updatedShift.revision, 2);
+    const priorRevision = (await db.doc(`accounts/${accountId}/employeeShiftRevisions/in-range-2026-06-04_1`).get()).data();
+    assert.equal(priorRevision.revision, 1);
+    assert.equal(priorRevision.hours, 8);
+    assert.equal(Object.hasOwn(priorRevision, "compensation"), false,
+      "revision snapshots must retain only the approved schedule DTO");
     const deletedShift = (await collection.doc("in-range-2026-06-18").get()).data();
     assert.equal(deletedShift.status, "deleted");
     assert.equal(deletedShift.revision, 2);
