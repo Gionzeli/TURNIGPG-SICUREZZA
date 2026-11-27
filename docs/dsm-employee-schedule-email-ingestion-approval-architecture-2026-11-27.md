@@ -20,7 +20,7 @@
 `casella collegata → messaggio/allegato → verifica provenienza → PDF isolato → estrazione → confronto → proposta personale → OK collaboratore → nuova revisione calendario`
 
 - L'acquisizione non pubblica direttamente un PDF nel calendario.
-- L'importazione crea una proposta con stato `awaiting_employee_approval`; non cambia i turni attivi.
+- L'importazione crea una proposta con stato `pending`; non cambia i turni attivi.
 - La schermata personale mostra valori precedenti e nuovi, date coinvolte, origine del documento e differenze.
 - Solo una callable autenticata, con binding UID↔Employee canonico verificato server-side, può approvare la proposta per quell'Employee.
 - L'approvazione applica la proposta in transazione, controlla le revisioni attese, crea audit e conserva la versione precedente.
@@ -68,8 +68,9 @@ I nomi e i campi sono una proposta, non una migrazione già autorizzata. Le scri
 - L'UI del calendario resta in sola lettura finché non è pronto il flusso di proposta e approvazione. È stata rimossa la precedente azione di modifica diretta perché avrebbe pubblicato modifiche senza il nuovo consenso personale.
 - Esistono servizi shift self-service con revisione e audit, ma non equivalgono a un workflow di proposta/approvazione e non devono essere usati come scorciatoia per importare PDF.
 - Le callable pubbliche `createOwnEmployeeShift`, `updateOwnEmployeeShift` e `deleteOwnEmployeeShift` restano esportate per compatibilità ma ora falliscono con `failed-precondition`; le relative autorizzazioni di membership sono state rimosse. Il calendario e le API sono quindi in sola lettura finché non sarà disponibile il flusso di proposta/approvazione. I vecchi metodi interni del service non sono esposti da queste callable.
-- È implementato un primo livello backend per proposte manuali del collaboratore: `proposeOwnEmployeeShiftChanges`, `listOwnEmployeeShiftProposals` e `rejectOwnEmployeeShiftProposal`. Il server ricava Employee dal binding canonico verificato, limita le operazioni a 30 per proposta, valida i campi allowlist, verifica proprietà/revisioni dei turni esistenti e conserva le proposte in `employeeShiftProposals`. La proposta e il rifiuto non modificano mai `employeeShifts`.
-- L’approvazione personale che applica atomicamente il diff, con decision record, audit e storico, non è ancora implementata; non va considerata disponibile. L’API non consente al collaboratore di approvare o pubblicare una modifica in questa fase.
-- Non esistono ancora connettori email multi-provider, parser PDF aziendale, matching affidabile, notifiche o UI per consultare e rifiutare le proposte.
+- Sono implementate le callable `proposeOwnEmployeeShiftChanges`, `listOwnEmployeeShiftProposals`, `approveOwnEmployeeShiftProposal` e `rejectOwnEmployeeShiftProposal`. Il server ricava l’Employee dal binding canonico verificato e accetta decisioni soltanto dal collaboratore con ruolo member. Le proposte sono limitate a 30 variazioni e usano DTO allowlist.
+- L’approvazione verifica nuovamente appartenenza, ambito organizzativo e revisioni attese. Tutte le modifiche, gli audit, la decisione immutabile in `employeeShiftProposalDecisions` e gli snapshot allowlist in `employeeShiftRevisions` vengono scritti in un’unica transazione. Un conflitto impedisce l’intera applicazione; una proposta già decisa non può essere riapplicata.
+- La UI personale mostra le proposte e offre approvazione/rifiuto; non espone modifiche dirette al calendario.
+- Restano da completare il modulo UI per inserire manualmente nuove proposte e modifiche ai turni esistenti, i connettori email multi-provider, il parser PDF aziendale, il matching affidabile e le notifiche. Nessuna acquisizione email automatica è ancora disponibile.
 - Prima di collegare caselle reali va definito e testato il processo autorizzato di associazione casella↔Employee e la gestione dei segreti.
 - Sviluppo e test esclusivamente con fixture sintetiche e Firebase Emulator. Nessuna chiamata Firebase reale, nessun accesso a caselle reali, nessun deploy, merge o attivazione produzione.
