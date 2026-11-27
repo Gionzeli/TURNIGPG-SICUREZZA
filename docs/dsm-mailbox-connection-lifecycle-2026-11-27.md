@@ -110,3 +110,7 @@ Added `mailbox-token-lifecycle-vault-adapter.js` to implement the coordinator's 
 ## Atomic token-secret rotation contract
 
 The lifecycle vault adapter now requires versioned reads (`{payload, version}`) and compare-and-swap writes (`replaceSecret({secretRef, payload, expectedVersion}) -> {version}`). The backend MUST implement the comparison and replacement atomically; a version mismatch must reject with `code: conflict`. The coordinator passes the loaded version to the write, and the adapter preserves conflict errors rather than treating them as generic persistence failures. This prevents a stale refresh operation from overwriting a newer secret version, but it does not by itself provide a distributed refresh lease or guarantee provider refresh-token replay safety. The existing generic credential vault is not yet wired to this contract. Synthetic tests only; not executed.
+
+### CAS concurrency regression coverage
+
+The token-lifecycle vault adapter test suite now includes a concurrent stale-writer case: two refresh writers start from the same secret version, exactly one compare-and-swap succeeds, and the other receives a version conflict. This is a synthetic in-memory contract test only; it does not prove a deployed Secret Manager/KMS backend implements atomic conditional replacement. Production integration still requires a provider-specific atomic version/ETag primitive and a distributed per-connection refresh lease.
