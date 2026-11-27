@@ -1,10 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createMailboxSecretCleanupWorker } from "../src/membership/mailbox-secret-cleanup-worker.js";
+function scopedSecretRef(accountId, connectionId, opaqueId = "syntheticopaqueid123") {
+  return `mailbox/${accountId}/${connectionId}/${opaqueId}`;
+}
 const ticket = {
   accountId: "synthetic-account", connectionId: "synthetic-connection",
-  secretRef: "vault://synthetic/ref", status: "pending", attempts: 1,
-  nextAttemptAt: null
+  secretRef: scopedSecretRef("synthetic-account", "synthetic-connection"),
+  status: "pending", attempts: 1, nextAttemptAt: null
 };
 
 test("worker deletes secret and marks durable ticket complete", async () => {
@@ -685,4 +688,50 @@ test("worker requires an explicit positive revocation-gate result before vault d
     assert.equal(failures.length, 1);
     assert.equal(failures[0].lastErrorCode, "failed-precondition");
   }
+});
+
+
+test("worker rejects a secret reference scoped to another connection before vault access", async () => {
+  let revoked = 0;
+  const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [{
+        ...ticket,
+        secretRef: scopedSecretRef(ticket.accountId, "different-connection")
+      }],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => { revoked++; } },
+    alert: async () => {}, now: () => 1000
+  });
+  assert.deepEqual(await worker.runOnce({ accountId: ticket.accountId }), {
+    scanned: 1, completed: 0, deferred: 1, exhausted: 0
+  });
+  assert.equal(revoked, 0);
+});
+
+test("worker rejects malformed secret reference before vault access", async () => {
+  let revoked = 0;
+  const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [{ ...ticket, secretRef: "vault://legacy/ref" }],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => { revoked++; } },
+    alert: async () => {}, now: () => 1000
+  });
+  assert.deepEqual(await worker.runOnce({ accountId: ticket.accountId }), {
+    scanned: 1, completed: 0, deferred: 1, exhausted: 0
+  });
+  assert.equal(revoked, 0);
 });
