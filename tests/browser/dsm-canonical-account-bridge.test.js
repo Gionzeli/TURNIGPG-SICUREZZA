@@ -59,3 +59,28 @@ if (session?.accountContext.getActive()?.identitySource !== "firebase" ||
   throw new Error("Canonical Firebase principal was not activated.");
 }
 document.documentElement.dataset.bridgeResult = "active";
+
+await controller.destroy();
+if (listeners.size !== 0) throw new Error("Auth listeners were not removed during teardown.");
+await new Promise((resolve, reject) => {
+  const request = indexedDB.deleteDatabase(databaseName);
+  request.onsuccess = () => resolve();
+  request.onerror = () => reject(request.error);
+  request.onblocked = () => reject(new Error("DSM bridge test database deletion blocked."));
+});
+const noMembership = mountDSMCanonicalAccountBridge(root, {
+  ...dependencies,
+  listCanonicalAccounts: async () => []
+});
+await new Promise((resolve, reject) => {
+  const started = Date.now();
+  const check = () => {
+    if (root.textContent.includes("non esiste ancora un'appartenenza DSM canonica")) return resolve();
+    if (Date.now() - started > 5000) return reject(new Error("Missing canonical membership state timed out."));
+    setTimeout(check, 20);
+  };
+  check();
+});
+if (!root.querySelector("button").disabled) throw new Error("Missing canonical membership must keep DSM activation disabled.");
+await noMembership.destroy();
+document.documentElement.dataset.bridgeResult = "complete";
