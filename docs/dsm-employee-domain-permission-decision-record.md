@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-119 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-120 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2979,6 +2979,29 @@ Approved policy in principle:
 
 **Implementation gates:** Identify database engines, poolers, drivers and ORM behavior; document connection checkout/check-in and transaction semantics; define authoritative context propagation and reset guarantees; review database roles, grants, RLS policies and privileged functions; set resource limits; and produce reproducible cross-tenant synthetic tests plus independent review evidence. No production database, pooler, schema, credential or infrastructure change is authorized by this decision.
 
+### L-120 — Database schema migrations, data backfills and authorization-invariant preservation
+
+**Question:** How should database schema changes and data backfills be planned, authorized, executed and verified so that migrations cannot silently weaken tenant isolation, ownership, lifecycle or permission invariants?
+
+**Decision:** Approved — option B, use reviewed, versioned and staged migrations with explicit preconditions, bounded backfills, invariant checks, compatibility gates and a verified recovery plan. This is a policy decision only.
+
+**Required controls:**
+- Keep schema migrations version-controlled, immutable after approval and attributable to a reviewed change. Record purpose, affected tables/fields/indexes/constraints, dependencies, expected data effects, execution identity and recovery strategy.
+- Separate schema migration authority from ordinary application workload identities. Migration credentials must be short-lived where feasible, least-privileged, environment-specific and unavailable to browser clients or routine application requests.
+- Require peer review and security/data-owner review for changes affecting tenant keys, employee ownership bindings, role/scope relations, lifecycle states, audit evidence, retention, row-level security, constraints or indexes used by authorization queries.
+- Preserve database-enforced uniqueness, foreign-key, check and tenant-boundary constraints. A migration must not drop, weaken or defer an authorization-critical constraint without an explicitly reviewed replacement and a tested, controlled transition.
+- Prefer staged expand-and-contract changes: deploy backward-compatible schema additions first, verify consumers, perform bounded backfills, switch reads/writes under controlled gates, and remove obsolete structures only after evidence confirms no supported consumer depends on them.
+- Make backfills deterministic, idempotent, restartable and rate-bounded. Use checkpoints and explicit batch limits; avoid unbounded table locks, uncontrolled fan-out or long transactions that impair service availability.
+- Derive ownership and tenant relationships from authoritative, verified sources. Never invent missing UID↔Employee bindings, infer tenant membership from client data, merge ambiguous identities automatically or grant permissions as a side effect of a backfill.
+- Quarantine conflicting, orphaned, malformed or ambiguous records for controlled human review. Preserve provenance and before/after evidence with minimized sensitive data; do not silently discard or rewrite disputed records.
+- Validate authorization invariants before and after each stage, including tenant isolation, unique active identity bindings, lifecycle restrictions, role/scope consistency, payroll/health separation and audit continuity. Any unexplained violation blocks progression and triggers the documented stop/recovery process.
+- Define rollback and forward-fix behavior for every stage. Where destructive transformations cannot be reversed safely, require a verified protected backup, explicit approval and a tested recovery procedure before execution; never assume a database transaction alone can undo external or multi-stage effects.
+- Prevent old and new application versions from interpreting transitional data differently in a way that widens access. Gate feature activation on compatible readers/writers and server-enforced policy; client flags are not authorization controls.
+- Run migrations first against synthetic fixtures in isolated Emulator or non-production environments. Test empty, large, malformed, duplicate, cross-tenant, partially migrated and interrupted datasets, plus concurrent application traffic and recovery.
+- Record migration start, stage, counts, invariant-check results, exceptions, approvals and completion in protected audit evidence without logging secrets or unnecessary personal data.
+
+**Implementation gates:** Inventory the actual database schema and migration tooling; identify authorization-critical constraints and dependent readers/writers; define migration roles and approval separation; specify staged rollout, backfill limits, quarantine and recovery procedures; and produce reproducible synthetic migration, interruption and invariant-validation tests with independent review. No real Firebase/database migration, destructive backfill, production schema change or deployment is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3098,6 +3121,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-117 Server-Sent Events, streaming response authorization and connection lifecycle | Approved — option B per-event scope enforcement, bounded streams and prompt revocation; implementation gated on queue, reconnect and mid-stream revocation tests |
 | L-118 Password verifier storage, password hashing and credential migration | Approved — option B modern salted password hashing, protected optional pepper, controlled upgrades and verified legacy migration; implementation gated on provider inventory and synthetic tests |
 | L-119 Database transaction boundaries, connection-pool isolation and session-context cleanup | Approved — option B transaction-bound server context, verified pool reset and fail-closed isolation; implementation gated on driver/pool review and cross-tenant tests |
+| L-120 Database schema migrations, data backfills and authorization-invariant preservation | Approved — option B reviewed staged migrations, bounded idempotent backfills and invariant/recovery gates; implementation gated on schema inventory and synthetic migration tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
