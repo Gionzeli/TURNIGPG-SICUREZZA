@@ -95,7 +95,17 @@ Required safeguards regardless of choice:
 - No compensation, bank details, identity documents, or health-related details in the roster.
 - Query constraints and response allowlists are enforced server-side.
 
-**Unapproved:** eligible manager roles, organizational scope, and field list.
+**Approved 2026-11-27 — option B (minimal roster plus operational staffing fields), by explicit user confirmation in the project conversation.**
+
+Approved manager/team roster projection, pending canonical schema mapping:
+- employee name or approved display label;
+- operational role/function needed to organize staffing;
+- operational qualifications/skills needed to assign suitable work;
+- current canonical site/department assignment, shown only within the manager's separately authorized scope.
+
+This is a narrowly scoped team-roster projection, not general profile access. It excludes compensation and payroll, CCNL/contract level unless separately approved, bank/payment data, identity documents, contact details not operationally required, health/absence reasons, and other sensitive personal fields. No unrestricted Employee document passthrough.
+
+**Still required before implementation:** explicitly define eligible manager roles and whether authorization scope is site, department, or both; map each approved semantic field to canonical schema fields; validate that role/qualification fields do not contain free-text sensitive information. Current canonical placement and lifecycle must be checked server-side on every request. Until those details are approved and tested, no manager/team profile endpoint is authorized; unknown or unmapped fields remain denied. This decision does not authorize team shift management, absence visibility, compensation access, exports, or profile mutation.
 
 ### D-04 — Manager shift visibility and management
 
@@ -203,7 +213,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 |---|---|
 | D-01 Own ordinary profile | Approved — option B self-read; implementation gated on schema field mapping |
 | D-02 Own compensation | Approved — option B limited self-read; implementation gated on schema mapping |
-| D-03 Manager/team profile | Open — deny new endpoint |
+| D-03 Manager/team profile | Approved — option B minimal roster; implementation gated on role/scope and schema mapping |
 | D-04 Manager/team shifts | Open — no new delegated access |
 | D-05 Manager absence visibility | Open — deny new endpoint; no health details |
 | D-06 Audit read | Open — server-only |
