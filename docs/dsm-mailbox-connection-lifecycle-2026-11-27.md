@@ -541,3 +541,13 @@ or any other status is treated as a failed precondition and follows the normal
 retry path. This makes the injected gate contract fail closed even if an
 incorrect adapter implementation silently returns a negative result. Synthetic
 regressions cover false, missing, and mismatched confirmations.
+
+
+#### Recovery after cleanup retry exhaustion
+
+A cleanup ticket that reached `exhausted` remains eligible for an explicit later
+cleanup attempt (for example, when an authorized mailbox revocation is retried).
+If that deletion succeeds, the Firestore adapter now permits the ticket to move
+to `complete`. Any still-pending exhaustion alert is marked `resolved` and
+removed from the alert query, because the credential has since been deleted.
+Repeated completion remains idempotent and preserves the first completion time.
