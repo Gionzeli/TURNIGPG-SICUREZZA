@@ -33,6 +33,7 @@ test('Firestore Emulator durably queues and acknowledges exhausted cleanup alert
     assert.equal(queued.length, 1);
     assert.equal(queued[0].connectionId, connectionId);
     assert.equal(queued[0].alertStatus, 'pending');
+    assert.equal(Object.hasOwn(queued[0], 'secretRef'), false);
     assert.equal(queued[0].alertAttempts, 0);
     await adapters.recordCleanupAlertFailure({
       accountId, connectionId, attempts: 1,
