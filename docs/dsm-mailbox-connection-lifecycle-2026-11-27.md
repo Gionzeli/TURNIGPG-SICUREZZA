@@ -165,3 +165,18 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 GCLOUD_PROJECT=demo-dsm-mailbox node --te
 Without `FIRESTORE_EMULATOR_HOST`, Node's test runner marks this integration test skipped; ordinary unit tests remain synthetic. The test has been added but has not been executed in this environment. It validates Firestore transaction behavior with a mocked secret-version API, not actual Secret Manager IAM, version retention, or deployed callable wiring.
 
 The Emulator integration test also checks that a write without a lease proof is rejected with `failed-precondition`, and that a current-but-expired lease proof is rejected with `conflict`; in both cases the active Firestore pointer must remain unchanged.
+
+
+## End-to-end token lifecycle Emulator test
+
+Added `functions/test/mailbox-token-lifecycle-emulator.integration.test.js`. This composes the Firestore lease service, token lifecycle coordinator, vault adapter, and Secret Manager/Firestore CAS backend against the Firestore Emulator. Secret Manager and the OAuth refresh endpoint are synthetic in-memory implementations.
+
+The test uses two independent coordinator instances against the same connection. It holds the first refresh in flight, verifies that the second instance cannot acquire the active lease, then allows the first refresh to rotate and persist the token pair. The second instance retries and must observe the fresh access token without invoking refresh again. It also checks the persisted refresh-token rotation, pointer version, and released lease.
+
+Run with the Firestore Emulator active, from `functions`:
+
+```sh
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 GCLOUD_PROJECT=demo-dsm-mailbox node --test test/mailbox-token-lifecycle-emulator.integration.test.js
+```
+
+This is an Emulator integration test, not evidence of a test run. It does not exercise a live OAuth provider, Google Secret Manager, production IAM, distributed deployment, or callable wiring.
