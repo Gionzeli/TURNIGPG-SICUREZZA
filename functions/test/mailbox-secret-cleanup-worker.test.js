@@ -187,3 +187,36 @@ test("worker retries failed exhaustion alert delivery on a later invocation", as
   await worker.runOnce({ accountId: "synthetic-account" });
   assert.equal(calls, 2, "delivered alert is not sent again");
 });
+
+
+test("worker passes only the alert allowlist even when an adapter returns extra fields", async () => {
+  const delivered = [];
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async ({ accountId }) => [{
+        accountId, connectionId: "safe-connection", status: "exhausted",
+        alertStatus: "pending", attempts: 12, lastErrorCode: "unavailable",
+        alertAttempts: 0, alertNextAttemptAt: null, alertLastErrorCode: null,
+        secretRef: "vault://must-not-leak", reason: "internal_reason",
+        mailboxAddress: "private@example.invalid", provider: "imap",
+        ownerUid: "private-owner", arbitrary: "untrusted"
+      }],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async input => delivered.push(input),
+    now: () => 1000
+  });
+  await worker.runOnce({ accountId: "synthetic-account" });
+  assert.deepEqual(delivered, [{
+    alertId: "synthetic-account:safe-connection:cleanup-exhausted",
+    accountId: "synthetic-account",
+    connectionId: "safe-connection",
+    attempts: 12,
+    code: "unavailable"
+  }]);
+});
