@@ -58,7 +58,7 @@ export async function approveCanonicalMembershipInvite({ db, accountId, actorUid
   return db.runTransaction(async tx => {
     const [account, actor, invite, audit] = await Promise.all([tx.get(accountRef), tx.get(actorRef), tx.get(inviteRef), tx.get(auditRef)]);
     const approvedAt = now();
-    if (!account.exists || account.data().status !== "active") fail("failed-precondition", "Active account required.");
+    if (!account.exists || account.data().accountId !== accountId || account.data().status !== "active" || !Number.isSafeInteger(account.data().schemaVersion) || account.data().schemaVersion < 1 || !Number.isSafeInteger(account.data().version) || account.data().version < 1) fail("failed-precondition", "Active canonical account required.");
     requireAdmin(actor.exists ? actor.data() : null, actorUid, accountId, actorIdentity, approvedAt);
     if (!invite.exists) fail("not-found", "Invite proposal not found.");
     const value = invite.data();
@@ -96,7 +96,7 @@ export async function claimCanonicalMembershipInvite({ db, accountId, inviteId, 
   return db.runTransaction(async tx => {
     const [account, invite, member, audit] = await Promise.all([tx.get(accountRef), tx.get(inviteRef), tx.get(memberRef), tx.get(auditRef)]);
     const claimedAt = now();
-    if (!account.exists || account.data().status !== "active") fail("failed-precondition", "Active account required.");
+    if (!account.exists || account.data().accountId !== accountId || account.data().status !== "active" || !Number.isSafeInteger(account.data().schemaVersion) || account.data().schemaVersion < 1 || !Number.isSafeInteger(account.data().version) || account.data().version < 1) fail("failed-precondition", "Active canonical account required.");
     if (!invite.exists) fail("not-found", "Invite not found.");
     const value = invite.data();
     if (value.accountId !== accountId || value.inviteId !== inviteId ||
