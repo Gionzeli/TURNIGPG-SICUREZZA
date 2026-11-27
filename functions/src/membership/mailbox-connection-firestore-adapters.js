@@ -370,7 +370,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         }
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
-            typeof previous.secretRef !== "string") {
+            !validSecretRef(previous.secretRef, accountId, connectionId)) {
           const error = new Error("Cleanup record is malformed.");
           error.code = "failed-precondition";
           throw error;
