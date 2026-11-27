@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-87 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-88 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2242,6 +2242,29 @@ Approved policy in principle:
 
 **Still required before implementation:** decision whether device registration is needed; supported platform and signal inventory; device-to-user binding protocol; minimum metadata and privacy assessment; risk thresholds and fallback controls; revocation latency objective; secure key-storage/proof-of-possession design; loss/recovery workflow; retention and audit schema; and synthetic tests. This decision does not authorize fingerprinting, mandatory device attestation, collection of personal device contents or production activation.
 
+### L-88 — Delegated authorization, OAuth consent and connected-account revocation
+
+**Question:** How must delegated access to external accounts and APIs be initiated, scoped, stored, refreshed, reviewed and revoked so that a connected provider account cannot become an uncontrolled path into employee-domain data?
+
+**Approved 2026-11-27 — option B (explicit purpose-bound delegated grants with least privilege, secure token custody and revocation lifecycle), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat external account linking and delegated API access as a separate privileged capability. A successful login or provider consent does not grant permission to read or modify any employee-domain resource.
+- Use approved authorization-code flows with PKCE for public clients, exact registered redirect URIs, transaction-bound state and nonce where applicable, issuer/audience validation and strict protection against open redirects, login CSRF and authorization-code injection.
+- Request only the minimum provider scopes, resources and operations necessary for a documented purpose. Avoid broad, offline, administrative or write scopes unless separately justified and approved; do not silently expand scopes during refresh or reconnect.
+- Bind each delegated grant server-side to the verified local actor, tenant, integration purpose, provider issuer, external subject, approved scope set and lifecycle. Never trust client-supplied provider identifiers, callback parameters or local account labels as authoritative binding.
+- Obtain explicit, informed consent that identifies the provider, data categories, purpose, requested scopes, retention implications and revocation path. Record consent version and outcome without storing unnecessary consent-screen content or secrets.
+- Store refresh and access tokens only in an approved server-side secret store or equivalent protected custody, encrypted and access-restricted by workload identity. Never expose refresh tokens to browser storage, logs, analytics, URLs or client-readable documents.
+- Validate token issuer, audience, expiry, granted scopes and provider account binding before use. Refresh securely with rotation/reuse detection where supported; handle revoked, expired, invalidated or narrowed grants by stopping dependent processing and requiring reauthorization where necessary.
+- Enforce local authorization independently on every operation, including background jobs and webhook-driven work. A provider token is a credential to the provider, not authority to bypass local tenant, lifecycle, resource, field or workflow permissions.
+- Provide a user- and administrator-governed connection inventory showing provider, connected identity, purpose, granted scopes, last use and status. Permit prompt revocation and disconnect; revoke provider grants where supported and invalidate local tokens, jobs, caches and dependent subscriptions within defined limits.
+- On employee termination, transfer, account deactivation, tenant boundary change, security incident or integration-owner change, re-evaluate whether each delegated grant remains valid. Do not automatically transfer grants to a successor or restore them after reactivation.
+- Isolate provider credentials and workloads by environment and tenant where feasible. Prevent cross-tenant token reuse, confused-deputy access, unauthorized token exchange and accidental use of test grants in production.
+- Minimize data retrieved from providers, define retention and deletion propagation, and prevent provider responses from being treated as trusted instructions or canonical employee records without validation and provenance controls.
+- Audit grant creation, consent, scope changes, token refresh anomalies, access, failures, revocation and reconnect with minimized metadata. Never log token values, authorization codes, secrets or sensitive provider payloads.
+- Test synthetic state/PKCE mismatch, redirect manipulation, issuer/audience confusion, scope escalation, token replay/rotation, refresh-token reuse, provider revocation, tenant switching, local permission revocation, background-job execution after disconnect and compromised integration credentials.
+
+**Still required before implementation:** approved provider and use-case inventory; delegated-scope matrix; authorization-flow and redirect registration; consent UX and versioning; server-side token custody and rotation design; local actor/tenant binding; refresh/revocation behavior; lifecycle and incident runbooks; provider data minimization/retention contracts; audit taxonomy; and synthetic integration tests. This decision does not authorize a new external provider, live OAuth connection, external data transfer or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2329,6 +2352,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-85 File attachments, upload processing and secure retrieval | Approved — option B quarantined uploads, defense-in-depth inspection and per-request authorized retrieval; implementation gated on storage, scanning, preview and access contracts |
 | L-86 Aggregate reporting, small-group disclosure and inference resistance | Approved — option B purpose-scoped aggregates, disclosure controls, query governance and server-enforced boundaries; implementation gated on cohort, suppression and test rules |
 | L-87 Device registration, endpoint trust and device-risk changes | Approved — option B risk-based supplemental device signals, explicit registration/revocation and no device-only authorization; implementation gated on platform, privacy and recovery controls |
+| L-88 Delegated authorization, OAuth consent and connected-account revocation | Approved — option B purpose-bound least-privilege grants, secure token custody and revocation lifecycle; implementation gated on provider, scope, consent and test contracts |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
