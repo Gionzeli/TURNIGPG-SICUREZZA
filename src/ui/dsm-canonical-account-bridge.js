@@ -9,6 +9,7 @@ export function mountDSMCanonicalAccountBridge(container, {
   listCanonicalAccounts,
   resolveAuthorization,
   listOwnEmployeeShifts,
+  updateOwnEmployeeShift,
   readOwnEmployeeEmploymentProfile,
   createAuthAdapter,
   openDatabase,
@@ -16,12 +17,13 @@ export function mountDSMCanonicalAccountBridge(container, {
   createSession
 } = {}) {
   const required = [auth, onAuthStateChanged, listCanonicalAccounts, resolveAuthorization,
-    listOwnEmployeeShifts, createAuthAdapter, openDatabase, closeDatabase, createSession];
+    listOwnEmployeeShifts, updateOwnEmployeeShift, createAuthAdapter, openDatabase, closeDatabase, createSession];
   if (!container || required.some(value => !value) ||
       typeof onAuthStateChanged !== "function" ||
       typeof listCanonicalAccounts !== "function" ||
       typeof resolveAuthorization !== "function" ||
       typeof listOwnEmployeeShifts !== "function" ||
+      typeof updateOwnEmployeeShift !== "function" ||
       typeof createAuthAdapter !== "function" ||
       typeof openDatabase !== "function" ||
       typeof closeDatabase !== "function" ||
@@ -101,6 +103,7 @@ export function mountDSMCanonicalAccountBridge(container, {
   let disposed = false;
   let generation = 0;
   let shiftQueryGeneration = 0;
+  let lastShiftQuery = null;
   let profileQueryGeneration = 0;
   let selectionRevision = 0;
   let selectedAccountId = null;
@@ -171,6 +174,7 @@ export function mountDSMCanonicalAccountBridge(container, {
 
   function clearShiftResults() {
     shiftsResults.replaceChildren();
+    lastShiftQuery = null;
   }
 
   function hideShiftView() {
@@ -219,10 +223,90 @@ export function mountDSMCanonicalAccountBridge(container, {
         cell.textContent = String(value ?? "");
         row.append(cell);
       }
+      const actionCell = document.createElement("td");
+      const editButton = document.createElement("button");
+      editButton.type = "button";
+      editButton.textContent = "Modifica";
+      editButton.setAttribute("aria-label", `Modifica turno del ${item.date}`);
+      editButton.addEventListener("click", () => renderShiftEditor(item, actionCell));
+      actionCell.append(editButton);
+      row.append(actionCell);
       body.append(row);
     }
     table.append(head, body);
     shiftsResults.append(table);
+  }
+
+  function renderShiftEditor(item, host) {
+    host.replaceChildren();
+    const form = document.createElement("form");
+    form.className = "shift-edit-form";
+    const fields = [
+      ["Postazione", "post", "text", item.post ?? ""],
+      ["Ora inizio", "start_time", "time", item.start_time ?? ""],
+      ["Ora fine", "end_time", "time", item.end_time ?? ""],
+      ["Ore", "hours", "number", String(item.hours ?? 0)]
+    ];
+    for (const [labelText, name, type, value] of fields) {
+      const label = document.createElement("label");
+      label.textContent = labelText;
+      const input = document.createElement("input");
+      input.name = name;
+      input.type = type;
+      input.value = value;
+      if (name === "hours") { input.min = "0"; input.max = "48"; input.step = "0.25"; }
+      if (name === "post") input.maxLength = 80;
+      label.append(input);
+      form.append(label);
+    }
+    const save = document.createElement("button");
+    save.type = "submit";
+    save.textContent = "Salva modifica";
+    const cancel = document.createElement("button");
+    cancel.type = "button";
+    cancel.textContent = "Annulla";
+    cancel.addEventListener("click", () => host.replaceChildren());
+    form.append(save, cancel);
+    const feedback = document.createElement("p");
+    feedback.setAttribute("role", "status");
+    form.addEventListener("submit", async event => {
+      event.preventDefault();
+      const accountId = activeFirebaseAccountId();
+      if (!accountId || accountId !== selectedAccountId || !Number.isSafeInteger(item.revision) || item.revision < 1) {
+        feedback.textContent = "Sessione o revisione non valida. Ricarica i turni.";
+        return;
+      }
+      const data = Object.fromEntries(new FormData(form).entries());
+      data.hours = Number(data.hours);
+      if (!Number.isFinite(data.hours) || data.hours < 0 || data.hours > 48 ||
+          data.post.length > 80 || !/^$|^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(data.start_time) ||
+          !/^$|^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(data.end_time) ||
+          ((data.start_time === "") !== (data.end_time === "")) ||
+          (data.start_time !== "" && data.start_time === data.end_time)) {
+        feedback.textContent = "Controlla postazione, orari e ore inserite.";
+        return;
+      }
+      save.disabled = true;
+      feedback.textContent = "Salvataggio e verifica autorizzazione…";
+      try {
+        await updateOwnEmployeeShift({ accountId, shiftId: item.shiftId, expectedRevision: item.revision, changes: data });
+        if (disposed || activeFirebaseAccountId() !== accountId || selectedAccountId !== accountId) return;
+        feedback.textContent = "Modifica registrata. Aggiornamento calendario…";
+        if (lastShiftQuery) {
+          const query = { ...lastShiftQuery };
+          const items = await listOwnEmployeeShifts(query);
+          if (disposed || activeFirebaseAccountId() !== accountId || selectedAccountId !== accountId) return;
+          if (!Array.isArray(items) || items.length > 200) throw new Error("Risposta turni non valida.");
+          renderShifts(items);
+          shiftsStatus.textContent = "Turni aggiornati.";
+        }
+      } catch {
+        feedback.textContent = "Modifica non completata: il turno potrebbe essere stato aggiornato altrove o l'accesso non è più valido. Ricarica i turni.";
+        save.disabled = false;
+      }
+    });
+    form.append(feedback);
+    host.append(form);
   }
 
   authAdapter = createAuthAdapter({
@@ -333,12 +417,14 @@ export function mountDSMCanonicalAccountBridge(container, {
     shiftsStatus.textContent = "Ricerca dei tuoi turni in corso…";
     searchButton.disabled = true;
     try {
-      const items = await listOwnEmployeeShifts({ accountId, fromDate, toDate });
+      const query = { accountId, fromDate, toDate };
+      const items = await listOwnEmployeeShifts(query);
       if (disposed || current !== shiftQueryGeneration ||
           activeFirebaseAccountId() !== accountId || selectedAccountId !== accountId) return;
       if (!Array.isArray(items) || items.length > 200) {
         throw new Error("Risposta turni non valida.");
       }
+      lastShiftQuery = query;
       renderShifts(items);
       shiftsStatus.textContent = `Ricerca completata: ${items.length} turni trovati.`;
     } catch {
