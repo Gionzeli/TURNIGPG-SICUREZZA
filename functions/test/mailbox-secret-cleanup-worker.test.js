@@ -220,3 +220,31 @@ test("worker passes only the alert allowlist even when an adapter returns extra 
     code: "unavailable"
   }]);
 });
+
+
+test("worker rejects malformed connection ids before vault or alert side effects", async () => {
+  let vaultCalls = 0;
+  let alertCalls = 0;
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [{ ...ticket, connectionId: "bad/id" }],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async ({ accountId }) => [{
+        accountId, connectionId: "bad\nalert", status: "exhausted",
+        alertStatus: "pending", attempts: 12, lastErrorCode: "unavailable",
+        alertAttempts: 0, alertNextAttemptAt: null
+      }],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => { vaultCalls++; } },
+    alert: async () => { alertCalls++; },
+    now: () => 1000
+  });
+  assert.deepEqual(await worker.runOnce({ accountId: "synthetic-account" }), {
+    scanned: 1, completed: 0, deferred: 1, exhausted: 0
+  });
+  assert.equal(vaultCalls, 0);
+  assert.equal(alertCalls, 0);
+});
