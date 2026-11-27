@@ -306,3 +306,12 @@ Other failures remain masked and retryable. This makes the cleanup worker's
 delete-then-complete sequence safe when a prior attempt deleted the secret but
 crashed before completing the outbox ticket. Synthetic tests cover accepted
 not-found forms and ensure permission failures are not swallowed.
+
+
+#### Exhaustion alerts require durable state
+
+The cleanup worker now sends the retry-ceiling alert only after the adapter
+successfully records the ticket as `exhausted`. If Firestore cannot persist
+that transition, the worker leaves the ticket deferred and emits no alert;
+a later run can retry the transition without generating duplicate exhaustion
+alerts. A synthetic regression covers this persistence-failure path.
