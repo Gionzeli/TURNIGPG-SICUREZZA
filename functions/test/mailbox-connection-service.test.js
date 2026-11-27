@@ -196,3 +196,26 @@ test("failed vault deletion leaves a durable cleanup ticket pending", async () =
   assert.equal(calls.cleanupCompleted.length, 0);
   assert.equal(calls.saved.at(-1).connection.status, "revocation_pending");
 });
+
+
+test("revocation completion timestamp is sampled after slow vault deletion", async () => {
+  let clock = 1000;
+  const { service, calls } = harness({
+    now: () => clock,
+    revokeSecret: async input => {
+      calls.revoked.push(input);
+      clock = 9000;
+    }
+  });
+  await service.connect(base);
+  clock = 2000;
+  await service.revoke({
+    accountId: base.accountId, actorUid: base.actorUid,
+    connectionId: "synthetic-connection"
+  });
+  const revoked = calls.saved.at(-1).connection;
+  assert.equal(revoked.status, "revoked");
+  assert.equal(revoked.revokedAt, 9000);
+  assert.equal(revoked.updatedAt, 9000);
+  assert.equal(calls.audits.at(-1).timestamp, 9000);
+});
