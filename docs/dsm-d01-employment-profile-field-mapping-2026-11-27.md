@@ -92,4 +92,31 @@ L'esempio è interamente sintetico e illustra solo la forma del DTO. I valori no
 - Migrazione/sincronizzazione legacy: non autorizzata.
 - Produzione e Firebase reale: non coinvolti.
 
-Questo documento restringe il lavoro successivo: il prossimo cambiamento runtime potrà iniziare solo dopo la decisione sui gate 1–4. Non è una certificazione di sicurezza né un'autorizzazione al deploy.
+## 8. Mapper DTO puro e verifica CI
+
+È stato aggiunto `functions/src/membership/employment-profile-dto.js`, con test in `functions/test/employment-profile-dto.test.js`.
+
+Il mapper:
+- proietta esclusivamente `ccnl`, `section`, `level`, `role`, `effectiveDate`;
+- normalizza i valori opzionali assenti/vuoti a `null`;
+- accetta solo il codice CCNL `HV17` e le tre sezioni elencate sopra, con sezione subordinata a CCNL;
+- limita e normalizza le stringhe di livello/mansione e rifiuta caratteri di controllo;
+- valida la data calendario nel formato `YYYY-MM-DD`;
+- ignora proprietà estranee e restituisce un oggetto congelato.
+
+Il modulo è deliberatamente puro: **non** autorizza il chiamante, non legge Firestore, non stabilisce il percorso di storage e non è collegato a una callable. I commenti del modulo richiedono al futuro chiamante di verificare prima il principal e il binding Employee attivo e di caricare i dati da una fonte canonica approvata.
+
+**Verifica CI sul commit `77de4eb609755338cc90fed032635d30428740cb`:**
+- `membership-service-tests`: success.
+- `indexeddb-browser-tests`: success.
+- Il log del backend conferma `npm test` eseguito sotto Firebase Auth/Functions/Firestore Emulator: 123 test, 123 passati, 0 falliti.
+- I cinque test del mapper D-01 sono presenti nell'esecuzione (test 44–48), tutti passati.
+- La suite browser riporta 97 test superati e i test browser aggiuntivi completati con esito PASS.
+
+Questi risultati verificano il codice e i test sintetici in CI; non dimostrano integrazione applicativa, sicurezza certificata, correttezza della futura fonte dati o comportamento su Firebase reale.
+
+## 9. Prossimo passo e limiti
+
+Il mapper puro è pronto come componente di proiezione, ma il prossimo passo runtime resta bloccato dai gate 1–4: schema fisico, provenienza, semantica temporale e identità/display label. Anche la permission self dedicata resta un gate autonomo e non va dedotta da `dsm:read:own-scope`.
+
+Questo documento restringe il lavoro successivo: il prossimo cambiamento runtime potrà iniziare solo dopo le decisioni mancanti e l'approvazione della permission. Non è una certificazione di sicurezza né un'autorizzazione al deploy.
