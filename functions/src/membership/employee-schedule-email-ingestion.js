@@ -161,7 +161,7 @@ export function createEmployeeScheduleEmailIngestion({
       const results = [];
       for (const attachment of attachments) {
         if (!attachment || typeof attachment !== "object" || typeof attachment.filename !== "string" ||
-            attachment.filename.length > 180 || /[\\u0000-\\u001f\\u007f]/.test(attachment.filename) ||
+            attachment.filename.length > 180 || /[\x00-\x1f\x7f]/.test(attachment.filename) ||
           !attachment.filename.toLowerCase().endsWith(".pdf") ||
             !["application/pdf", "application/octet-stream"].includes(attachment.contentType)) {
           results.push({ status: "ignored", reason: "not_a_pdf" });
