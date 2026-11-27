@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-04 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-05 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -293,9 +293,25 @@ Approved policy in principle:
 
 **Still required before implementation:** define authorized actors and any dual-approval requirement, canonical reactivation state transition and effective timestamp, identity re-verification strength, binding conflict resolution, permission re-approval workflow, and synthetic tests for stale sessions and privilege non-restoration. No automatic permission restoration or reactivation endpoint is authorized until these details are approved.
 
+### L-05 — Archived site or department
+
+**Question:** What happens to employee access and records when a site or department is archived?
+
+**Approved 2026-11-27 — option B (block operations in the archived organizational unit, preserve history, and require explicit reassignment before granting new access), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Once archival becomes effective, new operational actions and ordinary current-scope access through that site/department are blocked.
+- Historical records and canonical placement history are retained according to their applicable retention rules; archival is not deletion and does not rewrite prior assignments.
+- Employees are not automatically moved to a primary or replacement site/department.
+- A new assignment must be explicitly created and approved through the canonical assignment workflow before new organizational access is granted.
+- Access to historical records remains separately permissioned and time/scope constrained; archiving does not grant broad archive-reading privileges.
+- Every request must check the current lifecycle state of the account, site and department server-side; missing, archived, or ambiguous states fail closed.
+
+**Still required before implementation:** define archival authority and approval, effective timestamp/timezone, handling of open shifts and pending proposals, whether an archived unit can be restored, how employees are reassigned when no active destination exists, and synthetic tests for blocked operations and preserved historical access. No automatic transfer, deletion, or new archive endpoint is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
-- account/site/department archive and restoration;
+- account archive/restoration and archived-unit restoration;
 - binding revocation, reassignment and duplicate/conflicting bindings;
 - access to historical shifts, absences, profiles and payroll after termination or other lifecycle changes;
 - audit retention, legal holds, deletion and export.
@@ -319,6 +335,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-02 Suspension access | Approved — option B operational access revoked; narrowly necessary self-service only if separately authorized; implementation gated on status/revocation details |
 | L-03 Termination access | Approved — option B operational access revoked; temporary, limited personal document access only if separately authorized; implementation gated on duration/document allowlist/revocation |
 | L-04 Reactivation | Approved — option B re-verify identity, employment, placement and permissions; restore only newly approved permissions; implementation gated on transition/approval details and tests |
+| L-05 Archived site/department | Approved — option B block operations, preserve history, require explicit reassignment; implementation gated on archival semantics, open-work handling and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
