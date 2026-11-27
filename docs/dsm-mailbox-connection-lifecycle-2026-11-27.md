@@ -67,3 +67,15 @@ Added a pure builder for Gmail and Microsoft authorization URLs. Endpoints and s
 ## Server-side authorization-code token exchange (synthetic tests)
 
 Added a provider-fixed OAuth authorization-code exchange helper using injected server HTTP transport. It posts form data to fixed Google or Microsoft endpoints, uses the stored PKCE verifier, disables redirects, validates JSON/token fields and response size, and masks transport errors. It returns sensitive token material only to trusted server code; callers must verify identity/scopes and store credentials in the vault immediately. No HTTP requests are performed by tests (mock transport only). It is not wired to callables, real provider credentials, or a vault.
+
+## OAuth mailbox owner identity verifier (synthetic-only)
+
+Added `functions/src/membership/mailbox-owner-identity-verifier.js` to verify provider token identity before connection metadata is persisted.
+
+- Google: fixed OpenID UserInfo endpoint; requires stable subject, `email_verified === true`, and normalized canonical email match.
+- Microsoft: fixed Graph `/me` endpoint; requires provider user ID and matching `mail` or fallback `userPrincipalName`.
+- Fixed URLs only, injected server transport, redirects rejected, bounded response text, generic errors, and token-free return shape.
+- Normalization lowercases only; no plus-tag or dot normalization.
+- Synthetic tests use mocked responses only.
+
+Not integrated with callback/callable, vault, or live providers. Microsoft UPN may not represent primary SMTP; production policy for canonical mailbox matching still needs review. Caller must revalidate actor/membership and store tokens in a server vault immediately.
