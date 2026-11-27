@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-51 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-52 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1393,6 +1393,32 @@ Approved policy in principle:
 
 **Still required before implementation:** searchable-field catalogue, domain/action/scope matrix, query builder and cursor design, aggregation disclosure rules, rate/complexity thresholds, audit policy and synthetic security test coverage. This policy does not authorize broader employee search, access to real personal data, unrestricted analytics or production activation.
 
+### L-52 — Concurrent data integrity and conflict control
+
+**Question:** How should concurrent edits and overlapping operations be coordinated to prevent lost updates, inconsistent records, duplicate effects and unauthorized conflict resolution?
+
+Possible choices:
+- **A. Last-write-wins:** accept the latest submitted value and retain ordinary audit history.
+- **B. Explicit concurrency control:** use server-enforced revisions, atomic operations, idempotency and conflict-aware workflows.
+- **C. Client-side coordination:** rely on UI warnings and client timestamps to avoid simultaneous changes.
+
+**Approved 2026-11-27 — option B (explicit server-enforced concurrency and conflict control), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat client timestamps, revision numbers and conflict-resolution claims as untrusted; derive authoritative state and concurrency checks on the server.
+- Require expected-revision or equivalent conditional-write checks for mutable canonical records; reject stale writes rather than silently overwriting newer data.
+- Use atomic transactions or equivalent consistency guarantees for related updates, ownership bindings, lifecycle changes, approvals and audit evidence.
+- Define idempotency keys and bounded replay handling for operations that may be retried; ensure retries cannot duplicate payroll-affecting, scheduling, provisioning or other consequential effects.
+- Make conflict outcomes explicit to the caller without disclosing records outside the caller's authorized scope; require a fresh read and authorized resubmission where needed.
+- Do not resolve sensitive or high-impact conflicts with last-write-wins, client-side merges or silent field-level overwrites.
+- Revalidate actor identity, membership, lifecycle, domain/action permission, scope and approval validity at commit time, including after any queue or approval delay.
+- Preserve immutable or protected audit evidence of accepted changes, rejected stale writes, retries, conflict decisions and relevant revision transitions.
+- Ensure multi-record workflows either commit consistently or fail safely with documented compensation; prevent partially applied authorization, transfer, provisioning and revocation operations.
+- Define bounded locking, retry and contention policies to avoid deadlocks, unbounded retries and denial of service.
+- Test synthetic simultaneous edits, stale revisions, duplicate submissions, reordered retries, partial failures, approval-state changes and cross-scope conflict attempts.
+
+**Still required before implementation:** canonical revision model, transaction boundaries, idempotency-key design and retention, conflict UX/workflows, retry and locking budgets, audit schema, compensation strategy and synthetic concurrency test coverage. This policy does not authorize changes to production records, payroll operations, automatic conflict resolution or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1444,6 +1470,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-49 Secure data import and ingestion | Approved — option B defense-in-depth validation, staged review, scoped authorization, provenance, safe parsing and protected audit; implementation gated on formats, schemas, workflows, limits and tests |
 | L-50 Secure export and document generation | Approved — option B end-to-end scoped authorization, minimized fields, safe rendering, protected delivery, artifact lifecycle and audit; implementation gated on catalogue, thresholds, workflows and tests |
 | L-51 Secure search and query authorization | Approved — option B server-enforced identity, scope and field constraints, minimized results, bounded queries and protected audit; implementation gated on field catalogue, query design, thresholds and tests |
+| L-52 Concurrent data integrity and conflict control | Approved — option B server-enforced revisions, atomicity, idempotency, explicit conflict handling and protected audit; implementation gated on revision model, transaction boundaries, workflows and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
