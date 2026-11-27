@@ -373,7 +373,7 @@ test("pending cleanup query sorts never-attempted and due work ahead of future r
       timestamp: active.createdAt + i
     });
     await adapters.recordSecretCleanupFailure({
-      accountId: active.accountId, connectionId, secretRef: "vault://synthetic/" + i,
+      accountId: active.accountId, connectionId, secretRef: secretRef(active.accountId, connectionId, "opaqueidentifier" + i),
       attempts: 2, nextAttemptAt: 900000 + i, lastErrorCode: "unavailable",
       timestamp: 800000 + i
     });
@@ -616,4 +616,28 @@ test("stale alert failure cannot revert a delivered exhaustion notification", as
   assert.equal(stored.alertStatus, "delivered");
   assert.equal(stored.alertAttempts, 0);
   assert.equal(stored.alertNextAttemptAt, null);
+});
+
+test("connection metadata rejects a credential reference scoped to another connection", async () => {
+  const { db } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  await assert.rejects(adapters.saveConnection({
+    accountId: active.accountId, connectionId: active.connectionId,
+    connection: { ...active, credentialSecretRef: secretRef(active.accountId, "other-connection") }
+  }), error => error.code === "invalid-argument");
+});
+
+test("cleanup outbox rejects malformed and cross-connection credential references", async () => {
+  const { db } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  await assert.rejects(adapters.recordSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: secretRef(active.accountId, "other-connection"),
+    reason: "connection_revoked", timestamp: active.createdAt + 1
+  }), error => error.code === "invalid-argument");
+  await assert.rejects(adapters.recordSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: "not-a-secret-ref", reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  }), error => error.code === "invalid-argument");
 });
