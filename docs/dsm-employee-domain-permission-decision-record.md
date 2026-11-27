@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-13 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-14 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -469,6 +469,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define the event catalogue and materiality thresholds; eligible recipients and verified channels; delivery timing, retries and failure escalation; authorized withholding/delay criteria and independent review; message templates and privacy-safe content; retention and audit fields; and synthetic Emulator tests for correct triggering, suppression, delivery failure, recipient isolation and prevention of sensitive-content leakage. No notification endpoint or production delivery integration is authorized until these details are approved and tested.
 
+### L-14 — Evidence preservation and scoped legal holds
+
+**Question:** How should the system preserve records relevant to a dispute, investigation, or other authorized review?
+
+Possible choices:
+- **A. No special hold:** ordinary modification and deletion rules continue unchanged.
+- **B. Scoped preservation hold:** preserve only relevant records, with restricted access, documented purpose, defined duration and periodic review.
+- **C. Broad employee-wide hold:** automatically freeze all of an employee's data until the dispute is finally closed.
+
+**Approved 2026-11-27 — option B (scoped evidence preservation hold with restricted access, documented purpose, defined duration and periodic review), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- A preservation hold must identify the specific matter/reference, purpose, authorized requester and approver, affected data categories/resources, scope, start time, review date and release conditions.
+- Preserve only records reasonably relevant to the matter. A hold must not automatically freeze all records belonging to an employee, unrelated business operations, or unrelated individuals.
+- A hold preserves evidence; it does not grant general read access, authorize new processing purposes, or expand the roles permitted to view the held records.
+- Held records remain subject to least-privilege access, access logging, confidentiality controls and appropriate separation of duties. Access to the hold and any disclosure of held content are separately authorized and audited.
+- Ordinary correction, deletion, retention and dispute-access workflows must recognize an active applicable hold and prevent destructive changes to held evidence. Any permitted correction must preserve the original evidentiary record and record the correction separately; no silent overwrite or alteration of audit history is permitted.
+- Each hold must have a defined review schedule and end condition. Extensions require documented justification and authorized approval. Once the hold is released and no other retention duty applies, the normal retention/deletion policy resumes.
+- Holds must be scoped and enforced server-side against canonical record references and data categories. Client-supplied flags or references cannot create, broaden, extend or release a hold.
+- Missing authority, ambiguous scope, expired approval, or conflicting hold state fails closed for destructive operations on potentially affected evidence, while avoiding an unjustified blanket access freeze.
+
+**Still required before implementation:** define eligible matter types and legal/privacy review; authorized initiators and independent approvers; canonical hold identifiers and resource/category mapping; conflict handling with correction/deletion/retention workflows; review intervals, extensions and release authority; access and disclosure roles; audit and retention requirements; and synthetic Emulator tests for scope isolation, unauthorized hold creation/release, expiry, extension, correction while held, and prevention of evidence alteration. No hold endpoint, automatic employee-wide freeze, or production legal-hold integration is authorized until these details are approved and tested.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -502,7 +525,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-10 Sensitive data corrections | Approved — option B tracked request, operator verification, separate approval and recorded change history; implementation gated on field catalogue, workflow and tests |
 | L-11 Data deletion and retention | Approved — option B tracked request, retention review, permitted deletion/anonymization and recorded outcome; implementation gated on retention rules, scope and tests |
 | L-12 Employee access during a dispute | Approved — option B tracked access to relevant records with third-party/restricted-content redaction; implementation gated on scope, disclosure workflow and tests |
-| L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| Other lifecycle and historical access | Open — fail closed |
+| L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
