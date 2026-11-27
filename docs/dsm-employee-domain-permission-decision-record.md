@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-07 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-08 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -341,10 +341,26 @@ Approved policy in principle:
 
 **Still required before implementation:** define role taxonomy and permission mapping, authorized change initiators and approval requirements (including separation of duties), effective-time/timezone semantics, handling of active sessions and in-flight operations, cache/token invalidation strategy, pending proposals, audit retention, and synthetic Emulator tests proving immediate denial of removed privileges and correct activation of approved new grants. This decision does not authorize a production role-management endpoint or automatic privilege restoration.
 
+### L-08 — Temporary delegation
+
+**Question:** How should a temporary delegation (for example, a manager assigning selected responsibilities to a substitute) be represented and enforced?
+
+**Approved 2026-11-27 — option B (explicit delegation limited to authorized functions and scope, with automatic expiry and early revocation), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- A delegation must be an explicit, backend-owned grant naming the delegator, delegate, permitted functions/actions, organizational scope, start time, expiry time, and approval/audit references.
+- A delegate receives only the enumerated delegated capabilities, never the delegator's entire role or general privilege set. The delegation cannot exceed the delegator's own currently authorized permissions and scope.
+- Delegations are time-bounded and expire automatically at the recorded end time. They may also be revoked earlier; after expiry or revocation, subsequent requests using the delegation are denied.
+- Each request must verify the current lifecycle and authorization state of both delegator and delegate, the delegation status and time window, and the target resource's canonical scope. Missing, expired, revoked, stale, or ambiguous delegation state fails closed.
+- Delegated actions are attributed to the actual delegate and audited with the delegation reference; the delegator is recorded as the source of authority where needed. A delegate cannot impersonate the delegator.
+- No sub-delegation or transfer of a delegation is allowed unless a separate policy explicitly approves it.
+- Changes or revocation of the delegator's underlying role, scope, account status, or relevant permission must not leave a broader or stale delegated grant in force.
+
+**Still required before implementation:** define who may create, approve, revoke, and receive delegations; whether independent approval/two-person control is required for particular actions; exact delegable action list and prohibited actions; scope constraints; start/end time and timezone semantics; handling of pending/in-flight work; notification and audit requirements; and synthetic Emulator tests for expiry, early revocation, role/scope changes, and attempts to exceed the delegator's authority. This decision does not authorize a production delegation endpoint or automatic role inheritance.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
-- other lifecycle transitions and archive restoration;
 - access to historical shifts, absences, profiles and payroll after termination or other lifecycle changes;
 - audit retention, legal holds, deletion and export.
 
@@ -370,6 +386,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-05 Archived site/department | Approved — option B block operations, preserve history, require explicit reassignment; implementation gated on archival semantics, open-work handling and tests |
 | L-06 UID/employee binding revocation | Approved — option B immediate revocation, preserve history, rebind only after verification and two-person approval; implementation gated on workflow, conflict handling and tests |
 | L-07 Role/privilege changes | Approved — option B immediately revoke obsolete privileges and recheck current role/scope server-side; implementation gated on role mapping, effective-time semantics and tests |
+| L-08 Temporary delegation | Approved — option B explicit, scoped and time-limited delegation with expiry and early revocation; implementation gated on delegable actions, approval workflow and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
