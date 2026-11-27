@@ -105,6 +105,7 @@ test("Firestore Emulator: Employee provisioning requires two admins and atomical
       db.collection(`accounts/${accountId}/employees`),
       db.collection(`accounts/${accountId}/employeeBindingsByUid`),
       db.collection(`accounts/${accountId}/employeeBindingsByEmployee`),
+      db.collection(`accounts/${accountId}/employeeControl`),
       db.collection(`accounts/${accountId}/employeeProvisioningProposals`),
       db.collection(`accounts/${accountId}/employeeAudit`)
     ];
