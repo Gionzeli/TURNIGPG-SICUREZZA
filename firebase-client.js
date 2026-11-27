@@ -51,7 +51,7 @@ export async function verifyPinResetPassword(password) {
 }
 export const logout = () => signOut(auth);
 export const resetPassword = email => sendPasswordResetEmail(auth, email.trim());
-export const watchAuth = callback => onAuthStateChanged(auth, callback);
+export const watchAuth = (callback, onError) => onAuthStateChanged(auth, callback, onError);
 
 export async function getAccess(uid) {
   const snap = await getDoc(doc(db, "members", uid));
