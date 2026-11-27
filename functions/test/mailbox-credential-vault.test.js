@@ -34,3 +34,27 @@ test('backend failures are masked and revoke is scoped to connection prefix', as
   await assert.rejects(() => vault.revokeSecret({ secretRef: 'mailbox/a/other/secret', accountId: 'a', connectionId: 'b' }));
   await assert.rejects(() => vault.revokeSecret({ secretRef: 'mailbox/a/b/secret', accountId: 'a', connectionId: 'b' }), /revocation failed/);
 });
+
+
+test('revoke treats only explicit backend not-found responses as successful idempotent deletion', async () => {
+  for (const code of ['not-found', 'NOT_FOUND', 404, 5]) {
+    const vault = createMailboxCredentialVault({
+      backend: {
+        putSecret: async () => {},
+        deleteSecret: async () => { throw Object.assign(new Error('absent'), { code }); }
+      }
+    });
+    await assert.doesNotReject(() => vault.revokeSecret({
+      secretRef: 'mailbox/a/b/secret', accountId: 'a', connectionId: 'b'
+    }));
+  }
+  const vault = createMailboxCredentialVault({
+    backend: {
+      putSecret: async () => {},
+      deleteSecret: async () => { throw Object.assign(new Error('denied'), { code: 'permission-denied' }); }
+    }
+  });
+  await assert.rejects(() => vault.revokeSecret({
+    secretRef: 'mailbox/a/b/secret', accountId: 'a', connectionId: 'b'
+  }), /revocation failed/);
+});
