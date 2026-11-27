@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-68 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-69 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1857,6 +1857,25 @@ Approved policy in principle:
 
 **Still required before implementation:** field-level source-of-truth and ownership catalogue; trust classification and acceptable evidence by field; freshness/reconciliation schedules; timestamp and timezone semantics; validation and conflict-resolution rules; quarantine and human-review workflow; provenance schema, integrity and retention controls; quality-issue ownership and escalation; and synthetic Emulator tests. This policy does not certify data accuracy, authorize automatic reconciliation or legacy migration, permit direct client writes, change canonical ownership or access permissions, or authorize real-data processing or production activation.
 
+### L-69 — Employee leave lifecycle and temporary work-status transitions
+
+**Question:** How should approved employee leave and other temporary work-status transitions affect operational access, assignments and historical records without exposing sensitive reasons or creating ambiguous authorization windows?
+
+**Approved 2026-11-27 — option B (explicit, time-bounded lifecycle transitions with minimized data and scoped access), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Represent a leave or temporary work-status transition only through an explicitly defined, backend-authorized lifecycle event with a canonical employee binding, approved effective start/end semantics, responsible authority and protected audit evidence. A client-side flag, calendar entry or absence request alone does not change account lifecycle or permissions.
+- Maintain a reviewed transition catalogue mapping each permitted event type to its operational consequences, affected capabilities, effective-time behavior, required approvals, expiry/review and return-to-work process. Unknown, contradictory, incomplete or expired states fail closed for affected operational actions.
+- Separate the employee's employment relationship, authentication account, organizational placement, shift assignment and domain permissions. A temporary leave must not silently terminate employment, delete the employee, change UID bindings, transfer ownership or restore/revoke unrelated privileges.
+- Apply only the minimum access restrictions necessary for the approved transition and documented operational purpose. Revoke or suspend specific operational capabilities when justified; preserve separately authorized self-service, privacy-request, payslip or other statutory access only through independently reviewed permissions. No blanket administrator or manager override.
+- Expose to managers and scheduling workflows only a minimized availability/status signal and relevant effective dates where authorized. Do not disclose medical diagnosis, leave reason, protected category, supporting documents or other sensitive details through roster, notifications, search, exports, audit views or analytics.
+- Prevent new assignments or approvals that conflict with an effective restriction, using server-side checks at proposal and execution time. Define handling for shifts spanning transition boundaries, timezone differences, pending approvals and concurrent changes; do not silently cancel, reassign or rewrite historical shifts.
+- Treat extensions, early returns, cancellations and corrections as new verified and approved events with explicit effective times and revision checks. Do not infer return to work from elapsed dates or automatically restore prior permissions; revalidate identity, employment, placement, account state and current grants before restoring any capability.
+- Preserve historical assignments, approvals and audit evidence under applicable retention and hold rules. Restrict historical access according to current authorization and the relevant historical period; a leave transition does not grant a manager broader retrospective access.
+- Notify only authorized recipients with minimum necessary information. Ensure notifications and shared-device displays do not reveal sensitive leave details, and do not use leave status or data-quality indicators as the sole basis for adverse employment decisions.
+- Test synthetic cases for forged lifecycle events, unauthorized manager changes, boundary-crossing shifts, timezone errors, conflicting extensions, early return, expired state, stale permissions, cross-employee access, sensitive-reason leakage and unauthorized automatic restoration.
+
+**Still required before implementation:** approved lifecycle event catalogue and definitions; authorized initiator/verifier/approver matrix and separation of duties; effective-time and timezone rules; capability-by-event access matrix; employee/manager/self-service visibility rules; shift-boundary and pending-workflow handling; extension, cancellation and return-to-work procedures; notification and retention rules; and synthetic Emulator tests proving server-side enforcement and fail-closed behavior. This decision does not define statutory leave entitlements, authorize collection or disclosure of medical reasons, alter employment status automatically, or approve real-data processing or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1925,6 +1944,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-66 Privacy governance, data protection impact and change review | Approved — option B continuous risk-based privacy governance and pre-change assessment; implementation gated on processing inventory, lawful-basis review, DPIA screening, rights workflows and processor/transfer controls |
 | L-67 Accessibility, inclusive design and assistive-technology security | Approved — option B accessible workflows with equivalent server-enforced security; implementation gated on conformance target, supported technology matrix, authentication accommodations and manual assistive-technology tests |
 | L-68 Data quality, accuracy, correction and provenance governance | Approved — option B governed field-level sources, validation, provenance, reconciliation and human-reviewed correction; implementation gated on catalogue, workflows, integrity, retention and tests |
+| L-69 Employee leave lifecycle and temporary work-status transitions | Approved — option B explicit, time-bounded transitions with minimized data and scoped access; implementation gated on event catalogue, authority, effective-time rules, access matrix and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
