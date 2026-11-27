@@ -104,8 +104,10 @@ test("a PDF containing multiple collaborators is partitioned into separate perso
   const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
   assert.equal(result[0].proposals.length, 2);
   assert.deepEqual(calls.proposals.map(item => item.employeeId).sort(), ["employee-A", "employee-B"]);
-  assert.equal(calls.proposals.find(item => item.employeeId === "employee-A").changes[0].changes.post, "Reception A");
-  assert.equal(calls.proposals.find(item => item.employeeId === "employee-B").changes[0].changes.post, "Reception B");
+  assert.equal(calls.proposals.find(item => item.employeeId === "employee-A").before[0].post, "Reception A");
+  assert.equal(calls.proposals.find(item => item.employeeId === "employee-B").before[0].post, "Reception B");
+  assert.equal(calls.proposals.find(item => item.employeeId === "employee-A").changes[0].changes.start_time, "08:00");
+  assert.equal(calls.proposals.find(item => item.employeeId === "employee-B").changes[0].changes.start_time, "14:00");
   assert.equal(result[0].proposals.every(item => item.status === "pending"), true);
 });
 
