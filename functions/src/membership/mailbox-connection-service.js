@@ -51,6 +51,13 @@ export function createMailboxConnectionService({
     recordSecretCleanup, completeSecretCleanup, saveConnection, loadConnection, writeAudit
   })) if (typeof fn !== "function") throw new TypeError(name + " dependency is required.");
 
+  async function disableRefreshAndConfirm({ accountId, connectionId }) {
+    const result = await disableRefreshAndConfirm({ accountId, connectionId });
+    if (result?.status !== "revocation_pending") {
+      fail("failed-precondition", "Mailbox refresh disable was not confirmed.");
+    }
+  }
+
   async function cleanupSecret({ accountId, connectionId, secretRef, reason }) {
     // Persist the retry ticket before attempting remote deletion. A failed
     // provider/vault call therefore remains discoverable after process exit.
@@ -135,7 +142,7 @@ export function createMailboxConnectionService({
           cleanupAllowed = !persisted || persisted.status === "revocation_pending";
         }
         if (cleanupAllowed) {
-          await disableRefresh({ accountId, connectionId });
+          await disableRefreshAndConfirm({ accountId, connectionId });
           await cleanupSecret({ accountId, connectionId, secretRef, reason: "connection_setup_failed" });
         }
         throw error;
@@ -160,7 +167,7 @@ export function createMailboxConnectionService({
       const timestamp = now();
       const pending = { ...connection, status: "revocation_pending", updatedAt: timestamp };
       await saveConnection({ accountId, connectionId, connection: pending });
-      await disableRefresh({ accountId, connectionId });
+      await disableRefreshAndConfirm({ accountId, connectionId });
       if (typeof connection.credentialSecretRef !== "string" || !connection.credentialSecretRef) {
         fail("failed-precondition", "Credential reference is missing; manual vault review is required.");
       }
