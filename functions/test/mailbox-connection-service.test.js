@@ -162,3 +162,15 @@ test("sender allowlist rejects malformed and duplicate addresses", async () => {
     error => error.code === "invalid-argument");
   assert.equal(calls.exchanges, 0);
 });
+
+
+test("attempts scoped vault cleanup when storage returns an oversized secret reference", async () => {
+  const malformedRef = "x".repeat(513);
+  const { service, calls } = harness({
+    storeSecret: async () => malformedRef
+  });
+  await assert.rejects(service.connect(base), error => error.code === "failed-precondition");
+  assert.equal(calls.saved.length, 0);
+  assert.equal(calls.revoked.length, 1);
+  assert.equal(calls.revoked[0].secretRef, malformedRef);
+});
