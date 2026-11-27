@@ -129,6 +129,18 @@ test("failed vault revocation leaves connection in non-active revocation_pending
 });
 
 
+test("failed refresh disable gate prevents credential deletion", async () => {
+  const { service, calls } = harness({
+    disableRefresh: async () => { throw new Error("synthetic gate outage"); }
+  });
+  await service.connect(base);
+  await assert.rejects(service.revoke({
+    accountId: base.accountId, actorUid: base.actorUid, connectionId: "synthetic-connection"
+  }), /synthetic gate outage/);
+  assert.equal(calls.revoked.length, 0);
+  assert.equal(calls.saved.at(-1).connection.status, "revocation_pending");
+});
+
 test("refresh is disabled before vault revocation is attempted", async () => {
   const order = [];
   const { service } = harness({
