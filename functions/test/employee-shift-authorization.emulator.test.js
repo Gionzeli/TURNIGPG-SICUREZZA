@@ -51,6 +51,13 @@ test("Firestore Emulator: canonical Employee shift adapter proves self binding a
     }));
     assert.equal(allowed.employeeId, employeeId);
     assert.equal(allowed.placement.placementId, "synthetic-placement");
+    await assert.rejects(
+      db.runTransaction(tx => adapter.authorizeActor(tx, {
+        accountId, actorUid: uid, operation: "create", date: "2026-02-01"
+      })),
+      error => error.code === "permission-denied",
+      "direct self-service mutations stay disabled until proposal approval"
+    );
 
     await db.doc(`accounts/${accountId}/members/${uid}`).update({
       validUntil: new Date(Date.UTC(2026, 4, 31))
