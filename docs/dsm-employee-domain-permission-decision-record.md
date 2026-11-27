@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-30 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-31 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -879,6 +879,30 @@ Approved policy in principle:
 
 **Still required before implementation:** complete the data inventory and ownership map; approve classification levels and handling matrix; define purpose, retention and disposal schedules per domain; document encryption/key management and transfer controls; assess integrations and processors; define exceptions and review cadence; and add synthetic tests for field leakage, unauthorized export, retention and deletion behavior. This approval does not authorize new data collection, third-party sharing, bulk export or production data migration.
 
+### L-31 — Vulnerability intake, remediation and security updates
+
+**Question:** How should reported vulnerabilities and security defects be triaged, corrected and verified?
+
+Possible choices:
+- **A. Ad hoc remediation:** address vulnerabilities when noticed, without a formal intake or prioritization process.
+- **B. Managed vulnerability lifecycle:** documented reporting and intake, risk-based triage, tracked remediation, verified fixes and controlled updates.
+- **C. Automatic updates without review:** apply dependency and application updates immediately without compatibility or security validation.
+
+**Approved 2026-11-27 — option B (managed vulnerability intake, risk-based remediation and verified security updates), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Provide a documented channel for internal and external vulnerability reports, with clear ownership, acknowledgement, confidentiality and escalation for urgent or actively exploited issues.
+- Track findings with affected component and version, evidence, severity, exploitability, exposure, impact, remediation owner, target date, status and verification evidence. Avoid placing secrets or personal data in issue records.
+- Prioritize using risk and exploitability, not severity score alone. Consider internet exposure, privilege boundaries, data sensitivity, active exploitation, available mitigations and business impact.
+- Maintain an inventory of application components, dependencies, runtimes, build tools and relevant service configurations. Monitor authoritative advisories and supported vulnerability feeds.
+- Remediate through reviewed, traceable changes. Pin and lock dependency versions, review provenance and integrity, inspect changelogs and breaking changes, and avoid unreviewed automatic production updates.
+- Verify fixes with focused regression, security and compatibility tests in isolated environments using synthetic data. Include tests for the original exploit path and relevant authorization boundaries.
+- Define documented exception and risk-acceptance procedures with a named accountable approver, compensating controls, expiry and periodic review. Do not silently defer critical findings.
+- Coordinate urgent mitigations and updates through a controlled release process with rollback planning and post-remediation verification. Preserve evidence and link the finding to the corrective change.
+- Reassess vulnerabilities when dependencies, architecture, exposure, threat intelligence or deployed versions change.
+
+**Still required before implementation:** designate vulnerability intake and response owners; define severity and remediation targets; choose advisory sources and scanning tools; complete component inventory and version policy; define disclosure and escalation process; establish exception approval and expiry; specify test, release and rollback evidence; and create synthetic workflow tests. This approval does not authorize automatic dependency updates, production patching or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -920,6 +944,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-28 Session and device lifecycle security | Approved — option B managed sessions, bounded lifetime, step-up authentication, server-side revocation, lifecycle invalidation and protected audit; implementation gated on architecture, token handling, lifetimes and tests |
 | L-29 Security monitoring and event response | Approved — option B risk-based centralized monitoring, protected audit, actionable alerts, defined escalation and human-reviewed response; implementation gated on event taxonomy, ownership, retention, architecture and tests |
 | L-30 Data classification and handling | Approved — option B risk-based classification, minimization, purpose limitation, least-privilege field access, environment separation and retention/disposal controls; implementation gated on inventory, schedules, handling matrix and tests |
+| L-31 Vulnerability management and security updates | Approved — option B documented intake, risk-based triage, tracked remediation, verified fixes and controlled updates; implementation gated on ownership, SLAs, inventory, tooling and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
