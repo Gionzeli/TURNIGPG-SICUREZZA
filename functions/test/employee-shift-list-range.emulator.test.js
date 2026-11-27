@@ -76,6 +76,35 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     });
     assert.deepEqual(result.map(item => item.date), ["2026-06-04", "2026-06-18"]);
     assert.equal(result.length, 2);
+
+    const created = await handlers.create({
+      rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
+      data: { accountId, data: { date: "2026-06-20", type: "turno", hours: 8 } }
+    });
+    assert.equal(created.revision, 1);
+    assert.equal(created.status, "active");
+
+    const updated = await handlers.update({
+      rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
+      data: { accountId, shiftId: created.shiftId, expectedRevision: 1, changes: { hours: 7.5 } }
+    });
+    assert.equal(updated.revision, 2);
+
+    const deleted = await handlers.delete({
+      rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
+      data: { accountId, shiftId: created.shiftId, expectedRevision: 2 }
+    });
+    assert.equal(deleted.revision, 3);
+    assert.equal(deleted.status, "deleted");
+
+    const stored = (await collection.doc(created.shiftId).get()).data();
+    assert.equal(stored.status, "deleted");
+    assert.equal(stored.revision, 3);
+    const audit = await db.collection(`accounts/${accountId}/employeeAudit`).get();
+    assert.equal(audit.size, 3);
+    assert.deepEqual(audit.docs.map(doc => doc.data().type).sort(), [
+      "employee.shift.created", "employee.shift.deleted", "employee.shift.updated"
+    ]);
   } finally {
     await db.recursiveDelete(root);
     await deleteApp(app);
