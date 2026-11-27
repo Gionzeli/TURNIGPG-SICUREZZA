@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-66 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-67 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1809,6 +1809,35 @@ Approved policy in principle:
 
 **Still required before implementation:** controller/processor role determination, processing inventory and purposes, lawful-basis assessment by qualified counsel/privacy owner, data retention schedule, DPIA screening and assessment criteria, rights-request procedures, processor register and contracts, transfer assessment, privacy review gates, accountable owners and synthetic validation. This policy is not legal advice, does not establish a lawful basis or complete a DPIA, and does not authorize new personal-data processing, real-data imports, production activation or disclosure.
 
+### L-67 — Accessibility, inclusive design and assistive-technology security
+
+**Question:** How should accessibility and inclusive interaction be incorporated into employee workflows while ensuring that assistive technologies, alternative input methods and accessible representations do not weaken authentication, authorization, privacy or audit controls?
+
+Possible choices:
+- **A. Minimum visual compliance:** prioritize visual layout and address assistive-technology support only when reported.
+- **B. Accessibility by design with equivalent security:** build and test accessible workflows across input/output modalities while preserving the same authorization, confirmation and privacy guarantees.
+- **C. Separate accessible mode:** provide a simplified alternate interface with reduced security controls to ease interaction.
+
+**Approved 2026-11-27 — option B (accessibility by design with equivalent security), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat accessibility as a core quality and security requirement throughout design, implementation, testing and maintenance, using applicable recognized standards and legal requirements as acceptance criteria.
+- Support keyboard-only operation, screen readers, visible focus, sufficient contrast, scalable text, clear labels, semantic structure, accessible validation and understandable error recovery.
+- Ensure critical workflows—including authentication, account recovery, employee self-service, shift proposals, approvals, consent/notice interactions and security reporting—are operable with supported assistive technologies and alternative input methods.
+- Preserve the same server-side identity, ownership, role, scope, field and lifecycle authorization checks across all interface modes; accessibility accommodations must not create bypasses or weaker permissions.
+- Provide accessible alternatives to visual-only challenges and time-limited interactions without exposing authentication secrets, weakening identity verification or making recovery less secure.
+- Do not rely on color, position, sound, animation, drag-and-drop or visual-only indicators as the sole means of conveying status, errors, warnings or required actions.
+- Announce dynamic status and validation changes appropriately to assistive technology while minimizing sensitive information exposed through screen readers, notifications, shared displays or audio output.
+- Make confirmation, cancellation, undo and destructive-action safeguards accessible and understandable; avoid inaccessible timeouts and provide safe extension or reauthentication patterns where appropriate.
+- Respect user-controlled text scaling, reduced motion and display preferences without hiding security notices, audit-relevant confirmations or essential workflow information.
+- Avoid requiring disclosure of a disability or medical diagnosis to use ordinary accessible functionality; any individualized accommodation data, if ever required, needs separate legal/privacy review and strict access controls.
+- Ensure third-party components and integrations meet accessibility and security requirements; review embedded widgets, identity providers and document formats before adoption.
+- Test with automated accessibility tools and representative manual assistive-technology scenarios; include keyboard, screen-reader, zoom/reflow, contrast, touch target, error recovery and end-to-end workflow coverage.
+- Record accessibility defects with severity, affected workflows, supported technologies, mitigations and remediation owners; block release for defects that prevent secure completion of critical workflows or cause authorization/privacy failures.
+- Test synthetic scenarios for inaccessible MFA/recovery, keyboard trap, screen-reader disclosure, focus loss during approval, timeout-induced unsafe action, inaccessible error handling and alternate-mode permission mismatch.
+
+**Still required before implementation:** applicable accessibility standard and conformance target, supported browser/device/assistive-technology matrix, design-system semantics, authentication and timeout accommodations, third-party review criteria, manual test protocol, defect severity/blocking rules and remediation ownership. This policy does not certify accessibility conformance, authorize weaker authentication or permissions, or approve production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1875,6 +1904,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-64 Security assurance, independent review and risk acceptance | Approved — option B risk-based independent assurance, traceable evidence and time-bounded exceptions; implementation gated on review ownership, evidence standards, blocking criteria and expiry enforcement |
 | L-65 Security incident disclosure and coordinated vulnerability reporting | Approved — option B protected reporting, risk-based triage, coordinated remediation and legally reviewed timely communications; implementation gated on ownership, severity targets, notification workflow and exercises |
 | L-66 Privacy governance, data protection impact and change review | Approved — option B continuous risk-based privacy governance and pre-change assessment; implementation gated on processing inventory, lawful-basis review, DPIA screening, rights workflows and processor/transfer controls |
+| L-67 Accessibility, inclusive design and assistive-technology security | Approved — option B accessible workflows with equivalent server-enforced security; implementation gated on conformance target, supported technology matrix, authentication accommodations and manual assistive-technology tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
