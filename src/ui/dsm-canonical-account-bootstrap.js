@@ -12,6 +12,10 @@ const functions = getFunctions();
 const listAccounts = httpsCallable(functions, "listMyCanonicalAccounts");
 const resolveAuthorization = httpsCallable(functions, "resolveAuthorization");
 const listOwnEmployeeShifts = httpsCallable(functions, "listOwnEmployeeShifts");
+const listOwnEmployeeShiftProposals = httpsCallable(functions, "listOwnEmployeeShiftProposals");
+const approveOwnEmployeeShiftProposal = httpsCallable(functions, "approveOwnEmployeeShiftProposal");
+const rejectOwnEmployeeShiftProposal = httpsCallable(functions, "rejectOwnEmployeeShiftProposal");
+const proposeOwnEmployeeShiftChanges = httpsCallable(functions, "proposeOwnEmployeeShiftChanges");
 const readOwnEmployeeEmploymentProfile = httpsCallable(functions, "readOwnEmployeeEmploymentProfile");
 const proposeMembershipInvite = httpsCallable(functions, "proposeCanonicalMembershipInvite");
 const approveMembershipInvite = httpsCallable(functions, "approveCanonicalMembershipInvite");
@@ -30,6 +34,10 @@ const controller = mountDSMCanonicalAccountBridge(root, {
     const result = await listOwnEmployeeShifts(data);
     return result.data;
   },
+  listOwnEmployeeShiftProposals: async data => (await listOwnEmployeeShiftProposals(data)).data,
+  approveOwnEmployeeShiftProposal: async data => (await approveOwnEmployeeShiftProposal(data)).data,
+  rejectOwnEmployeeShiftProposal: async data => (await rejectOwnEmployeeShiftProposal(data)).data,
+  proposeOwnEmployeeShiftChanges: async data => (await proposeOwnEmployeeShiftChanges(data)).data,
   readOwnEmployeeEmploymentProfile: async data => {
     const result = await readOwnEmployeeEmploymentProfile(data);
     return result.data;
