@@ -574,3 +574,16 @@ same account/connection may share a result only when both the provider and
 secret reference match; conflicting credential scope is rejected rather than
 sharing a potentially unrelated access token. Synthetic tests cover malformed
 identifiers and concurrent secret-reference mismatch.
+
+
+#### Credential reference scope binding
+
+Connection setup now accepts a vault reference only when it matches the canonical
+`mailbox/{accountId}/{connectionId}/{opaqueId}` shape and both embedded scope
+identifiers exactly match the newly created connection. A malformed or
+cross-connection reference is rejected before metadata persistence and is never
+placed in the cleanup outbox or passed to vault deletion. This intentionally
+fails closed: if a vault stored material but returned an untrusted reference,
+reconciliation must occur through trusted vault-side tooling rather than
+risk deleting another connection's credential. Synthetic tests cover oversized
+references and a syntactically valid reference scoped to a different connection.
