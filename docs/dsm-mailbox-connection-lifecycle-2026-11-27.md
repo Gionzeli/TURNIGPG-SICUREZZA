@@ -347,3 +347,16 @@ alert query.
 A Firestore Emulator integration test covers durable queueing and
 acknowledgement. This does not provision a scheduler, alert provider, IAM or
 production index; those remain deployment work and are not enabled here.
+
+
+#### Exhaustion-alert retry scheduling
+
+The alert outbox now tracks `alertAttempts`, `alertNextAttemptAt` and a
+sanitized `alertLastErrorCode`. Failed delivery or acknowledgement is deferred
+using the same capped exponential backoff policy as credential cleanup. The
+account-scoped query orders by the next alert attempt, so a persistently failing
+notification does not monopolize every worker batch ahead of other alerts.
+Retries remain unbounded (with a six-hour maximum delay); this is an operational
+notification retry, not a credential deletion retry. The stable alert ID remains
+unchanged across retries so the downstream provider can deduplicate duplicates.
+A matching composite Firestore index is included in source configuration.
