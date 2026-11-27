@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-08 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-09 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -358,6 +358,24 @@ Approved policy in principle:
 
 **Still required before implementation:** define who may create, approve, revoke, and receive delegations; whether independent approval/two-person control is required for particular actions; exact delegable action list and prohibited actions; scope constraints; start/end time and timezone semantics; handling of pending/in-flight work; notification and audit requirements; and synthetic Emulator tests for expiry, early revocation, role/scope changes, and attempts to exceed the delegator's authority. This decision does not authorize a production delegation endpoint or automatic role inheritance.
 
+### L-09 — Emergency break-glass access
+
+**Question:** May an authorized person obtain exceptional access during a serious incident when the normal administrator or approval path is unavailable?
+
+**Approved 2026-11-27 — option B (temporary, justified, narrowly scoped and audited emergency access, with notification and independent retrospective review), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Break-glass is an exceptional incident capability, not a standing role or a shortcut around ordinary approvals.
+- Each activation must record the requesting actor, incident/ticket reference, specific emergency purpose, target domain/resources, exact actions and scope, start time, and automatic expiry.
+- Access is least-privilege and time-bounded. It cannot exceed the explicitly approved emergency action set and must be revoked automatically at expiry or earlier when the incident need ends.
+- The system must notify designated security/oversight recipients promptly and create tamper-resistant audit evidence of activation, use, denied attempts, revocation and expiry.
+- An independent authorized reviewer, who was not the activating actor, must review the access and its actions after the incident within a defined review window. Unreviewed or anomalous use is escalated.
+- Emergency access does not grant access to health/absence reasons, credentials, authentication secrets, private keys, payment instruments, or other expressly excluded sensitive data. It does not permit disabling audit, changing audit history, creating persistent accounts, or silently broadening privileges.
+- Every request must verify the emergency grant's current status, scope, action, incident validity and expiry server-side; missing, expired, revoked, or ambiguous state fails closed.
+- Where technically possible, break-glass access must be separated from the ability to approve one's own actions or alter the controls that record and review the emergency session.
+
+**Still required before implementation:** define severity/incident criteria, eligible actors and activation authentication, whether one-person activation is ever permitted or dual control is required, exact domain/action allowlist, excluded data, maximum duration and renewal rules, notification recipients and delivery guarantees, independent reviewer and review deadline, escalation and sanctions, audit retention, and synthetic Emulator tests for expiry, revocation, notification, scope enforcement and independent review. This decision does not authorize a production break-glass endpoint or any emergency bypass of authentication, audit, or server-side authorization.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -387,6 +405,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-06 UID/employee binding revocation | Approved — option B immediate revocation, preserve history, rebind only after verification and two-person approval; implementation gated on workflow, conflict handling and tests |
 | L-07 Role/privilege changes | Approved — option B immediately revoke obsolete privileges and recheck current role/scope server-side; implementation gated on role mapping, effective-time semantics and tests |
 | L-08 Temporary delegation | Approved — option B explicit, scoped and time-limited delegation with expiry and early revocation; implementation gated on delegable actions, approval workflow and tests |
+| L-09 Emergency break-glass | Approved — option B temporary, justified, scoped and audited access with notification and independent review; implementation gated on incident criteria, action allowlist and oversight workflow |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
