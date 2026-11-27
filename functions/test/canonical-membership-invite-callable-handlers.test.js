@@ -22,7 +22,7 @@ test("invite callable passes only verified identity and allowed selectors to ser
   const db = {
     doc: path => ({ path }),
     runTransaction: async fn => fn({
-      get: async ref => ({ exists: true, data: () => {
+      get: async ref => ({ exists: ref.path !== "accounts/acct/membershipInviteProposals/inv", data: () => {
         if (ref.path === "accounts/acct") return { accountId: "acct", status: "active", schemaVersion: 1, version: 1 };
         if (ref.path === "accounts/acct/members/admin-a") return { uid: "admin-a", accountId: "acct", status: "active", role: "admin", scopeType: "account", scopeIds: [], validFrom: new Date(0), validUntil: null };
         if (ref.path === "accounts/acct/sites/site-1") return { accountId: "acct", siteId: "site-1", status: "active", version: 1 };
