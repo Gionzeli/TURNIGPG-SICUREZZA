@@ -67,7 +67,17 @@ Required safeguards regardless of choice:
 - Read access, exports and mutations are distinct actions and require separate decisions.
 - No offline payroll cache.
 
-**Unapproved:** whether self-read is allowed, exact fields, and any payroll write/export roles.
+**Approved 2026-11-27 — option B (limited self-service compensation), by explicit user confirmation in the project conversation.**
+
+Approved self-read scope, as a semantic allowlist pending canonical schema mapping:
+- current base pay amount and its effective date;
+- overtime amounts and applicable effective dates;
+- premiums/majorations and applicable effective dates;
+- allowances and applicable effective dates.
+
+This is a separate compensation DTO and permission from D-01 ordinary profile self-read. Access is limited to the authenticated employee's own canonical record, resolved only through the unique active backend-owned UID↔Employee binding. Explicitly excluded: deductions/withholdings, complete payslip, bank account/IBAN, payment instruments or destination details, other employees' compensation, exports, mutations, and offline/local cache. No general Firestore document passthrough.
+
+**Still required before implementation:** map every approved semantic item to canonical schema fields, define units/periods and whether overtime is represented as hours, amounts, or both, and verify that no field contains mixed or sensitive data. Unknown or unmapped fields remain denied. This approval does not authorize manager access, historical access after lifecycle/binding changes, payroll writes, exports, or production activation.
 
 ### D-03 — Manager/team employee profile visibility
 
@@ -192,7 +202,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | Decision | Status |
 |---|---|
 | D-01 Own ordinary profile | Approved — option B self-read; implementation gated on schema field mapping |
-| D-02 Own compensation | Open — deny |
+| D-02 Own compensation | Approved — option B limited self-read; implementation gated on schema mapping |
 | D-03 Manager/team profile | Open — deny new endpoint |
 | D-04 Manager/team shifts | Open — no new delegated access |
 | D-05 Manager absence visibility | Open — deny new endpoint; no health details |
