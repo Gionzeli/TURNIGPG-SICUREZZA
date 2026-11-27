@@ -28,7 +28,7 @@ function harness(overrides = {}) {
         secretMaterial: { accessToken: "synthetic-secret" }
       };
     },
-    storeSecret: async input => { calls.secrets.push(input); return "vault://synthetic/secret-1"; },
+    storeSecret: async input => { calls.secrets.push(input); return `mailbox/${input.accountId}/${input.connectionId}/syntheticopaqueid123`; },
     revokeSecret: async input => { calls.revoked.push(input); },
     disableRefresh: async input => { calls.disabled.push(input); },
     recordSecretCleanup: async input => { calls.cleanupRecorded.push(input); },
@@ -51,7 +51,7 @@ test("personal connection binds verified mailbox to the employee and stores only
   const stored = calls.saved[0].connection;
   assert.equal(stored.ownerUid, "synthetic-uid");
   assert.equal(stored.ownerEmployeeId, "synthetic-employee");
-  assert.equal(stored.credentialSecretRef, "vault://synthetic/secret-1");
+  assert.equal(stored.credentialSecretRef, `mailbox/${base.accountId}/synthetic-connection/syntheticopaqueid123`);
   assert.equal(Object.hasOwn(stored, "secretMaterial"), false);
   assert.equal(Object.hasOwn(result, "credentialSecretRef"), false);
   assert.equal(calls.secrets.length, 1);
@@ -166,18 +166,25 @@ test("sender allowlist rejects malformed and duplicate addresses", async () => {
 });
 
 
-test("attempts scoped vault cleanup when storage returns an oversized secret reference", async () => {
+test("does not enqueue or delete an oversized secret reference", async () => {
   const malformedRef = "x".repeat(513);
+  const { service, calls } = harness({ storeSecret: async () => malformedRef });
+  await assert.rejects(service.connect(base), error => error.code === "failed-precondition");
+  assert.equal(calls.saved.length, 0);
+  assert.equal(calls.revoked.length, 0);
+  assert.equal(calls.disabled.length, 0);
+  assert.equal(calls.cleanupRecorded.length, 0);
+  assert.equal(calls.cleanupCompleted.length, 0);
+});
+
+test("rejects a syntactically valid secret reference belonging to another connection", async () => {
   const { service, calls } = harness({
-    storeSecret: async () => malformedRef
+    storeSecret: async input => `mailbox/${input.accountId}/another-connection/syntheticopaqueid123`
   });
   await assert.rejects(service.connect(base), error => error.code === "failed-precondition");
   assert.equal(calls.saved.length, 0);
-  assert.equal(calls.revoked.length, 1);
-  assert.equal(calls.revoked[0].secretRef, malformedRef);
-  assert.equal(calls.disabled.length, 1, "the durable refresh gate precedes cleanup");
-  assert.equal(calls.cleanupRecorded.length, 1);
-  assert.equal(calls.cleanupCompleted.length, 1);
+  assert.equal(calls.revoked.length, 0);
+  assert.equal(calls.cleanupRecorded.length, 0);
 });
 
 
@@ -274,13 +281,14 @@ test("setup failure never deletes credentials while persisted metadata remains a
 });
 
 
-test("malformed vault reference is not deleted or queued when revocation gate fails", async () => {
+test("malformed vault reference is rejected without invoking the refresh gate", async () => {
   const malformedRef = "x".repeat(513);
   const { service, calls } = harness({
     storeSecret: async () => malformedRef,
     disableRefresh: async () => { throw new Error("synthetic gate outage"); }
   });
   await assert.rejects(service.connect(base), error => error.code === "failed-precondition");
+  assert.equal(calls.disabled.length, 0);
   assert.equal(calls.revoked.length, 0);
   assert.equal(calls.cleanupRecorded.length, 0);
   assert.equal(calls.cleanupCompleted.length, 0);
