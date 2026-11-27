@@ -19,3 +19,18 @@ This module adds a provider-neutral lifecycle boundary for personal and shared s
 ## Not yet implemented
 
 No Gmail, Microsoft Graph, generic OAuth, IMAP/IDLE, polling, or custom-provider adapter is connected. No OAuth consent screen/callback/PKCE state, IMAP credential verification, Firestore persistence adapter, Secret Manager adapter, background worker, email subscription/webhook, parser/OCR, UI, or production activation is included. Provider support must be validated per provider; IMAP may be disabled or require app passwords/OAuth. This service is exercised only with synthetic unit fixtures.
+
+## Firestore adapter boundary
+
+A server-only Admin-SDK adapter now persists connection metadata at
+`accounts/{accountId}/mailboxConnections/{connectionId}` and immutable audit
+events below `mailboxConnectionAudit`. It validates metadata, prevents changes
+to the owner/provider/mailbox/sender allowlist after creation, and permits only
+the monotonic lifecycle `active → revocation_pending → revoked`. The vault
+reference is cleared only in the final revoked state. The existing catch-all
+Firestore Rules deny client reads and writes to this canonical subtree.
+
+The adapter is unit-tested with an in-memory Firestore-shaped fixture. It is
+not instantiated by `functions/src/index.js`, and no callable or real
+Firestore operation invokes it yet. It does not make provider authorization or
+secret storage available; those adapters remain absent.
