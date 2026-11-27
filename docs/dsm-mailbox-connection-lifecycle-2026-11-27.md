@@ -100,3 +100,8 @@ Added `mailbox-oauth-revocation-service.js`. Google access/refresh tokens can be
 ## Token lifecycle coordinator (synthetic-only)
 
 Added `mailbox-token-lifecycle-coordinator.js` to orchestrate an injected vault read/write adapter and OAuth refresh helper. It checks expiry with a five-minute safety window, retains the existing refresh token when rotation is omitted, persists refreshed material before returning a fresh access token, and deduplicates concurrent refresh requests in a single process. The adapter contract is `loadSecret({secretRef})` and `storeSecret({secretRef, secretMaterial})`, which is not yet implemented by the existing vault adapter. The lock is process-local, not distributed; production requires per-connection distributed lease/transaction coordination to avoid refresh rotation races. This is not integrated or executed; synthetic tests only.
+
+
+## Token lifecycle vault adapter (synthetic-only)
+
+Added `mailbox-token-lifecycle-vault-adapter.js` to implement the coordinator's `loadSecret`/`storeSecret` contract against injected `readSecret`/`replaceSecret` backend operations, with strict opaque-reference format checks, token payload validation, and masked backend errors. The backend's `replaceSecret` must guarantee atomic/versioned replacement and access control. This is a separate adapter contract and is not wired to the existing create/revoke vault adapter or a cloud Secret Manager. Synthetic tests only; not run.
