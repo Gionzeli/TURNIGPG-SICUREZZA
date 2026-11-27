@@ -143,6 +143,7 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     assert.equal(proposals[0].proposalId, proposed.proposalId);
     assert.equal(proposals[0].status, "pending");
     assert.equal(proposals[0].source, "employee_manual");
+    assert.equal(proposals[0].canDecide, true);
     assert.equal(proposals[0].changes[0].shift.post, "Postazione A");
     const staleProposal = await handlers.proposeOwn(proposalRequest({
       accountId, source: "employee_manual",
