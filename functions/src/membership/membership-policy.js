@@ -3,7 +3,13 @@ const ID_PATTERN = /^[A-Za-z0-9_-]{1,128}$/;
 const ROLES = new Set(["member", "manager", "admin"]);
 const SCOPE_TYPES = new Set(["account", "site", "department"]);
 const PERMISSIONS = Object.freeze({
-  member: ["dsm:read:own-scope"],
+  member: [
+    "dsm:read:own-scope",
+    "dsm:employee:shift:read:self",
+    "dsm:employee:shift:create:self",
+    "dsm:employee:shift:update:self",
+    "dsm:employee:shift:delete:self"
+  ],
   manager: ["dsm:read:site", "dsm:manage:site", "dsm:manage:departments", "dsm:transfer:departments"],
   admin: ["dsm:read:account", "dsm:manage:account", "dsm:manage:memberships", "dsm:manage:admin-nominations", "dsm:transfer:departments", "dsm:archive:site", "dsm:archive:department"]
 });
