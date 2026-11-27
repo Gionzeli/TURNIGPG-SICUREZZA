@@ -17,25 +17,36 @@ function retryDelay(attempt) {
  * log secret references or provider errors.
  */
 export function createMailboxSecretCleanupWorker({
-  listPending, revokeSecret, completeCleanup, recordFailure,
-  alert, now = () => Date.now()
+  cleanupAdapters, credentialVault, alert, now = () => Date.now()
 }) {
-  for (const [name, fn] of Object.entries({
-    listPending, revokeSecret, completeCleanup, recordFailure, alert
-  })) if (typeof fn !== "function") throw new TypeError(name + " dependency is required.");
+  const required = [
+    ["listPendingSecretCleanup", cleanupAdapters?.listPendingSecretCleanup],
+    ["completeSecretCleanup", cleanupAdapters?.completeSecretCleanup],
+    ["recordSecretCleanupFailure", cleanupAdapters?.recordSecretCleanupFailure],
+    ["revokeSecret", credentialVault?.revokeSecret],
+    ["alert", alert]
+  ];
+  for (const [name, fn] of required) {
+    if (typeof fn !== "function") throw new TypeError(name + " dependency is required.");
+  }
 
   return Object.freeze({
-    async runOnce({ limit = 50 } = {}) {
+    async runOnce({ accountId, limit = 50 } = {}) {
+      if (typeof accountId !== "string" || !/^[A-Za-z0-9_-]{1,128}$/.test(accountId)) {
+        const error = new Error("A valid account scope is required.");
+        error.code = "invalid-argument";
+        throw error;
+      }
       if (!Number.isInteger(limit) || limit < 1 || limit > MAX_BATCH) {
         const error = new Error("Cleanup batch size must be between 1 and 100.");
         error.code = "invalid-argument";
         throw error;
       }
-      const tickets = await listPending({ limit });
+      const tickets = await cleanupAdapters.listPendingSecretCleanup({ accountId, limit });
       const summary = { scanned: 0, completed: 0, deferred: 0, exhausted: 0 };
       for (const ticket of tickets) {
         summary.scanned++;
-        if (!ticket || typeof ticket.accountId !== "string" ||
+        if (!ticket || ticket.accountId !== accountId ||
             typeof ticket.connectionId !== "string" ||
             typeof ticket.secretRef !== "string" || ticket.secretRef.length < 1 ||
             ticket.status !== "pending" || !Number.isInteger(ticket.attempts) ||
@@ -54,12 +65,12 @@ export function createMailboxSecretCleanupWorker({
           continue;
         }
         try {
-          await revokeSecret({
+          await credentialVault.revokeSecret({
             accountId: ticket.accountId,
             connectionId: ticket.connectionId,
             secretRef: ticket.secretRef
           });
-          await completeCleanup({
+          await cleanupAdapters.completeSecretCleanup({
             accountId: ticket.accountId, connectionId: ticket.connectionId,
             timestamp: now()
           });
@@ -70,7 +81,7 @@ export function createMailboxSecretCleanupWorker({
           const exhausted = attempts >= MAX_ATTEMPTS;
           const nextAttemptAt = exhausted ? null : timestamp + retryDelay(attempts);
           try {
-            await recordFailure({
+            await cleanupAdapters.recordSecretCleanupFailure({
               accountId: ticket.accountId, connectionId: ticket.connectionId,
               secretRef: ticket.secretRef, attempts, nextAttemptAt,
               lastErrorCode: safeCode(error), timestamp
