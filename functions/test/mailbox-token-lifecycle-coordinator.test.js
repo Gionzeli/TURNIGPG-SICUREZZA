@@ -62,3 +62,23 @@ test('uses distributed lease before refresh and renews before persisting rotated
  assert.deepEqual(events.map(x=>x[0]),['acquire','refresh','renew','store','release']);
  assert.deepEqual(events.find(x=>x[0]==='store')[2],{ownerId:'owner_identifier_123',fencingToken:4});
 });
+
+test('does not persist refreshed credentials when revocation invalidates the lease before commit',async()=>{
+ let writes=0, releases=0;
+ const coordinator=createMailboxTokenLifecycleCoordinator({
+  vault:{loadSecret:async()=>expired,storeSecret:async()=>{writes++;}},
+  refreshService:{refresh:async()=>({accessToken:'synthetic-new-access-token',refreshToken:'synthetic-new-refresh-token',expiresInSeconds:3600})},
+  leaseService:{
+   acquire:async()=>({ownerId:'owner_identifier_revocation',fencingToken:7,expiresAt:200000}),
+   renew:async()=>{const error=new Error('revocation gate set');error.code='lease-lost';throw error;},
+   release:async()=>{releases++;return true;}
+  },
+  now:()=>5000
+ });
+ await assert.rejects(()=>coordinator.ensureFresh({
+  accountId:'acct',connectionId:'conn',provider:'gmail_api',secretRef:'opaque',
+  clientId:'client-id-12345',clientSecret:'secret'
+ }),{code:'unavailable'});
+ assert.equal(writes,0);
+ assert.equal(releases,1);
+});
