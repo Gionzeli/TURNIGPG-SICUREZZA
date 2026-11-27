@@ -92,6 +92,33 @@ test("Firestore Emulator: canonical Employee shift adapter proves self binding a
       })),
       error => error.code === "permission-denied"
     );
+
+    await db.doc(`accounts/${accountId}/sites/synthetic-shift-site`).update({ status: "active" });
+    await db.doc(`accounts/${accountId}/employees/${employeeId}`).update({ status: "suspended" });
+    await assert.rejects(
+      db.runTransaction(tx => adapter.authorizeActor(tx, {
+        accountId, actorUid: uid, operation: "read", date: "2026-02-01"
+      })),
+      error => error.code === "permission-denied"
+    );
+    await db.doc(`accounts/${accountId}/employees/${employeeId}`).update({ status: "active" });
+
+    await db.doc(`accounts/${accountId}/employeeBindingsByUid/${uid}`).update({ status: "revoked", revision: 2 });
+    await assert.rejects(
+      db.runTransaction(tx => adapter.authorizeActor(tx, {
+        accountId, actorUid: uid, operation: "read", date: "2026-02-01"
+      })),
+      error => error.code === "permission-denied"
+    );
+    await db.doc(`accounts/${accountId}/employeeBindingsByUid/${uid}`).update({ status: "active", revision: 1 });
+
+    await db.doc(`accounts/${accountId}/employeeBindingsByEmployee/${employeeId}`).update({ revision: 2 });
+    await assert.rejects(
+      db.runTransaction(tx => adapter.authorizeActor(tx, {
+        accountId, actorUid: uid, operation: "read", date: "2026-02-01"
+      })),
+      error => error.code === "permission-denied"
+    );
   } finally {
     await db.recursiveDelete(root);
     await deleteApp(app);
