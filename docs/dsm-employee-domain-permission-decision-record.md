@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-54 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-55 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1474,6 +1474,33 @@ Approved policy in principle:
 
 **Still required before implementation:** identity-proofing assurance, invitation delivery and token lifecycle, canonical employee matching rules, approver quorum and separation, atomic binding contract, notification rules, recovery procedures and synthetic test coverage. This policy does not authorize real employee onboarding, real account activation, production invitations or privilege grants.
 
+### L-55 — Secure account deactivation and credential revocation
+
+**Question:** How should suspension, termination, compromise and role changes revoke account access and all dependent credentials, sessions, delegations and automated work?
+
+Possible choices:
+- **A. Disable sign-in only:** prevent new authentication and allow existing sessions and tokens to expire naturally.
+- **B. Coordinated server-side revocation:** invalidate active access and dependent grants promptly, with lifecycle-aware checks at every protected operation.
+- **C. Manual cleanup:** rely on administrators to identify and revoke each access path individually.
+
+**Approved 2026-11-27 — option B (coordinated server-side revocation and lifecycle enforcement), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat suspension, termination, compromise, binding removal and privilege reduction as authoritative lifecycle events that trigger server-side access reevaluation.
+- Revoke or invalidate active sessions, refresh tokens, recovery credentials, API keys, device grants, delegated permissions and workload authorizations as applicable; do not rely solely on client logout or natural token expiry.
+- Enforce current account, membership, employment lifecycle, role, scope and binding status on every sensitive server-side operation, including callable functions, background jobs and queued work.
+- Propagate revocation to integrations and third-party providers through tracked, retryable workflows; record pending revocations and escalate failures rather than silently treating them as complete.
+- Cancel, quarantine or reauthorize queued and scheduled jobs when their initiating actor, target account, approval or scope becomes invalid; revalidate again before side effects.
+- Apply immediate denial for high-risk compromise events and define bounded propagation targets for other lifecycle changes; fail closed when authoritative lifecycle state cannot be established.
+- Preserve narrowly scoped personal access only where separately authorized, time-limited and isolated from operational privileges; never restore former roles automatically on reactivation.
+- Protect emergency recovery and break-glass procedures with independent approval, explicit expiry, monitoring and post-event review; they must not bypass revocation silently.
+- Notify affected users and designated security/administrative owners with minimized information, avoiding disclosure of sensitive employment or security details to unverified destinations.
+- Maintain protected audit evidence of the triggering event, affected credentials and grants, revocation attempts, completion status, exceptions and reviewer actions.
+- Define reconciliation jobs to detect orphaned sessions, stale grants, unknown credentials and failed provider revocations; remediation must be bounded and auditable.
+- Test synthetic scenarios for active-session invalidation, refresh-token reuse, stale API keys, delegated access, queued-job execution after revocation, provider outage, partial failure and reactivation without privilege restoration.
+
+**Still required before implementation:** lifecycle event catalogue and authoritative source, revocation propagation targets, credential/session inventory, provider integration contracts, retry and reconciliation design, exception ownership, notification rules and synthetic revocation test coverage. This policy does not authorize real account suspension, termination, credential changes or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1528,6 +1555,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-52 Concurrent data integrity and conflict control | Approved — option B server-enforced revisions, atomicity, idempotency, explicit conflict handling and protected audit; implementation gated on revision model, transaction boundaries, workflows and tests |
 | L-53 Secure background jobs and scheduled processing | Approved — option B scoped workload identities, execution-time authorization, bounded/idempotent processing, cancellation and protected audit; implementation gated on workload matrix, queue design, workflows and tests |
 | L-54 Secure onboarding, invitations and account activation | Approved — option B verified identity, expiring scoped invitations, canonical binding, independent approval and protected audit; implementation gated on identity proofing, workflows, binding contract and tests |
+| L-55 Secure account deactivation and credential revocation | Approved — option B coordinated server-side revocation, lifecycle-aware authorization, dependent-job cancellation and protected audit; implementation gated on event catalogue, propagation, integrations and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
