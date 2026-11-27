@@ -28,7 +28,7 @@ const dependencies = {
     employeeId: "synthetic-employee-01",
     employmentProfile: { ccnl: "HV17", section: "vigilanza_armata", level: "4", role: "Ruolo sintetico", effectiveDate: "2026-09-01" }
   }),
-  listOwnEmployeeShiftProposals: async data => [{ proposalId: "synthetic-proposal-01", status: "pending", source: "employee_manual", changeCount: 1, changes: [{ operation: "create", shift: { date: "2026-06-25", type: "turno", post: "Postazione nuova", start_time: "08:00", end_time: "16:00" } }] }],
+  listOwnEmployeeShiftProposals: async data => [{ proposalId: "synthetic-proposal-01", status: "pending", source: "employee_manual", canDecide: true, changeCount: 1, changes: [{ operation: "create", shift: { date: "2026-06-25", type: "turno", post: "Postazione nuova", start_time: "08:00", end_time: "16:00" } }] }],
   approveOwnEmployeeShiftProposal: async data => { window.__approvedProposal = data; return { status: "approved" }; },
   rejectOwnEmployeeShiftProposal: async data => ({ status: "rejected" }),
   proposeOwnEmployeeShiftChanges: async data => { window.__proposedShiftChanges = data; return { status: "pending" }; },
