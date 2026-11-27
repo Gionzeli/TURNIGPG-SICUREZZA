@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-118 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-119 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2958,6 +2958,27 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory the actual authentication providers and credential stores; select vetted libraries and approved algorithm parameters; define pepper ownership and rotation if used; specify legacy credential disposition and user-verification requirements; benchmark resource limits; implement protected verifier access and redaction; and produce reproducible synthetic tests and independent review evidence. No production password-store, identity-provider, secret-manager or account migration change is authorized by this decision.
 
+### L-119 — Database transaction boundaries, connection-pool isolation and session-context cleanup
+
+**Question:** How should database transactions and pooled connections preserve tenant, actor and authorization context without allowing state from one request or transaction to leak into another?
+
+**Decision:** Approved — option B, use explicit transaction boundaries, server-derived request context, strict connection reset and isolation checks, with fail-closed behavior whenever context integrity cannot be established. This is a policy decision only.
+
+**Required controls:**
+- Establish tenant, actor, request and authorization context only from verified server-side identity and canonical membership resolution. Never trust tenant IDs, role claims, schema names, row-security variables or connection settings supplied directly by a client.
+- Bind context to the active transaction and connection checkout; ensure every protected query executes within the intended transaction/context and cannot inherit stale context from a prior borrower.
+- Reset or discard pooled connections on check-in and before reuse, including transaction state, role changes, session variables, temporary objects, search path, prepared statements where relevant, advisory locks and other connection-scoped state. If a reset cannot be confirmed, destroy the connection rather than return it to the pool.
+- Use transaction-local context mechanisms where supported (for example, transaction-local database settings) rather than persistent session-wide settings. Ensure rollback, exceptions, cancellation, timeout and connection loss cannot leave authorization context active for subsequent work.
+- Apply database least privilege: separate migration/administration identities from application workloads; prohibit application connections from using owner, superuser or bypass-row-security privileges; constrain schemas, functions and stored procedures.
+- Enforce tenant and record isolation at the database boundary where supported, while retaining independent server-side application authorization. Row-level security is defense in depth, not a substitute for verified actor, domain, action and field permissions.
+- Define safe transaction isolation and concurrency behavior for authorization-sensitive reads and writes. Prevent time-of-check/time-of-use gaps by revalidating material membership, lifecycle, revision and scope state within the transaction or using an equivalent consistency mechanism.
+- Bound transaction duration, lock waits, pool size, queue depth and query execution. Cancel abandoned work safely; avoid leaking locks or exhausted connections during slow requests and failures.
+- Ensure background jobs and service-to-service workloads use distinct scoped identities and establish fresh context per job. Never reuse a human request's actor or tenant context implicitly across asynchronous boundaries.
+- Minimize database error and diagnostic disclosure. Do not log credentials, raw tokens, sensitive row contents or unredacted connection strings; audit privileged context changes and authorization denials without recording secrets.
+- Test with synthetic tenants and identities for pool reuse across tenants, missing or malformed context, rollback/exception/cancellation, stale session variables, RLS bypass attempts, concurrent transactions, job context propagation and forced connection discard.
+
+**Implementation gates:** Identify database engines, poolers, drivers and ORM behavior; document connection checkout/check-in and transaction semantics; define authoritative context propagation and reset guarantees; review database roles, grants, RLS policies and privileged functions; set resource limits; and produce reproducible cross-tenant synthetic tests plus independent review evidence. No production database, pooler, schema, credential or infrastructure change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3076,6 +3097,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-116 WebSocket upgrade handshake, origin validation and subprotocol security | Approved — option B validated upgrades, trusted-origin and subprotocol allowlists, and ongoing server-side authorization; implementation gated on handshake and revocation tests |
 | L-117 Server-Sent Events, streaming response authorization and connection lifecycle | Approved — option B per-event scope enforcement, bounded streams and prompt revocation; implementation gated on queue, reconnect and mid-stream revocation tests |
 | L-118 Password verifier storage, password hashing and credential migration | Approved — option B modern salted password hashing, protected optional pepper, controlled upgrades and verified legacy migration; implementation gated on provider inventory and synthetic tests |
+| L-119 Database transaction boundaries, connection-pool isolation and session-context cleanup | Approved — option B transaction-bound server context, verified pool reset and fail-closed isolation; implementation gated on driver/pool review and cross-tenant tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
