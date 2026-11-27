@@ -506,3 +506,14 @@ Concurrent alert sends can still occur before either worker acknowledges
 delivery; this remains an at-least-once integration contract and requires the
 downstream notifier to deduplicate the stable alert ID. These tests do not
 establish exactly-once delivery or replace a distributed worker claim/lease.
+
+
+#### Cleanup alert clock validation before notification
+
+The cleanup worker now treats an invalid clock at the start of alert processing
+as a fail-closed batch stop, returning the already accumulated cleanup summary
+without sending notifications or writing retry/acknowledgement state. This
+closes an exception path where the clock could become invalid after the initial
+batch validation but before an alert was sent. A synthetic regression verifies
+that no notification or outbox mutation occurs. No live scheduler, notifier,
+or production runtime was exercised.
