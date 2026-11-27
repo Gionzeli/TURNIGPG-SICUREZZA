@@ -631,3 +631,12 @@ cross-connection credential references never reach the vault, but also that
 they are rejected before the revocation-gate adapter is consulted. This keeps
 untrusted ticket metadata away from both downstream security boundaries. The
 checks use synthetic adapters; no Emulator or production services were run.
+
+
+#### Revocation-gate expiry validation
+
+The cleanup gate assertion now rejects negative persisted expiry timestamps in
+addition to malformed or negative fencing tokens. A revocation-only gate may
+use expiry zero; negative values are malformed and fail closed. Regression
+coverage exercises negative fencing, negative expiry, and the valid zero-expiry
+gate-only record using synthetic Firestore adapters.
