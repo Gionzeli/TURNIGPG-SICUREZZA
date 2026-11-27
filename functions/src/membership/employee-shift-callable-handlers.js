@@ -65,6 +65,18 @@ function validateProposalChanges(changes) {
 }
 
 
+function isVerifiedEmployerProposal(proposal) {
+  return proposal?.source === "employer_email" && proposal.sourceVerified === true &&
+    validId(proposal.ingestionJobId) && typeof proposal.attachmentSha256 === "string" &&
+    /^[a-f0-9]{64}$/.test(proposal.attachmentSha256) &&
+    Number.isSafeInteger(proposal.receivedAt) && proposal.receivedAt > 0 &&
+    typeof proposal.sender === "string" && proposal.sender.length <= 254 &&
+    /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(proposal.sender);
+}
+function canEmployeeDecideProposal(proposal) {
+  return proposal?.source === "employee_manual" || isVerifiedEmployerProposal(proposal);
+}
+
 export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () => Date.now() }) {
   if (!db || typeof verifyToken !== "function") throw new TypeError("Trusted Firestore and token verifier required.");
   const authorization = createEmployeeShiftFirestoreAuthorization({ db, now });
@@ -176,7 +188,9 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
               })
             : [];
           return {
-            proposalId: snapshot.id, status: proposal.status, source: proposal.source,
+            proposalId: snapshot.id, status: proposal.status,
+            source: proposal.source === "employee_manual" || isVerifiedEmployerProposal(proposal) ? proposal.source : "unverified",
+            canDecide: proposal.status === "pending" && canEmployeeDecideProposal(proposal),
             createdAt: proposal.createdAt, changeCount: safeChanges.length,
             changes: safeChanges, before: safeBefore
           };
@@ -201,14 +215,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
         const proposal = proposalSnap.data();
         if (proposal.accountId !== accountId || proposal.employeeId !== principal.employeeId ||
             proposal.proposerUid !== identity.uid) fail("permission-denied", "Proposal does not belong to this employee.");
-        const verifiedEmployerProposal = proposal.source === "employer_email" &&
-          proposal.sourceVerified === true && validId(proposal.ingestionJobId) &&
-          typeof proposal.attachmentSha256 === "string" && /^[a-f0-9]{64}$/.test(proposal.attachmentSha256) &&
-          Number.isSafeInteger(proposal.receivedAt) && proposal.receivedAt > 0 &&
-          typeof proposal.sender === "string" && proposal.sender.length <= 254 &&
-          /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(proposal.sender);
-        if (proposal.status !== "pending" ||
-            (proposal.source !== "employee_manual" && !verifiedEmployerProposal)) {
+        if (proposal.status !== "pending" || !canEmployeeDecideProposal(proposal)) {
           fail("failed-precondition", "Only pending employee-entered or verified employer-email proposals can be approved.");
         }
         if (decisionSnap.exists) fail("already-exists", "Proposal decision already exists.");
