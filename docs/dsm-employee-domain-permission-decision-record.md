@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-111 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-112 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2786,6 +2786,31 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory URL-producing and URL-consuming routes, redirects, notifications and third-party resources; define a sensitive-parameter policy and redaction rules; enforce safe redirect allowlists and Referrer-Policy; replace sensitive link payloads with scoped opaque references where justified; and provide reproducible synthetic browser, proxy and logging tests. No production URL, notification-link or analytics configuration change is authorized by this decision.
 
+### L-112 — Secure pagination cursors, snapshot consistency and authorization continuity
+
+**Question:** How should paginated employee, shift, audit and operational queries preserve authorization, scope and data consistency across pages without allowing clients to forge cursors, skip boundaries or retrieve records after permissions change?
+
+**Decision:** Approved — option B, use opaque integrity-protected cursors bound to the canonical query and authorization context, enforce authorization on every page request, and define explicit snapshot or consistency semantics with fail-closed handling of stale or altered cursors. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Treat every page request as a new protected data access; authenticate the actor and re-evaluate current membership, lifecycle, role, domain permission, field allowlist and resource scope on the server for each page.
+- Derive tenant, employee ownership, site, department and organizational scope from canonical server-side records; never accept client-provided scope, role, tenant or ownership claims as authority.
+- Use opaque, integrity-protected cursors rather than exposing raw database offsets, internal document paths, sensitive sort keys or authorization metadata.
+- Bind each cursor to the canonicalized query, filters, sort order, page size limits, tenant, actor or permitted principal context, policy version and intended data domain; reject reuse with a different query or context.
+- Protect cursor confidentiality where its contents could reveal identifiers or business metadata; integrity protection alone does not conceal embedded information.
+- Give cursors short, bounded lifetimes and enforce purpose-specific expiry; do not treat a valid cursor as a bearer grant or a substitute for fresh authorization.
+- Define stable ordering with deterministic tie-breakers and document snapshot semantics; prevent records from being duplicated or silently skipped when concurrent inserts, updates or deletes occur between pages.
+- Where snapshot consistency is supported, bind the cursor to a bounded snapshot/version and enforce retention limits; where it is not supported, document the weaker consistency model and return explicit safe continuation behavior.
+- Revalidate authorization and policy versions on every page; if role, membership, tenant assignment, employment lifecycle or relevant policy changes, invalidate affected cursors or re-evaluate the remaining query under current permissions.
+- Apply server-enforced maximum page sizes, query complexity limits, execution budgets and rate limits; prevent clients from increasing page size, changing sort fields or requesting unbounded scans through cursor manipulation.
+- Ensure field minimization and DTO allowlists apply identically to every page, including counts, totals, facets, continuation metadata and empty-page responses; aggregate metadata must not leak restricted records.
+- Avoid exposing total result counts or existence signals when those values could reveal out-of-scope employees or sensitive operational facts; compute counts only within the authorized result scope.
+- Make cursor replay behavior explicit; safe read-only replay may be permitted only when authorization and snapshot semantics remain valid, while one-time workflow tokens must remain separate from pagination cursors.
+- Do not place sensitive cursor payloads in analytics, referrer-bearing URLs or routine logs; if cursors are carried in URLs, ensure they contain no personal data, have bounded lifetime and are protected against leakage and replay.
+- Test cursor tampering, cross-tenant reuse, changed filters, altered sort order, page-size escalation, policy revocation between pages, concurrent data mutation, count leakage, expiry and replay using synthetic identities and datasets.
+
+**Implementation gates:** Inventory paginated endpoints and query consumers; specify cursor format, cryptographic protection, query binding, expiry and snapshot semantics; enforce per-page authorization and bounded query execution; document count/facet disclosure rules; and provide reproducible synthetic tests for tampering, revocation and concurrent updates. No production pagination or query behavior change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2897,6 +2922,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-109 Web origin isolation, CSRF defenses and cookie policy | Approved — option B explicit origin boundaries, secure cookie attributes and server-validated CSRF controls; implementation gated on endpoint inventory and cross-origin tests |
 | L-110 HTTP response caching, shared intermediaries and authorization-aware isolation | Approved — option B no-store for sensitive responses, shared-cache bypass and authorization-aware invalidation; implementation gated on cache inventory and leakage tests |
 | L-111 Secure URL design, sensitive parameters and referrer leakage | Approved — option B no secrets or sensitive personal data in URLs, scoped opaque references and strict redirect/referrer controls; implementation gated on route inventory and leakage tests |
+| L-112 Secure pagination cursors, snapshot consistency and authorization continuity | Approved — option B opaque query-bound cursors, per-page reauthorization and explicit consistency semantics; implementation gated on cursor design and revocation/concurrency tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
