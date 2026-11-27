@@ -175,6 +175,7 @@ test("attempts scoped vault cleanup when storage returns an oversized secret ref
   assert.equal(calls.saved.length, 0);
   assert.equal(calls.revoked.length, 1);
   assert.equal(calls.revoked[0].secretRef, malformedRef);
+  assert.equal(calls.disabled.length, 1, "the durable refresh gate precedes cleanup");
   assert.equal(calls.cleanupRecorded.length, 1);
   assert.equal(calls.cleanupCompleted.length, 1);
 });
@@ -270,4 +271,17 @@ test("setup failure never deletes credentials while persisted metadata remains a
   assert.equal(calls.disabled.length, 0);
   assert.equal(calls.revoked.length, 0);
   assert.equal(calls.cleanupRecorded.length, 0);
+});
+
+
+test("malformed vault reference is not deleted or queued when revocation gate fails", async () => {
+  const malformedRef = "x".repeat(513);
+  const { service, calls } = harness({
+    storeSecret: async () => malformedRef,
+    disableRefresh: async () => { throw new Error("synthetic gate outage"); }
+  });
+  await assert.rejects(service.connect(base), error => error.code === "failed-precondition");
+  assert.equal(calls.revoked.length, 0);
+  assert.equal(calls.cleanupRecorded.length, 0);
+  assert.equal(calls.cleanupCompleted.length, 0);
 });
