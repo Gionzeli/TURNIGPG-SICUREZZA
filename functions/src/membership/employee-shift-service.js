@@ -41,6 +41,14 @@ function assertPlacement(placement, { accountId, employeeId, date }) {
   }
   return placement;
 }
+function validateChanges(changes) {
+  if (!changes || typeof changes !== "object" || Array.isArray(changes) || Object.hasOwn(changes, "date")) {
+    fail("invalid-argument", "Shift changes must be an object and shift date is immutable.");
+  }
+  for (const key of Object.keys(changes)) {
+    if (!KEYS.has(key)) fail("invalid-argument", "Unrecognized shift change field.");
+  }
+}
 function validateRevision(value) {
   if (!Number.isSafeInteger(value) || value < 1) fail("invalid-argument", "A positive expected shift revision is required.");
 }
@@ -98,7 +106,7 @@ export function createEmployeeShiftService({ db, authorizeActor, loadPlacementAt
     async update({ accountId, actorUid, actorIdentity, shiftId, eventId, expectedRevision, changes }) {
       if (![accountId, actorUid, shiftId, eventId].every(validId)) fail("invalid-argument", "Invalid shift selector.");
       validateRevision(expectedRevision);
-      if (!changes || typeof changes !== "object" || Array.isArray(changes) || Object.hasOwn(changes, "date")) fail("invalid-argument", "Shift date is immutable; create a replacement through an approved workflow.");
+      validateChanges(changes);
       const r = refs(db, accountId, shiftId, eventId);
       return db.runTransaction(async tx => {
         const [accountSnap, shiftSnap, auditSnap] = await Promise.all([tx.get(r.account), tx.get(r.shift), tx.get(r.audit)]);
