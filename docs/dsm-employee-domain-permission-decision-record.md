@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-95 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-96 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2420,6 +2420,29 @@ Approved policy in principle:
 
 **Still required before implementation:** browser-storage inventory and data classification; approved persistence allowlist; account/tenant partition key contract; session-generation and cancellation design; cross-tab event schema; cookie/CSRF configuration; retention and cleanup matrix; shared-device threat model; and synthetic multi-tab/browser integration tests. This decision does not authorize storing sensitive employee data in browser storage, enabling silent legacy migration or treating client cleanup as a substitute for server-side revocation.
 
+### L-96 — Third-party scripts, tag governance and client-side dependency execution
+
+**Question:** How should third-party JavaScript, analytics tags, embedded widgets and client-side dependencies be governed so that external code cannot silently gain access to employee sessions, page content, privileged workflows or cross-tenant information?
+
+**Approved 2026-11-27 — option B (deny-by-default third-party execution, explicit ownership and purpose review, strict isolation and continuous integrity controls), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Maintain a complete inventory of first-party and third-party scripts, tags, SDKs, widgets, fonts, analytics libraries, customer-support tools and embedded content. Record provider, owner, business purpose, data accessed, execution origin, version, subprocessor, update mechanism and removal procedure.
+- Prohibit unreviewed third-party JavaScript on authenticated employee, manager, administrative, payroll, absence and other sensitive application surfaces. Prefer first-party implementations or isolated cross-origin frames with narrowly defined message contracts over scripts executing in the application origin.
+- Require documented security, privacy, legal and operational review before introducing or materially changing a provider, script, tag, SDK, embedded frame or data flow. Apply purpose limitation and data minimization; do not disclose employee identifiers, tenant identifiers, session metadata or sensitive page content unless separately justified and authorized.
+- Use restrictive Content Security Policy directives and explicit source allowlists. Avoid broad wildcards, unsafe-inline and unsafe-eval; use nonces or hashes where appropriate. Keep script-src, connect-src, frame-src, worker-src and form-action restrictions aligned with the approved architecture and environment.
+- Pin versions and use Subresource Integrity for eligible externally hosted static resources. Prefer self-hosting reviewed immutable assets when feasible. Do not assume SRI protects dynamically loaded dependencies or provider-controlled runtime behavior; review transitive dependencies and update paths separately.
+- Load optional analytics, marketing or support tags only on approved routes and only after applicable consent and privacy requirements are satisfied. Do not allow tag managers to introduce arbitrary code or bypass source review, CSP, release approval or data-access controls.
+- Treat every third-party script executing in the application origin as effectively capable of reading and modifying that origin's accessible page state. Do not rely on JavaScript namespaces, obfuscation, UI hiding or client-side role checks to protect secrets or privileged operations.
+- Isolate embedded providers using sandboxed iframes, restrictive permissions policy, exact origins and minimal postMessage interfaces. Validate message origin, source window, schema and allowed operation; never accept a message as proof of user identity, tenant, authorization or transaction approval.
+- Block third-party scripts from reading authentication artifacts, sensitive DOM content, form values, employee records, payroll/absence data, clipboard content or privileged action state. Keep tokens out of script-readable storage and URLs; enforce all authorization on the server regardless of client instrumentation.
+- Govern provider access and outbound connections through explicit connect-src and network destination allowlists. Review redirects, data endpoints, telemetry destinations, regional processing, retention, subprocessors and provider-side access controls before approval.
+- Monitor script inventory drift, unexpected network destinations, CSP violations, integrity failures and provider/security advisories. Treat reports as untrusted input, redact sensitive URL/query details and prevent reporting endpoints from becoming data-exfiltration channels.
+- Establish emergency disablement and removal procedures for compromised providers, vulnerable SDKs or unauthorized tags. Revoke provider credentials and grants, remove the integration through a reviewed release, invalidate affected sessions where warranted and preserve minimized evidence.
+- Test synthetic scenarios for unauthorized tag injection, dependency compromise, CSP bypass, missing or mismatched integrity metadata, unsafe dynamic loading, hostile postMessage, iframe escape, sensitive DOM exfiltration, unexpected network destinations and provider removal.
+- Require periodic recertification of every integration and automatic expiry or quarantine of entries whose owner, purpose, version, data scope or provider status cannot be verified.
+
+**Still required before implementation:** complete script/tag/SDK inventory; route-by-route execution allowlist; provider and subprocessor assessments; CSP and SRI design; tag-manager governance; iframe sandbox and message schemas; consent and data-flow review; monitoring and emergency disablement runbooks; and synthetic browser security tests. This decision does not authorize adding third-party scripts, enabling analytics on sensitive screens or granting external providers access to production data.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2515,6 +2538,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-93 Mobile application distribution, deep links and platform integrations | Approved — option B verified distribution, strict intent validation and server-authorized handoffs; implementation gated on platform matrix, signing, link contracts and tests |
 | L-94 Service worker, PWA lifecycle and browser cache integrity | Approved — option B strict worker scope, verified updates, non-sensitive cache policy and fail-closed lifecycle; implementation gated on inventory, cache allowlist and tests |
 | L-95 Browser storage isolation and cross-tab state lifecycle | Approved — option B minimal account-scoped state, explicit invalidation and server-authoritative authorization; implementation gated on inventory, partitioning, lifecycle and tests |
+| L-96 Third-party scripts, tag governance and client-side dependency execution | Approved — option B deny-by-default execution, reviewed providers, strict isolation and integrity controls; implementation gated on inventory, CSP, data-flow review and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
