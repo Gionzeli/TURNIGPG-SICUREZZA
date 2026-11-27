@@ -198,7 +198,7 @@ test("credential cleanup outbox persists retry state and completes monotonically
     accountId: active.accountId, connectionId: active.connectionId
   })).secretRef, active.credentialSecretRef);
   await adapters.recordSecretCleanup({ ...input, timestamp: input.timestamp + 1 });
-  assert.equal(docs.get(path).attempts, 2);
+  assert.equal(docs.get(path).attempts, 1, "re-recording is not a worker retry");
   await adapters.completeSecretCleanup({
     accountId: active.accountId, connectionId: active.connectionId,
     timestamp: input.timestamp + 2
