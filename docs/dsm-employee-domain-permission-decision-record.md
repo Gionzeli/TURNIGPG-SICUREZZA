@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-26 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-27 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -786,6 +786,30 @@ Approved policy in principle:
 
 **Still required before implementation:** define identity-proofing methods by account risk; approved recovery channels and factor replacement rules; recovery token format, storage, expiry and rate limits; independent approvers and waiting periods for privileged accounts; session/token revocation guarantees; notification and abuse-reporting workflow; support-agent permissions; and synthetic tests for enumeration, replay, social engineering, stale sessions and unauthorized privileged recovery. No production recovery workflow or identity-binding change is authorized by this policy decision alone.
 
+### L-27 — Protection against abusive authentication attempts
+
+**Question:** How should the system detect and mitigate brute-force, credential-stuffing and other abusive authentication attempts?
+
+Possible choices:
+- **A. No dedicated protections:** rely on ordinary authentication and manual review.
+- **B. Layered abuse protection:** progressive rate limits, brute-force and credential-stuffing defenses, anomaly detection, proportionate temporary restrictions, secure recovery and audit.
+- **C. Permanent account lockout after a fixed number of failures.**
+
+**Approved 2026-11-27 — option B (layered abuse protection with progressive rate limits, detection, proportionate temporary restrictions, secure recovery and audit), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Apply layered rate limits to authentication, recovery, MFA verification, factor enrollment and other sensitive identity endpoints. Use appropriate combinations of account, source/network, device/session and risk signals; do not rely on a single client-controlled identifier.
+- Detect brute-force and credential-stuffing patterns, password-spraying, MFA fatigue, suspicious recovery activity, automated enumeration and distributed abuse. Correlate signals across relevant endpoints while minimizing retained personal and device data.
+- Use progressive delays, temporary restrictions, challenge or step-up verification, and risk-based denial where appropriate. Avoid permanent lockout based solely on unauthenticated attempts and avoid responses that disclose whether an account exists.
+- Protect against denial-of-service and targeted lockout: an attacker must not be able to indefinitely disable a victim's account merely by submitting failed attempts. Provide safe, independently verified recovery and clear user notification for material restrictions.
+- Apply stronger controls to privileged accounts and high-impact actions. Successful password authentication alone must not bypass mandatory MFA, step-up verification or server-side authorization.
+- Keep thresholds, risk scoring and detection logic server-controlled. Do not trust client-reported risk, timestamps, counters, device identity or authorization claims.
+- Record relevant security events, decisions, restrictions and recovery outcomes in protected audit logs. Do not log passwords, tokens, MFA codes, recovery secrets or unnecessary raw device/network data.
+- Monitor control health, false positives, bypass attempts and abuse trends. Define alert ownership, escalation and periodic tuning; preserve evidence for incident response without retaining excessive telemetry.
+- Use synthetic identities and isolated Emulator/test environments to validate legitimate and abusive paths, including distributed attempts, recovery abuse, rate-limit bypass and denial-of-service edge cases.
+
+**Still required before implementation:** define per-endpoint limits and risk thresholds; select trusted server-side signals and anti-automation controls; establish temporary restriction duration, reset and appeal/recovery procedures; define monitoring, alerting and false-positive review ownership; align with identity-provider protections; set telemetry minimization and retention; and add synthetic adversarial tests. No production rate-limit configuration, account lockout policy or identity-provider change is authorized by this policy decision alone.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -823,6 +847,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-24 Credential and secret management | Approved — option B dedicated secret manager, least privilege, rotation, expiry, audit and no secrets in code/logs; implementation gated on vault, key management, identity, lifecycle and test controls |
 | L-25 Strong authentication for privileged users | Approved — option B mandatory MFA, phishing-resistant methods preferred, bounded sessions and step-up verification; implementation gated on identity provider, recovery, session and test controls |
 | L-26 Account recovery and credential reset | Approved — option B risk-based identity-verified recovery, single-use short-lived mechanisms, notification, session revocation and privileged-account safeguards; implementation gated on identity proofing, workflow, revocation and tests |
+| L-27 Protection against abusive authentication attempts | Approved — option B layered rate limits, brute-force/credential-stuffing defenses, anomaly detection, proportionate temporary restrictions, secure recovery and audit; implementation gated on thresholds, signals, recovery, monitoring and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
