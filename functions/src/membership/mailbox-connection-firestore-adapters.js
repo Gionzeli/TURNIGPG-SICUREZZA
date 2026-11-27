@@ -19,7 +19,7 @@ function invalid(message) {
 function validId(value) { return typeof value === "string" && ID.test(value); }
 function normalizedEmail(value) {
   return typeof value === "string" && value.length <= 254 &&
-    EMAIL.test(value.trim().toLowerCase());
+    value === value.trim().toLowerCase() && EMAIL.test(value);
 }
 function validateConnection(accountId, connectionId, value) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
@@ -30,14 +30,16 @@ function validateConnection(accountId, connectionId, value) {
       !PROVIDERS.has(value.provider) || !MODES.has(value.mode) ||
       !STATUSES.has(value.status) || !normalizedEmail(value.mailboxAddress) ||
       !validId(value.createdByUid) || !Number.isSafeInteger(value.createdAt) ||
-      !Number.isSafeInteger(value.updatedAt) ||
+      !Number.isSafeInteger(value.updatedAt) || value.createdAt < 1 ||
+      value.updatedAt < value.createdAt ||
       (value.status === "revoked"
         ? value.credentialSecretRef !== null
         : (typeof value.credentialSecretRef !== "string" ||
            value.credentialSecretRef.length < 1 || value.credentialSecretRef.length > 512)) ||
       !Array.isArray(value.allowedSenders) || value.allowedSenders.length < 1 ||
       value.allowedSenders.length > 30 ||
-      value.allowedSenders.some(item => !normalizedEmail(item))) {
+      value.allowedSenders.some(item => !normalizedEmail(item)) ||
+      new Set(value.allowedSenders).size !== value.allowedSenders.length) {
     invalid("Mailbox connection metadata is malformed.");
   }
   if (value.mode === "personal" &&
@@ -49,12 +51,16 @@ function validateConnection(accountId, connectionId, value) {
       (value.ownerUid !== null || value.ownerEmployeeId !== null)) {
     invalid("Shared mailbox cannot carry a personal Employee owner.");
   }
-  if (!value.consent || value.consent.grantedByUid !== value.createdByUid ||
-      !Number.isSafeInteger(value.consent.grantedAt) || value.consent.version !== 1) {
+  if (!value.consent || typeof value.consent !== "object" || Array.isArray(value.consent) ||
+      Object.keys(value.consent).some(key => !["grantedByUid", "grantedAt", "version"].includes(key)) ||
+      Object.keys(value.consent).length !== 3 ||
+      value.consent.grantedByUid !== value.createdByUid ||
+      !Number.isSafeInteger(value.consent.grantedAt) || value.consent.grantedAt < 1 ||
+      value.consent.grantedAt !== value.createdAt || value.consent.version !== 1) {
     invalid("Mailbox consent metadata is invalid.");
   }
   if (value.status === "revoked" &&
-      (!Number.isSafeInteger(value.revokedAt) || value.credentialSecretRef !== null)) {
+      (!Number.isSafeInteger(value.revokedAt) || value.revokedAt < value.updatedAt || value.credentialSecretRef !== null)) {
     invalid("Revoked mailbox must not retain a credential reference.");
   }
   if (value.status !== "revoked" && value.revokedAt !== undefined) {
