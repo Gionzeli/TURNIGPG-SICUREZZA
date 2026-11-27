@@ -96,9 +96,14 @@ export function createMailboxSecretCleanupWorker({
         try {
           // A durable cleanup ticket is not itself proof that refresh has
           // been fenced. Verify the monotonic revocation gate before deletion.
-          await assertRevocationPending({
+          const gate = await assertRevocationPending({
             accountId: ticket.accountId, connectionId: ticket.connectionId
           });
+          if (gate?.status !== "revocation_pending") {
+            const error = new Error("Mailbox cleanup revocation gate was not confirmed.");
+            error.code = "failed-precondition";
+            throw error;
+          }
           await credentialVault.revokeSecret({
             accountId: ticket.accountId,
             connectionId: ticket.connectionId,
