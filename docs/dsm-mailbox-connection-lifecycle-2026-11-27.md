@@ -737,3 +737,16 @@ state. When transitioning a ticket, a pending exhaustion alert must itself have
 valid retry metadata before it can be resolved; malformed or unsupported alert
 states fail closed. A synthetic regression corrupts the completion timestamp
 and verifies that a repeated acknowledgement is rejected without mutation.
+
+
+
+#### Pending cleanup retry-state consistency
+
+Pending credential-cleanup tickets now have two valid persisted states: the
+initial state (one recorded enqueue attempt, no retry timestamp, no error code)
+or a retry state (two through eleven attempts, a positive next-attempt
+timestamp, and a sanitized last error code). A ticket at the retry ceiling
+cannot remain pending. The Firestore listing, direct ticket read, and retry
+transaction all enforce this invariant, so malformed persisted records are
+neither returned to workers nor advanced by stale retry calls. Synthetic tests
+cover inconsistent counters and retry metadata.
