@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-70 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-71 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1896,6 +1896,26 @@ Approved policy in principle:
 
 **Still required before implementation:** archival eligibility and reason catalogue; resource and dependency inventory; approval/separation-of-duties matrix; retention and legal-hold mapping; exact account/session/credential/job revocation semantics; organizational-unit closure and reassignment workflow; restoration identity and authorization checklist; partial-failure/recovery design; audit schema and access controls; and synthetic Emulator tests across account, employee, unit and historical-record boundaries. This decision does not authorize bulk deletion, automatic restoration, retention overrides, real-data processing, production account changes or deployment.
 
+### L-71 — Historical employee records after termination or lifecycle change
+
+**Question:** Who may access historical employee records after termination, transfer, suspension or other lifecycle changes, and under what limits, without preserving obsolete operational privileges?
+
+**Approved 2026-11-27 — option B (purpose-limited historical access through separate, time-bounded authorization), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat historical data retention and permission to access retained data as separate decisions. Retaining a record for legal, employment, payroll, audit or operational reasons does not grant any person or role permission to read it.
+- Revoke operational access, manager scope, delegations, sessions and credentials according to the applicable lifecycle event. Do not preserve prior access merely because the actor created, approved, supervised or once had access to the record.
+- Permit historical access only for a documented, legitimate and authorized purpose, through a distinct read-only permission scoped to the relevant record categories, fields, employee/organizational period and duration. Require stronger review for payroll, disputes, sensitive absence material and restricted audit evidence.
+- Resolve access using canonical historical assignment and organizational-period records, not current manager title, client-supplied dates, employee identifiers or cached membership. A current organizational role does not confer access to all former members or all historical periods.
+- Apply L-01's narrowly bounded previous-manager access only to the approved previous-assignment interval and operational record set. Do not extend it to payroll, sensitive absence details, unrelated employee profile data or periods outside that assignment without a separate approval.
+- Provide employees or former employees access to their own records only through an independently authorized self-service or verified request workflow, with identity proofing, field minimization, third-party redaction, legal-hold and retention checks. Termination alone neither creates nor removes statutory rights; applicable legal requirements must be reviewed by the responsible privacy/legal owner.
+- Route requests from HR, payroll, legal, auditors, managers and support through role- and purpose-specific authorization. Administrative status, employment seniority, convenience or a generic support ticket is not sufficient authority. Any exceptional access must follow L-09 break-glass controls and be independently reviewed.
+- Enforce authorization server-side on every query and returned field, including exports, search, reports, notifications, background jobs and direct document references. Deny broad historical collection, unrestricted employee timelines and cross-organization traversal by default.
+- Minimize disclosure to the exact period and fields required; suppress sensitive absence reasons and health-related content unless a distinct lawful and specifically authorized process permits it. Record access purpose and outcome without copying unnecessary personal content into audit logs.
+- Reassess and revoke historical-access grants when the purpose ends, the actor changes role, the relevant assignment closes, a legal hold changes, or the grant expires. Review access periodically and preserve a protected audit trail of decisions and reads.
+- Test synthetic cases for former-manager overreach, current-manager access to prior periods, cross-employee and cross-organization queries, unauthorized payroll/absence reads, expired grants, forged historical dates, export bypass, self-service identity mismatch and legal-hold conflicts.
+
+**Still required before implementation:** historical record-category and field catalogue; lawful-purpose and role-specific access matrix reviewed by privacy/legal owners; authoritative historical placement/assignment schema; self-service identity and redaction workflow; retention/hold interaction; grant duration, review and revocation rules; query/export/background-job enforcement design; audit requirements; and synthetic Emulator tests for each lifecycle and historical boundary. This decision does not determine statutory entitlements, authorize general HR/payroll access, create retention periods, permit bulk exports, or approve real-data processing or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1966,6 +1986,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-68 Data quality, accuracy, correction and provenance governance | Approved — option B governed field-level sources, validation, provenance, reconciliation and human-reviewed correction; implementation gated on catalogue, workflows, integrity, retention and tests |
 | L-69 Employee leave lifecycle and temporary work-status transitions | Approved — option B explicit, time-bounded transitions with minimized data and scoped access; implementation gated on event catalogue, authority, effective-time rules, access matrix and tests |
 | L-70 Account archival, restoration and archived organizational units | Approved — option B controlled reversible archival and separately authorized restoration; implementation gated on impact inventory, revocation, retention, approval and recovery tests |
+| L-71 Historical employee records after termination or lifecycle change | Approved — option B purpose-limited, read-only, time-bounded historical access; implementation gated on lawful-purpose review, historical scope model, revocation, query enforcement and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
