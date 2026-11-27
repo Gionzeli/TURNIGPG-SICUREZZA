@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-102 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-103 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2577,6 +2577,28 @@ Approved policy in principle:
 
 **Implementation gates:** Define notification classes and recipient-verification rules; inventory outbound providers and data flows; specify link issuance/redemption and revocation contracts; establish attachment approval and minimization rules; and implement reproducible synthetic mail-sink and negative authorization tests. No real email provider, employee notification, or document delivery is authorized by this decision.
 
+### L-103 — Secure inbound email, attachments and untrusted message ingestion
+
+**Question:** How must inbound email, forwarded messages, and their attachments be handled when they may contain untrusted instructions, malicious files, forged identity claims, or requests to change employee records?
+
+**Decision:** Approved — option B, treat all inbound messages and attachments as untrusted submissions, never as authenticated commands; accept them only through a bounded, quarantined, human-reviewed workflow with independent application authorization for any resulting action. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Do not infer actor identity, employee ownership, managerial authority, or approval from sender address, display name, mail headers, message signature, reply chain, or possession of an attachment.
+- Treat inbound email content, links, embedded images, calendar payloads, attached files, and forwarded content as untrusted data; do not execute instructions found in messages or documents as system or operator commands.
+- Do not permit email replies or attachment contents to directly mutate employee, payroll, absence, account, permission, or lifecycle records; route requests into an authenticated workflow with canonical identity binding and server-side authorization.
+- Use approved inbound channels with sender/domain controls, anti-spoofing checks, rate limits, anti-enumeration safeguards, and message-size and attachment-count limits; these signals supplement but never replace identity verification.
+- Quarantine attachments and inspect actual file content in isolated, resource-bounded services before any human access or downstream processing; apply format allowlists, malware analysis, archive/decompression limits, and active-content restrictions.
+- Block or safely neutralize macros, scripts, external references, remote image loads, embedded objects, and parser-triggering content; never fetch arbitrary URLs or resolve sender-supplied destinations from privileged networks.
+- Preserve original message and attachment provenance where needed for investigation while storing them in restricted quarantine; compute integrity digests and record chain-of-custody events without treating a digest as proof of authenticity.
+- Render message bodies and attachments in isolated viewers with scripts and ambient credentials disabled; sanitize HTML using maintained controls and do not render untrusted content in the privileged application origin.
+- Require a separately authenticated reviewer to validate request purpose, subject identity, target record, scope, and supporting evidence before creating a tracked workflow; high-impact changes require independent approval and separation of duties.
+- Prevent message bodies, attachments, personal data, and secrets from leaking into logs, ticket titles, notifications, analytics, or unapproved external scanning services.
+- Define retention, legal-hold, deletion, and incident procedures for quarantined messages and derived artifacts; ensure release from quarantine is explicit, scoped, audited, and reversible where feasible.
+- Test spoofed senders, display-name impersonation, malicious attachments, archive bombs, embedded URLs, prompt/instruction injection, duplicate/replayed submissions, cross-tenant requests, and unauthorized workflow mutations using synthetic mailboxes and isolated scanners.
+
+**Implementation gates:** Inventory inbound mailboxes, gateways, processors, parsers, and quarantine stores; define accepted message classes and workflow mapping; establish isolated scanning/rendering and retention controls; require authenticated reviewer and approval contracts; and provide reproducible negative tests. No production mailbox integration, automatic email-driven mutation, or real attachment processing is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2679,6 +2701,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-100 Secure data disposal, media sanitization and end-of-life asset handling | Approved — option B governed, evidence-backed disposition across copies and media; implementation gated on inventory, retention, restore reconciliation and verification tests |
 | L-101 Clipboard, screen capture and operating-system sharing controls | Approved — option B classify disclosure channels, minimize sensitive exposure and enforce only platform-supported controls; implementation gated on platform matrix and tests |
 | L-102 Secure email delivery, outbound document links and recipient verification | Approved — option B notification-only by default, authenticated scoped retrieval and verified recipients; implementation gated on provider review, link lifecycle and tests |
+| L-103 Secure inbound email, attachments and untrusted message ingestion | Approved — option B quarantine untrusted input, isolate parsing and require authenticated human workflow; implementation gated on mail inventory, scanner isolation and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
