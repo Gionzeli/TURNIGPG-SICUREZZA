@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Smoke test OCR cedolino — PaddleOCR locale</title>
+  <style>
+    :root { color-scheme: light dark; font: 16px/1.5 system-ui, sans-serif; }
+    body { max-width: 900px; margin: 2rem auto; padding: 0 1rem; }
+    main { border: 1px solid #8886; border-radius: 12px; padding: 1.25rem; }
+    button { padding: .7rem 1rem; font: inherit; cursor: pointer; }
+    button:disabled { cursor: wait; opacity: .6; }
+    pre { white-space: pre-wrap; overflow-wrap: anywhere; background: #8881; padding: 1rem; border-radius: 8px; max-height: 28rem; overflow: auto; }
+    .warning { border-left: 4px solid #b7791f; padding-left: 1rem; }
+    #status { font-weight: 600; }
+    canvas { max-width: 100%; height: auto; border: 1px solid #8886; }
+    table { border-collapse: collapse; width: 100%; }
+    td, th { text-align: left; padding: .35rem; border-bottom: 1px solid #8885; }
+  </style>
+</head>
+<body>
+<main>
+  <h1>Prova OCR reale per cedolini</h1>
+  <p>Banco di prova isolato: genera una pagina di cedolino sintetica nel browser e la passa al percorso <code>LocalDocAI.ocrPayslipImages</code>, poi al parser deterministico <code>parsePayslip</code>. Nessun file esterno o documento personale viene caricato.</p>
+  <p class="warning"><strong>Dipendenze remote:</strong> il primo avvio carica SDK e modello PaddleOCR da CDN. Il codice di terze parti viene eseguito nella pagina e può tecnicamente accedere al contenuto in memoria. Usare soltanto questa fixture sintetica; non usare documenti reali in questo banco di prova.</p>
+  <h2>Fixture immagine usata</h2>
+  <canvas id="fixture" width="1600" height="1500" aria-label="Cedolino sintetico per il test OCR"></canvas>
+  <p><button id="run" type="button">Avvia OCR Paddle + parser</button></p>
+  <p id="status" role="status" aria-live="polite">In attesa. Nessun modello OCR è stato caricato.</p>
+  <h2>Confronto con i valori attesi</h2>
+  <div id="comparison">La prova non è ancora stata eseguita.</div>
+  <h2>Testo riconosciuto</h2>
+  <pre id="ocr">Nessun OCR eseguito.</pre>
+  <h2>Dettaglio parser</h2>
+  <pre id="parsed">Nessuna estrazione eseguita.</pre>
+  <p id="metrics"></p>
+</main>
+<script type="module">
+  import "../../local-reader.js";
+
+  const rows = [
+    ["Paga base", "1.450,00"],
+    ["Scatti di anzianità", "48,50"],
+    ["Superminimo", "125,00"],
+    ["Compenso straordinario", "72,00"],
+    ["Indennità notturna", "18,00"],
+    ["Piantonamento", "32,00"],
+    ["Maggiorazione domenicale", "24,00"],
+    ["Buono pasto", "100,00"],
+    ["Trattenuta sindacale", "8,75"],
+    ["Cessione del quinto", "150,00"]
+  ];
+  const expected = {
+    paga_base: 1450, scatti: 48.5, altre_fisse: 125,
+    straordinario_ora: 72, notturno_turno: 18,
+    piantonato_turno: 32, domenica_ora: 24,
+    buono_pasto: 100, sindacato: 8.75, cessione: 150
+  };
+  const fields = Object.keys(expected).map(key => [key, key]);
+  const canvas = document.querySelector("#fixture");
+  const ctx = canvas.getContext("2d");
+  ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.fillStyle = "#111"; ctx.font = "bold 42px Arial";
+  ctx.fillText("FAC-SIMILE DIDATTICO — CEDOLINO PAGA", 70, 90);
+  ctx.font = "26px Arial";
+  ctx.fillText("Documento sintetico inventato per prova OCR — NON VALIDO", 70, 145);
+  ctx.fillText("Azienda: Esempio Servizi S.r.l.       Periodo: 05/2026", 70, 210);
+  ctx.fillText("Dipendente: LAVORATORE DI PROVA       Matricola: TEST-0000", 70, 265);
+  ctx.font = "bold 30px Arial";
+  ctx.fillText("VOCE RETRIBUTIVA", 90, 365);
+  ctx.fillText("IMPORTO (€)", 1170, 365);
+  ctx.strokeStyle = "#333"; ctx.lineWidth = 2;
+  ctx.beginPath(); ctx.moveTo(70, 390); ctx.lineTo(1530, 390); ctx.stroke();
+  ctx.font = "30px Arial";
+  rows.forEach(([label, amount], index) => {
+    const y = 455 + index * 88;
+    ctx.fillText(label, 90, y);
+    ctx.fillText(amount, 1170, y);
+    ctx.beginPath(); ctx.moveTo(70, y + 28); ctx.lineTo(1530, y + 28); ctx.stroke();
+  });
+  ctx.font = "bold 28px Arial";
+  ctx.fillText("RIEPILOGO", 90, 1390);
+  ctx.font = "25px Arial";
+  ctx.fillText("Ferie maturate 12,00 — godute 4,00 — residue 8,00", 90, 1440);
+
+  const button = document.querySelector("#run");
+  const status = document.querySelector("#status");
+  const comparison = document.querySelector("#comparison");
+  const ocrView = document.querySelector("#ocr");
+  const parsedView = document.querySelector("#parsed");
+  const metrics = document.querySelector("#metrics");
+  button.addEventListener("click", async () => {
+    button.disabled = true;
+    comparison.textContent = "Prova in corso…";
+    ocrView.textContent = "Caricamento OCR…";
+    parsedView.textContent = "";
+    metrics.textContent = "";
+    const started = performance.now();
+    try {
+      await new Promise(resolve => {
+        const check = () => window.LocalDocAI ? resolve() : setTimeout(check, 50);
+        check();
+      });
+      const text = await window.LocalDocAI.ocrPayslipImages([canvas], message => {
+        status.textContent = message?.detail || message?.phase || "OCR in corso…";
+      });
+      ocrView.textContent = text || "(nessun testo riconosciuto)";
+      const parsed = window.LocalDocAI.parsePayslip(text, fields, {});
+      parsedView.textContent = JSON.stringify(parsed, null, 2);
+      const results = Object.entries(expected).map(([key, value]) => ({
+        key, expected: value, actual: parsed[key] ?? null,
+        pass: typeof parsed[key] === "number" && Math.abs(parsed[key] - value) < 0.011
+      }));
+      const passed = results.filter(x => x.pass).length;
+      const failed = results.length - passed;
+      comparison.innerHTML = "<table><thead><tr><th>Campo</th><th>Atteso</th><th>Estratto</th><th>Esito</th></tr></thead><tbody>" +
+        results.map(x => "<tr><td>" + x.key + "</td><td>" + x.expected.toFixed(2) + "</td><td>" +
+          (x.actual === null ? "—" : Number(x.actual).toFixed(2)) + "</td><td>" + (x.pass ? "PASS" : "FAIL") + "</td></tr>").join("") +
+        "</tbody></table><p><strong>" + passed + "/" + results.length + " campi corretti.</strong></p>";
+      status.textContent = failed === 0 ? "PASS — OCR Paddle e parser hanno riconosciuto tutti i campi della fixture." :
+        "PARZIALE — " + passed + "/" + results.length + " campi corretti; verificare il dettaglio.";
+      const seconds = ((performance.now() - started) / 1000).toFixed(1);
+      metrics.textContent = "Tempo totale: " + seconds + " s · Motore richiesto: PaddleOCR PP-OCRv6 · Configurazione richiesta: WASM";
+    } catch (error) {
+      status.textContent = "FAIL — prova non completata.";
+      parsedView.textContent = String(error?.stack || error?.message || error);
+    } finally {
+      button.disabled = false;
+    }
+  });
+</script>
+</body>
+</html>
