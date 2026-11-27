@@ -236,3 +236,6 @@ vault deletion with bounded backoff, completes tickets only after confirmed
 deletion/not-found, and alerts on exhausted retries. Firestore Rules/IAM must
 keep this collection inaccessible to clients. No worker, callable, live Firebase,
 or production vault was wired or exercised here.
+
+
+Cleanup-ticket completion is idempotent as well. This covers the crash window where vault deletion succeeded but saving the final `revoked` connection state failed: a retried revocation can safely repeat the vault delete and completion call before finalizing connection metadata.
