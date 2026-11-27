@@ -4,12 +4,6 @@ const ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 const MAX_TTL_MS = 5 * 60 * 1000;
 function leaseError(code, message) { const error = new Error(message); error.code = code; return error; }
 
-/**
- * Firestore transaction-backed per-mailbox lease with monotonic fencing tokens.
- * Lease documents contain coordination metadata only, never OAuth credentials.
- * The caller must renew before expiry for long provider calls and must reject
- * results after lease loss. Firestore transactions serialize competing acquirers.
- */
 export function createMailboxTokenFirestoreLeaseService({
   firestore, leaseRefForConnection, now = () => Date.now(), createOwnerId = randomUUID
 }) {
@@ -28,26 +22,47 @@ export function createMailboxTokenFirestoreLeaseService({
     return ref;
   }
 
-  async function acquire({accountId, connectionId, ttlMs = 60_000}) {
+  function readClock() {
+    const value = now();
+    if (!Number.isSafeInteger(value) || value < 0) {
+      throw leaseError("unavailable", "Mailbox lease clock is invalid.");
+    }
+    return value;
+  }
+
+  function validateTtl(ttlMs) {
     if (!Number.isSafeInteger(ttlMs) || ttlMs < 1_000 || ttlMs > MAX_TTL_MS) {
       throw leaseError("invalid-argument", "Mailbox lease duration is invalid.");
     }
+  }
+
+  async function acquire({accountId, connectionId, ttlMs = 60_000}) {
+    validateTtl(ttlMs);
     const ref = getRef(accountId, connectionId);
     const ownerId = createOwnerId();
     if (typeof ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(ownerId)) {
       throw new Error("Mailbox lease owner generation failed.");
     }
-    const acquiredAt = now();
+    const acquiredAt = readClock();
+    if (!Number.isSafeInteger(acquiredAt + ttlMs)) {
+      throw leaseError("unavailable", "Mailbox lease expiry is invalid.");
+    }
     let lease;
     try {
       await firestore.runTransaction(async transaction => {
         const snapshot = await transaction.get(ref);
         const current = snapshot?.data?.() || {};
-        if (snapshot?.exists && Number.isSafeInteger(current.expiresAt) && current.expiresAt > acquiredAt) {
+        if (snapshot?.exists && (!Number.isSafeInteger(current.fencingToken) ||
+            current.fencingToken < 1 || !Number.isSafeInteger(current.expiresAt))) {
+          throw leaseError("unavailable", "Mailbox lease record is malformed.");
+        }
+        if (snapshot?.exists && current.expiresAt > acquiredAt) {
           throw leaseError("lease-held", "Mailbox refresh is already in progress.");
         }
-        const previousFence = Number.isSafeInteger(current.fencingToken) && current.fencingToken >= 0
-          ? current.fencingToken : 0;
+        const previousFence = snapshot?.exists ? current.fencingToken : 0;
+        if (previousFence >= Number.MAX_SAFE_INTEGER) {
+          throw leaseError("unavailable", "Mailbox lease fencing limit reached.");
+        }
         lease = Object.freeze({
           ownerId, fencingToken: previousFence + 1,
           acquiredAt, expiresAt: acquiredAt + ttlMs
@@ -56,26 +71,30 @@ export function createMailboxTokenFirestoreLeaseService({
         else transaction.create(ref, lease);
       });
     } catch (error) {
-      if (error?.code === "lease-held" || error?.code === "invalid-argument") throw error;
+      if (["lease-held", "invalid-argument", "unavailable"].includes(error?.code)) throw error;
       throw leaseError("unavailable", "Mailbox lease acquisition failed.");
     }
     return lease;
   }
 
   async function renew({accountId, connectionId, lease, ttlMs = 60_000}) {
-    if (!lease || typeof lease.ownerId !== "string" || !Number.isSafeInteger(lease.fencingToken) ||
-        !Number.isSafeInteger(ttlMs) || ttlMs < 1_000 || ttlMs > MAX_TTL_MS) {
+    if (!lease || typeof lease.ownerId !== "string" || !Number.isSafeInteger(lease.fencingToken)) {
       throw leaseError("invalid-argument", "Mailbox lease renewal is invalid.");
     }
+    validateTtl(ttlMs);
     const ref = getRef(accountId, connectionId);
-    const renewedAt = now();
+    const renewedAt = readClock();
+    if (!Number.isSafeInteger(renewedAt + ttlMs)) {
+      throw leaseError("unavailable", "Mailbox lease expiry is invalid.");
+    }
     const next = Object.freeze({...lease, expiresAt: renewedAt + ttlMs});
     try {
       await firestore.runTransaction(async transaction => {
         const snapshot = await transaction.get(ref);
         const current = snapshot?.data?.() || {};
         if (!snapshot?.exists || current.ownerId !== lease.ownerId ||
-            current.fencingToken !== lease.fencingToken || current.expiresAt <= renewedAt) {
+            current.fencingToken !== lease.fencingToken ||
+            !Number.isSafeInteger(current.expiresAt) || current.expiresAt <= renewedAt) {
           throw leaseError("lease-lost", "Mailbox lease is no longer owned.");
         }
         transaction.update(ref, {expiresAt: next.expiresAt});
