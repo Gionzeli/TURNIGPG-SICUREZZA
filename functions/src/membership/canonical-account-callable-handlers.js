@@ -9,7 +9,7 @@ function fail(code, message) {
 
 function bearer(request) {
   const header = request?.rawRequest?.headers?.authorization;
-  const match = typeof header === "string" ? /^Bearer ([^\\s]+)$/i.exec(header) : null;
+  const match = typeof header === "string" ? /^Bearer ([^\s]+)$/i.exec(header) : null;
   if (!match) fail("unauthenticated", "Bearer ID token required.");
   return match[1];
 }
