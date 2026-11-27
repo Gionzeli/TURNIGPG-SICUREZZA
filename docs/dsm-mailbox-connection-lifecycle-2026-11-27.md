@@ -296,3 +296,13 @@ The Firestore query now orders by `status` and `nextAttemptAt`; production
 deployment must provision and verify the corresponding composite index. The
 new regressions are synthetic tests and have not been executed against the
 Emulator.
+
+
+#### Idempotent vault deletion
+
+The credential-vault adapter now treats only explicit backend not-found signals
+(`not-found`, `NOT_FOUND`, HTTP 404, or gRPC status 5) as successful deletion.
+Other failures remain masked and retryable. This makes the cleanup worker's
+delete-then-complete sequence safe when a prior attempt deleted the secret but
+crashed before completing the outbox ticket. Synthetic tests cover accepted
+not-found forms and ensure permission failures are not swallowed.
