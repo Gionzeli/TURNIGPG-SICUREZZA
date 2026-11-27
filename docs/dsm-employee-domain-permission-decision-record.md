@@ -200,7 +200,18 @@ Required safeguards regardless of choice:
 - Audit each export request and completion without logging sensitive payloads.
 - Define retention, secure delivery, deletion and incident handling before enabling.
 
-**Unapproved:** all export/report capabilities.
+**Approved 2026-11-27 — option B (narrow per-domain exports), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Export is a separate permission and is never inherited from read, manager, or account-admin access.
+- Each export requires an explicit allowlist for role, domain, organizational scope, fields, purpose, row/time limits, and delivery method.
+- Scope and field filtering are enforced server-side; client filters are not authorization.
+- Every request, execution, completion, and failure is audited without recording sensitive payloads.
+- Exports must have bounded pagination/job size, rate limits, secure delivery, defined retention and deletion.
+- No automatic, scheduled, bulk, or organization-wide export is authorized by this decision.
+- Compensation/payroll, absence/health details, credentials, identity documents, and audit payloads remain excluded unless separately reviewed and explicitly approved.
+
+**Still required before implementation:** specify each permitted export independently (roles, domain, scope, exact fields, purpose, row/time limits, format, delivery, retention, deletion, and incident owner); complete privacy/security review and synthetic Emulator tests, including negative cross-scope and sensitive-field tests. No export endpoint or report is authorized until those details are approved.
 
 ## 3. Common authorization requirements
 
@@ -243,7 +254,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | D-04 Manager/team shifts | Approved — option B proposed changes with separate approval; implementation gated on roles/scope/workflow |
 | D-05 Manager absence visibility | Approved — option B minimal availability, dates and request status; implementation gated on roles/scope/schema |
 | D-06 Audit read | Approved — option B scoped, minimized manager event visibility; implementation gated on roles/scope/event taxonomy/retention |
-| D-07 Export/report | Open — disabled |
+| D-07 Export/report | Approved — option B narrow per-domain exports in principle; no endpoint until per-export details and review are approved |
 | Lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
