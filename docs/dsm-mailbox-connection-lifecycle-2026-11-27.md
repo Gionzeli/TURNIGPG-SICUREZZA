@@ -640,3 +640,11 @@ addition to malformed or negative fencing tokens. A revocation-only gate may
 use expiry zero; negative values are malformed and fail closed. Regression
 coverage exercises negative fencing, negative expiry, and the valid zero-expiry
 gate-only record using synthetic Firestore adapters.
+
+
+#### Cleanup gate read outage regression
+
+A synthetic regression now verifies that a Firestore read outage while
+asserting the durable revocation gate returns a sanitized `unavailable` error.
+The worker therefore cannot interpret an unavailable gate read as confirmation
+and does not proceed to credential deletion.
