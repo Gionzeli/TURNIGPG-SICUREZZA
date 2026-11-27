@@ -656,3 +656,12 @@ Lease acquisition and revocation-disable transitions now reject negative
 persisted `expiresAt` values rather than treating them as expired leases or
 preserving malformed state. The regression test verifies both operations fail
 closed and leave the malformed record unchanged.
+
+
+#### Revocation marker type validation
+
+Lease acquisition, renewal, and revocation-disable transitions now reject a
+persisted `revocationPending` marker unless it is absent or a boolean. In
+particular, string values such as `"false"` cannot bypass the revocation gate.
+Synthetic regression coverage verifies acquisition/disable fail closed and
+renewal treats malformed persisted state as a lost lease.
