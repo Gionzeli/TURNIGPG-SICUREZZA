@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-09 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-10 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -376,6 +376,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define severity/incident criteria, eligible actors and activation authentication, whether one-person activation is ever permitted or dual control is required, exact domain/action allowlist, excluded data, maximum duration and renewal rules, notification recipients and delivery guarantees, independent reviewer and review deadline, escalation and sanctions, audit retention, and synthetic Emulator tests for expiry, revocation, notification, scope enforcement and independent review. This decision does not authorize a production break-glass endpoint or any emergency bypass of authentication, audit, or server-side authorization.
 
+### L-10 — Sensitive data corrections
+
+**Question:** How may an employee request correction of sensitive personal or employment data held in the canonical system?
+
+Possible choices:
+- **A. Direct self-edit:** the employee directly changes sensitive fields on their own profile.
+- **B. Tracked correction request:** the employee submits a correction request; an authorized operator verifies it, an authorized approver approves it, and the resulting change is applied and recorded with history.
+- **C. Administrator direct edit:** any administrator may directly change sensitive employee data.
+
+**Approved 2026-11-27 — option B (tracked correction request with verification, approval and recorded change history), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Employees may submit a correction request for their own data, but the request itself does not change the canonical record or grant direct write access.
+- Each request must identify the target employee record through the authenticated user's unique, active backend-owned UID↔Employee binding; a client-supplied employee ID is not proof of ownership.
+- An authorized operator must verify the request against an appropriate authoritative source and record the verification outcome. An authorized approver must approve or reject the proposed correction before any canonical change is applied.
+- The person who requested or prepared a correction must not approve their own request. Verification, approval and application must be server-authorized, with separation of duties appropriate to the field's sensitivity.
+- Only the explicitly approved fields may be changed. The backend applies the approved correction atomically, with concurrency/revision checks; no client-side direct update or general document replacement is permitted.
+- The system must retain an auditable correction history, including request reference, target record reference, field identifiers, requester, verifier, approver, timestamps, decision, application outcome and revision references. Sensitive old/new values must not be copied into broadly readable logs; any retained value history must be access-restricted and governed by retention policy.
+- Rejected, withdrawn, expired, conflicting or incomplete requests do not alter canonical data. Duplicate or ambiguous identity bindings, insufficient evidence, stale revisions, or uncertain authority fail closed.
+- This workflow does not authorize bulk correction, arbitrary administrator edits, correction of another employee's data without a separately authorized process, or changes to permissions, roles, bindings, audit records or lifecycle state.
+
+**Still required before implementation:** define the sensitive field catalogue and correction eligibility per field; acceptable evidence and verification standards; authorized operator and approver roles and separation-of-duties rules; request states, deadlines, withdrawal and dispute handling; atomic application and conflict resolution; notifications; restricted history access and retention; and synthetic Emulator tests for unauthorized edits, self-approval, forged ownership, stale revisions, rejected requests and audit completeness. No correction endpoint or direct sensitive-field mutation is authorized until these details are approved and tested.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -406,6 +429,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-07 Role/privilege changes | Approved — option B immediately revoke obsolete privileges and recheck current role/scope server-side; implementation gated on role mapping, effective-time semantics and tests |
 | L-08 Temporary delegation | Approved — option B explicit, scoped and time-limited delegation with expiry and early revocation; implementation gated on delegable actions, approval workflow and tests |
 | L-09 Emergency break-glass | Approved — option B temporary, justified, scoped and audited access with notification and independent review; implementation gated on incident criteria, action allowlist and oversight workflow |
+| L-10 Sensitive data corrections | Approved — option B tracked request, operator verification, separate approval and recorded change history; implementation gated on field catalogue, workflow and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
