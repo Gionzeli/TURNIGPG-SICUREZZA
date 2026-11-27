@@ -6,33 +6,36 @@ function fakeFirestore() {
   const docs = new Map();
   const db = {
     collection(path) {
-      return {
-        where(whereField, operator, expected) {
-          return {
-            orderBy(orderField, direction) {
-              return {
-                limit(max) {
-                  return {
-                    async get() {
-                      const prefix = path + "/";
-                      const docsFound = [...docs.entries()]
-                        .filter(([key, item]) => key.startsWith(prefix) && item[whereField] === expected)
-                        .sort((a, b) => {
-                          const av = a[1][orderField] ?? 0;
-                          const bv = b[1][orderField] ?? 0;
-                          return av - bv || (a[1].createdAt ?? 0) - (b[1].createdAt ?? 0);
-                        })
-                        .slice(0, max)
-                        .map(([key, value]) => ({ id: key.slice(prefix.length), data: () => value }));
-                      return { docs: docsFound };
-                    }
-                  };
-                }
-              };
-            }
-          };
+      const buildQuery = (filters = [], order = null, max = 50) => ({
+        where(field, operator, expected) {
+          if (operator !== "==") throw new Error("unsupported fake query operator");
+          return buildQuery([...filters, [field, expected]], order, max);
+        },
+        orderBy(field, direction) {
+          return buildQuery(filters, [field, direction], max);
+        },
+        limit(value) {
+          return buildQuery(filters, order, value);
+        },
+        async get() {
+          const prefix = path + "/";
+          let entries = [...docs.entries()]
+            .filter(([key, item]) => key.startsWith(prefix) &&
+              filters.every(([field, expected]) => item[field] === expected));
+          if (order) {
+            const [field, direction] = order;
+            entries.sort((a, b) => {
+              const av = a[1][field] ?? 0;
+              const bv = b[1][field] ?? 0;
+              return (av - bv) * (direction === "desc" ? -1 : 1) ||
+                (a[1].createdAt ?? 0) - (b[1].createdAt ?? 0);
+            });
+          }
+          return { docs: entries.slice(0, max)
+            .map(([key, value]) => ({ id: key.slice(prefix.length), data: () => value })) };
         }
-      };
+      });
+      return buildQuery();
     },
     doc(path) {
       return {
