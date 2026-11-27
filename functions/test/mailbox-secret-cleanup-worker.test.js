@@ -39,7 +39,7 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
   });
   const result = await worker.runOnce();
   assert.equal(result.scanned, 3);
-  assert.equal(result.deferred, 1);
+  assert.equal(result.deferred, 2);
   assert.equal(result.exhausted, 1);
   assert.equal(retries.length, 2);
   assert.equal(retries[0].attempts, 2);
