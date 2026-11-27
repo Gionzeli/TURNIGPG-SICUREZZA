@@ -34,9 +34,9 @@ export async function proposeCanonicalMembershipInvite({ db, accountId, actorUid
   return db.runTransaction(async tx => {
     const [account, actor, site, existing] = await Promise.all([tx.get(accountRef), tx.get(actorRef), tx.get(siteRef), tx.get(inviteRef)]);
     const createdAt = now();
-    if (!account.exists || account.data().status !== "active") fail("failed-precondition", "Active account required.");
+    if (!account.exists || account.data().accountId !== accountId || account.data().status !== "active" || !Number.isSafeInteger(account.data().schemaVersion) || account.data().schemaVersion < 1 || !Number.isSafeInteger(account.data().version) || account.data().version < 1) fail("failed-precondition", "Active canonical account required.");
     requireAdmin(actor.exists ? actor.data() : null, actorUid, accountId, actorIdentity, createdAt);
-    if (!site.exists || site.data().accountId !== accountId || site.data().siteId !== siteId || site.data().status !== "active") fail("failed-precondition", "Active site in this account required.");
+    if (!site.exists || site.data().accountId !== accountId || site.data().siteId !== siteId || site.data().status !== "active" || !Number.isSafeInteger(site.data().version) || site.data().version < 1) fail("failed-precondition", "Active site in this account required.");
     if (existing.exists) fail("already-exists", "Invite ID already used.");
     const expiresAt = createdAt + LIFETIME;
     tx.create(inviteRef, {
@@ -108,7 +108,7 @@ export async function claimCanonicalMembershipInvite({ db, accountId, inviteId, 
     if (!Array.isArray(value.scopeIds) || value.scopeIds.length !== 1 || !validId(value.scopeIds[0])) fail("failed-precondition", "Invite scope is malformed.");
     const claimedSiteRef = db.doc(`accounts/${accountId}/sites/${value.scopeIds[0]}`);
     const claimedSite = await tx.get(claimedSiteRef);
-    if (!claimedSite.exists || claimedSite.data().accountId !== accountId || claimedSite.data().siteId !== value.scopeIds[0] || claimedSite.data().status !== "active") fail("failed-precondition", "Invited site is no longer active.");
+    if (!claimedSite.exists || claimedSite.data().accountId !== accountId || claimedSite.data().siteId !== value.scopeIds[0] || claimedSite.data().status !== "active" || !Number.isSafeInteger(claimedSite.data().version) || claimedSite.data().version < 1) fail("failed-precondition", "Invited site is no longer active.");
     if (audit.exists) fail("already-exists", "Invite claim audit event already exists.");
     const membership = {
       accountId, uid: actorUid, status: "active", role: "member",
