@@ -64,7 +64,7 @@ export const health = onCall(async () => ({
   protectedEmployeeShiftApisImplemented: true,
   employeeShiftSelfAuthorizationImplemented: true,
   directEmployeeShiftMutationsEnabled: false,
-  employeeShiftPersonalApprovalRequired: true,\n  employeeShiftProposalSubmissionImplemented: true,\n  employeeShiftProposalEmployeeApprovalImplemented: false,
+  employeeShiftPersonalApprovalRequired: true,\n  employeeShiftProposalSubmissionImplemented: true,\n  employeeShiftProposalEmployeeApprovalImplemented: true,
   employeeDelegatedShiftAuthorizationImplemented: false,
   employeeDomainAuthorizationImplemented: true,
   bootstrapImplemented: false,
@@ -176,6 +176,10 @@ export const proposeOwnEmployeeShiftChanges = onCall(async request => {
 });
 export const listOwnEmployeeShiftProposals = onCall(async request => {
   try { return await employeeShifts.listOwnProposals(request); }
+  catch (error) { throw callableError(error); }
+});
+export const approveOwnEmployeeShiftProposal = onCall(async request => {
+  try { return await employeeShifts.approveOwnProposal(request); }
   catch (error) { throw callableError(error); }
 });
 export const rejectOwnEmployeeShiftProposal = onCall(async request => {
