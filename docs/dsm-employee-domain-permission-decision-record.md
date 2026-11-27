@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-78 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-79 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2054,6 +2054,25 @@ Approved policy in principle:
 
 **Still required before implementation:** approved time-source and synchronization architecture; maximum skew thresholds and monitoring owner; UTC/time-zone schema conventions; business-local date semantics; daylight-saving and historical-rule policy; temporal boundary definitions for each domain; trusted-clock behavior during outages; audit provenance schema; worker revalidation rules; and synthetic clock-based conformance tests. This decision does not authorize backdating, client-clock trust, changing historical records, or production activation.
 
+### L-79 — Authorization conflict resolution and permission composition
+
+**Question:** How must the system resolve conflicting grants, denials, overlapping roles, delegated permissions and organizational scopes so that combining otherwise valid assignments cannot create unintended access?
+
+**Approved 2026-11-27 — option B (explicit deny-overrides composition with least-privilege intersection and no implicit privilege accumulation), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Define a single deterministic authorization-composition algorithm for every enforcement point. An explicit applicable denial, policy prohibition, lifecycle restriction, ownership conflict, tenant-boundary failure or missing required approval overrides any grant.
+- Treat role assignments, memberships, delegations and organizational placements as independent inputs, not as additive authorities. Multiple roles do not automatically combine into a broader permission set; each requested domain, action, field and resource scope must be explicitly permitted under the canonical policy.
+- Compute effective access as the intersection of all mandatory constraints: verified identity, active membership and lifecycle, tenant boundary, ownership or delegated authority, current organizational scope, domain/action permission, field allowlist, workflow state and temporal validity.
+- Never allow a broad role or account-administrator label to override a narrower resource restriction, a suspended/terminated state, an expired delegation, a revoked binding, a legal hold, or a tenant isolation rule.
+- Delegated permissions cannot exceed the delegator's currently effective permissions and cannot outlive the delegation's approved scope or validity. Revocation or reduction of the delegator's access must invalidate dependent delegations and cached decisions.
+- Resolve conflicting or duplicate assignments conservatively. Unknown, malformed, contradictory or unsupported permission attributes result in denial and a protected diagnostic reason code, not best-effort merging or fallback to a more permissive role.
+- Separate authorization from workflow approval: an approval event is necessary only where policy requires it and never grants unrelated domain permissions. The proposer cannot gain authority merely by creating a request; approver independence and quorum rules remain separately enforced.
+- Keep field-level permissions restrictive across joined records, aggregates, search results, exports and generated documents. A permitted parent record does not authorize every child field or related record.
+- Make the effective decision explainable to authorized reviewers through minimized metadata identifying applicable policy version, constraint outcomes and stable denial reason codes; do not reveal sensitive policy internals or resource existence to unauthorized clients.
+- Test composition across overlapping roles, cross-site and cross-department assignments, temporary delegation, self-versus-manager access, admin labels, explicit denials, lifecycle changes, revoked bindings, field restrictions, tenant boundaries and policy updates. Equivalent inputs must produce equivalent decisions across all adapters.
+
+**Still required before implementation:** formal permission algebra and precedence specification; canonical deny/allow representation; role and delegation composition rules; scope-intersection semantics; conflict and duplicate-assignment handling; reviewer-visible decision evidence; adapter conformance vectors; and synthetic Emulator tests for positive, negative and adversarial combinations. This decision does not authorize any new role, permission, delegation, workflow or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2132,6 +2151,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-76 Employee identity matching and duplicate-record resolution | Approved — option B verified human review, quarantine of ambiguity and no automatic merge; implementation gated on authoritative sources, binding workflow, provenance and false-match tests |
 | L-77 Authorization policy versioning and enforcement consistency | Approved — option B canonical versioned policy, server enforcement, bounded propagation and fail-closed stale-state handling; implementation gated on enforcement inventory, rollout controls and conformance tests |
 | L-78 Trusted time, clock integrity and temporal authorization | Approved — option B authoritative server time, UTC storage, explicit business time zones and fail-closed temporal checks; implementation gated on synchronization, semantics, provenance and tests |
+| L-79 Authorization conflict resolution and permission composition | Approved — option B deny-overrides, least-privilege intersection and no implicit privilege accumulation; implementation gated on formal algebra, scope semantics and conformance tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
