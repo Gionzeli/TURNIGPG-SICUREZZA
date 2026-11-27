@@ -528,3 +528,60 @@ test("worker schedules alert retry from the time a failed send completes", async
   assert.equal(recorded.timestamp, 7000);
   assert.equal(recorded.nextAttemptAt, 127000);
 });
+
+
+test("worker retries a delivered alert when durable acknowledgement fails, reusing its stable id", async () => {
+  let clock = 1000;
+  let alertStatus = "pending";
+  let alertAttempts = 0;
+  let alertNextAttemptAt = null;
+  let acknowledgementCalls = 0;
+  const sentIds = [];
+  const failures = [];
+  const baseTicket = {
+    accountId: "synthetic-account", connectionId: "ack-retry-connection",
+    status: "exhausted", attempts: 12, lastErrorCode: "unavailable"
+  };
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => alertStatus === "pending" ? [{
+        ...baseTicket, alertStatus, alertAttempts, alertNextAttemptAt
+      }] : [],
+      recordCleanupAlertFailure: async input => {
+        failures.push(input);
+        alertAttempts = input.attempts;
+        alertNextAttemptAt = input.nextAttemptAt;
+      },
+      markCleanupAlertDelivered: async () => {
+        acknowledgementCalls++;
+        if (acknowledgementCalls === 1) {
+          throw Object.assign(new Error("synthetic acknowledgement outage"), { code: "unavailable" });
+        }
+        alertStatus = "delivered";
+      }
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async input => {
+      sentIds.push(input.alertId);
+      clock = sentIds.length === 1 ? 2000 : 63000;
+    },
+    now: () => clock
+  });
+
+  await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(alertStatus, "pending");
+  assert.equal(failures.length, 1);
+  assert.equal(failures[0].timestamp, 2000);
+  assert.equal(failures[0].nextAttemptAt, 62000);
+  assert.equal(alertAttempts, 1);
+
+  clock = alertNextAttemptAt;
+  await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(alertStatus, "delivered");
+  assert.equal(sentIds.length, 2);
+  assert.equal(sentIds[0], "synthetic-account:ack-retry-connection:cleanup-exhausted");
+  assert.equal(sentIds[1], sentIds[0]);
+});
