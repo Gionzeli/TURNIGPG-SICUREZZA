@@ -532,3 +532,5 @@ Collegati cinque endpoint callable per creazione sede/reparto, archiviazione sed
 - Rafforzata la boundary callable: expectedVersion del trasferimento deve essere un intero sicuro positivo prima di invocare il servizio. Allineati i test: l'actorUid client è rifiutato come campo extra; il test di derivazione identità usa payload privo di identità client.
 
 - La query di dipendenze placement per archiviazione reparto è ora tenant-scoped su accountId + departmentId; aggiunto indice composito collection-group dedicato, evitando scansioni di placement appartenenti ad altri account.
+
+- Aggiornato health metadata per distinguere le callable organizzative protette già implementate dalle API dati Employee ancora non esposte; uniformato il messaggio di errore interno generico per tutte le callable.

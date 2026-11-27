@@ -33,8 +33,10 @@ export const health = onCall(async () => ({
   status: "ok",
   mode: "isolated-scaffold",
   identityAndMembershipResolutionImplemented: true,
-  protectedDataApisImplemented: false,
-  authorizationImplemented: false,
+  organizationMutationCallablesImplemented: true,
+  organizationMutationAuthorizationImplemented: true,
+  protectedEmployeeDataApisImplemented: false,
+  employeeDomainAuthorizationImplemented: false,
   bootstrapImplemented: false,
   employeeProvisioningCallablesImplemented: true
 }));
