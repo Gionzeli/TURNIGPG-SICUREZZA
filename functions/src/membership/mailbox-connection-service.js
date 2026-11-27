@@ -18,6 +18,11 @@ function requireId(value, label) {
   if (typeof value !== "string" || !ID.test(value)) fail("invalid-argument", "Invalid " + label + ".");
   return value;
 }
+function secretRefMatchesScope(secretRef, accountId, connectionId) {
+  if (typeof secretRef !== "string" || secretRef.length > 512) return false;
+  const match = /^mailbox\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{16,128})$/.exec(secretRef);
+  return !!match && match[1] === accountId && match[2] === connectionId;
+}
 function normalizeSenders(values) {
   if (!Array.isArray(values) || values.length < 1 || values.length > 30) {
     fail("invalid-argument", "Between one and thirty approved sender addresses are required.");
@@ -92,19 +97,11 @@ export function createMailboxConnectionService({
       const secretRef = await storeSecret({
         accountId, connectionId, provider, secretMaterial: grant.secretMaterial
       });
-      if (typeof secretRef !== "string" || secretRef.length < 1 || secretRef.length > 512) {
-        // A vault may have stored the credential before returning a malformed
-        // reference. Attempt scoped cleanup when a non-empty reference exists;
-        // never persist it as connection metadata.
-        if (typeof secretRef === "string" && secretRef.length > 0) {
-          try {
-            // The retry worker requires a durable revocation gate even when
-            // connection metadata was never created for this malformed ref.
-            await disableRefresh({ accountId, connectionId });
-            await cleanupSecret({ accountId, connectionId, secretRef, reason: "invalid_secret_ref" });
-          } catch {}
-        }
-        fail("failed-precondition", "Credential vault did not return a valid secret reference; cleanup may require vault review.");
+      if (!secretRefMatchesScope(secretRef, accountId, connectionId)) {
+        // Do not enqueue or delete a malformed or cross-scope reference: the
+        // vault mapping cannot prove that it belongs to this connection.
+        // Any orphaned credential requires trusted vault-side reconciliation.
+        fail("failed-precondition", "Credential vault returned an invalid or mismatched secret reference; manual vault review is required.");
       }
       const timestamp = now();
       const connection = {
