@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-25 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-26 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -761,6 +761,31 @@ Approved policy in principle:
 
 **Still required before implementation:** define privileged role inventory and assurance requirements; select supported authenticators and fallback policy; configure MFA enforcement and step-up claims in the identity provider and backend; define session lifetime, revocation and reauthentication semantics; establish enrollment, recovery and emergency access procedures; define audit events and review ownership; and add synthetic tests for missing MFA, stale authentication, recovery abuse, session revocation and privilege escalation. No production MFA configuration, account enrollment or identity-provider change is authorized by this policy decision alone.
 
+### L-26 — Account recovery and credential reset
+
+**Question:** How should account recovery, password reset and replacement of lost authentication factors be handled?
+
+Possible choices:
+- **A. Self-service reset based only on control of the registered email address.**
+- **B. Risk-based recovery:** verify identity with independent evidence, use short-lived single-use recovery mechanisms, notify the account owner, revoke affected sessions and apply additional review or delay for privileged accounts.
+- **C. Manual administrator reset on request, without a standardized verification and audit workflow.**
+
+**Approved 2026-11-27 — option B (risk-based identity-verified recovery with single-use short-lived mechanisms, notification, session revocation and additional privileged-account safeguards), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat account recovery and factor replacement as security-sensitive authentication events, not ordinary profile edits or support conveniences.
+- Verify the claimant's identity using evidence independent of the recovery channel being replaced. Control of a mailbox, phone number, employee number, name or manager assertion alone must not be treated as sufficient proof for privileged-account recovery.
+- Use short-lived, single-use recovery tokens or codes with secure generation, storage, rate limits, attempt limits, expiry and replay prevention. Never disclose recovery secrets to support personnel or record their values in logs.
+- Notify the account owner through previously verified channels about recovery initiation, completion, factor replacement and relevant security changes; provide a safe way to report an unauthorized recovery attempt.
+- Revoke or invalidate existing sessions, refresh tokens, recovery codes and affected credentials as appropriate. Require fresh authentication and MFA enrollment before restoring privileged access.
+- Apply stronger identity proofing, independent review or a controlled delay to administrator, security, payroll, secret-management and other high-impact accounts. Recovery must not bypass MFA, separation of duties or approval requirements.
+- Prevent social engineering and account enumeration: responses and workflows must not reveal whether arbitrary identifiers correspond to active accounts.
+- Keep recovery roles narrowly scoped. Support personnel may assist with the workflow but must not unilaterally assert identity, obtain secret values, or grant themselves access to the recovered account.
+- Record recovery initiation, verification method class, approvals, factor changes, session revocation and outcome in protected audit records, minimizing personal data and excluding secrets.
+- If identity cannot be verified or evidence conflicts, fail closed and escalate to a documented independent review; do not create a duplicate account or rebind UID↔Employee as a recovery shortcut.
+
+**Still required before implementation:** define identity-proofing methods by account risk; approved recovery channels and factor replacement rules; recovery token format, storage, expiry and rate limits; independent approvers and waiting periods for privileged accounts; session/token revocation guarantees; notification and abuse-reporting workflow; support-agent permissions; and synthetic tests for enumeration, replay, social engineering, stale sessions and unauthorized privileged recovery. No production recovery workflow or identity-binding change is authorized by this policy decision alone.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -797,6 +822,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| L-15 Administrator access to employee data | Approved — option B least-privilege, duty-specific permissions with independent controls; implementation gated on role/action/scope mapping and tests |\n| L-16 Periodic and event-driven access reviews | Approved — option B scheduled and lifecycle-triggered reviews with prompt revocation; implementation gated on cadence, ownership, event and revocation controls and tests |\n| L-17 Security log integrity and protection | Approved — option B append-only protected logs with restricted access and integrity verification; implementation gated on storage, key, retention, access and test design |\n| L-18 Technical support access | Approved — option B minimized diagnostics by default; exceptional real-data access strictly necessary, authorized, time-limited and audited; implementation gated on roles, scope, workflow and tests |\n| L-19 Analytics, automation and AI tools | Approved — option B synthetic/anonymized by default; real data only with authorized purpose, minimization, provider/security review and audit; implementation gated |\n| L-20 Security incident response | Approved — option B documented response lifecycle; implementation gated on owners, severity, authority, evidence, notifications, recovery and exercises |\n| L-21 Business continuity and recovery | Approved — option B protected scheduled backups, separate copies, restore tests, RPO/RTO and integrity checks; implementation gated |\n| L-22 Environment separation and promotion | Approved — option B separate environments, credentials and data, least privilege and controlled promotion; implementation gated |\n| L-23 Software dependencies and supply-chain security | Approved — option B inventoried/versioned dependencies, controlled updates, vulnerability/provenance checks, lockfiles and review; implementation gated on inventory, tooling, thresholds, exceptions and CI controls |
 | L-24 Credential and secret management | Approved — option B dedicated secret manager, least privilege, rotation, expiry, audit and no secrets in code/logs; implementation gated on vault, key management, identity, lifecycle and test controls |
 | L-25 Strong authentication for privileged users | Approved — option B mandatory MFA, phishing-resistant methods preferred, bounded sessions and step-up verification; implementation gated on identity provider, recovery, session and test controls |
+| L-26 Account recovery and credential reset | Approved — option B risk-based identity-verified recovery, single-use short-lived mechanisms, notification, session revocation and privileged-account safeguards; implementation gated on identity proofing, workflow, revocation and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
