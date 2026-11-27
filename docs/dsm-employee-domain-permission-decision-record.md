@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-88 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-89 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2265,6 +2265,27 @@ Approved policy in principle:
 
 **Still required before implementation:** approved provider and use-case inventory; delegated-scope matrix; authorization-flow and redirect registration; consent UX and versioning; server-side token custody and rotation design; local actor/tenant binding; refresh/revocation behavior; lifecycle and incident runbooks; provider data minimization/retention contracts; audit taxonomy; and synthetic integration tests. This decision does not authorize a new external provider, live OAuth connection, external data transfer or production activation.
 
+### L-89 — Browser security policy, origin isolation and response headers
+
+**Question:** How should browser-facing applications constrain execution, embedding, resource loading and cross-origin interactions so that a compromised or misconfigured page cannot unnecessarily expose authenticated employee-domain sessions or data?
+
+**Approved 2026-11-27 — option B (strict, environment-specific browser security policy with monitored enforcement and compatibility testing), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Define and enforce a documented Content Security Policy for every browser application and environment. Start from restrictive directives, avoid unsafe-inline and unsafe-eval where feasible, use per-response nonces or hashes for required scripts/styles, and restrict script, connect, frame, object, base and form destinations to explicit allowlists.
+- Deploy policy changes in report-only mode for controlled assessment where appropriate, then enforce them with monitored violation reporting. Treat reports as untrusted input, minimize data in reports and prevent reporting endpoints from becoming an exfiltration or denial-of-service channel.
+- Prevent unauthorized framing with frame-ancestors and compatible anti-framing controls. Define an explicit trusted embedding model where embedding is genuinely required; do not allow wildcard origins or rely on client-side frame-busting.
+- Set appropriate response headers, including MIME-sniffing protection, a restrictive Referrer-Policy, a Permissions-Policy limited to required browser capabilities, and HSTS only where HTTPS coverage and domain/subdomain readiness have been verified.
+- Apply secure cookie attributes to session cookies: Secure, HttpOnly and an appropriate SameSite policy, with narrow Domain and Path scope. Do not treat cookie attributes as a substitute for CSRF protections or server-side authorization.
+- Keep CORS allowlists exact and environment-specific. Never reflect arbitrary Origin values, combine credentialed requests with wildcard origins, or treat CORS as an authorization boundary. Validate preflight and actual requests consistently.
+- Isolate untrusted or third-party content on separate origins where feasible, with sandboxed frames and minimal permissions. Do not serve user uploads, previews or active content from the authenticated application origin.
+- Use Subresource Integrity for eligible immutable third-party resources and pin or self-host critical dependencies where appropriate. Minimize third-party scripts on authenticated pages and review every script's data access and update path.
+- Evaluate Trusted Types and strict DOM sink controls where supported; prohibit unsafe HTML insertion patterns and require reviewed, context-safe rendering for untrusted data. Browser policy is defense in depth and does not replace output encoding, input validation or server authorization.
+- Separate development, test, staging and production origins and headers. Prevent permissive development settings, debug endpoints, source maps containing secrets or internal data, and test origins from being exposed in production.
+- Define a compatibility and exception process: each exception must identify the affected origin/directive, owner, justification, compensating control, expiry and review date. No permanent wildcard or silent weakening is allowed.
+- Test synthetic script injection, inline/eval regressions, unauthorized framing, MIME confusion, referrer leakage, credentialed cross-origin requests, malicious third-party scripts, upload-origin isolation, policy-report abuse and environment misconfiguration. Verify effective headers from deployed-like test environments rather than relying only on source configuration.
+
+**Still required before implementation:** origin and asset inventory; approved CSP baseline per application/environment; header and cookie configuration ownership; exact CORS and embedding requirements; reporting endpoint protections; third-party script inventory and integrity strategy; Trusted Types compatibility assessment; exception workflow; automated header and browser integration tests. This decision does not authorize production header changes, new third-party scripts, or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2353,6 +2374,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-86 Aggregate reporting, small-group disclosure and inference resistance | Approved — option B purpose-scoped aggregates, disclosure controls, query governance and server-enforced boundaries; implementation gated on cohort, suppression and test rules |
 | L-87 Device registration, endpoint trust and device-risk changes | Approved — option B risk-based supplemental device signals, explicit registration/revocation and no device-only authorization; implementation gated on platform, privacy and recovery controls |
 | L-88 Delegated authorization, OAuth consent and connected-account revocation | Approved — option B purpose-bound least-privilege grants, secure token custody and revocation lifecycle; implementation gated on provider, scope, consent and test contracts |
+| L-89 Browser security policy, origin isolation and response headers | Approved — option B restrictive environment-specific CSP, secure headers, origin/CORS controls and monitored enforcement; implementation gated on origin inventory, compatibility, exception process and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
