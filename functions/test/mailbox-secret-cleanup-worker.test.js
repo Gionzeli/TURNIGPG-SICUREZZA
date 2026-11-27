@@ -20,7 +20,8 @@ test("worker deletes secret and marks durable ticket complete", async () => {
     now: () => 1000
   });
   assert.deepEqual(await worker.runOnce({ accountId: "synthetic-account" }), { scanned: 1, completed: 1, deferred: 0, exhausted: 0 });
-  assert.equal(calls.length, 2);
+  assert.deepEqual(calls[0], { listed: { accountId: "synthetic-account", limit: 50 } });
+  assert.equal(calls.length, 3);
 });
 
 test("worker persists exponential retry delay and alerts at retry ceiling", async () => {
@@ -77,4 +78,24 @@ test("worker validates batch bounds and ignores malformed tickets", async () => 
   await assert.rejects(worker.runOnce({ accountId: "synthetic-account", limit: 101 }), error => error.code === "invalid-argument");
   await assert.rejects(worker.runOnce(), error => error.code === "invalid-argument");
   assert.deepEqual(await worker.runOnce({ accountId: "synthetic-account" }), { scanned: 1, completed: 0, deferred: 1, exhausted: 0 });
+});
+
+
+test("worker rejects cross-account tickets before calling the vault", async () => {
+  let revoked = 0;
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [
+        { ...ticket, accountId: "different-account" }
+      ],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => { revoked++; } },
+    alert: async () => {}, now: () => 1000
+  });
+  assert.deepEqual(await worker.runOnce({ accountId: "synthetic-account" }), {
+    scanned: 1, completed: 0, deferred: 1, exhausted: 0
+  });
+  assert.equal(revoked, 0);
 });
