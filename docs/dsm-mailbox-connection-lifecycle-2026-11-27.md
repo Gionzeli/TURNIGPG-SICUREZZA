@@ -131,3 +131,8 @@ The token lifecycle coordinator can now accept an injected `leaseService`: it ac
 ### Lease integrity and read-path refinement
 
 The coordinator now checks token expiry before acquiring a distributed lease. It acquires a lease only when refresh is needed, then reloads the secret under the lease and rechecks expiry so a token refreshed by another process is reused rather than refreshed again. The Firestore lease service rejects malformed persisted fencing/expiry fields, non-safe clock/expiry values, and exhausted fencing counters instead of silently resetting the fencing sequence. Renewal also rejects malformed expiry values. Regression tests use synthetic Firestore-shaped fixtures only; no emulator or live project was used.
+
+
+## Atomic lease fencing at secret-pointer commit
+
+The Google Secret Manager/Firestore CAS backend accepts an optional lease proof and, when supplied, reads the lease document in the same Firestore transaction as the secret pointer. The pointer advances only if both the expected secret version and the unexpired lease owner/fencing token still match. This closes the stale-owner window between a coordinator lease renewal and persistence. A losing writer can still leave an immutable, unreferenced Secret Manager version; cleanup remains a separate retention task. Synthetic tests only; no Firebase Emulator, cloud project, or live Secret Manager was used.
