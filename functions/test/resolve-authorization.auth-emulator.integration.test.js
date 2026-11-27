@@ -141,7 +141,13 @@ test("Auth + Functions + Firestore Emulators: callable enforces identity, select
     assert.equal(acceptedBody.result?.principal?.uid, uid);
     assert.equal(acceptedBody.result?.principal?.accountId, accountId);
     assert.equal(acceptedBody.result?.principal?.role, "member");
-    assert.deepEqual(acceptedBody.result?.principal?.permissions, ["dsm:read:own-scope"]);
+    assert.deepEqual(acceptedBody.result?.principal?.permissions, [
+    "dsm:read:own-scope",
+    "dsm:employee:shift:read:self",
+    "dsm:employee:shift:create:self",
+    "dsm:employee:shift:update:self",
+    "dsm:employee:shift:delete:self"
+  ]);
 
     await auth.updateUser(uid, { disabled: true });
     const disabledUser = await callAuthorization();
