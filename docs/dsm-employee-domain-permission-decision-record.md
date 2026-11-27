@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-117 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-118 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2938,6 +2938,26 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory streaming routes and intermediaries; define per-event authorization, revalidation and revocation latency requirements; implement bounded stream and queue lifecycles; establish safe reconnect semantics and non-cacheable delivery; and provide reproducible synthetic tests for mid-stream revocation, stale event suppression and cross-scope isolation. No production streaming or proxy configuration change is authorized by this decision.
 
+### L-118 — Password verifier storage, password hashing and credential migration
+
+**Question:** How should password-based credential verifiers be derived, stored, upgraded and retired so that database exposure or legacy credential migration does not enable offline cracking or unsafe account takeover?
+
+**Decision:** Approved — option B, use modern, deliberately expensive password hashing with per-credential salts, protected pepper management where supported, controlled parameter upgrades and verified migration; never store plaintext or reversibly encrypted passwords. This is a policy decision only.
+
+**Required controls:**
+- Store only password verifiers produced by a currently approved password-hashing scheme designed for passwords (prefer Argon2id; use an explicitly reviewed alternative such as scrypt or appropriately configured bcrypt where platform constraints require it). Do not use fast general-purpose hashes such as plain SHA-256/SHA-1/MD5, unsalted hashes, or custom cryptographic constructions.
+- Generate a unique, cryptographically random salt for every credential using the platform CSPRNG. Store the salt and algorithm/parameter metadata with the verifier; salts are not secrets and must never be reused across accounts.
+- Select and periodically review memory, time and parallelism parameters against supported production-class hardware and denial-of-service limits. Benchmark safely; enforce bounded concurrent verification and request throttling so expensive hashing cannot become an exhaustion vector.
+- Where a pepper is adopted, keep it separate from the credential database in an approved secret/key-management service, restrict access to the verification workload, version it, and define rotation and compromise recovery. Never embed pepper values in source, client bundles, logs, fixtures or database rows.
+- Compare verifiers using vetted library APIs and constant-time verification where applicable. Avoid custom comparison, error paths or response timing that disclose account existence or verifier details.
+- Never log, export, cache or persist plaintext passwords, reset secrets, submitted credentials, full verifier material or pepper values in telemetry, analytics, crash reports, support bundles or audit records. Keep credential access narrowly scoped and auditable.
+- Treat password changes, resets and migration as distinct authenticated workflows. Require the approved identity-proofing and factor lifecycle controls; invalidate affected sessions and credentials as specified by the session/recovery policies.
+- Upgrade hashing algorithms and parameters through a controlled rehash-on-success or verified reset process. Preserve account binding and audit provenance; handle concurrent logins and password changes atomically so stale verifiers cannot overwrite newer credentials.
+- Do not bulk-import plaintext passwords or silently convert legacy LocalStorage credentials. Legacy formats must be inventoried, classified and migrated only through a separately approved, identity-verified process; if safe verification or provenance cannot be established, require a controlled credential reset rather than guessing or auto-binding accounts.
+- Use synthetic credentials and isolated Emulator/test environments. Include tests for unique salts, approved parameters, legacy weak hashes, pepper unavailability/rotation, concurrent updates, rate limits, generic failure responses, log redaction and session invalidation.
+
+**Implementation gates:** Inventory the actual authentication providers and credential stores; select vetted libraries and approved algorithm parameters; define pepper ownership and rotation if used; specify legacy credential disposition and user-verification requirements; benchmark resource limits; implement protected verifier access and redaction; and produce reproducible synthetic tests and independent review evidence. No production password-store, identity-provider, secret-manager or account migration change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3055,6 +3075,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-115 API media-type enforcement, content negotiation and parser consistency | Approved — option B endpoint media-type allowlists, strict unified parsing and bounded processing; implementation gated on parser inventory and differential tests |
 | L-116 WebSocket upgrade handshake, origin validation and subprotocol security | Approved — option B validated upgrades, trusted-origin and subprotocol allowlists, and ongoing server-side authorization; implementation gated on handshake and revocation tests |
 | L-117 Server-Sent Events, streaming response authorization and connection lifecycle | Approved — option B per-event scope enforcement, bounded streams and prompt revocation; implementation gated on queue, reconnect and mid-stream revocation tests |
+| L-118 Password verifier storage, password hashing and credential migration | Approved — option B modern salted password hashing, protected optional pepper, controlled upgrades and verified legacy migration; implementation gated on provider inventory and synthetic tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
