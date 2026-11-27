@@ -587,3 +587,16 @@ fails closed: if a vault stored material but returned an untrusted reference,
 reconciliation must occur through trusted vault-side tooling rather than
 risk deleting another connection's credential. Synthetic tests cover oversized
 references and a syntactically valid reference scoped to a different connection.
+
+
+#### Firestore-side credential reference enforcement
+
+The Admin-SDK metadata and cleanup-outbox adapters independently enforce the
+same scoped reference format, rather than relying solely on the connection
+service. Active and revocation-pending connection metadata must carry a
+`mailbox/{accountId}/{connectionId}/{opaqueId}` reference whose embedded
+scope matches the document path. Cleanup ticket creation, retry updates, and
+ticket reads apply the same check. This prevents malformed or cross-connection
+references from entering the durable deletion queue through another trusted
+server call path. Regression tests cover cross-scope metadata and cleanup
+tickets, plus malformed references.
