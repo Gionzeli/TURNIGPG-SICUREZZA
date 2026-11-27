@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-23 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-24 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -712,6 +712,31 @@ Approved policy in principle:
 
 **Still required before implementation:** define the dependency inventory format and ownership; approved registries and provenance/signature verification; vulnerability sources, severity thresholds and remediation SLAs; exception and end-of-life policy; lockfile and update automation; CI checks and review requirements; artifact attestation and retention; and synthetic tests for the build pipeline. No production dependency update, pipeline change or deployment is authorized by this policy decision alone.
 
+### L-24 — Credential and secret management
+
+**Question:** How should technical passwords, API keys, tokens, certificates and signing keys be stored and controlled?
+
+Possible choices:
+- **A. Configuration files:** store secrets in project configuration files, including private repositories.
+- **B. Dedicated secret management:** use a dedicated secret manager with least-privilege access, rotation, expiry, audit and prohibition on committing secrets or writing them to logs.
+- **C. Shared documents/messages:** distribute secrets among administrators through internal documents or messages.
+
+**Approved 2026-11-27 — option B (dedicated secret manager, least-privilege access, rotation, expiry, audit and no secrets in code or logs), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Store secrets in an approved secret manager or equivalent managed vault, not in source code, repositories, ordinary configuration files, tickets, chat messages, shared documents or build artifacts.
+- Use separate secrets, identities and access policies for development, test, staging and production. Non-production workloads and personnel must not inherit production secret access.
+- Grant access only to named users and workload identities with a documented operational need. Prefer short-lived credentials, workload identity and just-in-time access where supported; prohibit shared human accounts and embedded long-lived credentials.
+- Require strong authentication and audit for privileged secret access. Log secret metadata and access outcomes without recording secret values. Restrict and review secret-manager administration separately from application and repository administration.
+- Define rotation, expiry, revocation and replacement procedures for each secret class. Rotate promptly after suspected exposure, personnel/role changes, provider incidents or other defined triggers; verify dependent services have safely adopted replacements.
+- Protect encryption and signing keys with separately controlled key-management facilities, documented ownership, backup/recovery, rotation and separation of duties. Key export and recovery must be tightly restricted and audited.
+- Prevent secrets from entering logs, telemetry, crash reports, test fixtures, screenshots, support bundles, generated documentation and client-side bundles. Apply redaction and scanning controls, while treating detection as a backstop rather than permission to commit secrets.
+- Use synthetic credentials in tests and emulators. Never copy production secrets into lower environments or developer workstations without a separately authorized, documented exception and equivalent safeguards.
+- If a secret is exposed, treat it as compromised: revoke or rotate it, assess access and downstream impact, preserve relevant evidence and follow the incident-response procedure.
+- Document secret inventory, owner, purpose, environment, consumers, privilege scope, creation and expiry dates, rotation policy and revocation procedure without recording secret values.
+
+**Still required before implementation:** select the approved secret manager and key-management service; define secret classes, owners and inventory; configure per-environment workload identities and access policies; establish rotation/expiry SLAs, emergency revocation and recovery; implement repository and CI secret scanning, log redaction and client-bundle checks; define audit retention and independent access review; and add synthetic tests proving unauthorized identities cannot retrieve secrets across environments. No production secret provisioning, key creation or credential rotation is authorized by this policy decision alone.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -746,6 +771,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-11 Data deletion and retention | Approved — option B tracked request, retention review, permitted deletion/anonymization and recorded outcome; implementation gated on retention rules, scope and tests |
 | L-12 Employee access during a dispute | Approved — option B tracked access to relevant records with third-party/restricted-content redaction; implementation gated on scope, disclosure workflow and tests |
 | L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| L-15 Administrator access to employee data | Approved — option B least-privilege, duty-specific permissions with independent controls; implementation gated on role/action/scope mapping and tests |\n| L-16 Periodic and event-driven access reviews | Approved — option B scheduled and lifecycle-triggered reviews with prompt revocation; implementation gated on cadence, ownership, event and revocation controls and tests |\n| L-17 Security log integrity and protection | Approved — option B append-only protected logs with restricted access and integrity verification; implementation gated on storage, key, retention, access and test design |\n| L-18 Technical support access | Approved — option B minimized diagnostics by default; exceptional real-data access strictly necessary, authorized, time-limited and audited; implementation gated on roles, scope, workflow and tests |\n| L-19 Analytics, automation and AI tools | Approved — option B synthetic/anonymized by default; real data only with authorized purpose, minimization, provider/security review and audit; implementation gated |\n| L-20 Security incident response | Approved — option B documented response lifecycle; implementation gated on owners, severity, authority, evidence, notifications, recovery and exercises |\n| L-21 Business continuity and recovery | Approved — option B protected scheduled backups, separate copies, restore tests, RPO/RTO and integrity checks; implementation gated |\n| L-22 Environment separation and promotion | Approved — option B separate environments, credentials and data, least privilege and controlled promotion; implementation gated |\n| L-23 Software dependencies and supply-chain security | Approved — option B inventoried/versioned dependencies, controlled updates, vulnerability/provenance checks, lockfiles and review; implementation gated on inventory, tooling, thresholds, exceptions and CI controls |
+| L-24 Credential and secret management | Approved — option B dedicated secret manager, least privilege, rotation, expiry, audit and no secrets in code/logs; implementation gated on vault, key management, identity, lifecycle and test controls |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
