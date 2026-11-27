@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-90 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-91 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2307,6 +2307,27 @@ Approved policy in principle:
 
 **Still required before implementation:** supported WebAuthn platform/browser matrix; RP ID and origin inventory per environment; user-verification and authenticator assurance policy; registration/replacement/revocation workflow; recovery and fallback rules; session invalidation contract; minimal credential metadata and retention; audit taxonomy; and synthetic Emulator/browser integration tests. This decision does not authorize mandatory passkey enrollment, removal of existing recovery protections, or production authentication changes.
 
+### L-91 — Secrets exposure prevention and credential leak response
+
+**Question:** How should the system prevent accidental exposure of credentials and sensitive configuration through source code, builds, client bundles, logs, artifacts and developer workflows, and how should suspected exposure be contained and remediated?
+
+**Approved 2026-11-27 — option B (preventive secret scanning, controlled access and rapid revoke-and-rotate response), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Maintain an authoritative inventory of secret classes, owners, approved storage locations, environments, workloads, expiry and rotation requirements. Classify credentials by privilege and blast radius; prohibit undocumented shared or personal credentials for production services.
+- Keep secrets out of source code, commits, branches, pull requests, issue text, documentation, fixtures, test snapshots, client bundles, source maps, build logs, crash reports, telemetry and generated artifacts. Public or browser-delivered code must contain no reusable privileged secret, regardless of obfuscation.
+- Use managed secret storage or an approved equivalent with workload identity, least-privilege retrieval, environment separation, access audit and short-lived credentials where supported. Restrict who and what can read secret values; avoid broad environment dumps and interactive disclosure.
+- Run secret detection before commit and in protected CI checks, including historical and generated-file scanning where feasible. Use maintained detectors and provider-specific verification without transmitting secret values to unapproved external services. A scan result must be triaged; false-positive suppression requires review, narrow fingerprints and expiry.
+- Prevent secrets from entering logs and diagnostics by design. Apply structured redaction to headers, URLs, exception data, request bodies and command output; never log authorization headers, cookies, refresh tokens, private keys, passwords or full credential-bearing connection strings.
+- Scope CI/CD credentials to a single repository, environment and operation. Prefer federated short-lived workload credentials over long-lived static tokens; isolate untrusted pull-request execution from privileged secrets and require protected approvals for release credentials.
+- Establish an exposure response that treats a committed or published secret as compromised even if the repository is private or the commit is later removed. Immediately identify the credential owner, privilege, affected environments and dependent systems; revoke or disable the exposed credential, rotate replacements, invalidate derived sessions and inspect relevant access logs.
+- Remove exposed values from active branches, artifacts and distribution channels where feasible, but never treat history rewriting or deletion as a substitute for revocation and rotation. Assess forks, caches, CI logs, package registries, backups and downstream copies; notify affected owners and stakeholders according to the incident process.
+- Ensure replacement credentials are provisioned through approved secret storage and verified against the intended service and environment. Avoid reusing the exposed value or copying it into chat, tickets or remediation reports.
+- Define emergency access and rotation procedures for signing keys, encryption keys, identity providers, Firebase/service accounts and other high-impact credentials, coordinating dependent services to avoid unsafe partial rotation. Preserve availability without retaining compromised credentials as fallback.
+- Audit secret reads, policy exceptions, scanner suppressions, revocation and rotation events with minimized metadata. Restrict incident evidence; store only redacted fingerprints and references, never the exposed secret itself.
+- Test synthetic seeded credentials across source, history, client build output, source maps, CI logs, test fixtures and artifact stores; verify detection, blocking, redaction, revocation, rotation, session invalidation and exception expiry without using real credentials.
+
+**Still required before implementation:** secret inventory and ownership; approved secret manager and workload identity model; scanning tools and blocking thresholds; CI trust boundaries; redaction rules; false-positive exception process; provider-specific emergency revoke/rotate runbooks; artifact and history exposure assessment; audit taxonomy; and synthetic end-to-end leak-response tests. This decision does not authorize creating, revealing, rotating or using any real production secret.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2397,6 +2418,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-88 Delegated authorization, OAuth consent and connected-account revocation | Approved — option B purpose-bound least-privilege grants, secure token custody and revocation lifecycle; implementation gated on provider, scope, consent and test contracts |
 | L-89 Browser security policy, origin isolation and response headers | Approved — option B restrictive environment-specific CSP, secure headers, origin/CORS controls and monitored enforcement; implementation gated on origin inventory, compatibility, exception process and tests |
 | L-90 Passkeys, WebAuthn credential binding and phishing-resistant authentication | Approved — option B origin-bound WebAuthn, verified enrollment, credential lifecycle and controlled recovery; implementation gated on origin matrix, assurance policy, fallback and tests |
+| L-91 Secrets exposure prevention and credential leak response | Approved — option B preventive scanning, least-privilege secret custody and rapid revocation/rotation; implementation gated on inventory, CI boundaries, response runbooks and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
