@@ -16,7 +16,7 @@ test('returns current token when expiry is outside refresh skew', async () => {
 test('refreshes expired token and retains refresh token if provider omits rotation', async () => {
  let stored;
  const coordinator = createMailboxTokenLifecycleCoordinator({
-  vault: { loadSecret: async () => expired, storeSecret: async ({secretRef,secretMaterial}) => { stored={secretRef,secretMaterial}; } },
+  vault: { loadSecret: async () => expired, storeSecret: async ({secretRef,secretMaterial,expectedVersion}) => { stored={secretRef,secretMaterial,expectedVersion}; } },
   refreshService: { refresh: async () => ({ accessToken:'synthetic-new-access-token', refreshToken:null, expiresInSeconds:3600, scope:'Mail.Read' }) },
   now: () => 10000
  });
