@@ -1,0 +1,64 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createMailboxTokenFirestoreLeaseService } from '../src/membership/mailbox-token-firestore-lease-service.js';
+
+function fixture() {
+  let record=null, clock=10_000, owner=0, queue=Promise.resolve();
+  const ref={get:async()=>({exists:record!==null,data:()=>record||{}})};
+  const firestore={runTransaction:async callback=>{
+    const run=queue.then(async()=>{
+      const pending=[];
+      const tx={
+        get:async target=>target.get(),
+        create:(_ref,value)=>pending.push(['create',value]),
+        update:(_ref,value)=>pending.push(['update',value])
+      };
+      const result=await callback(tx);
+      for(const [kind,value] of pending) record=kind==='create'?{...value}:{...record,...value};
+      return result;
+    });
+    queue=run.catch(()=>{});
+    return run;
+  }};
+  const service=createMailboxTokenFirestoreLeaseService({
+    firestore,leaseRefForConnection:()=>ref,now:()=>clock,
+    createOwnerId:()=>('owner_identifier_'+(++owner))
+  });
+  return {service,advance:ms=>{clock+=ms;},get record(){return record;}};
+}
+
+const scope={accountId:'account_1',connectionId:'connection_1'};
+test('only one active owner acquires a mailbox lease; fencing increases after expiry',async()=>{
+ const f=fixture();
+ const first=await f.service.acquire({...scope,ttlMs:5000});
+ await assert.rejects(()=>f.service.acquire({...scope,ttlMs:5000}),{code:'lease-held'});
+ f.advance(5001);
+ const second=await f.service.acquire({...scope,ttlMs:5000});
+ assert.equal(second.fencingToken,first.fencingToken+1);
+ assert.equal(await f.service.release({...scope,lease:first}),false);
+ assert.equal(f.record.ownerId,second.ownerId);
+});
+
+test('renews only the current unexpired fencing token',async()=>{
+ const f=fixture();
+ const lease=await f.service.acquire({...scope,ttlMs:5000});
+ f.advance(1000);
+ const renewed=await f.service.renew({...scope,lease,ttlMs:7000});
+ assert.equal(renewed.expiresAt,18000);
+ assert.equal(f.record.expiresAt,18000);
+ await assert.rejects(()=>f.service.renew({...scope,lease:{...lease,fencingToken:99}}),{code:'lease-lost'});
+});
+
+test('release is owner- and fencing-token-scoped',async()=>{
+ const f=fixture();
+ const lease=await f.service.acquire({...scope});
+ assert.equal(await f.service.release({...scope,lease:{...lease,ownerId:'another_owner_identifier'}}),false);
+ assert.equal(await f.service.release({...scope,lease}),true);
+ assert.equal(f.record.ownerId,null);
+});
+
+test('validates scope and bounded lease duration',async()=>{
+ const f=fixture();
+ await assert.rejects(()=>f.service.acquire({accountId:'../bad',connectionId:'conn'}),{code:'invalid-argument'});
+ await assert.rejects(()=>f.service.acquire({...scope,ttlMs:999999}),{code:'invalid-argument'});
+});
