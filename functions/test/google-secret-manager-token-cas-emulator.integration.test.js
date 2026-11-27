@@ -116,6 +116,25 @@ test('Firestore Emulator atomically fences stale mailbox lease owners at pointer
       leaseProof: { ownerId: 'expired_owner_identifier', fencingToken: 3 }
     }), { code: 'conflict' });
     assert.equal((await pointerRef.get()).data().version, '2');
+
+    await leaseRef.update({
+      ownerId: 'revocation_owner_identifier',
+      fencingToken: 4,
+      acquiredAt: Date.now(),
+      expiresAt: Date.now() + 60_000,
+      revocationPending: true
+    });
+    await assert.rejects(() => backend.replaceSecret({
+      secretRef,
+      payload: {
+        accessToken: 'synthetic-revoked-access-token',
+        refreshToken: 'synthetic-revoked-refresh-token',
+        expiresAt: Date.now() + 180_000
+      },
+      expectedVersion: '2',
+      leaseProof: { ownerId: 'revocation_owner_identifier', fencingToken: 4 }
+    }), { code: 'conflict' });
+    assert.equal((await pointerRef.get()).data().version, '2');
   } finally {
     await Promise.all([pointerRef.delete(), leaseRef.delete()]);
     await deleteApp(app);
