@@ -122,7 +122,16 @@ Required safeguards regardless of choice:
 - Expected revision and server-generated audit are required for mutations.
 - No client-provided owner, site, department, role or permission is authoritative.
 
-**Unapproved:** manager eligibility, site versus department scope, and action permissions.
+**Approved 2026-11-27 — option B (team shift visibility plus proposed changes requiring approval), by explicit user confirmation in the project conversation.**
+
+Approved workflow in principle:
+- A manager may view the team schedule projection only within a separately authorized organizational scope.
+- A manager may submit a proposed shift change; the proposal does not mutate the canonical shift.
+- A distinct authorized approver must approve or reject the proposal before any canonical change is applied.
+- Approval/rejection and the resulting mutation must be server-authorized and audited; mutations require expected revision and conflict handling.
+- No self-approval of one's own proposal.
+
+**Still required before implementation:** define eligible manager and approver roles, site/department scope, permitted change types and fields, approval quorum/independence, notification and expiry behavior, and the canonical schedule fields. The target employee's placement and scope must be checked for the shift date. No direct manager create/update/cancel endpoint is authorized by this decision; no client-provided owner, site, department, role, or permission is trusted. Unknown or unmapped fields remain denied.
 
 ### D-05 — Absence visibility
 
@@ -214,7 +223,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | D-01 Own ordinary profile | Approved — option B self-read; implementation gated on schema field mapping |
 | D-02 Own compensation | Approved — option B limited self-read; implementation gated on schema mapping |
 | D-03 Manager/team profile | Approved — option B minimal roster; implementation gated on role/scope and schema mapping |
-| D-04 Manager/team shifts | Open — no new delegated access |
+| D-04 Manager/team shifts | Approved — option B proposed changes with separate approval; implementation gated on roles/scope/workflow |
 | D-05 Manager absence visibility | Open — deny new endpoint; no health details |
 | D-06 Audit read | Open — server-only |
 | D-07 Export/report | Open — disabled |
