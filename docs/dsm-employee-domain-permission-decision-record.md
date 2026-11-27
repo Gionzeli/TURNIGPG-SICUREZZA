@@ -230,14 +230,28 @@ These controls are required for any future approval; they do not by themselves a
 11. Test allow and deny paths with synthetic identities in emulators.
 12. Keep protected Firestore client access denied unless separately reviewed Rules and emulator tests are approved.
 
-## 4. Lifecycle and historical access decisions still required
+## 4. Lifecycle and historical access decisions
 
-Before operational use, separately define behavior for:
-- employee transfer between departments or sites;
+### L-01 — Manager access after an employee transfer
+
+**Question:** What access do managers at the previous site/department retain after an employee transfer?
+
+**Approved 2026-11-27 — option B (historical operational access limited to the period of prior assignment), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- After the effective transfer date, managers of the previous site/department do not receive access to the employee's current or future operational records through their former scope.
+- They may retain read access only to operational historical records within domains already separately authorized, and only for the period during which the employee was canonically assigned to that site/department.
+- The historical assignment interval must be derived from backend-owned canonical placement history, not client-supplied dates or current roster membership.
+- This does not expand the approved field allowlists or grant access to compensation, health/absence reasons, restricted personal data, exports, or records outside the former manager's scope.
+- Every historical query must enforce the assignment interval and domain-specific permission server-side; ambiguous or missing placement history fails closed.
+
+**Still required before implementation:** define canonical transfer effective-time semantics and timezone, treatment of shifts/records spanning the transfer boundary, retention and correction of placement history, and negative tests proving the previous manager cannot read post-transfer records. This policy does not authorize historical access for other lifecycle events.
+
+Other lifecycle decisions remain open and fail closed:
 - leave, suspension, termination and reactivation;
 - account/site/department archive and restoration;
 - binding revocation, reassignment and duplicate/conflicting bindings;
-- access to historical shifts, absences, profiles and payroll after a transfer or termination;
+- access to historical shifts, absences, profiles and payroll after termination or other lifecycle changes;
 - audit retention, legal holds, deletion and export.
 
 No new status vocabulary or lifecycle transition is introduced by this record.
@@ -255,7 +269,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | D-05 Manager absence visibility | Approved — option B minimal availability, dates and request status; implementation gated on roles/scope/schema |
 | D-06 Audit read | Approved — option B scoped, minimized manager event visibility; implementation gated on roles/scope/event taxonomy/retention |
 | D-07 Export/report | Approved — option B narrow per-domain exports in principle; no endpoint until per-export details and review are approved |
-| Lifecycle and historical access | Open — fail closed |
+| L-01 Transfer and prior-manager historical access | Approved — option B limited to operational records within former assignment interval; implementation gated on temporal semantics and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
