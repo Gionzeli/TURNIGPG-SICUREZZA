@@ -83,7 +83,13 @@ export function createMailboxConnectionService({
         accountId, connectionId, provider, secretMaterial: grant.secretMaterial
       });
       if (typeof secretRef !== "string" || secretRef.length < 1 || secretRef.length > 512) {
-        fail("failed-precondition", "Credential vault did not return a valid secret reference.");
+        // A vault may have stored the credential before returning a malformed
+        // reference. Attempt scoped cleanup when a non-empty reference exists;
+        // never persist it as connection metadata.
+        if (typeof secretRef === "string" && secretRef.length > 0) {
+          try { await revokeSecret({ secretRef, accountId, connectionId }); } catch {}
+        }
+        fail("failed-precondition", "Credential vault did not return a valid secret reference; cleanup may require vault review.");
       }
       const timestamp = now();
       const connection = {
