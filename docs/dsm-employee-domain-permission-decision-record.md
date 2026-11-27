@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-40 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-41 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1112,6 +1112,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define supported TLS/platform baselines, endpoint and origin inventories, token/session transport architecture, cookie/CSRF requirements, outbound destination policy, redaction rules and automated tests. This policy does not certify current transport configuration, authorize a real provider connection, merge, deploy or production activation.
 
+### L-41 — Web application and API abuse protection
+
+**Question:** What baseline protections should apply to web interfaces and APIs against injection, cross-site attacks and abusive request patterns?
+
+Possible choices:
+- **A. Framework defaults:** rely on framework protections and validate only selected inputs.
+- **B. Defense in depth:** validate and encode at trust boundaries, enforce server-side authorization and request controls, apply browser security protections, and test abuse cases.
+- **C. Broad blocking:** reject most dynamic inputs and cross-origin interactions regardless of business need.
+
+**Approved 2026-11-27 — option B (defense-in-depth web and API abuse protection), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Validate all untrusted input server-side against explicit schemas, types, lengths, formats and allowlists; use parameterized queries and context-appropriate output encoding to prevent injection.
+- Enforce authentication, canonical ownership, role/action/field permissions and organizational scope on every API request; never rely on UI visibility, client filters, CORS or client-supplied identity as authorization.
+- Apply CSRF protections to cookie-authenticated state-changing requests, secure cookie attributes, and strict origin validation where applicable; use appropriate CSP and browser security headers to reduce script injection and framing risks.
+- Prevent SSRF by validating and restricting server-side outbound destinations, blocking internal/metadata address ranges and unsafe redirects, and revalidating resolved destinations as appropriate.
+- Bound request size, pagination, execution time and concurrency; apply risk-based rate limits and abuse detection without creating unsafe account-lockout behavior.
+- Use safe error responses and avoid leaking stack traces, secrets, tokens, internal paths or sensitive record details; log security-relevant outcomes with minimized protected audit.
+- Separate public and privileged API surfaces, use explicit method/content-type expectations, reject unexpected fields and methods, and make state-changing operations idempotent or concurrency-safe where appropriate.
+- Test injection, XSS, CSRF, SSRF, IDOR/BOLA, cross-scope access, mass assignment, oversized payloads, abusive request rates and authorization bypass with synthetic identities and isolated Emulator/test environments.
+
+**Still required before implementation:** inventory API routes and trust boundaries; define input/output schemas, CSP and security headers, CSRF/session architecture, outbound destination policy, request/rate limits, monitoring thresholds and negative test coverage. This policy does not claim current defenses are implemented or tests passed, and does not authorize production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1159,7 +1182,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
 | L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
 | L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
-| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| Other lifecycle and historical access | Open — fail closed |
+| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| L-41 Web application and API abuse protection | Approved — option B defense-in-depth validation, authorization, browser protections, outbound controls and abuse limits; implementation gated on route inventory, policies, monitoring and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
