@@ -84,7 +84,9 @@ function allowedTransition(before, after) {
       (after.status === "revoked" && before.credentialSecretRef !== null &&
         after.credentialSecretRef === null);
   }
-  return after.status === "revoked";
+  // Revoked is terminal. A stale concurrent finalization is handled as
+  // an idempotent no-op by saveConnection; no later write may rewrite it.
+  return false;
 }
 
 /**
@@ -104,6 +106,13 @@ export function createMailboxConnectionFirestoreAdapters(db) {
       await db.runTransaction(async tx => {
         const snapshot = await tx.get(ref);
         const previous = snapshot.exists ? snapshot.data() : null;
+        if (previous?.status === "revoked" && connection.status === "revoked" &&
+            sameImmutableFields(previous, connection) &&
+            previous.credentialSecretRef === null && connection.credentialSecretRef === null) {
+          // A concurrent retry may have loaded revocation_pending before
+          // another request committed revoked. Preserve the first final state.
+          return;
+        }
         if (!allowedTransition(previous, connection)) {
           const error = new Error("Mailbox connection state transition is not permitted.");
           error.code = "failed-precondition";
