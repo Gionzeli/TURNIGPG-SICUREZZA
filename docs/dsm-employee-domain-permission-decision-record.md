@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-98 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-99 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2488,6 +2488,28 @@ Approved policy in principle:
 
 **Implementation gates:** Maintain a document-format and processing inventory; document the trust boundary and sandbox configuration; define authorization and cache contracts for originals and derivatives; select and harden parsers/converters; establish quarantine, retention, and incident procedures; and provide reproducible negative tests. No production document-processing service, storage rule, or viewer change is authorized by this decision.
 
+### L-99 — Secure printing, print queues and physical document handling
+
+**Question:** How must printing and physical handling of employee-related documents be controlled so that an authorized on-screen view cannot silently become an uncontrolled paper or printer-spool disclosure?
+
+**Decision:** Approved — option B, treat printing as a separate, explicitly authorized disclosure channel with least-privilege scope, minimized output, controlled delivery, and auditable lifecycle. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Disable printing by default for sensitive domains and document classes; enable it only through a separately defined permission tied to purpose, actor, tenant, record scope, fields, and an approved business workflow.
+- Reauthorize at print-job creation and release time; a previously opened document, cached preview, browser session, or possession of a print URL does not confer print permission.
+- Generate print-ready output server-side from an allowlisted, minimized DTO and approved template; never trust client-supplied fields, hidden UI elements, or browser-side redaction as a disclosure boundary.
+- Require preview and explicit confirmation of recipient, destination, document class, and page range before submission; prevent accidental bulk printing and enforce quotas and bounded job sizes.
+- Use managed printers and authenticated release/pull-print where available; avoid unattended output trays, shared queues, and unapproved personal or public printers for restricted information.
+- Protect spool files and temporary render artifacts with access controls, encryption where supported, short retention, and verified deletion; prevent cross-user and cross-tenant queue access.
+- Prevent sensitive data leakage through printer names, job titles, filenames, thumbnails, notification banners, operating-system print history, and third-party print-management services.
+- Define controls for failed, duplicated, cancelled, abandoned, and reprinted jobs; ensure retries are idempotent or explicitly confirmed and never silently create extra copies.
+- Apply physical handling rules: collect output promptly, verify recipient identity, use secure transport and storage, restrict copying/scanning, and provide approved confidential disposal.
+- Record minimized audit evidence for authorization, purpose, scope, template/version, job outcome, release identity, and disposal where verifiable; do not place document contents in audit records.
+- Establish incident response for misdirected, lost, abandoned, or improperly disposed printouts, including containment, reporting, impact assessment, and retention of necessary evidence.
+- Test unauthorized print attempts, stale permissions, cross-tenant queue access, spool exposure, retry duplication, partial failures, and lifecycle revocation using synthetic documents and isolated printers or emulators.
+
+**Implementation gates:** Define document-class and print-permission matrices; inventory browser, OS, printer, spooler, and external print-provider paths; specify release authentication, job lifecycle, quotas, retention, physical handling and audit schemas; and implement reproducible negative tests. No production printer, print provider, or physical document workflow is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2586,6 +2608,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-96 Third-party scripts, tag governance and client-side dependency execution | Approved — option B deny-by-default execution, reviewed providers, strict isolation and integrity controls; implementation gated on inventory, CSP, data-flow review and tests |
 | L-97 API schema evolution, compatibility and contract integrity | Approved — option B explicit versioned contracts, strict validation and fail-closed retirement; implementation gated on schema registry, migration plan and mixed-version tests |
 | L-98 Safe document preview, rendering and active-content isolation | Approved — option B isolated rendering, format allowlists, bounded processing and per-request authorization; implementation gated on sandbox, parser inventory, lifecycle and tests |
+| L-99 Secure printing, print queues and physical document handling | Approved — option B separate print authorization, minimized output, controlled release and auditable lifecycle; implementation gated on printer inventory, job controls and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
