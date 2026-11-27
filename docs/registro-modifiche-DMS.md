@@ -524,3 +524,7 @@ Aggiunto servizio interno per creare site e department con ID Firestore auto-gen
 - Corretto il test audit Firestore per riconoscere il tipo Timestamp restituito dall'SDK (con `toDate()`), oltre agli oggetti Date in memoria. Nessuna modifica al contratto audit.
 
 - Il callable `resolveAuthorization` ora rilegge anche il documento account canonico e ne richiede ID, schemaVersion, version e status active. Il test Auth/Functions/Firestore Emulator verifica account archiviato e membership multi-account dello stesso UID.
+
+## 2026-11-27 — Callable organizzative con identità verificata
+
+Collegati cinque endpoint callable per creazione sede/reparto, archiviazione sede/reparto e trasferimento reparto. Ogni handler verifica il bearer ID token con controllo revoca, deriva actorUid esclusivamente dalle claims verificate, rifiuta campi client non ammessi e passa ai servizi transazionali soltanto i selettori/parametri di dominio. I servizi ricaricano account, membership effective-dated, scope e dipendenze dentro la transazione; il trasferimento usa la policy canonica su entrambe le sedi. Aggiunti test unitari della boundary per token mancante/revocato, actor spoofing, campi extra e validazione input. Gli endpoint sono nel codice Functions ma restano non deployati; Rules, migrazioni, bootstrap admin e dati reali restano esclusi.

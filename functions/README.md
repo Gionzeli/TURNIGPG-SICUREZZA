@@ -160,3 +160,9 @@ Do not deploy or connect this scaffold to an existing Firebase project.
 - These are internal service primitives, not callable exports. No account archive, production wiring, Rules change, migration or deployment is included.
 
 - `resolveAuthorization` checks the canonical account document (matching ID, active status, positive schemaVersion/version) in addition to the verified UID's selected-account membership. Archived or malformed accounts fail closed.
+
+### Organization callable operations
+
+- `createOrganizationSite`, `createOrganizationDepartment`, `archiveOrganizationSite`, `archiveOrganizationDepartment`, and `transferOrganizationDepartment` are wired to server-only transactional services.
+- Every handler verifies the bearer Firebase ID token with revocation checking, derives actor UID from verified claims, rejects client identity/unknown fields, and relies on canonical effective membership and scope checks inside the transaction.
+- Emulator/unit coverage exercises token rejection, identity spoofing, payload validation and service routing. Not deployed; account bootstrap and account-wide archival remain disabled.

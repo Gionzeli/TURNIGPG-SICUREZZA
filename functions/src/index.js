@@ -5,8 +5,14 @@ import { onCall, HttpsError } from "firebase-functions/v2/https";
 import { verifyIdentity } from "./auth/verify-identity.js";
 import { resolveCanonicalMembership } from "./membership/membership-policy.js";
 import { createEmployeeProvisioningHandlers } from "./membership/employee-provisioning-callable-handlers.js";
+import { createOrganizationCallableHandlers } from "./membership/organization-callable-handlers.js";
 
 initializeApp();
+
+const organization = createOrganizationCallableHandlers({
+  db: getFirestore(),
+  verifyToken: (token, checkRevoked) => getAuth().verifyIdToken(token, checkRevoked)
+});
 
 const employeeProvisioning = createEmployeeProvisioningHandlers({
   db: getFirestore(),
@@ -84,5 +90,26 @@ export const approveEmployeeProvisioning = onCall(async request => {
 
 export const revokeEmployeeBinding = onCall(async request => {
   try { return await employeeProvisioning.revoke(request); }
+  catch (error) { throw callableError(error); }
+});
+
+export const createOrganizationSite = onCall(async request => {
+  try { return await organization.createSite(request); }
+  catch (error) { throw callableError(error); }
+});
+export const createOrganizationDepartment = onCall(async request => {
+  try { return await organization.createDepartment(request); }
+  catch (error) { throw callableError(error); }
+});
+export const archiveOrganizationDepartment = onCall(async request => {
+  try { return await organization.archiveDepartment(request); }
+  catch (error) { throw callableError(error); }
+});
+export const archiveOrganizationSite = onCall(async request => {
+  try { return await organization.archiveSite(request); }
+  catch (error) { throw callableError(error); }
+});
+export const transferOrganizationDepartment = onCall(async request => {
+  try { return await organization.transferDepartment(request); }
   catch (error) { throw callableError(error); }
 });
