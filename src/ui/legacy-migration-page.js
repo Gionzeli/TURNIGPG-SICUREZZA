@@ -28,6 +28,16 @@ export function mountLegacyMigrationPage(container) {
     "Analizza un backup esportato dall'app esistente e individua i dati pronti, le anomalie e gli elementi da verificare prima del passaggio al nuovo core.");
   const privacy = node("p", "hint",
     "Analisi locale e di sola lettura: il file non viene caricato, salvato o importato. Nessun dato viene modificato.");
+  const bridge = node("section", "card");
+  bridge.id = "dsm-canonical-account-root";
+  if (window.TURNI_DSM_CANONICAL_AUTH_ENABLED === true) {
+    bridge.append(node("p", "hint", "Inizializzazione del collegamento account DSM…"));
+  } else {
+    bridge.append(
+      node("h3", "", "Collegamento identità canonica"),
+      node("p", "hint", "Il ponte con l'autenticazione Firebase e la verifica server-side delle appartenenze è predisposto nel codice. È disattivato in questa build: non viene contattato il progetto Firebase reale e non viene attivato alcun account.")
+    );
+  }
   const form = node("form", "card noprint");
   const label = node("label", "", "Seleziona un backup JSON dell'app");
   const file = node("input");
@@ -48,7 +58,14 @@ export function mountLegacyMigrationPage(container) {
   const results = node("section", "");
   results.setAttribute("aria-live", "polite");
   form.append(label, actions);
-  container.replaceChildren(heading, intro, privacy, form, status, results);
+  container.replaceChildren(heading, intro, privacy, bridge, form, status, results);
+
+  if (window.TURNI_DSM_CANONICAL_AUTH_ENABLED === true) {
+    import("./dsm-canonical-account-bootstrap.js").catch(() => {
+      const message = node("p", "hint", "Collegamento account non disponibile. L'accesso DSM resta negato.");
+      bridge.append(message);
+    });
+  }
 
   let disposed = false;
   let generation = 0;
