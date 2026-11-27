@@ -53,7 +53,7 @@ export function createMailboxTokenFirestoreLeaseService({
         const snapshot = await transaction.get(ref);
         const current = snapshot?.data?.() || {};
         if (snapshot?.exists && (!Number.isSafeInteger(current.fencingToken) ||
-            current.fencingToken < 0 || !Number.isSafeInteger(current.expiresAt))) {
+            current.fencingToken < 0 || !Number.isSafeInteger(current.expiresAt) || current.expiresAt < 0)) {
           throw leaseError("unavailable", "Mailbox lease record is malformed.");
         }
         if (snapshot?.exists && current.revocationPending === true) {
@@ -118,7 +118,7 @@ export function createMailboxTokenFirestoreLeaseService({
         const snapshot = await transaction.get(ref);
         const current = snapshot?.data?.() || {};
         if (snapshot?.exists && (!Number.isSafeInteger(current.fencingToken) ||
-            current.fencingToken < 0 || !Number.isSafeInteger(current.expiresAt))) {
+            current.fencingToken < 0 || !Number.isSafeInteger(current.expiresAt) || current.expiresAt < 0)) {
           throw leaseError("unavailable", "Mailbox lease record is malformed.");
         }
         if (snapshot?.exists && current.revocationPending === true) return;
