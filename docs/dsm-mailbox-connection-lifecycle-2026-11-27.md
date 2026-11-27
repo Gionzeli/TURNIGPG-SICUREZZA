@@ -612,3 +612,13 @@ worker may also be composed with other trusted adapters, so a malformed or
 cross-connection ticket must never trigger deletion merely because an adapter
 returned it. Synthetic regression tests verify both malformed and mismatched
 references are deferred with no vault side effect.
+
+
+#### Cleanup completion validates the stored credential scope
+
+The Firestore adapter's completion transaction now independently verifies that
+the stored secret reference has the expected account and connection scope.
+A malformed or cross-connection ticket cannot be transitioned to complete
+through this adapter, even if a document was altered outside the normal
+outbox creation path. A synthetic regression test mutates a stored ticket
+and verifies completion fails while its pending status remains unchanged.
