@@ -118,16 +118,24 @@ export function createMailboxConnectionService({
           connectionId, mode, provider, timestamp
         });
       } catch (error) {
-        // If metadata was saved but audit failed, disable ingestion before
-        // attempting to revoke the credential. Never leave an active dead ref.
+        // Never delete a credential while persisted metadata still advertises
+        // an active connection. Cleanup is safe only after pending is durable,
+        // or when no connection metadata was created at all.
+        let cleanupAllowed = false;
         try {
           await saveConnection({
             accountId, connectionId,
             connection: { ...connection, status: "revocation_pending", updatedAt: now() }
           });
-        } catch {}
-        try { await disableRefresh({ accountId, connectionId }); } catch {}
-        try { await cleanupSecret({ accountId, connectionId, secretRef, reason: "connection_setup_failed" }); } catch {}
+          cleanupAllowed = true;
+        } catch {
+          const persisted = await loadConnection({ accountId, connectionId });
+          cleanupAllowed = !persisted || persisted.status === "revocation_pending";
+        }
+        if (cleanupAllowed) {
+          await disableRefresh({ accountId, connectionId });
+          await cleanupSecret({ accountId, connectionId, secretRef, reason: "connection_setup_failed" });
+        }
         throw error;
       }
       return { connectionId, mode, provider, status: "active", mailboxAddress, allowedSenders: senders };
