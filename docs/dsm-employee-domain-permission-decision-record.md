@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-06 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-07 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -325,6 +325,22 @@ Approved policy in principle:
 
 **Still required before implementation:** define authorized revocation initiators and approval roles, identity re-verification strength, treatment of pending shift/absence proposals and delegated privileges, conflict-resolution and recovery workflow, effective timestamp, session/token invalidation guarantees, audit event fields and retention, and synthetic Emulator tests for immediate denial, duplicate/conflicting bindings, atomic reassignment, and stale sessions. This decision does not authorize a production binding endpoint or automatic data migration.
 
+### L-07 — Role and privilege changes
+
+**Question:** How should previously granted privileges be handled when an administrator changes a user's role or organizational scope?
+
+**Approved 2026-11-27 — option B (immediately revoke privileges no longer authorized and check the current role and scope server-side on every request), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- A role or scope change takes effect at its canonical backend effective time; privileges not present in the newly approved permission set are denied immediately for subsequent requests.
+- Every request must resolve the current backend-owned account lifecycle, role grants, domain/action permissions, and organizational scope. Client claims, cached roles, UI visibility, and stale session state are never authorization evidence.
+- Newly granted privileges are available only after the change has passed the required authorization/approval workflow and the backend has committed the canonical grant.
+- In-flight and pending operations must be re-authorized at commit/execution time; a proposal created under an earlier role cannot be executed using obsolete privileges.
+- Audit records must capture the actor, target, approved role/scope change, effective time, and outcome without copying sensitive payloads.
+- If the current role, scope, grant revision, or effective state is missing, stale, conflicting, or ambiguous, access fails closed.
+
+**Still required before implementation:** define role taxonomy and permission mapping, authorized change initiators and approval requirements (including separation of duties), effective-time/timezone semantics, handling of active sessions and in-flight operations, cache/token invalidation strategy, pending proposals, audit retention, and synthetic Emulator tests proving immediate denial of removed privileges and correct activation of approved new grants. This decision does not authorize a production role-management endpoint or automatic privilege restoration.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -353,6 +369,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-04 Reactivation | Approved — option B re-verify identity, employment, placement and permissions; restore only newly approved permissions; implementation gated on transition/approval details and tests |
 | L-05 Archived site/department | Approved — option B block operations, preserve history, require explicit reassignment; implementation gated on archival semantics, open-work handling and tests |
 | L-06 UID/employee binding revocation | Approved — option B immediate revocation, preserve history, rebind only after verification and two-person approval; implementation gated on workflow, conflict handling and tests |
+| L-07 Role/privilege changes | Approved — option B immediately revoke obsolete privileges and recheck current role/scope server-side; implementation gated on role mapping, effective-time semantics and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
