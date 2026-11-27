@@ -293,3 +293,34 @@ test("archived or missing lifecycle status is denied at every level", async () =
       error => error.code === "permission-denied");
   }
 });
+
+
+test("unknown or absent lifecycle status is denied at every level", async () => {
+  const selectors = [
+    { type: "account", accountId: "acct1" },
+    { type: "site", accountId: "acct1", siteId: "siteA" },
+    { type: "department", accountId: "acct1", siteId: "siteA", departmentId: "deptA" }
+  ];
+  const invalidStatuses = [undefined, null, "", "pending", "unknown", "ACTIVE"];
+  for (const [index, selector] of selectors.entries()) {
+    for (const status of invalidStatuses) {
+      const record = index === 0
+        ? { accountId: "acct1", ...(status === undefined ? {} : { status }) }
+        : index === 1
+          ? { accountId: "acct1", siteId: "siteA", ...(status === undefined ? {} : { status }) }
+          : { accountId: "acct1", siteId: "siteA", departmentId: "deptA", ...(status === undefined ? {} : { status }) };
+      const invalidLoaders = {
+        ...loaders,
+        async loadAccount(id) { return index === 0 ? record : records.account; },
+        async loadSite(accountId, siteId) { return index === 1 ? record : records.site; },
+        async loadDepartment(accountId, siteId, departmentId) {
+          return index === 2 ? record : records.department;
+        }
+      };
+      await assert.rejects(
+        resolveCanonicalResourceContext({ principal, selector, loaders: invalidLoaders }),
+        error => error.code === "permission-denied"
+      );
+    }
+  }
+});
