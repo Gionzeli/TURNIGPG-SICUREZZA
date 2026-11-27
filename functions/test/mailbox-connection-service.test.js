@@ -12,7 +12,7 @@ const base = {
 };
 
 function harness(overrides = {}) {
-  const calls = { secrets: [], revoked: [], disabled: [], saved: [], audits: [], exchanges: 0 };
+  const calls = { secrets: [], revoked: [], disabled: [], cleanupRecorded: [], cleanupCompleted: [], saved: [], audits: [], exchanges: 0 };
   const principal = {
     accountId: base.accountId, uid: base.actorUid, status: "active",
     role: "member", employeeId: "synthetic-employee",
@@ -31,6 +31,8 @@ function harness(overrides = {}) {
     storeSecret: async input => { calls.secrets.push(input); return "vault://synthetic/secret-1"; },
     revokeSecret: async input => { calls.revoked.push(input); },
     disableRefresh: async input => { calls.disabled.push(input); },
+    recordSecretCleanup: async input => { calls.cleanupRecorded.push(input); },
+    completeSecretCleanup: async input => { calls.cleanupCompleted.push(input); },
     saveConnection: async input => { calls.saved.push(input); },
     loadConnection: async () => calls.saved.at(-1)?.connection,
     writeAudit: async input => { calls.audits.push(input); },
@@ -173,4 +175,24 @@ test("attempts scoped vault cleanup when storage returns an oversized secret ref
   assert.equal(calls.saved.length, 0);
   assert.equal(calls.revoked.length, 1);
   assert.equal(calls.revoked[0].secretRef, malformedRef);
+  assert.equal(calls.cleanupRecorded.length, 1);
+  assert.equal(calls.cleanupCompleted.length, 1);
+});
+
+
+test("failed vault deletion leaves a durable cleanup ticket pending", async () => {
+  const { service, calls } = harness({
+    revokeSecret: async input => {
+      calls.revoked.push(input);
+      throw new Error("synthetic vault outage");
+    }
+  });
+  await service.connect(base);
+  await assert.rejects(service.revoke({
+    accountId: base.accountId, actorUid: base.actorUid, connectionId: "synthetic-connection"
+  }), /synthetic vault outage/);
+  assert.equal(calls.cleanupRecorded.length, 1);
+  assert.equal(calls.cleanupRecorded[0].reason, "connection_revoked");
+  assert.equal(calls.cleanupCompleted.length, 0);
+  assert.equal(calls.saved.at(-1).connection.status, "revocation_pending");
 });
