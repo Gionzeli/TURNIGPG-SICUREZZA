@@ -295,7 +295,7 @@ details summary{padding:3px 0;font-weight:650}
 <symbol id="lgm" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0B57D0"/><circle cx="380" cy="132" r="80" fill="#1A73E8" opacity=".6"/><circle cx="132" cy="380" r="80" fill="#1A73E8" opacity=".43"/><path d="M256 68L376 112V214C376 286 326 334 256 362C186 334 136 286 136 214V112Z" fill="#fff"/><circle cx="256" cy="210" r="58" fill="#D3E3FD" stroke="#0B57D0" stroke-width="11"/><path d="M256 210V176M256 210L282 224" stroke="#0B57D0" stroke-width="9" stroke-linecap="round" fill="none"/><circle cx="256" cy="210" r="7" fill="#0B57D0"/></symbol>
 <symbol id="lg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#0B57D0"/><circle cx="380" cy="132" r="80" fill="#1A73E8" opacity=".6"/><circle cx="132" cy="380" r="80" fill="#1A73E8" opacity=".43"/><path d="M256 46L376 90V192C376 264 326 312 256 340C186 312 136 264 136 192V90Z" fill="#fff"/><circle cx="256" cy="188" r="58" fill="#D3E3FD" stroke="#0B57D0" stroke-width="11"/><path d="M256 188V154M256 188L282 202" stroke="#0B57D0" stroke-width="9" stroke-linecap="round" fill="none"/><circle cx="256" cy="188" r="7" fill="#0B57D0"/><text x="256" y="414" text-anchor="middle" font-family="Roboto,Arial,sans-serif" font-size="56" font-weight="800" fill="#fff" letter-spacing="2">TURNI GPG</text><text x="256" y="464" text-anchor="middle" font-family="Roboto,Arial,sans-serif" font-size="36" font-weight="500" fill="#D3E3FD">/sicurezza</text></symbol></svg>
 <header><div class="brand"><svg class="lgm" role="img" aria-label="Logo Turni GPG/sicurezza"><use href="#lgm"/></svg><b>Turni GPG<span>/sicurezza</span></b></div><button id="exit" class="noprint">Esci</button></header>
-<nav id="nav" class="row noprint wrap"><button data-p="turni">Turni</button><button data-p="paga">Busta paga</button><button data-p="skill">Skill</button><button data-p="agg">Aggiornamenti</button><button data-p="adm" id="nav_adm" hidden>Collaboratori</button><button data-p="gate">Accesso</button></nav>
+<nav id="nav" class="row noprint wrap"><button data-p="turni">Turni</button><button data-p="paga">Busta paga</button><button data-p="skill">Skill</button><button data-p="dsm">DSM</button><button data-p="agg">Aggiornamenti</button><button data-p="adm" id="nav_adm" hidden>Collaboratori</button><button data-p="gate">Accesso</button></nav>
 <div id="insbar" class="card insbar noprint" hidden><svg class="lgm" role="img" aria-label="Logo"><use href="#lgm"/></svg><div class="m"><b>Installa Turni GPG/sicurezza</b><div class="hint" id="insmsg"></div></div><button class="pri" id="insgo" type="button">Installa</button><button class="ic" id="insno" type="button">Più tardi</button></div>
 <div id="mbar" class="row sp wrap" hidden><div><div class="hint">I tuoi turni</div><h1 id="mlabel"></h1></div><div class="row noprint"><button id="prev" aria-label="Mese precedente">‹</button><button id="next" aria-label="Mese successivo">›</button><button id="print">Stampa / PDF</button></div></div>
 <main id="pg_turni" hidden>
@@ -372,6 +372,7 @@ details summary{padding:3px 0;font-weight:650}
 <div id="rpend" hidden></div>
 <button class="ic" id="gexit" type="button">Esci</button>
 </div><div id="info_a" style="display:grid;gap:16px;margin-top:16px;text-align:left"></div></main>
+<main id="pg_dsm" hidden><div id="dsm-migration-root"></div></main>
 <main id="pg_agg" hidden><h1>Aggiornamenti <span class="tg" id="verlab"></span></h1><form class="card noprint" id="uf" hidden><h3>Pubblica un aggiornamento</h3><input id="ut" placeholder="Titolo" required><textarea id="ub" placeholder="Cosa è cambiato" required></textarea><button class="pri">Pubblica per tutti</button></form>
 <div id="ulist" style="display:grid;gap:10px"></div></main>
 <main id="pg_adm" hidden><h1 id="admh">Collaboratori</h1>
@@ -601,8 +602,8 @@ fillParams();fillProfile();resetForm();render();
 let U=null,DB=null,ME=null,ADMIN=false,MEM=null,MYREQ=null,REQ=[],REQD={},MEMS=[],UPD=[],CUR="turni",ready=false;
 const STANDALONE=false,LINK=STANDALONE?location.href.split("#")[0].split("?")[0]:"https://claude.ai/artifact/4RQnSUGP2sJxAikMtccYLn",fd=d=>d?d.split("-").reverse().join("/"):"";
 const okAccess=()=>{if(ADMIN||STANDALONE)return true;const t=today();return !!(MEM&&MEM.active&&(!MEM.start||t>=MEM.start)&&(!MEM.end||t<=MEM.end))};
-function show(p){if((p==="turni"||p==="paga"||p==="skill"||p==="adm")&&!okAccess())p="gate";CUR=p;["turni","paga","skill","gate","agg","adm"].forEach(x=>$("pg_"+x).hidden=x!==p);
-const adm=ADMIN&&!STANDALONE;document.querySelectorAll("#nav button").forEach(b=>{b.className=b.dataset.p===p?"pri":"";if(b.dataset.p==="turni"||b.dataset.p==="paga"||b.dataset.p==="skill"||b.dataset.p==="adm")b.hidden=!okAccess()});if(window.TURNI_FIREBASE_CONFIG?.enabled){$("nav_adm").hidden=!ADMIN;const gb=document.querySelector('#nav button[data-p="gate"]');if(gb)gb.textContent=ADMIN?"Account / richieste":"Accesso";}
+function show(p){if((p==="turni"||p==="paga"||p==="skill"||p==="dsm"||p==="adm")&&!okAccess())p="gate";CUR=p;["turni","paga","skill","dsm","gate","agg","adm"].forEach(x=>$("pg_"+x).hidden=x!==p);
+const adm=ADMIN&&!STANDALONE;document.querySelectorAll("#nav button").forEach(b=>{b.className=b.dataset.p===p?"pri":"";if(b.dataset.p==="turni"||b.dataset.p==="paga"||b.dataset.p==="skill"||b.dataset.p==="dsm"||b.dataset.p==="adm")b.hidden=!okAccess()});if(window.TURNI_FIREBASE_CONFIG?.enabled){$("nav_adm").hidden=!ADMIN;const gb=document.querySelector('#nav button[data-p="gate"]');if(gb)gb.textContent=ADMIN?"Account / richieste":"Accesso";}
 $("nav_adm").textContent="Condividi";$("admh").textContent=adm?"Condividi e gestisci collaboratori":"Condividi e supporto";$("invselw").hidden=!adm;
 $("aibox").hidden=!okAccess();$("mbar").hidden=!(p==="turni"||p==="paga");
 if(ready&&okAccess()&&STANDALONE){if((!X.name||!X.pin)&&!regOpen)showReg();else if(!X.onb&&!obOpen&&!regOpen)startOnb()}
@@ -1016,6 +1017,7 @@ if(!X.onb&&!X.pin)startOnb();
 
 <script type="module" src="firebase-ui-v3-13.js?v=2.3.9"></script>
 <script type="module" src="local-reader.js?v=2.3.86"></script>
+<script type="module" src="src/ui/legacy-migration-page.js?v=1"></script>
 <script>if("serviceWorker"in navigator&&/^https?:/.test(location.protocol)){window.addEventListener("load",()=>{navigator.serviceWorker.register("sw.js?v=tg-v3.171").then(r=>{r.addEventListener("updatefound",()=>{const n=r.installing;n&&n.addEventListener("statechange",()=>{if(n.state==="installed"&&navigator.serviceWorker.controller){try{snack("Nuova versione pronta: riapri l’app per usarla")}catch(e){}}})})}).catch(()=>{})})}</script>
 
 
