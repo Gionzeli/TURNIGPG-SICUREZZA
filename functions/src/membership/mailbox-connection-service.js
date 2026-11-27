@@ -37,14 +37,24 @@ function normalizeSenders(values) {
  */
 export function createMailboxConnectionService({
   authorizeActor, exchangeAuthorization, storeSecret, revokeSecret, disableRefresh,
-  saveConnection, loadConnection, writeAudit,
+  recordSecretCleanup, completeSecretCleanup, saveConnection, loadConnection, writeAudit,
   now = () => Date.now(),
   createConnectionId = () => randomUUID().replaceAll("-", "")
 }) {
   for (const [name, fn] of Object.entries({
     authorizeActor, exchangeAuthorization, storeSecret, revokeSecret, disableRefresh,
-    saveConnection, loadConnection, writeAudit
+    recordSecretCleanup, completeSecretCleanup, saveConnection, loadConnection, writeAudit
   })) if (typeof fn !== "function") throw new TypeError(name + " dependency is required.");
+
+  async function cleanupSecret({ accountId, connectionId, secretRef, reason }) {
+    // Persist the retry ticket before attempting remote deletion. A failed
+    // provider/vault call therefore remains discoverable after process exit.
+    await recordSecretCleanup({
+      accountId, connectionId, secretRef, reason, timestamp: now()
+    });
+    await revokeSecret({ secretRef, accountId, connectionId });
+    await completeSecretCleanup({ accountId, connectionId, timestamp: now() });
+  }
 
   async function authorize({ accountId, actorUid, mode }) {
     const principal = await authorizeActor({ accountId, actorUid, mode });
@@ -87,7 +97,7 @@ export function createMailboxConnectionService({
         // reference. Attempt scoped cleanup when a non-empty reference exists;
         // never persist it as connection metadata.
         if (typeof secretRef === "string" && secretRef.length > 0) {
-          try { await revokeSecret({ secretRef, accountId, connectionId }); } catch {}
+          try { await cleanupSecret({ accountId, connectionId, secretRef, reason: "invalid_secret_ref" }); } catch {}
         }
         fail("failed-precondition", "Credential vault did not return a valid secret reference; cleanup may require vault review.");
       }
@@ -117,7 +127,7 @@ export function createMailboxConnectionService({
           });
         } catch {}
         try { await disableRefresh({ accountId, connectionId }); } catch {}
-        try { await revokeSecret({ secretRef, accountId, connectionId }); } catch {}
+        try { await cleanupSecret({ accountId, connectionId, secretRef, reason: "connection_setup_failed" }); } catch {}
         throw error;
       }
       return { connectionId, mode, provider, status: "active", mailboxAddress, allowedSenders: senders };
@@ -144,7 +154,10 @@ export function createMailboxConnectionService({
       if (typeof connection.credentialSecretRef !== "string" || !connection.credentialSecretRef) {
         fail("failed-precondition", "Credential reference is missing; manual vault review is required.");
       }
-      await revokeSecret({ secretRef: connection.credentialSecretRef, accountId, connectionId });
+      await cleanupSecret({
+        accountId, connectionId, secretRef: connection.credentialSecretRef,
+        reason: "connection_revoked"
+      });
       const revoked = { ...pending, status: "revoked", credentialSecretRef: null, revokedAt: timestamp };
       await saveConnection({ accountId, connectionId, connection: revoked });
       await writeAudit({
