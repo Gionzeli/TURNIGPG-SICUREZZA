@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-110 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-111 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2762,6 +2762,30 @@ Approved policy in principle:
 
 **Implementation gates:** Produce a complete cache-layer and response-classification inventory; define endpoint-level cache directives and intermediary bypass rules; verify CDN/proxy behavior from the deployed configuration without exposing production employee data; specify any permitted private-cache partitioning and invalidation contract; and provide reproducible synthetic tests for cross-principal leakage and stale authorization. No production CDN, proxy or browser-cache configuration change is authorized by this decision.
 
+### L-111 — Secure URL design, sensitive query parameters and referrer leakage
+
+**Question:** How should application URLs, redirects and navigation parameters be designed so that authentication material, personal data, employee identifiers and authorization context are not exposed through browser history, referrer headers, logs, analytics or third-party resources?
+
+**Decision:** Approved — option B, keep secrets and sensitive personal or authorization data out of URLs, use opaque purpose-bound references where navigation requires a locator, and enforce authorization independently at the destination. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Prohibit passwords, session identifiers, access and refresh tokens, invitation and recovery secrets, authentication assertions, CSRF tokens and other bearer credentials in query strings, path segments, fragments, redirect parameters and URL user-info fields.
+- Avoid placing employee names, email addresses, payroll identifiers, absence details, health-related data, tenant membership or other sensitive personal information in URLs; use opaque non-sensitive identifiers only when the destination independently authorizes access.
+- Treat URL fragments as client-visible and persistable data, not as a safe secret store; never rely on fragments to protect tokens from browser extensions, scripts, history, screenshots or copied links.
+- Use short-lived, high-entropy, single-purpose opaque references for workflows that require a link; bind them to the intended action and verified recipient, protect their stored representation, enforce single use and expiry, and exchange them for an authorized server-side workflow without exposing broader data.
+- Configure Referrer-Policy explicitly, generally using strict-origin-when-cross-origin or a stricter policy appropriate to the application; use no-referrer for pages and flows where even origin disclosure is unnecessary.
+- Ensure sensitive pages do not load unnecessary third-party scripts, images, fonts, analytics or embedded resources that could receive navigation context through referrer headers or other browser channels.
+- Redact query values and sensitive path components from web server, proxy, CDN, application, tracing, error-reporting and analytics logs; preserve only the minimum safe route template and operational metadata.
+- Validate redirect destinations against explicit same-origin or allowlisted targets; reject open redirects, protocol-relative URLs, encoded delimiter tricks, user-info confusion and ambiguous canonicalization.
+- Never treat possession of a URL, opaque reference, deep link or navigation state as authentication, employee ownership, tenant membership or authorization; perform fresh server-side checks for the actor, resource, purpose and current lifecycle state.
+- Prevent sensitive values from being reintroduced through client-side routing, browser storage, copied links, QR codes, support tickets, screenshots or notification previews; use authenticated retrieval rather than embedding data in links.
+- Apply appropriate cache restrictions to sensitive navigation and redirect responses; do not allow intermediary caches to retain one-time tokens or private resource metadata.
+- Define safe behavior for expired, replayed, revoked, malformed or already-consumed links without revealing whether an employee, account or resource exists.
+- Review canonical URL generation, percent-encoding, Unicode normalization and duplicate-parameter handling consistently across browser, proxy and backend layers to prevent validation discrepancies.
+- Test token leakage through Referer, browser history, redirects, logs and third-party requests; test open-redirect payloads, encoded parameter ambiguity, expired links, replay, cross-tenant substitution and unauthorized direct navigation using synthetic data.
+
+**Implementation gates:** Inventory URL-producing and URL-consuming routes, redirects, notifications and third-party resources; define a sensitive-parameter policy and redaction rules; enforce safe redirect allowlists and Referrer-Policy; replace sensitive link payloads with scoped opaque references where justified; and provide reproducible synthetic browser, proxy and logging tests. No production URL, notification-link or analytics configuration change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2872,6 +2896,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-108 Secure cross-window messaging, postMessage and embedded-frame trust | Approved — option B strict origin/source validation, minimal schemas and independent server authorization; implementation gated on inventory and browser security tests |
 | L-109 Web origin isolation, CSRF defenses and cookie policy | Approved — option B explicit origin boundaries, secure cookie attributes and server-validated CSRF controls; implementation gated on endpoint inventory and cross-origin tests |
 | L-110 HTTP response caching, shared intermediaries and authorization-aware isolation | Approved — option B no-store for sensitive responses, shared-cache bypass and authorization-aware invalidation; implementation gated on cache inventory and leakage tests |
+| L-111 Secure URL design, sensitive parameters and referrer leakage | Approved — option B no secrets or sensitive personal data in URLs, scoped opaque references and strict redirect/referrer controls; implementation gated on route inventory and leakage tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
