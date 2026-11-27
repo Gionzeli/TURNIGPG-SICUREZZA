@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-103 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-104 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2599,6 +2599,29 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory inbound mailboxes, gateways, processors, parsers, and quarantine stores; define accepted message classes and workflow mapping; establish isolated scanning/rendering and retention controls; require authenticated reviewer and approval contracts; and provide reproducible negative tests. No production mailbox integration, automatic email-driven mutation, or real attachment processing is authorized by this decision.
 
+### L-104 — Secure identity federation, SSO trust and identity-provider lifecycle
+
+**Question:** How must federated authentication and single sign-on be configured so that external identity-provider assertions, metadata changes, account linking, and provider outages cannot create unauthorized or ambiguous employee identities or privileges?
+
+**Decision:** Approved — option B, accept federation only through explicitly registered and governed identity providers, validate every protocol assertion and audience, bind identities to canonical employee records through a separately verified workflow, and fail closed on trust or lifecycle uncertainty. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Maintain an approved identity-provider registry with accountable owners, permitted environments, protocol, issuer, entity identifiers, audiences, redirect/callback URIs, signing keys, metadata sources, allowed domains, and business purpose.
+- Validate protocol signatures, issuer, audience, recipient, destination, nonce/state, timestamps, replay identifiers, authentication context, and protocol-specific binding requirements; reject unsigned, weakly signed, stale, replayed, or mismatched assertions.
+- Use exact redirect URI allowlists and strict state/nonce handling; prevent open redirects, mix-up attacks, login CSRF, authorization-code injection, and unsolicited or misrouted assertions.
+- Do not use email address, display name, domain membership, or mutable external attributes as the sole identity key or proof of employee ownership; require a canonical immutable provider subject plus verified UID-to-Employee binding.
+- Prohibit automatic account linking, employee-record merging, role assignment, or tenant membership creation from first login or unreviewed identity-provider claims; use a tracked, independently approved provisioning and linking workflow.
+- Treat groups, roles, departments, site, and employment status from the provider as untrusted claims unless individually mapped through an approved, versioned server-side mapping with bounded scope and explicit revocation.
+- Revalidate provider trust, signing-key rotation, metadata changes, certificate expiry, and domain ownership; authenticate metadata retrieval, constrain destinations, and require review for issuer, endpoint, or key changes.
+- Define session and grant behavior for provider logout, local logout, account suspension, employment lifecycle changes, provider compromise, and trust withdrawal; local revocation must not depend solely on successful upstream logout.
+- Prevent fallback to weaker local authentication or another provider during outage unless a separately approved recovery policy applies; recovery must not silently create or elevate identities.
+- Protect federation secrets, client credentials, signing/decryption keys, and private keys in managed secret custody with least privilege, rotation, audit, and compromise response.
+- Minimize and validate attributes received; reject unexpected claims, protect sensitive attributes, and avoid propagating unnecessary identity data into logs, browser storage, tokens, or downstream services.
+- Monitor authentication failures, assertion anomalies, provider configuration changes, key rollover, unusual account linking, and lifecycle mismatches with actionable alerts and protected audit evidence.
+- Test forged and replayed assertions, issuer/audience confusion, redirect manipulation, stale metadata, key rollover, duplicate subjects, email changes, unauthorized group claims, provider outage, and revocation using synthetic identity providers and isolated environments.
+
+**Implementation gates:** Produce a provider trust register, protocol-specific threat model, issuer/audience/redirect contract, canonical subject-binding workflow, claim-mapping allowlist, key/metadata lifecycle procedure, outage and recovery policy, and reproducible federation negative tests. No real identity provider, production SSO configuration, account linking, or privilege mapping is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2702,6 +2725,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-101 Clipboard, screen capture and operating-system sharing controls | Approved — option B classify disclosure channels, minimize sensitive exposure and enforce only platform-supported controls; implementation gated on platform matrix and tests |
 | L-102 Secure email delivery, outbound document links and recipient verification | Approved — option B notification-only by default, authenticated scoped retrieval and verified recipients; implementation gated on provider review, link lifecycle and tests |
 | L-103 Secure inbound email, attachments and untrusted message ingestion | Approved — option B quarantine untrusted input, isolate parsing and require authenticated human workflow; implementation gated on mail inventory, scanner isolation and tests |
+| L-104 Secure identity federation, SSO trust and identity-provider lifecycle | Approved — option B registered providers, strict assertion validation, verified canonical binding and fail-closed trust lifecycle; implementation gated on provider register and protocol tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
