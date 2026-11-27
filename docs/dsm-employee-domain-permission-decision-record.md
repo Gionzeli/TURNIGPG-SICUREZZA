@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-107 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-108 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2689,6 +2689,29 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory every security-sensitive random value and its protocol; map each to an approved platform CSPRNG and documented entropy/uniqueness requirements; implement atomic replay and single-use enforcement where applicable; define fail-closed behavior and safe diagnostics; and provide reproducible synthetic tests, including entropy failure and concurrency cases. No production secret generation, key provisioning or cryptographic protocol change is authorized by this decision.
 
+### L-108 — Secure cross-window messaging, postMessage and embedded-frame trust
+
+**Question:** How should browser windows, tabs, embedded frames and parent/child applications exchange messages without allowing untrusted origins or frames to spoof trusted events, obtain sensitive data, or trigger privileged actions?
+
+**Decision:** Approved — option B, treat cross-context messages as untrusted input, authenticate the sending context through strict origin and source validation, use narrowly defined message contracts, and prohibit message-based authorization. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Inventory every use of postMessage, BroadcastChannel, MessagePort, window references, embedded frames and cross-context event bridges; document sender, receiver, origin, data classification and business purpose.
+- Specify exact allowed origins for each message channel; never use wildcard target origins for sensitive messages and never accept a message solely because it contains a claimed origin, tenant, user, role or permission.
+- Validate both event.origin against an explicit allowlist and event.source against the expected window or frame reference; reject opaque, unexpected, null or changed origins unless a narrowly justified protocol explicitly supports them.
+- Define strict, versioned message schemas with allowlisted message types and fields, bounded payload sizes and safe parsing; reject unknown fields, malformed structures, unexpected types and unsupported versions.
+- Treat all message contents as attacker-controlled even after origin checks; independently validate referenced resources and perform canonical server-side authentication and authorization for every protected operation.
+- Never transfer session tokens, refresh tokens, credentials, raw authentication assertions, payroll data, health information or broad employee records through cross-window messaging; prefer minimal opaque references resolved through an independently authorized server request.
+- Bind sensitive request/response exchanges to an unpredictable, short-lived correlation value and the intended context; prevent replay, confused-deputy behavior, unsolicited responses and message substitution.
+- Restrict iframe embedding with an explicit frame-ancestors policy and appropriate sandbox attributes; grant only required capabilities and avoid allowing untrusted frames to navigate, submit forms, open popups or access same-origin privileges unnecessarily.
+- Use transferred MessagePorts only after an authenticated, explicit handshake; close ports on navigation, account switch, session revocation, frame removal and lifecycle changes, and do not treat possession of a port as continuing authorization.
+- Prevent sensitive data leakage through referrer values, URL fragments, window names, browser history, opener relationships and error messages; apply appropriate opener isolation such as rel=noopener where relevant.
+- Revalidate context and authorization after navigation, account/tenant switching, role changes and session revocation; stale windows and embedded applications must fail closed rather than continue using previously received data.
+- Log security-relevant rejections and protocol failures with minimized metadata; do not log message payloads, tokens or personal data, and protect logs against attacker-controlled log injection.
+- Test spoofed origins, incorrect source windows, wildcard destinations, malformed and oversized messages, replay, navigation races, nested frames, port transfer, opener attacks, account switching and revoked sessions using isolated synthetic origins.
+
+**Implementation gates:** Inventory all cross-context communication paths; define origin/source allowlists and versioned schemas; implement independent server-side authorization and lifecycle invalidation; review iframe sandbox and embedding policy; and provide reproducible synthetic browser tests for spoofing, replay, navigation and revocation. No new trusted cross-origin integration, sensitive message exchange or production embedding configuration is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2796,6 +2819,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-105 Authentication factor enrollment, replacement and recovery lifecycle | Approved — option B verified enrollment, strong recovery, downgrade resistance and server-side revocation; implementation gated on assurance matrix and lifecycle tests |
 | L-106 Account discovery, identity enumeration and privacy-preserving authentication responses | Approved — option B consistent external responses, abuse controls and scoped internal lookup; implementation gated on endpoint inventory and enumeration tests |
 | L-107 Cryptographically secure randomness, nonce generation and uniqueness | Approved — option B platform CSPRNGs, protocol-specific entropy and replay-safe uniqueness; implementation gated on inventory and failure/concurrency tests |
+| L-108 Secure cross-window messaging, postMessage and embedded-frame trust | Approved — option B strict origin/source validation, minimal schemas and independent server authorization; implementation gated on inventory and browser security tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
