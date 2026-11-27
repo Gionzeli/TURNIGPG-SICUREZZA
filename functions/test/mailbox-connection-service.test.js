@@ -30,7 +30,7 @@ function harness(overrides = {}) {
     },
     storeSecret: async input => { calls.secrets.push(input); return `mailbox/${input.accountId}/${input.connectionId}/syntheticopaqueid123`; },
     revokeSecret: async input => { calls.revoked.push(input); },
-    disableRefresh: async input => { calls.disabled.push(input); },
+    disableRefresh: async input => { calls.disabled.push(input); return { status: "revocation_pending" }; },
     recordSecretCleanup: async input => { calls.cleanupRecorded.push(input); },
     completeSecretCleanup: async input => { calls.cleanupCompleted.push(input); },
     saveConnection: async input => { calls.saved.push(input); },
@@ -146,7 +146,7 @@ test("failed refresh disable gate prevents credential deletion", async () => {
 test("refresh is disabled before vault revocation is attempted", async () => {
   const order = [];
   const { service } = harness({
-    disableRefresh: async () => { order.push("disable"); },
+    disableRefresh: async () => { order.push("disable"); return { status: "revocation_pending" }; },
     revokeSecret: async () => { order.push("revoke"); }
   });
   await service.connect(base);
@@ -292,4 +292,20 @@ test("malformed vault reference is rejected without invoking the refresh gate", 
   assert.equal(calls.revoked.length, 0);
   assert.equal(calls.cleanupRecorded.length, 0);
   assert.equal(calls.cleanupCompleted.length, 0);
+});
+
+
+test("missing or malformed refresh gate confirmation prevents credential deletion", async () => {
+  for (const result of [undefined, false, { status: "active" }]) {
+    const { service, calls } = harness({
+      disableRefresh: async input => { calls.disabled.push(input); return result; }
+    });
+    await service.connect(base);
+    await assert.rejects(service.revoke({
+      accountId: base.accountId, actorUid: base.actorUid, connectionId: "synthetic-connection"
+    }), error => error.code === "failed-precondition");
+    assert.equal(calls.revoked.length, 0);
+    assert.equal(calls.cleanupRecorded.length, 0);
+    assert.equal(calls.saved.at(-1).connection.status, "revocation_pending");
+  }
 });
