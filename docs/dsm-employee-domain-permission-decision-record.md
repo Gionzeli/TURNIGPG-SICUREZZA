@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-108 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-109 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2712,6 +2712,30 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory all cross-context communication paths; define origin/source allowlists and versioned schemas; implement independent server-side authorization and lifecycle invalidation; review iframe sandbox and embedding policy; and provide reproducible synthetic browser tests for spoofing, replay, navigation and revocation. No new trusted cross-origin integration, sensitive message exchange or production embedding configuration is authorized by this decision.
 
+### L-109 — Web security origin isolation, cross-site request forgery and cookie policy
+
+**Question:** How should browser-origin boundaries, cookie behavior and state-changing web requests be configured to prevent cross-site request forgery, cross-site leakage and unintended credential attachment?
+
+**Decision:** Approved — option B, enforce explicit origin and site boundaries, use secure cookie attributes and server-validated anti-CSRF defenses, and require independent authorization for every state-changing request. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Inventory browser-facing state-changing endpoints, authentication cookies, session mechanisms, CORS policies, embedded origins and cross-origin integrations; document trust boundaries and permitted methods.
+- Set authentication cookies with Secure and HttpOnly, and choose an explicit SameSite policy appropriate to the flow; use host-only scope by default and avoid broad Domain attributes unless specifically justified.
+- Use __Host- prefixed cookies where compatible with the application architecture; enforce Path=/, Secure and no Domain attribute for such cookies.
+- Require server-validated anti-CSRF tokens for state-changing cookie-authenticated requests where SameSite alone is insufficient; bind tokens to the session or equivalent security context and validate them on every relevant request.
+- Validate Origin and, where appropriate, Referer against an explicit allowlist for state-changing browser requests; reject missing or untrusted origins according to a documented endpoint policy rather than silently allowing them.
+- Treat Fetch Metadata headers such as Sec-Fetch-Site, Sec-Fetch-Mode and Sec-Fetch-Dest as additional defense-in-depth signals, not as the sole authentication or authorization mechanism.
+- Never use GET or other safe-method semantics for state-changing operations; enforce method allowlists, content types and strict request schemas at the server boundary.
+- Configure CORS with explicit trusted origins, methods and headers; never combine credentialed requests with wildcard origins, and do not reflect arbitrary Origin values.
+- Do not treat CORS as a CSRF defense or as authorization; a request may reach the server even when the browser prevents a response from being read.
+- Protect login, logout, account switching, invitation acceptance, recovery, administrative actions and file operations against login CSRF, session swapping and cross-site initiation; rotate session identifiers after authentication and privilege changes.
+- Ensure subdomains and sibling applications cannot set or overwrite authentication cookies or exploit overly broad cookie scope; review DNS, hosting and origin ownership as part of the trust model.
+- Prevent sensitive cross-origin responses and state leakage using restrictive response headers and cache policy; do not expose authenticated data through permissive CORS, JSONP, redirects or postMessage bridges.
+- Require reauthentication or step-up for high-impact actions even when the request contains a valid CSRF token; CSRF defenses do not prove user intent or replace authorization.
+- Test cross-site form submissions, fetch requests, redirects, preflight behavior, sibling-subdomain attacks, cookie-prefix enforcement, missing/forged tokens, login CSRF and account switching using isolated synthetic origins and browser automation.
+
+**Implementation gates:** Map all cookie-authenticated state-changing endpoints and browser origins; document cookie, CORS, Origin/Referer and Fetch Metadata policies; implement server-side CSRF validation and method constraints; verify session rotation and subdomain isolation; and provide reproducible synthetic cross-origin tests. No production cookie, CORS or authentication configuration change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2820,6 +2844,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-106 Account discovery, identity enumeration and privacy-preserving authentication responses | Approved — option B consistent external responses, abuse controls and scoped internal lookup; implementation gated on endpoint inventory and enumeration tests |
 | L-107 Cryptographically secure randomness, nonce generation and uniqueness | Approved — option B platform CSPRNGs, protocol-specific entropy and replay-safe uniqueness; implementation gated on inventory and failure/concurrency tests |
 | L-108 Secure cross-window messaging, postMessage and embedded-frame trust | Approved — option B strict origin/source validation, minimal schemas and independent server authorization; implementation gated on inventory and browser security tests |
+| L-109 Web origin isolation, CSRF defenses and cookie policy | Approved — option B explicit origin boundaries, secure cookie attributes and server-validated CSRF controls; implementation gated on endpoint inventory and cross-origin tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
