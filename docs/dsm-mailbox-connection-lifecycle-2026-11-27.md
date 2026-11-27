@@ -378,3 +378,10 @@ is reused for completion and retry scheduling, avoiding inconsistent timestamps
 within a single batch. Synthetic regressions cover invalid and near-overflow
 clock values. This is defensive input validation; it does not replace
 monitoring clock synchronization on production workers.
+
+
+Retry scheduling samples the clock again at each operation rather than reusing
+the batch-start timestamp. In particular, a slow vault deletion or alert send
+cannot consume the newly scheduled backoff before the failure is recorded.
+The worker still validates every sampled timestamp and fails closed if the
+clock becomes invalid during a run.
