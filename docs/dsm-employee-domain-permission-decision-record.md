@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-32 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-33 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -927,6 +927,29 @@ Approved policy in principle:
 
 **Still required before implementation:** assign privacy-request ownership; define intake channels, identity proofing and authority checks; map personal-data stores and processors; establish applicable response timelines and escalation with qualified privacy/legal review; define redaction, correction, restriction, deletion and anonymization procedures including backup handling; and add synthetic end-to-end tests. This approval does not authorize bulk disclosure, automatic deletion, changes to legal retention, or processing of real personal data.
 
+### L-33 — Business continuity and incident recovery
+
+**Question:** How should the service recover safely after outages, security incidents, data corruption or infrastructure failures?
+
+Possible choices:
+- **A. Informal recovery:** restore services as needed without documented priorities or recurring exercises.
+- **B. Planned continuity and verified recovery:** documented recovery priorities, defined RTO/RPO targets, protected backups, restore exercises and integrity/authorization checks before reopening services.
+- **C. Immediate failover without validation:** automatically resume service from a backup or alternate environment without verification.
+
+**Approved 2026-11-27 — option B (planned continuity and verified recovery), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Maintain a documented business continuity and disaster recovery plan with service/domain dependencies, recovery priorities, accountable owners, communication paths and escalation.
+- Define and approve recovery time objectives (RTO) and recovery point objectives (RPO) for each critical service and data domain, based on business impact and risk; do not assume targets without analysis.
+- Protect backups using access controls, encryption where supported, separation from primary operational credentials and environments, integrity checks, monitoring and documented retention. Include backup administration and restore operations in privileged-access controls and audit.
+- Use more than one protected recovery copy where justified, including a suitably isolated or offline/immutable copy where feasible. Ensure backup deletion or modification cannot be performed casually using the same privileges as ordinary application operations.
+- Regularly exercise restoration using isolated test environments and synthetic or appropriately approved data. Verify backup integrity, restore completeness, application functionality, access control, canonical identity bindings, audit continuity and data consistency before considering a recovered system trustworthy.
+- Treat recovery after suspected compromise differently from routine outage recovery: assess incident scope, credential/key rotation, persistence and contamination risks; avoid blindly restoring compromised credentials, vulnerable software or malicious state.
+- Define controlled failover and failback procedures, including decision authority, validation, communications, rollback and reconciliation of data changes. Prevent split-brain writes and unreviewed reintroduction of stale permissions.
+- Document exercise results, failures, remediation actions and evidence; review the plan periodically and after significant architecture or incident changes.
+
+**Still required before implementation:** perform business impact and dependency analysis; assign recovery owners; define and approve RTO/RPO; specify backup architecture, encryption/key custody, isolation, retention and access; define recovery validation and failback steps; establish exercise schedule and evidence; and add synthetic tests for backup failure, corrupted restores, stale authorization, identity/session revocation, data reconciliation and compromised recovery scenarios. This approval does not authorize production backups, Firebase changes, failover, restore or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -970,6 +993,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-30 Data classification and handling | Approved — option B risk-based classification, minimization, purpose limitation, least-privilege field access, environment separation and retention/disposal controls; implementation gated on inventory, schedules, handling matrix and tests |
 | L-31 Vulnerability management and security updates | Approved — option B documented intake, risk-based triage, tracked remediation, verified fixes and controlled updates; implementation gated on ownership, SLAs, inventory, tooling and tests |
 | L-32 Privacy requests and personal-data rights | Approved — option B verified, scoped and tracked workflow with authority checks, retention/legal-hold review, controlled actions and recorded outcomes; implementation gated on privacy ownership, data mapping, procedures and tests |
+| L-33 Business continuity and incident recovery | Approved — option B planned continuity, domain-specific RTO/RPO, protected backups, tested restores and integrity/authorization validation; implementation gated on impact analysis, architecture, owners and exercises |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
