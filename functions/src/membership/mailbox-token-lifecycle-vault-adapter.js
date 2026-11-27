@@ -28,7 +28,7 @@ export function createMailboxTokenLifecycleVaultAdapter({ backend }) {
         version: record.version
       });
     },
-    async storeSecret({ secretRef, secretMaterial, expectedVersion }) {
+    async storeSecret({ secretRef, secretMaterial, expectedVersion, leaseProof }) {
       if (typeof secretRef !== "string" || !REF_RE.test(secretRef) || !validVersion(expectedVersion) ||
           !validMaterial(secretMaterial) || (secretMaterial.scopes !== undefined &&
           (!Array.isArray(secretMaterial.scopes) || secretMaterial.scopes.length > 20 ||
@@ -41,7 +41,7 @@ export function createMailboxTokenLifecycleVaultAdapter({ backend }) {
         ...(secretMaterial.scopes ? { scopes: [...new Set(secretMaterial.scopes)] } : {})
       };
       try {
-        const result = await backend.replaceSecret({ secretRef, payload, expectedVersion });
+        const result = await backend.replaceSecret({ secretRef, payload, expectedVersion, ...(leaseProof ? { leaseProof } : {}) });
         if (!result || !validVersion(result.version) || result.version === expectedVersion) throw new Error("invalid version result");
         return Object.freeze({ version: result.version });
       } catch (error) {
