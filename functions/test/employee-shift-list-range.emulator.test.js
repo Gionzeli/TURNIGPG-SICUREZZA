@@ -148,9 +148,10 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
       accountId, source: "employee_manual",
       changes: [
         { operation: "create", shift: { date: "2026-06-23", type: "turno", hours: 6 } },
-        { operation: "update", shiftId: "in-range-2026-06-04", expectedRevision: 99, changes: { hours: 7 } }
+        { operation: "update", shiftId: "in-range-2026-06-04", expectedRevision: 1, changes: { hours: 7 } }
       ]
     }));
+    await collection.doc("in-range-2026-06-04").update({ revision: 2 });
     await assert.rejects(
       handlers.approveOwnProposal(proposalRequest({ accountId, proposalId: staleProposal.proposalId })),
       error => error.code === "failed-precondition",
@@ -163,7 +164,7 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
       accountId, source: "employee_manual",
       changes: [
         { operation: "create", shift: { date: "2026-06-24", type: "turno", post: "Postazione B", start_time: "09:00", end_time: "17:00", hours: 8 } },
-        { operation: "update", shiftId: "in-range-2026-06-04", expectedRevision: 1, changes: { hours: 7 } },
+        { operation: "update", shiftId: "in-range-2026-06-04", expectedRevision: 2, changes: { hours: 7 } },
         { operation: "delete", shiftId: "in-range-2026-06-18", expectedRevision: 1 }
       ]
     }));
@@ -172,9 +173,9 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     assert.equal(approved.appliedCount, 3);
     const updatedShift = (await collection.doc("in-range-2026-06-04").get()).data();
     assert.equal(updatedShift.hours, 7);
-    assert.equal(updatedShift.revision, 2);
-    const priorRevision = (await db.doc(`accounts/${accountId}/employeeShiftRevisions/in-range-2026-06-04_1`).get()).data();
-    assert.equal(priorRevision.revision, 1);
+    assert.equal(updatedShift.revision, 3);
+    const priorRevision = (await db.doc(`accounts/${accountId}/employeeShiftRevisions/in-range-2026-06-04_2`).get()).data();
+    assert.equal(priorRevision.revision, 2);
     assert.equal(priorRevision.hours, 8);
     assert.equal(Object.hasOwn(priorRevision, "compensation"), false,
       "revision snapshots must retain only the approved schedule DTO");
