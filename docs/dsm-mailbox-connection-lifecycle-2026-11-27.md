@@ -253,3 +253,10 @@ Still outstanding: a scheduled Cloud Tasks/Functions worker and wiring of truste
 #### Exhausted-ticket handling
 
 Tickets at the retry ceiling (12 attempts with no next retry timestamp) stay pending for operator visibility, but the cleanup worker now treats them as exhausted and skips further vault-delete attempts and repeat alerts on later runs. A synthetic regression covers a second worker run after exhaustion.
+
+
+The pending-ticket query now also validates retry metadata before returning work
+to the worker: `nextAttemptAt` must be null or a positive safe integer, and
+`lastErrorCode` must be null or a bounded machine-code string. Malformed
+tickets are excluded from execution rather than treated as due. A synthetic
+adapter regression covers invalid scheduling and error-code fields.
