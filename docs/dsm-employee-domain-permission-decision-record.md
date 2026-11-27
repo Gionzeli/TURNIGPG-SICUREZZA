@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-28 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-29 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -833,6 +833,29 @@ Approved policy in principle:
 
 **Still required before implementation:** select session architecture and token storage; define idle/absolute lifetimes and step-up policy; specify device enrollment and trust semantics; map revocation propagation and refresh-token handling for each client/provider; define CSRF protections where applicable, monitoring and audit retention; and add synthetic Emulator tests for expiry, replay, revocation, account switching, role changes and concurrent sessions. This approval does not authorize production identity-provider settings or deployment.
 
+### L-29 — Security monitoring, alerting and event response
+
+**Question:** How should security-relevant events be monitored, escalated and investigated?
+
+Possible choices:
+- **A. Minimal monitoring:** retain basic application logs and investigate only after a reported incident.
+- **B. Risk-based monitoring and response:** centralized security events, protected audit, actionable alerts, defined triage/escalation and human review for consequential actions.
+- **C. Fully automated response:** automatically block accounts and take consequential actions based primarily on anomaly scores.
+
+**Approved 2026-11-27 — option B (risk-based monitoring, actionable alerting, protected audit and defined human-reviewed response), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Define a documented set of security-relevant events across authentication, MFA and recovery, session lifecycle, employee/account binding, role and delegation changes, privileged actions, data access, exports, configuration changes and backend authorization denials.
+- Centralize security telemetry in a controlled destination with restricted access, integrity protections, reliable timestamps and documented retention. Preserve authoritative audit records separately from ordinary diagnostic/application logs where appropriate.
+- Generate risk-based alerts for material patterns such as repeated authentication abuse, suspicious recovery, privilege escalation, unusual access or export activity, break-glass use, audit pipeline failure and unexpected changes to security controls.
+- Assign accountable owners for alert triage, severity classification, escalation, containment decisions and closure. Define response targets proportionate to severity and maintain a documented incident-handling path.
+- Require human review and authorization for consequential actions where automated signals may be uncertain. Automated containment, if later implemented, must be bounded, reversible where possible, tested against false positives and protected against attacker-triggered denial of service.
+- Minimize telemetry: never log passwords, tokens, MFA codes, recovery secrets or unnecessary personal data. Restrict access to logs and monitor access to the logs themselves.
+- Protect log integrity and availability, detect gaps or tampering, synchronize time sources, and retain sufficient evidence for authorized investigation without indefinite collection.
+- Test alert generation, delivery, escalation, audit integrity, failure modes and incident procedures using synthetic events in isolated environments.
+
+**Still required before implementation:** define event taxonomy and severity, alert thresholds and correlation, log architecture and integrity controls, retention and access policy, named operational ownership and escalation path, incident playbooks, privacy review, and synthetic tests for missed alerts, noisy alerts, tampering and pipeline outage. This approval does not authorize production monitoring integrations, external data sharing or automatic account restrictions.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -872,6 +895,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-26 Account recovery and credential reset | Approved — option B risk-based identity-verified recovery, single-use short-lived mechanisms, notification, session revocation and privileged-account safeguards; implementation gated on identity proofing, workflow, revocation and tests |
 | L-27 Protection against abusive authentication attempts | Approved — option B layered rate limits, brute-force/credential-stuffing defenses, anomaly detection, proportionate temporary restrictions, secure recovery and audit; implementation gated on thresholds, signals, recovery, monitoring and tests |
 | L-28 Session and device lifecycle security | Approved — option B managed sessions, bounded lifetime, step-up authentication, server-side revocation, lifecycle invalidation and protected audit; implementation gated on architecture, token handling, lifetimes and tests |
+| L-29 Security monitoring and event response | Approved — option B risk-based centralized monitoring, protected audit, actionable alerts, defined escalation and human-reviewed response; implementation gated on event taxonomy, ownership, retention, architecture and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
