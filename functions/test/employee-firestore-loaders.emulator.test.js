@@ -34,6 +34,9 @@ test("Firestore Emulator: resolves consistent active UID↔Employee bindings wit
     assert.deepEqual(resolved, {
       uid, accountId, profileId: employeeId, bindingRevision: 1
     });
+    for (const forbidden of ["ccnl", "section", "level", "role", "effective_date", "basePay", "iban", "absenceReason"]) {
+      assert.equal(Object.hasOwn(resolved, forbidden), false, `binding resolver leaked ${forbidden}`);
+    }
 
     await byEmployee.update({ employeeId: "synthetic-other-employee" });
     await assert.rejects(
