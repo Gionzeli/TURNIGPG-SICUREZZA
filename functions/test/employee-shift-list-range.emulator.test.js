@@ -189,6 +189,9 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     const approvalAudit = await db.collection(`accounts/${accountId}/employeeAudit`)
       .where("proposalId", "==", approvalProposal.proposalId).get();
     assert.equal(approvalAudit.size, 3);
+    const approvalDecision = (await db.doc(`accounts/${accountId}/employeeShiftProposalDecisions/${approvalProposal.proposalId}`).get()).data();
+    assert.equal(approvalDecision.decision, "approved");
+    assert.equal(approvalDecision.appliedShiftIds.length, 3);
     await assert.rejects(
       handlers.approveOwnProposal(proposalRequest({ accountId, proposalId: approvalProposal.proposalId })),
       error => error.code === "failed-precondition",
