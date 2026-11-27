@@ -46,8 +46,10 @@ export function createMailboxSecretCleanupWorker({
         throw error;
       }
       const tickets = await cleanupAdapters.listPendingSecretCleanup({ accountId, limit });
-      if (!Array.isArray(tickets) || tickets.length > limit) {
-        const error = new Error("Cleanup adapter returned an invalid batch.");
+      if (!Array.isArray(tickets) || tickets.length > limit ||
+          tickets.some(ticket => !ticket || typeof ticket.connectionId !== "string") ||
+          new Set(tickets.map(ticket => ticket.connectionId)).size !== tickets.length) {
+        const error = new Error("Cleanup adapter returned an invalid or duplicate batch.");
         error.code = "failed-precondition";
         throw error;
       }
@@ -116,7 +118,9 @@ export function createMailboxSecretCleanupWorker({
       let pendingAlerts = [];
       try {
         pendingAlerts = await cleanupAdapters.listPendingCleanupAlerts({ accountId, limit });
-        if (!Array.isArray(pendingAlerts) || pendingAlerts.length > limit) {
+        if (!Array.isArray(pendingAlerts) || pendingAlerts.length > limit ||
+            pendingAlerts.some(ticket => !ticket || typeof ticket.connectionId !== "string") ||
+            new Set(pendingAlerts.map(ticket => ticket.connectionId)).size !== pendingAlerts.length) {
           return summary;
         }
       } catch {
