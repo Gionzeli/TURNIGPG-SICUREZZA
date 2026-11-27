@@ -103,7 +103,9 @@ export async function archiveDepartment({ db, accountId, actorUid, departmentId,
   if (![accountId, actorUid, departmentId].every(validId) || !validReason(reasonCode)) fail("invalid-argument", "Invalid department archive fields.");
   const departmentRef = db.doc(`accounts/${accountId}/departments/${departmentId}`);
   const auditRef = db.collection(`accounts/${accountId}/organizationAudit`).doc();
-  const placementsQuery = db.collectionGroup("placements").where("departmentId", "==", departmentId);
+  const placementsQuery = db.collectionGroup("placements")
+    .where("accountId", "==", accountId)
+    .where("departmentId", "==", departmentId);
   const membersQuery = db.collection(`accounts/${accountId}/members`).where("scopeIds", "array-contains", departmentId);
   return db.runTransaction(async tx => {
     const [accountSnap, departmentSnap, placementSnap, memberSnap, auditSnap] = await Promise.all([
