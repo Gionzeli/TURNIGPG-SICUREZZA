@@ -217,13 +217,14 @@ export function mountDSMCanonicalAccountBridge(container, {
     proposalPanel.hidden = false; proposalStatus.textContent = "Caricamento delle proposte personali…"; proposalResults.replaceChildren();
     try {
       const items = await listOwnEmployeeShiftProposals({ accountId });
+      if (!Array.isArray(items) || items.length > 50) throw new Error("Invalid proposal response.");
       if (disposed || current !== proposalQueryGeneration || activeFirebaseAccountId() !== accountId || selectedAccountId !== accountId) return;
       proposalResults.replaceChildren();
       if (!Array.isArray(items) || !items.length) proposalResults.append(document.createTextNode("Non hai proposte di modifica in attesa."));
       for (const proposal of (Array.isArray(items) ? items : [])) {
         const article = document.createElement("article"); article.className = "card";
         const heading = document.createElement("h4"); heading.textContent = "Proposta " + proposal.proposalId;
-        const detail = document.createElement("p"); detail.textContent = proposal.status + " — " + proposal.changeCount + " variazioni — origine: inserimento manuale";
+        const detail = document.createElement("p"); detail.textContent = proposal.status + " — " + proposal.changeCount + " variazioni — origine: " + String(proposal.source ?? "non indicata");
         article.append(heading, detail);
         for (const change of proposal.changes ?? []) {
           const line = document.createElement("p");
