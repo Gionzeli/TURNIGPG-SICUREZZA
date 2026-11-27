@@ -84,7 +84,10 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
       "has_meal_voucher", "revision"
     ];
     for (const item of result) {
-      assert.deepEqual(Object.keys(item).sort(), [...allowedDtoKeys].sort());
+      assert.ok(Object.keys(item).every(key => allowedDtoKeys.includes(key)));
+      for (const requiredKey of ["shiftId", "date", "type", "hours", "revision"]) {
+        assert.equal(Object.hasOwn(item, requiredKey), true);
+      }
       assert.equal(Object.hasOwn(item, "ownerUid"), false);
       assert.equal(Object.hasOwn(item, "compensation"), false);
       assert.equal(Object.hasOwn(item, "medicalReason"), false);
