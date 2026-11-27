@@ -91,7 +91,11 @@ test("connection owner, mailbox, provider and sender allowlist cannot be changed
   await adapters.saveConnection({ ...args, connection: active });
   await assert.rejects(adapters.saveConnection({
     ...args,
-    connection: { ...active, ownerUid: "attacker-uid", updatedAt: active.updatedAt + 1 }
+    connection: {
+      ...active, ownerUid: "attacker-uid", createdByUid: "attacker-uid",
+      consent: { ...active.consent, grantedByUid: "attacker-uid" },
+      updatedAt: active.updatedAt + 1
+    }
   }), error => error.code === "failed-precondition");
 });
 
