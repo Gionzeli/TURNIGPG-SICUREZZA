@@ -151,7 +151,9 @@ export function createEmployeeScheduleEmailIngestion({
         fail("failed-precondition", "Mailbox connection is not active or supported.");
       }
       const sender = normalizedEmail(message.from);
-      if (!sender) fail("invalid-argument", "Invalid sender address.");
+      if (!sender || !Number.isSafeInteger(message.receivedAt) || message.receivedAt < 1) fail("invalid-argument", "Invalid sender or received timestamp.");
+      const allowlist = Array.isArray(connection.allowedSenders) ? connection.allowedSenders.map(normalizedEmail) : [];
+      if (!allowlist.includes(sender)) fail("permission-denied", "Email sender is not in the verified mailbox allowlist.");
       const auth = await verifyMessage({ connection, message, sender });
       if (!auth || auth.authenticated !== true || auth.senderAllowed !== true) {
         fail("permission-denied", "Email sender authentication or allowlist verification failed.");
