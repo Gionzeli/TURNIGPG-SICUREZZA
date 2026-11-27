@@ -18,7 +18,7 @@ function harness(overrides = {}) {
     loadMailboxConnection: async () => ({
       accountId, connectionId, provider: "imap", status: "active", allowedSenders: ["turni@azienda.example"]
     }),
-    verifyMessage: async () => ({ authenticated: true, senderAllowed: true }),
+    verifyMessage: async () => ({ authenticated: true, senderAllowed: true, dmarc: "pass", dkim: "pass", spf: "pass" }),
     scanAttachment: async () => { calls.scans++; return { status: "clean" }; },
     extractSchedule: async () => ({
       documents: [{
@@ -76,7 +76,7 @@ test("trusted email ingestion creates per-employee proposals but never mutates t
 
 test("unverified sender is rejected before an ingestion job or PDF scan", async () => {
   const { service, calls } = harness({
-    verifyMessage: async () => ({ authenticated: false, senderAllowed: false })
+    verifyMessage: async () => ({ authenticated: false, senderAllowed: false, dmarc: "fail", dkim: "fail", spf: "fail" })
   });
   await assert.rejects(
     service.ingest({ accountId, connectionId, message, attachments: [attachment] }),
