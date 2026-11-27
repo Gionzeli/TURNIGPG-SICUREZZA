@@ -16,7 +16,7 @@ function harness(overrides = {}) {
   const calls = { claims: [], proposals: [], finished: [], scans: 0 };
   const service = createEmployeeScheduleEmailIngestion({
     loadMailboxConnection: async () => ({
-      accountId, connectionId, provider: "imap", status: "active"
+      accountId, connectionId, provider: "imap", status: "active", allowedSenders: ["turni@azienda.example"]
     }),
     verifyMessage: async () => ({ authenticated: true, senderAllowed: true }),
     scanAttachment: async () => { calls.scans++; return { status: "clean" }; },
