@@ -143,8 +143,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
             error.code = "failed-precondition";
             throw error;
           }
-          if (previous.status === "complete") return;
-          tx.set(ref, { ...previous, updatedAt: timestamp, attempts: previous.attempts + 1 });
+          // Re-recording the same cleanup request is idempotent. Only a
+          // confirmed worker failure may advance the retry attempt counter.
           return;
         }
         tx.set(ref, {
