@@ -120,8 +120,10 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
         const accountRef = db.doc(`accounts/${accountId}`);
         const accountSnap = await tx.get(accountRef);
         if (!accountSnap.exists || accountSnap.data().status !== "active") fail("failed-precondition", "Active account required.");
+        const before = [];
         for (const change of changes) {
           if (change.operation === "create") {
+            before.push(null);
             const placement = await authorization.loadPlacementAt(tx, accountId, principal.employeeId, change.shift.date);
             if (!principal.scopeIds.includes(principal.scopeType === "site" ? placement.siteId : placement.departmentId)) fail("permission-denied", "Proposed shift is outside the employee membership scope.");
             continue;
@@ -134,13 +136,14 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
               shift.revision !== change.expectedRevision || !validDate(shift.date)) fail("failed-precondition", "A referenced shift changed or is not owned by this employee.");
           const placement = await authorization.loadPlacementAt(tx, accountId, principal.employeeId, shift.date);
           if (placement.placementId !== shift.placementId || placement.siteId !== shift.siteId || placement.departmentId !== shift.departmentId || !principal.scopeIds.includes(principal.scopeType === "site" ? placement.siteId : placement.departmentId)) fail("permission-denied", "Shift placement no longer matches canonical membership history.");
+          before.push({ ...Object.fromEntries(DTO_KEYS.filter(key => Object.hasOwn(shift, key)).map(key => [key, shift[key]])), revision: shift.revision });
         }
         const timestamp = now();
         if (!Number.isSafeInteger(timestamp)) fail("failed-precondition", "Invalid trusted clock.");
         const ref = db.doc(`accounts/${accountId}/employeeShiftProposals/${proposalId}`);
         tx.create(ref, {
           proposalId, accountId, employeeId: principal.employeeId, proposerUid: identity.uid,
-          source: "employee_manual", changes, status: "pending", createdAt: timestamp,
+          source: "employee_manual", changes, before, status: "pending", createdAt: timestamp,
           updatedAt: timestamp, schemaVersion: 1
         });
         return { proposalId, status: "pending", changeCount: changes.length };
@@ -162,7 +165,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
           return {
             proposalId: snapshot.id, status: proposal.status, source: proposal.source,
             createdAt: proposal.createdAt, changeCount: proposal.changes.length,
-            changes: proposal.changes
+            changes: proposal.changes, before: Array.isArray(proposal.before) && proposal.before.length === proposal.changes.length ? proposal.before : []
           };
         }).filter(Boolean).sort((a, b) => b.createdAt - a.createdAt);
       });
