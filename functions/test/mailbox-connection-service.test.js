@@ -12,7 +12,7 @@ const base = {
 };
 
 function harness(overrides = {}) {
-  const calls = { secrets: [], revoked: [], saved: [], audits: [], exchanges: 0 };
+  const calls = { secrets: [], revoked: [], disabled: [], saved: [], audits: [], exchanges: 0 };
   const principal = {
     accountId: base.accountId, uid: base.actorUid, status: "active",
     role: "member", employeeId: "synthetic-employee",
@@ -30,6 +30,7 @@ function harness(overrides = {}) {
     },
     storeSecret: async input => { calls.secrets.push(input); return "vault://synthetic/secret-1"; },
     revokeSecret: async input => { calls.revoked.push(input); },
+    disableRefresh: async input => { calls.disabled.push(input); },
     saveConnection: async input => { calls.saved.push(input); },
     loadConnection: async () => calls.saved.at(-1)?.connection,
     writeAudit: async input => { calls.audits.push(input); },
@@ -110,6 +111,7 @@ test("personal mailbox can be revoked only by its bound employee and is fail-clo
   });
   assert.equal(result.status, "revoked");
   assert.deepEqual(calls.saved.map(item => item.connection.status), ["active", "revocation_pending", "revoked"]);
+  assert.equal(calls.disabled.length, 1);
   assert.equal(calls.revoked.length, 1);
   assert.equal(calls.saved.at(-1).connection.credentialSecretRef, null);
 });
@@ -123,6 +125,21 @@ test("failed vault revocation leaves connection in non-active revocation_pending
     accountId: base.accountId, actorUid: base.actorUid, connectionId: "synthetic-connection"
   }), /synthetic vault outage/);
   assert.equal(calls.saved.at(-1).connection.status, "revocation_pending");
+  assert.equal(calls.disabled.length, 1);
+});
+
+
+test("refresh is disabled before vault revocation is attempted", async () => {
+  const order = [];
+  const { service } = harness({
+    disableRefresh: async () => { order.push("disable"); },
+    revokeSecret: async () => { order.push("revoke"); }
+  });
+  await service.connect(base);
+  await service.revoke({
+    accountId: base.accountId, actorUid: base.actorUid, connectionId: "synthetic-connection"
+  });
+  assert.deepEqual(order, ["disable", "revoke"]);
 });
 
 test("sender allowlist rejects malformed and duplicate addresses", async () => {
