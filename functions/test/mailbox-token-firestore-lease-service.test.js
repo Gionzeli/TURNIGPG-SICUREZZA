@@ -126,3 +126,17 @@ test('cleanup gate assertion rejects malformed persisted fencing and expiry valu
  f.record={ownerId:null,fencingToken:0,expiresAt:0,revocationPending:true};
  assert.deepEqual(await f.service.assertRevocationPending(scope),{status:'revocation_pending'});
 });
+
+
+test('cleanup gate assertion fails closed when Firestore read is unavailable',async()=>{
+ const ref={get:async()=>{throw new Error('synthetic firestore outage');}};
+ const service=createMailboxTokenFirestoreLeaseService({
+  firestore:{runTransaction:async()=>{throw new Error('not used');}},
+  leaseRefForConnection:()=>ref,now:()=>1000
+ });
+ await assert.rejects(()=>service.assertRevocationPending(scope),error=>{
+  assert.equal(error.code,'unavailable');
+  assert.equal(error.message,'Mailbox revocation gate could not be verified.');
+  return true;
+ });
+});
