@@ -8,7 +8,8 @@ const PERMISSIONS = Object.freeze({
     "dsm:employee:shift:read:self",
     "dsm:employee:shift:create:self",
     "dsm:employee:shift:update:self",
-    "dsm:employee:shift:delete:self"
+    "dsm:employee:shift:delete:self",
+    "dsm:employee:employment-profile:read:self"
   ],
   manager: ["dsm:read:site", "dsm:manage:site", "dsm:manage:departments", "dsm:transfer:departments"],
   admin: ["dsm:read:account", "dsm:manage:account", "dsm:manage:memberships", "dsm:manage:admin-nominations", "dsm:transfer:departments", "dsm:archive:site", "dsm:archive:department"]
