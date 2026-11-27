@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-64 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-65 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1752,6 +1752,34 @@ Approved policy in principle:
 
 **Still required before implementation:** assurance ownership and reviewer qualifications, risk tiers and review triggers, evidence catalogue and retention, required test matrix, finding severity and blocking thresholds, exception workflow and approver matrix, expiry enforcement, and independent review exercises. This policy does not certify the system, attest that controls are implemented, declare tests passed, authorize production activation or replace legal/privacy review.
 
+### L-65 — Security incident disclosure and coordinated vulnerability reporting
+
+**Question:** How should security vulnerabilities and incidents affecting the application, its users, integrations or data be reported, triaged, communicated and disclosed while protecting affected people and preserving response integrity?
+
+Possible choices:
+- **A. Ad hoc disclosure:** handle reports and notifications case by case without a defined intake, triage or disclosure process.
+- **B. Coordinated, risk-based disclosure and incident communications:** provide a protected reporting channel, accountable triage, coordinated remediation and legally reviewed, timely communication to affected parties.
+- **C. Immediate public disclosure:** publish all reports and incident details as soon as received, regardless of validation, exploitability or remediation status.
+
+**Approved 2026-11-27 — option B (coordinated, risk-based disclosure and incident communications), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Establish a discoverable, monitored security reporting channel with clear instructions, acknowledgement expectations and a safe method for submitting evidence without requesting passwords, tokens, employee records or unnecessary personal data.
+- Define accountable security, engineering, privacy/legal, operational and communications owners; maintain escalation and deputy coverage so reports are not dependent on one individual.
+- Triage reports promptly using severity, exploitability, affected assets and data, exposure scope, active exploitation, safety impact and available mitigations; distinguish confirmed findings from unverified claims.
+- Acknowledge good-faith reports, protect reporter confidentiality where feasible, prohibit retaliation for responsible disclosure and define coordinated disclosure expectations and reasonable remediation coordination.
+- Preserve relevant evidence with integrity and access controls; minimize collection, restrict access, record handling and avoid altering evidence during investigation.
+- Coordinate containment, remediation, validation and release through the approved incident and change processes; do not expose exploit details that materially increase harm before effective mitigation is available.
+- Determine notification obligations and deadlines with qualified privacy/legal review; communicate promptly and accurately to affected people and relevant authorities when required, without waiting for complete root-cause certainty where law or safety requires earlier notice.
+- Provide affected users with actionable information: what is known, what data or functions may be affected, relevant dates, steps taken, protective actions they can take and a safe contact channel; avoid speculation and unnecessary technical or personal details.
+- Coordinate disclosures with relevant providers, processors, integration partners and responsible authorities when their systems or obligations are involved; establish contractual notification and cooperation expectations.
+- Publish remediation advisories and security updates with affected versions, severity, mitigations and upgrade guidance once disclosure is safe and validated; do not reveal secrets, personal data or exploitable details unnecessarily.
+- Track report and incident status, decisions, timelines, notifications, remediation evidence and lessons learned in protected records; apply retention and deletion rules.
+- Review the process periodically and after material incidents, including tabletop exercises for active exploitation, data exposure, third-party compromise, reporter conflict and delayed notification.
+- Test synthetic scenarios for report-channel abuse, missed escalation, false reports, evidence leakage, premature disclosure, notification failure, third-party dependency and overdue remediation.
+
+**Still required before implementation:** reporting-channel ownership and availability, triage severity matrix and response targets, responsible disclosure terms, incident/communications authority, privacy/legal notification decision workflow, provider contract requirements, evidence handling, advisory publication process, retention and exercise schedule. This policy does not assert that an incident has occurred, that notifications have been made, or that any vulnerability has been remediated; it does not authorize public disclosure of private data or exploit details.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1816,6 +1844,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-62 Secure software release, build and distribution pipeline | Approved — option B isolated, reproducible and attestable pipeline with signed immutable artifacts and controlled promotion; implementation gated on source protection, runner isolation, provenance, signing and release workflow tests |
 | L-63 Controlled deployment and infrastructure change management | Approved — option B explicit environment approvals, verified immutable artifacts, staged rollout, monitored stop/rollback and audited infrastructure changes; implementation gated on environment boundaries, approval matrix, runner controls and recovery tests |
 | L-64 Security assurance, independent review and risk acceptance | Approved — option B risk-based independent assurance, traceable evidence and time-bounded exceptions; implementation gated on review ownership, evidence standards, blocking criteria and expiry enforcement |
+| L-65 Security incident disclosure and coordinated vulnerability reporting | Approved — option B protected reporting, risk-based triage, coordinated remediation and legally reviewed timely communications; implementation gated on ownership, severity targets, notification workflow and exercises |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
