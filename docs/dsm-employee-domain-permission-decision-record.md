@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-67 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-68 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1838,6 +1838,25 @@ Approved policy in principle:
 
 **Still required before implementation:** applicable accessibility standard and conformance target, supported browser/device/assistive-technology matrix, design-system semantics, authentication and timeout accommodations, third-party review criteria, manual test protocol, defect severity/blocking rules and remediation ownership. This policy does not certify accessibility conformance, authorize weaker authentication or permissions, or approve production activation.
 
+### L-68 — Data quality, accuracy, correction and provenance governance
+
+**Question:** What controls must govern the quality, accuracy, currency and traceability of employee-domain data without treating unverified information as authoritative?
+
+**Approved 2026-11-27 — option B (governed quality and provenance controls), by delegated user authorization to select the recommended option.**
+
+- Maintain an explicit field-level source-of-truth catalogue identifying the authoritative system or record, accountable owner, permitted writers, validation rules, update process and expected freshness for each canonical field. A user's role, an imported file, a client cache or a more recent timestamp does not by itself establish authority.
+- Preserve data provenance appropriate to the field and risk: origin/source reference, capture or effective time, ingestion time, responsible actor or workload identity, validation and approval outcome, transformation/version where relevant, and links to the resulting canonical revision. Minimize provenance metadata and protect it from unauthorized alteration.
+- Distinguish effective dates, event times, record-creation times and processing times; define timezone and precision semantics. Do not silently reinterpret missing, ambiguous, future-dated, stale or conflicting values.
+- Validate types, formats, enumerations, relationships, domain constraints, referential integrity and cross-field consistency on the server before accepting a change. Reject unknown fields and client-supplied authority, ownership, approval or provenance claims. Validation success does not prove the source information is factually correct.
+- Treat imported, synchronized, manually entered and legacy values according to an explicit trust classification. Quarantine or stage untrusted and conflicting inputs for review; do not silently overwrite canonical data, merge records, infer missing employment facts or perform automatic legacy migration.
+- Route disputed or inaccurate personal/employment data through L-10's tracked correction process, including authoritative-source verification, independent approval where required, revision/concurrency checks and protected correction history. Preserve the distinction between a request, a verified fact, an approved correction and an applied canonical change.
+- Provide authorized users with appropriately scoped indicators for source, last verification/update time and unresolved quality issues where operationally necessary. Do not expose internal evidence, third-party personal data or restricted provenance merely to explain a value.
+- Define freshness expectations and periodic/event-driven reconciliation for critical fields. Detect duplicates, orphaned bindings, impossible transitions, conflicting values and unexplained changes; route findings to an accountable human owner rather than automatically changing permissions, identity bindings, payroll or lifecycle state.
+- Keep quality metrics and diagnostic reports minimized, access-controlled and auditable. Do not use quality scores as the sole basis for employment decisions, access grants, disciplinary action or automated adverse outcomes.
+- Test synthetic cases for forged provenance, stale imports, duplicate employees, conflicting authoritative sources, invalid effective dates/timezones, unauthorized field writes, correction races, orphaned references, silent overwrite attempts and leakage through quality reports.
+
+**Still required before implementation:** field-level source-of-truth and ownership catalogue; trust classification and acceptable evidence by field; freshness/reconciliation schedules; timestamp and timezone semantics; validation and conflict-resolution rules; quarantine and human-review workflow; provenance schema, integrity and retention controls; quality-issue ownership and escalation; and synthetic Emulator tests. This policy does not certify data accuracy, authorize automatic reconciliation or legacy migration, permit direct client writes, change canonical ownership or access permissions, or authorize real-data processing or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1905,6 +1924,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-65 Security incident disclosure and coordinated vulnerability reporting | Approved — option B protected reporting, risk-based triage, coordinated remediation and legally reviewed timely communications; implementation gated on ownership, severity targets, notification workflow and exercises |
 | L-66 Privacy governance, data protection impact and change review | Approved — option B continuous risk-based privacy governance and pre-change assessment; implementation gated on processing inventory, lawful-basis review, DPIA screening, rights workflows and processor/transfer controls |
 | L-67 Accessibility, inclusive design and assistive-technology security | Approved — option B accessible workflows with equivalent server-enforced security; implementation gated on conformance target, supported technology matrix, authentication accommodations and manual assistive-technology tests |
+| L-68 Data quality, accuracy, correction and provenance governance | Approved — option B governed field-level sources, validation, provenance, reconciliation and human-reviewed correction; implementation gated on catalogue, workflows, integrity, retention and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
