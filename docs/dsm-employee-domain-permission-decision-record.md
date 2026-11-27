@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-106 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-107 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2667,6 +2667,28 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory every endpoint and UI flow that accepts an identity selector; define response equivalence and timing acceptance criteria; implement abuse controls that do not enable victim lockout; segregate internal diagnostics; and provide reproducible enumeration and privacy tests. No real employee directory lookup, account disclosure, or production authentication change is authorized by this decision.
 
+### L-107 — Cryptographically secure randomness, nonce generation and uniqueness
+
+**Question:** How should the application generate, scope, store, validate and retire random values used for session identifiers, CSRF tokens, invitation and recovery secrets, idempotency keys, nonces and other security-sensitive protocols?
+
+**Decision:** Approved — option B, require platform-approved cryptographically secure random number generation, protocol-specific uniqueness and entropy requirements, strict purpose separation, and fail-closed handling of entropy or generator failures. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Use operating-system or platform cryptographically secure random number generators (CSPRNGs) through maintained, approved libraries; prohibit timestamps, counters, ordinary pseudorandom generators, UUIDs with insufficient randomness, or custom algorithms as substitutes for security tokens.
+- Define entropy, length, collision tolerance, encoding and uniqueness requirements for each token class based on its threat model and protocol; do not reuse one generic token format without a documented assessment.
+- Generate security-sensitive values only in trusted server-side components or approved cryptographic boundaries; never accept client-generated values as proof of freshness, authorization, identity or unpredictability.
+- Separate values by purpose and protocol context; prevent token, nonce, key, session identifier and idempotency-key reuse across domains, tenants, users or workflows where reuse could enable substitution or cross-context attacks.
+- Enforce nonce uniqueness and replay prevention at the authoritative server boundary for the full protocol-defined validity window; use atomic storage and concurrency-safe checks where required.
+- Bind one-time tokens to their intended actor or verified destination, purpose, resource and expiry; enforce single-use consumption atomically and reject expired, malformed, reused or context-mismatched values.
+- Fail closed when the entropy source or approved generator is unavailable, unhealthy or reports an error; do not fall back to predictable generation, cached seeds, timestamps or weaker algorithms.
+- Protect generated values in transit, storage, logs, traces, analytics and support tooling; store only protected representations when verification permits, and never expose raw secrets in diagnostics.
+- Establish generator/library ownership, supported versions, platform entropy assumptions, startup health checks and change review; do not implement custom entropy pooling or seed management without independent cryptographic review.
+- Define collision detection and incident handling for identifiers that require uniqueness; treat unexpected collisions, repeated values or generator anomalies as security events, not as retry conditions that conceal a defective source.
+- Test deterministic test-only injection separately from production generation; synthetic tests must cover entropy-source failure, repeated outputs, concurrent nonce consumption, token replay, expiry, cross-tenant substitution and purpose confusion without exposing production secrets.
+- Document protocol-specific requirements for cryptographic randomness separately from key lifecycle and rotation decisions; this decision does not authorize new cryptographic protocols or custom cryptography.
+
+**Implementation gates:** Inventory every security-sensitive random value and its protocol; map each to an approved platform CSPRNG and documented entropy/uniqueness requirements; implement atomic replay and single-use enforcement where applicable; define fail-closed behavior and safe diagnostics; and provide reproducible synthetic tests, including entropy failure and concurrency cases. No production secret generation, key provisioning or cryptographic protocol change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2773,6 +2795,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-104 Secure identity federation, SSO trust and identity-provider lifecycle | Approved — option B registered providers, strict assertion validation, verified canonical binding and fail-closed trust lifecycle; implementation gated on provider register and protocol tests |
 | L-105 Authentication factor enrollment, replacement and recovery lifecycle | Approved — option B verified enrollment, strong recovery, downgrade resistance and server-side revocation; implementation gated on assurance matrix and lifecycle tests |
 | L-106 Account discovery, identity enumeration and privacy-preserving authentication responses | Approved — option B consistent external responses, abuse controls and scoped internal lookup; implementation gated on endpoint inventory and enumeration tests |
+| L-107 Cryptographically secure randomness, nonce generation and uniqueness | Approved — option B platform CSPRNGs, protocol-specific entropy and replay-safe uniqueness; implementation gated on inventory and failure/concurrency tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
