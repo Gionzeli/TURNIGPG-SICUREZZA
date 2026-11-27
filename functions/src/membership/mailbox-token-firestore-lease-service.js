@@ -53,8 +53,11 @@ export function createMailboxTokenFirestoreLeaseService({
         const snapshot = await transaction.get(ref);
         const current = snapshot?.data?.() || {};
         if (snapshot?.exists && (!Number.isSafeInteger(current.fencingToken) ||
-            current.fencingToken < 1 || !Number.isSafeInteger(current.expiresAt))) {
+            current.fencingToken < 0 || !Number.isSafeInteger(current.expiresAt))) {
           throw leaseError("unavailable", "Mailbox lease record is malformed.");
+        }
+        if (snapshot?.exists && current.revocationPending === true) {
+          throw leaseError("failed-precondition", "Mailbox connection is being revoked.");
         }
         if (snapshot?.exists && current.expiresAt > acquiredAt) {
           throw leaseError("lease-held", "Mailbox refresh is already in progress.");
@@ -92,7 +95,8 @@ export function createMailboxTokenFirestoreLeaseService({
       await firestore.runTransaction(async transaction => {
         const snapshot = await transaction.get(ref);
         const current = snapshot?.data?.() || {};
-        if (!snapshot?.exists || current.ownerId !== lease.ownerId ||
+        if (!snapshot?.exists || current.revocationPending === true ||
+            current.ownerId !== lease.ownerId ||
             current.fencingToken !== lease.fencingToken ||
             !Number.isSafeInteger(current.expiresAt) || current.expiresAt <= renewedAt) {
           throw leaseError("lease-lost", "Mailbox lease is no longer owned.");
@@ -103,6 +107,36 @@ export function createMailboxTokenFirestoreLeaseService({
     } catch (error) {
       if (error?.code === "lease-lost") throw error;
       throw leaseError("unavailable", "Mailbox lease renewal failed.");
+    }
+  }
+
+  async function disable({accountId, connectionId}) {
+    const ref = getRef(accountId, connectionId);
+    const disabledAt = readClock();
+    try {
+      await firestore.runTransaction(async transaction => {
+        const snapshot = await transaction.get(ref);
+        const current = snapshot?.data?.() || {};
+        if (snapshot?.exists && (!Number.isSafeInteger(current.fencingToken) ||
+            current.fencingToken < 0 || !Number.isSafeInteger(current.expiresAt))) {
+          throw leaseError("unavailable", "Mailbox lease record is malformed.");
+        }
+        if (snapshot?.exists && current.revocationPending === true) return;
+        const disabled = {
+          ownerId: current.ownerId ?? null,
+          fencingToken: snapshot?.exists ? current.fencingToken : 0,
+          acquiredAt: current.acquiredAt ?? disabledAt,
+          expiresAt: current.expiresAt ?? 0,
+          revocationPending: true,
+          revocationRequestedAt: disabledAt
+        };
+        if (snapshot?.exists) transaction.update(ref, disabled);
+        else transaction.create(ref, disabled);
+      });
+      return Object.freeze({status: "revocation_pending"});
+    } catch (error) {
+      if (error?.code === "unavailable") throw error;
+      throw leaseError("unavailable", "Mailbox refresh disable failed.");
     }
   }
 
@@ -123,5 +157,5 @@ export function createMailboxTokenFirestoreLeaseService({
     }
   }
 
-  return Object.freeze({acquire, renew, release});
+  return Object.freeze({acquire, renew, release, disable});
 }
