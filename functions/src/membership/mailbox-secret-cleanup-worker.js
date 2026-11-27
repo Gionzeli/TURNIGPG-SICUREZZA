@@ -92,7 +92,6 @@ export function createMailboxSecretCleanupWorker({
           summary.deferred++;
           continue;
         }
-        const operationTimestamp = readWorkerTimestamp(now);
         try {
           await credentialVault.revokeSecret({
             accountId: ticket.accountId,
@@ -101,7 +100,7 @@ export function createMailboxSecretCleanupWorker({
           });
           await cleanupAdapters.completeSecretCleanup({
             accountId: ticket.accountId, connectionId: ticket.connectionId,
-            timestamp: operationTimestamp
+            timestamp: readWorkerTimestamp(now)
           });
           summary.completed++;
         } catch (error) {
@@ -163,7 +162,7 @@ export function createMailboxSecretCleanupWorker({
             attempts: ticket.attempts, code: ticket.lastErrorCode
           });
           await cleanupAdapters.markCleanupAlertDelivered({
-            accountId, connectionId: ticket.connectionId, timestamp: alertTimestamp
+            accountId, connectionId: ticket.connectionId, timestamp: readWorkerTimestamp(now)
           });
         } catch (error) {
           // Persist bounded exponential backoff; the durable alert remains pending.
