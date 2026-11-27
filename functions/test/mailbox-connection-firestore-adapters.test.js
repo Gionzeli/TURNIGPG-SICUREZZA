@@ -641,3 +641,25 @@ test("cleanup outbox rejects malformed and cross-connection credential reference
     timestamp: active.createdAt + 1
   }), error => error.code === "invalid-argument");
 });
+
+
+test("cleanup completion rejects a ticket whose credential reference escaped its connection scope", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  docs.set(path, {
+    ...docs.get(path),
+    secretRef: secretRef(input.accountId, "another-connection")
+  });
+  await assert.rejects(adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 1
+  }), error => error.code === "failed-precondition");
+  assert.equal(docs.get(path).status, "pending");
+});
