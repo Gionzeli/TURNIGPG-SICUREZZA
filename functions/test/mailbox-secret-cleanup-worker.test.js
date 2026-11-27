@@ -347,3 +347,28 @@ test("worker does not send duplicate alert tickets from a malformed adapter batc
   });
   assert.equal(alertCalls, 0);
 });
+
+
+test("worker rejects an invalid clock before querying adapters or touching secrets", async () => {
+  let listCalls = 0;
+  let vaultCalls = 0;
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => { listCalls++; return [ticket]; },
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => { vaultCalls++; } },
+    alert: async () => {},
+    now: () => Number.NaN
+  });
+  await assert.rejects(
+    worker.runOnce({ accountId: "synthetic-account" }),
+    error => error.code === "failed-precondition"
+  );
+  assert.equal(listCalls, 0);
+  assert.equal(vaultCalls, 0);
+});
