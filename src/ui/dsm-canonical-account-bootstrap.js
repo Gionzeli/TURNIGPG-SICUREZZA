@@ -11,6 +11,7 @@ if (!root) throw new Error("Contenitore collegamento DSM non disponibile.");
 const functions = getFunctions();
 const listAccounts = httpsCallable(functions, "listMyCanonicalAccounts");
 const resolveAuthorization = httpsCallable(functions, "resolveAuthorization");
+const listOwnEmployeeShifts = httpsCallable(functions, "listOwnEmployeeShifts");
 const proposeMembershipInvite = httpsCallable(functions, "proposeCanonicalMembershipInvite");
 const approveMembershipInvite = httpsCallable(functions, "approveCanonicalMembershipInvite");
 const claimMembershipInvite = httpsCallable(functions, "claimCanonicalMembershipInvite");
@@ -22,6 +23,10 @@ const controller = mountDSMCanonicalAccountBridge(root, {
   onAuthStateChanged: watchAuth,
   listCanonicalAccounts: async () => {
     const result = await listAccounts();
+    return result.data;
+  },
+  listOwnEmployeeShifts: async data => {
+    const result = await listOwnEmployeeShifts(data);
     return result.data;
   },
   resolveAuthorization: async ({ uid, accountId }) => {
