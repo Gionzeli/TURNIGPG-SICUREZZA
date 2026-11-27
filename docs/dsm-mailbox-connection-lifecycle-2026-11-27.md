@@ -422,3 +422,13 @@ retry with `failed-precondition`; a repeated delivery acknowledgement remains
 idempotent and preserves the original delivery timestamp. This verifies the
 transactional state boundary against Emulator Firestore, subject to the
 Emulator integration workflow actually running.
+
+
+#### Revocation completion timestamps
+
+The mailbox lifecycle now samples the final revocation timestamp only after the
+refresh-disable gate, durable cleanup ticket, and vault deletion have completed.
+The persisted `revokedAt`, final `updatedAt`, and revocation audit timestamp
+therefore describe completion rather than the beginning of a potentially slow
+cleanup. A synthetic regression test advances the injected clock during vault
+deletion and checks all three timestamps.
