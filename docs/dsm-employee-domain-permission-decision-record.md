@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-52 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-53 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1419,6 +1419,34 @@ Approved policy in principle:
 
 **Still required before implementation:** canonical revision model, transaction boundaries, idempotency-key design and retention, conflict UX/workflows, retry and locking budgets, audit schema, compensation strategy and synthetic concurrency test coverage. This policy does not authorize changes to production records, payroll operations, automatic conflict resolution or deployment.
 
+### L-53 — Secure background jobs and scheduled processing
+
+**Question:** How should queues, schedulers, workers and automated jobs be authorized and constrained so that delayed or unattended execution cannot outlive permissions or exceed its intended scope?
+
+Possible choices:
+- **A. Broad service account:** run background work with a shared service identity and rely on job configuration.
+- **B. Scoped workload identity:** assign each workload a least-privilege identity, validate authority at execution time and constrain job inputs, retries and side effects.
+- **C. User-context snapshot:** capture the initiating user's permissions when a job is queued and trust that snapshot until completion.
+
+**Approved 2026-11-27 — option B (scoped workload identity and execution-time authorization), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Give each worker, scheduler and workload a distinct, non-human identity with only the domain, action and resource permissions it requires; prohibit shared universal service accounts.
+- Authenticate workload identity and validate job provenance, integrity, schema, issuer, intended audience, environment and expiry before execution.
+- Treat queue payloads and scheduling parameters as untrusted references, not as authorization grants; resolve canonical records and scope server-side.
+- Revalidate current membership, lifecycle, ownership, policy and approval state at execution and before consequential side effects; queued user authorization must not remain valid merely because it was valid at enqueue time.
+- Bind each job to an explicit purpose, tenant/domain scope, allowed operations, resource budget, deadline and maximum execution count.
+- Use idempotent processing, bounded retries, dead-letter handling and replay protection; prevent duplicate or reordered jobs from creating duplicate consequential effects.
+- Separate job submission, approval and execution for high-impact operations; workers must not self-approve or bypass required human oversight.
+- Protect queue contents and results in transit and at rest; minimize sensitive payload data and prefer short-lived references to canonical records over copied personal data.
+- Enforce concurrency, rate, timeout and resource limits per workload and organizational scope; isolate failures and prevent one tenant's workload from exhausting shared resources.
+- Support cancellation, revocation and safe termination when permissions, lifecycle, configuration or job validity changes; define behavior for partially completed operations.
+- Record workload identity, job provenance, authorization decision, scope, execution attempts, side effects, result and failure in protected audit evidence without logging secrets or unnecessary personal data.
+- Monitor unusual job creation, privilege use, retry storms, queue growth, stale jobs and cross-scope access; require human-reviewed response for material anomalies.
+- Test synthetic scenarios for forged payloads, stale authorization, replay, duplicate delivery, poisoned messages, privilege escalation, cross-tenant execution, cancellation and partial failure.
+
+**Still required before implementation:** workload identity catalogue, per-job permission matrix, queue schema and integrity design, execution-time authorization contract, retry/dead-letter policy, cancellation and compensation workflows, resource budgets, audit/monitoring ownership and synthetic test coverage. This policy does not authorize unattended production jobs, real-data processing, broad service identities or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1471,6 +1499,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-50 Secure export and document generation | Approved — option B end-to-end scoped authorization, minimized fields, safe rendering, protected delivery, artifact lifecycle and audit; implementation gated on catalogue, thresholds, workflows and tests |
 | L-51 Secure search and query authorization | Approved — option B server-enforced identity, scope and field constraints, minimized results, bounded queries and protected audit; implementation gated on field catalogue, query design, thresholds and tests |
 | L-52 Concurrent data integrity and conflict control | Approved — option B server-enforced revisions, atomicity, idempotency, explicit conflict handling and protected audit; implementation gated on revision model, transaction boundaries, workflows and tests |
+| L-53 Secure background jobs and scheduled processing | Approved — option B scoped workload identities, execution-time authorization, bounded/idempotent processing, cancellation and protected audit; implementation gated on workload matrix, queue design, workflows and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
