@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-115 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-116 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2884,6 +2884,33 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory endpoint media-type contracts and parser stacks; define supported request/response formats and strict parsing behavior; align gateway and application validation; configure bounded parser and decompression limits; and provide reproducible synthetic integration tests proving identical interpretation from ingress through handler execution. No production API parser or content-negotiation change is authorized by this decision.
 
+### L-116 — WebSocket upgrade handshake, origin validation and subprotocol security
+
+**Question:** How should real-time WebSocket connections be established so that browser-origin, authentication, protocol negotiation and transport upgrades cannot bypass the application's existing authorization boundaries?
+
+**Decision:** Approved — option B, accept WebSocket upgrades only through an explicit, validated handshake contract, enforce trusted-origin and subprotocol allowlists, and preserve server-side authorization and revocation controls throughout the connection lifecycle. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Inventory WebSocket endpoints, reverse-proxy upgrade paths, supported protocol versions, subprotocols, extensions and authentication mechanisms; disable unused endpoints and upgrade capabilities.
+- Require TLS for production WebSocket connections and enforce secure transport, certificate validation and approved host/routing boundaries.
+- Validate the HTTP upgrade handshake at the trusted ingress and application boundary; reject malformed, unexpected or unsupported upgrade headers and inconsistent connection/upgrade semantics.
+- Enforce an explicit Origin allowlist for browser clients, comparing normalized scheme, host and port against configured trusted origins; reject missing or untrusted origins where browser-origin validation is required.
+- Do not treat Origin as authentication or as a substitute for authorization; non-browser clients must authenticate independently and must not gain trust merely by supplying a permitted Origin value.
+- Prevent cross-site WebSocket hijacking by avoiding ambient cookie-only trust; use appropriate CSRF-resistant handshake controls, secure cookie policy and explicit origin validation for browser sessions.
+- Authenticate the connecting principal before accepting the upgrade, validate current session and revocation state, and avoid exposing sensitive details in handshake failures.
+- Avoid long-lived bearer tokens in WebSocket URLs or query parameters; where a short-lived connection ticket is necessary, make it opaque, single-purpose, tightly scoped, short-lived and protected against replay and leakage.
+- Allow only explicitly supported WebSocket subprotocols; negotiate the selected protocol server-side and reject unknown, client-invented or downgrade-inducing values.
+- Disable WebSocket extensions by default unless required; review per-message compression for confidentiality risks, resource amplification and implementation vulnerabilities, and enforce bounded message and decompression limits when enabled.
+- Apply message-size, frame-count, connection-count, idle-timeout, handshake-timeout and per-principal rate limits; prevent oversized fragmented messages, slow-consumer exhaustion and unbounded buffering.
+- Treat every message as untrusted input: validate message type, schema, size and allowed operation; never accept client-supplied tenant, employee ownership, role, permission or scope as authority.
+- Authorize each message operation on the server against current canonical membership, lifecycle, domain permission, resource relationship and scope; a successful handshake grants no blanket data or mutation permission.
+- Revalidate or promptly terminate connections when sessions, memberships, roles, tenant assignments, employment lifecycle or relevant permissions are revoked or changed; define bounded propagation and fail-closed behavior.
+- Keep subscription authorization, event filtering and outbound payload minimization aligned with L-080; do not deliver events merely because a connection was previously authenticated.
+- Prevent sensitive data leakage through close reasons, handshake diagnostics, protocol errors, server banners and logs; record minimized connection and authorization events in protected audit trails.
+- Test origin spoofing, cross-site browser initiation, invalid upgrades, subprotocol downgrade, extension abuse, oversized fragmented frames, slow clients, session revocation and cross-scope message attempts using synthetic clients and identities.
+
+**Implementation gates:** Inventory and document each WebSocket endpoint and handshake contract; configure ingress and application origin/subprotocol allowlists; establish secure browser authentication and CSRF-resistant handshake behavior; enforce bounded resource controls and per-message authorization; and provide reproducible synthetic integration tests for handshake abuse, cross-origin attempts and mid-connection revocation. No production WebSocket, proxy or authentication configuration change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2999,6 +3026,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-113 HTTP request parsing consistency, proxy trust and request-smuggling resistance | Approved — option B consistent parsing, rejection of ambiguous framing and trusted-proxy boundaries; implementation gated on ingress inventory and differential tests |
 | L-114 HTTP method override, route canonicalization and authorization-path consistency | Approved — option B explicit methods, canonical route interpretation and authorization/handler alignment; implementation gated on route inventory and differential tests |
 | L-115 API media-type enforcement, content negotiation and parser consistency | Approved — option B endpoint media-type allowlists, strict unified parsing and bounded processing; implementation gated on parser inventory and differential tests |
+| L-116 WebSocket upgrade handshake, origin validation and subprotocol security | Approved — option B validated upgrades, trusted-origin and subprotocol allowlists, and ongoing server-side authorization; implementation gated on handshake and revocation tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
