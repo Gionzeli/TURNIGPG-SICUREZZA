@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-41 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-42 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1135,6 +1135,29 @@ Approved policy in principle:
 
 **Still required before implementation:** inventory API routes and trust boundaries; define input/output schemas, CSP and security headers, CSRF/session architecture, outbound destination policy, request/rate limits, monitoring thresholds and negative test coverage. This policy does not claim current defenses are implemented or tests passed, and does not authorize production activation.
 
+### L-42 — Stored data and local cache protection
+
+**Question:** How should sensitive data be protected when stored on servers, devices, browser storage or offline caches?
+
+Possible choices:
+- **A. Platform defaults:** rely on standard storage protections and application conventions.
+- **B. Layered storage protection:** classify and minimize stored data, encrypt sensitive data at rest where appropriate, control keys and access, and strictly limit local/offline persistence.
+- **C. No local persistence:** prohibit all client-side persistence for every data category.
+
+**Approved 2026-11-27 — option B (layered stored-data and local-cache protection), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Classify data and retain only what is necessary for an approved purpose and duration; do not persist secrets, authentication tokens or sensitive payroll/health data in ordinary browser storage.
+- Require encryption at rest for sensitive server-side stores and backups, with access-controlled key management, rotation, recovery and separation of duties appropriate to risk.
+- Treat browser LocalStorage, IndexedDB, caches and device storage as untrusted client-controlled environments; partitioning or encryption on the client does not prove record ownership or authorization.
+- Keep offline/local persistence disabled for sensitive domains unless a separate domain-specific decision defines necessity, exact fields, device/session binding, expiry, revocation, deletion and threat mitigations.
+- Minimize cached data, apply bounded lifetimes, clear session-bound data on logout/account switch and lifecycle or binding revocation, and handle failed deletion as a security-relevant condition.
+- Never silently migrate legacy LocalStorage/IndexedDB records into canonical data stores or treat legacy client data as authoritative; any future migration requires a separately reviewed, explicit and auditable process.
+- Prevent sensitive data from leaking through browser caches, service-worker caches, crash reports, diagnostics, backups and logs; define secure deletion/retention limits and acknowledge where physical overwrite cannot be guaranteed.
+- Test account switching, shared-device scenarios, stale cache access, offline revocation, storage inspection, backup restoration and deletion behavior using synthetic fixtures.
+
+**Still required before implementation:** define data classification and retention schedules, approved storage locations per domain, encryption/key architecture, offline eligibility and TTLs, logout/account-switch/lifecycle cleanup semantics, backup controls and synthetic tests. This policy does not authorize local payroll/health caching, legacy migration, real-data access or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1182,7 +1205,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
 | L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
 | L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
-| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| L-41 Web application and API abuse protection | Approved — option B defense-in-depth validation, authorization, browser protections, outbound controls and abuse limits; implementation gated on route inventory, policies, monitoring and tests |\n| Other lifecycle and historical access | Open — fail closed |
+| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| L-41 Web application and API abuse protection | Approved — option B defense-in-depth validation, authorization, browser protections, outbound controls and abuse limits; implementation gated on route inventory, policies, monitoring and tests |\n| L-42 Stored data and local cache protection | Approved — option B layered encryption, minimization, key governance and strict local/offline persistence limits; implementation gated on classification, retention, storage, lifecycle cleanup and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
