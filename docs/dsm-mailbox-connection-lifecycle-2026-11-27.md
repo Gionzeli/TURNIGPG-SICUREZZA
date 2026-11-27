@@ -551,3 +551,14 @@ If that deletion succeeds, the Firestore adapter now permits the ticket to move
 to `complete`. Any still-pending exhaustion alert is marked `resolved` and
 removed from the alert query, because the credential has since been deleted.
 Repeated completion remains idempotent and preserves the first completion time.
+
+
+#### Token refresh clock validation
+
+The token lifecycle coordinator validates its injected clock before reading
+credentials, rechecks freshness after the vault read (so slow reads cannot
+return a token that has crossed the refresh-skew boundary), and validates the
+clock again after the provider response before calculating or persisting a new
+expiry. Invalid or overflowing timestamps fail closed without writing rotated
+tokens. Synthetic regressions cover stale freshness decisions and a clock that
+becomes invalid during refresh.
