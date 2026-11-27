@@ -385,3 +385,9 @@ the batch-start timestamp. In particular, a slow vault deletion or alert send
 cannot consume the newly scheduled backoff before the failure is recorded.
 The worker still validates every sampled timestamp and fails closed if the
 clock becomes invalid during a run.
+
+
+Completion and alert-delivery acknowledgement timestamps are sampled after the
+respective external side effect succeeds (vault deletion or notification
+delivery), not before it begins. This keeps audit timestamps aligned with
+completed operations even when an adapter call is slow.
