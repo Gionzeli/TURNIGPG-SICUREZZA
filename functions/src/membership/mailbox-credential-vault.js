@@ -3,6 +3,12 @@ import { randomUUID } from "node:crypto";
 const PROVIDERS = new Set(["gmail_api", "microsoft_graph"]);
 const MAX_TOKEN = 16_000;
 
+function isAlreadyAbsent(error) {
+  const code = error?.code ?? error?.status ?? error?.statusCode;
+  return code === "not-found" || code === "NOT_FOUND" || code === "404" ||
+    code === 404 || code === 5 || code === "5";
+}
+
 /**
  * Adapter boundary for a server-side secret manager (e.g. cloud secret vault).
  * backend.putSecret and backend.deleteSecret must be implemented with secure
@@ -54,7 +60,8 @@ export function createMailboxCredentialVault({ backend, now = () => Date.now(), 
       }
       try {
         await backend.deleteSecret({ secretRef });
-      } catch {
+      } catch (error) {
+        if (isAlreadyAbsent(error)) return;
         throw new Error("Credential vault revocation failed");
       }
     },
