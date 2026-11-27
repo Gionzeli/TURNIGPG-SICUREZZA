@@ -33,7 +33,7 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
       const operation=(async()=>{
         let lease;
         try {
-          const initialNow = readClock(now);
+          readClock(now);
           const load=async()=>{
             let value;
             try { value=await vault.loadSecret({secretRef}); }
@@ -44,7 +44,7 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
             return value;
           };
           let stored=await load();
-          if(Number.isSafeInteger(stored.expiresAt) && stored.expiresAt>initialNow+REFRESH_SKEW_MS) {
+          if(Number.isSafeInteger(stored.expiresAt) && stored.expiresAt>readClock(now)+REFRESH_SKEW_MS) {
             return Object.freeze({status:"active",accessToken:stored.accessToken,expiresAt:stored.expiresAt,refreshed:false});
           }
           if(leaseService) {
