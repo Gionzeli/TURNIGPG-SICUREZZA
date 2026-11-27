@@ -33,15 +33,25 @@ test('Firestore Emulator durably queues and acknowledges exhausted cleanup alert
     assert.equal(queued.length, 1);
     assert.equal(queued[0].connectionId, connectionId);
     assert.equal(queued[0].alertStatus, 'pending');
+    assert.equal(queued[0].alertAttempts, 0);
+    await adapters.recordCleanupAlertFailure({
+      accountId, connectionId, attempts: 1,
+      nextAttemptAt: timestamp + 60000,
+      lastErrorCode: 'unavailable', timestamp: timestamp + 2
+    });
+    const deferred = await adapters.listPendingCleanupAlerts({ accountId });
+    assert.equal(deferred.length, 1);
+    assert.equal(deferred[0].alertAttempts, 1);
+    assert.equal(deferred[0].alertNextAttemptAt, timestamp + 60000);
 
     await adapters.markCleanupAlertDelivered({
-      accountId, connectionId, timestamp: timestamp + 2
+      accountId, connectionId, timestamp: timestamp + 3
     });
     assert.deepEqual(await adapters.listPendingCleanupAlerts({ accountId }), []);
     const stored = (await ref.get()).data();
     assert.equal(stored.status, 'exhausted');
     assert.equal(stored.alertStatus, 'delivered');
-    assert.equal(stored.alertDeliveredAt, timestamp + 2);
+    assert.equal(stored.alertDeliveredAt, timestamp + 3);
   } finally {
     await ref.delete();
     await deleteApp(app);
