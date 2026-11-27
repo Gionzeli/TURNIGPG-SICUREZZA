@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-55 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-56 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1501,6 +1501,34 @@ Approved policy in principle:
 
 **Still required before implementation:** lifecycle event catalogue and authoritative source, revocation propagation targets, credential/session inventory, provider integration contracts, retry and reconciliation design, exception ownership, notification rules and synthetic revocation test coverage. This policy does not authorize real account suspension, termination, credential changes or production activation.
 
+### L-56 — Secure shared-device and workstation sessions
+
+**Question:** What safeguards should protect employee accounts and sensitive operational information on shared, unattended, lost or potentially compromised workstations and devices?
+
+Possible choices:
+- **A. User-managed sign-out:** rely on employees to sign out and close browser windows when finished.
+- **B. Centrally enforced device and session safeguards:** combine bounded inactivity and absolute session limits, reauthentication, server-side revocation and controlled local-data handling.
+- **C. Persistent convenience sessions:** allow long-lived sessions on recognized devices with limited periodic checks.
+
+**Approved 2026-11-27 — option B (centrally enforced shared-device and session safeguards), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat shared, kiosk, reception, office-floor and otherwise unattended workstations as untrusted; do not grant persistent trust solely because a device or browser was previously used.
+- Require individual accounts and prohibit shared credentials; authenticate each user and bind authorization to the verified server-side identity and current employment/membership state.
+- Apply short, risk-based inactivity timeouts and bounded absolute session lifetimes; require reauthentication after timeout, account switching, device-risk signals and sensitive actions.
+- Ensure timeout, sign-out, account switch, suspension and revocation invalidate server-side sessions and relevant refresh credentials; closing a tab or clearing a client view is not sufficient.
+- Provide an explicit, reliable sign-out and account-switch workflow that clears in-memory application state, sensitive browser caches, temporary files and locally retained artifacts to the extent technically controllable.
+- Do not store passwords, refresh tokens or sensitive employee, payroll or absence data in LocalStorage, browser-readable persistent storage or shared-device caches; any specifically approved offline capability must have a separate threat review and bounded encrypted storage lifecycle.
+- Use secure cookie and browser-session settings where applicable, protect against session fixation and cross-user state leakage, and prevent back-button or restored-tab access from exposing previously viewed data.
+- Revalidate authorization on every protected backend operation; client-side screen locking and route hiding are usability controls, not security boundaries.
+- Detect and respond to lost, stolen or compromised devices through session/device-grant revocation, credential rotation where warranted and incident procedures; device recognition must never override account or role revocation.
+- Minimize information shown on lock screens, notifications, print queues and shared displays; prevent sensitive data from appearing in browser history, downloads or unprotected temporary artifacts.
+- Define workstation handoff procedures, privacy screens and physical safeguards appropriate to the environment, with clear responsibility for unattended sessions.
+- Log security-relevant session creation, reauthentication, timeout, sign-out, device revocation and anomalous reuse with minimized protected audit data.
+- Test synthetic scenarios for idle timeout, absolute expiry, rapid user switching, restored tabs, cached responses, offline transitions, revoked devices, concurrent sessions and backend access after client lock.
+
+**Still required before implementation:** device classes and risk profiles, timeout values, authentication/session provider capabilities, cookie and browser policy, local-data inventory, offline-access decision, device incident workflow, audit schema and synthetic cross-user isolation tests. This policy does not authorize device enrollment, real credential handling, workstation configuration changes or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1556,6 +1584,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-53 Secure background jobs and scheduled processing | Approved — option B scoped workload identities, execution-time authorization, bounded/idempotent processing, cancellation and protected audit; implementation gated on workload matrix, queue design, workflows and tests |
 | L-54 Secure onboarding, invitations and account activation | Approved — option B verified identity, expiring scoped invitations, canonical binding, independent approval and protected audit; implementation gated on identity proofing, workflows, binding contract and tests |
 | L-55 Secure account deactivation and credential revocation | Approved — option B coordinated server-side revocation, lifecycle-aware authorization, dependent-job cancellation and protected audit; implementation gated on event catalogue, propagation, integrations and tests |
+| L-56 Secure shared-device and workstation sessions | Approved — option B centrally enforced session expiry, reauthentication, server-side revocation and local-data minimization; implementation gated on device profiles, session configuration and cross-user isolation tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
