@@ -691,10 +691,11 @@ test("worker requires an explicit positive revocation-gate result before vault d
 });
 
 
-test("worker rejects a secret reference scoped to another connection before vault access", async () => {
+test("worker rejects a secret reference scoped to another connection before gate or vault access", async () => {
   let revoked = 0;
+  let gateChecks = 0;
   const worker = createMailboxSecretCleanupWorker({
-    assertRevocationPending: async () => ({ status: "revocation_pending" }),
+    assertRevocationPending: async () => { gateChecks++; return { status: "revocation_pending" }; },
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [{
         ...ticket,
@@ -712,13 +713,15 @@ test("worker rejects a secret reference scoped to another connection before vaul
   assert.deepEqual(await worker.runOnce({ accountId: ticket.accountId }), {
     scanned: 1, completed: 0, deferred: 1, exhausted: 0
   });
+  assert.equal(gateChecks, 0);
   assert.equal(revoked, 0);
 });
 
 test("worker rejects malformed secret reference before vault access", async () => {
+  let gateChecks = 0;
   let revoked = 0;
   const worker = createMailboxSecretCleanupWorker({
-    assertRevocationPending: async () => ({ status: "revocation_pending" }),
+    assertRevocationPending: async () => { gateChecks++; return { status: "revocation_pending" }; },
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [{ ...ticket, secretRef: "vault://legacy/ref" }],
       completeSecretCleanup: async () => {},
@@ -733,5 +736,6 @@ test("worker rejects malformed secret reference before vault access", async () =
   assert.deepEqual(await worker.runOnce({ accountId: ticket.accountId }), {
     scanned: 1, completed: 0, deferred: 1, exhausted: 0
   });
+  assert.equal(gateChecks, 0);
   assert.equal(revoked, 0);
 });
