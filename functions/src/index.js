@@ -7,6 +7,7 @@ import { resolveCanonicalMembership } from "./membership/membership-policy.js";
 import { createEmployeeProvisioningHandlers } from "./membership/employee-provisioning-callable-handlers.js";
 import { createOrganizationCallableHandlers } from "./membership/organization-callable-handlers.js";
 import { createEmployeeShiftCallableHandlers } from "./membership/employee-shift-callable-handlers.js";
+import { createCanonicalAccountCallableHandlers } from "./membership/canonical-account-callable-handlers.js";
 
 initializeApp();
 
@@ -16,6 +17,11 @@ const organization = createOrganizationCallableHandlers({
 });
 
 const employeeShifts = createEmployeeShiftCallableHandlers({
+  db: getFirestore(),
+  verifyToken: (token, checkRevoked) => getAuth().verifyIdToken(token, checkRevoked)
+});
+
+const canonicalAccounts = createCanonicalAccountCallableHandlers({
   db: getFirestore(),
   verifyToken: (token, checkRevoked) => getAuth().verifyIdToken(token, checkRevoked)
 });
@@ -87,6 +93,11 @@ export const resolveAuthorization = onCall(async (request) => {
     if (error instanceof HttpsError) throw error;
     throw new HttpsError("internal", "Authorization lookup failed.");
   }
+});
+
+export const listMyCanonicalAccounts = onCall(async request => {
+  try { return await canonicalAccounts.listMine(request); }
+  catch (error) { throw callableError(error); }
 });
 
 export const proposeEmployeeProvisioning = onCall(async request => {
