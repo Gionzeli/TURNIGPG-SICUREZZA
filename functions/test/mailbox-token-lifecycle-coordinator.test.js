@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createMailboxTokenLifecycleCoordinator } from '../src/membership/mailbox-token-lifecycle-coordinator.js';
 
-const expired = { accessToken: 'synthetic-old-access-token', refreshToken: 'synthetic-refresh-token', expiresAt: 0, scopes: ['Mail.Read'] };
+const expired = { accessToken: 'synthetic-old-access-token', refreshToken: 'synthetic-refresh-token', expiresAt: 0, version: 'v1', scopes: ['Mail.Read'] };
 
 test('returns current token when expiry is outside refresh skew', async () => {
  const coordinator = createMailboxTokenLifecycleCoordinator({
@@ -21,7 +21,7 @@ test('refreshes expired token and retains refresh token if provider omits rotati
   now: () => 10000
  });
  const result = await coordinator.ensureFresh({accountId:'acct',connectionId:'conn',provider:'microsoft_graph',secretRef:'opaque',clientId:'client-id-12345',clientSecret:'secret',tenant:'organizations'});
- assert.equal(result.refreshed,true); assert.equal(stored.secretRef,'opaque');
+ assert.equal(result.refreshed,true); assert.equal(stored.secretRef,'opaque'); assert.equal(stored.expectedVersion,'v1');
  assert.equal(stored.secretMaterial.refreshToken,expired.refreshToken);
  assert.equal(stored.secretMaterial.expiresAt,3610000);
 });
