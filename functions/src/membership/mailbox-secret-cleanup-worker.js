@@ -1,6 +1,12 @@
 const MAX_BATCH = 100;
 const MAX_ATTEMPTS = 12;
 const MAX_BACKOFF_MS = 6 * 60 * 60 * 1000;
+const ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
+function validSecretRef(value, accountId, connectionId) {
+  if (typeof value !== "string" || value.length > 512) return false;
+  const match = /^mailbox\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{16,128})$/.exec(value);
+  return !!match && match[1] === accountId && match[2] === connectionId;
+}
 
 function safeCode(error) {
   const value = typeof error?.code === "string" ? error.code : "unknown";
@@ -70,9 +76,9 @@ export function createMailboxSecretCleanupWorker({
         summary.scanned++;
         if (!ticket || ticket.accountId !== accountId ||
             typeof ticket.connectionId !== "string" ||
-            !/^[A-Za-z0-9_-]{1,128}$/.test(ticket.connectionId) ||
-            typeof ticket.secretRef !== "string" || ticket.secretRef.length < 1 ||
-            ticket.secretRef.length > 2048 || ticket.status !== "pending" ||
+            !ID_RE.test(ticket.connectionId) ||
+            !validSecretRef(ticket.secretRef, accountId, ticket.connectionId) ||
+            ticket.status !== "pending" ||
             !Number.isSafeInteger(ticket.attempts) || ticket.attempts < 1 ||
             !(ticket.nextAttemptAt === null ||
               (Number.isSafeInteger(ticket.nextAttemptAt) && ticket.nextAttemptAt >= 1)) ||
@@ -153,7 +159,7 @@ export function createMailboxSecretCleanupWorker({
       for (const ticket of pendingAlerts) {
         if (!ticket || ticket.accountId !== accountId ||
             typeof ticket.connectionId !== "string" ||
-            !/^[A-Za-z0-9_-]{1,128}$/.test(ticket.connectionId) ||
+            !ID_RE.test(ticket.connectionId) ||
             ticket.status !== "exhausted" || ticket.alertStatus !== "pending" ||
             !Number.isSafeInteger(ticket.attempts) || ticket.attempts < MAX_ATTEMPTS ||
             typeof ticket.lastErrorCode !== "string" ||
