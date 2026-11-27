@@ -221,6 +221,12 @@ test("credential cleanup outbox persists retry state and completes monotonically
     timestamp: input.timestamp + 3
   });
   assert.equal(docs.get(path).status, "complete");
+  docs.get(path).completedAt = "corrupt";
+  await assert.rejects(adapters.completeSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId,
+    timestamp: input.timestamp + 4
+  }), error => error.code === "failed-precondition");
+  assert.equal(docs.get(path).completedAt, "corrupt", "malformed terminal ticket is not silently acknowledged");
 });
 
 test("successful deletion resolves an exhausted cleanup ticket and its pending alert", async () => {
