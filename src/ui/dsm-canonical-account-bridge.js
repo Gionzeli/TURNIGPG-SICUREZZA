@@ -117,6 +117,7 @@ export function mountDSMCanonicalAccountBridge(container, {
   const proposalDateInput = document.createElement("input"); proposalDateInput.type = "date"; proposalDateInput.setAttribute("aria-label", "Data turno"); proposalDateLabel.append(proposalDateInput);
   const proposalTypeLabel = document.createElement("label"); proposalTypeLabel.textContent = "Tipo turno";
   const proposalTypeInput = document.createElement("select"); proposalTypeInput.setAttribute("aria-label", "Tipo turno");
+  const unchangedType = document.createElement("option"); unchangedType.value = ""; unchangedType.textContent = "Seleziona tipo / lascia invariato"; proposalTypeInput.append(unchangedType);
   for (const value of ["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"]) { const option = document.createElement("option"); option.value = value; option.textContent = value; proposalTypeInput.append(option); } proposalTypeLabel.append(proposalTypeInput);
   const proposalPostLabel = document.createElement("label"); proposalPostLabel.textContent = "Postazione";
   const proposalPostInput = document.createElement("input"); proposalPostInput.type = "text"; proposalPostInput.maxLength = 80; proposalPostInput.placeholder = "Postazione ricevuta"; proposalPostInput.setAttribute("aria-label", "Postazione proposta"); proposalPostLabel.append(proposalPostInput);
