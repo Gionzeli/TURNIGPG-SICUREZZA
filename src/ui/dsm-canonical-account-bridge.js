@@ -232,7 +232,8 @@ export function mountDSMCanonicalAccountBridge(container, {
           const before = proposal.before?.[changeIndex] ?? null;
           const line = document.createElement("p");
           if (change.operation === "create") {
-            line.textContent = "Nuovo turno: " + (change.shift?.date ?? "") + ", " + (change.shift?.type ?? "") + ", " + (change.shift?.post ?? "") + ", " + (change.shift?.start_time ?? "") + "-" + (change.shift?.end_time ?? "");
+            const extra = Object.entries(change.shift ?? {}).filter(([key]) => !["date", "type", "post", "start_time", "end_time"].includes(key)).map(([key, value]) => key + ": " + String(value)).join(", ");
+            line.textContent = "Nuovo turno: " + (change.shift?.date ?? "") + ", " + (change.shift?.type ?? "") + ", " + (change.shift?.post ?? "") + ", " + (change.shift?.start_time ?? "") + "-" + (change.shift?.end_time ?? "") + (extra ? " — " + extra : "");
             article.append(line);
           } else if (change.operation === "delete") {
             line.textContent = "Eliminazione turno: " + (before?.date ?? "") + ", " + (before?.type ?? "") + ", " + (before?.post ?? "") + ", " + (before?.start_time ?? "") + "-" + (before?.end_time ?? "");
