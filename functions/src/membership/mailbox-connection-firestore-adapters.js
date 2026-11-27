@@ -259,7 +259,19 @@ export function createMailboxConnectionFirestoreAdapters(db) {
             !Number.isSafeInteger(value.attempts) || value.attempts < 12 ||
             typeof value.lastErrorCode !== "string" ||
             !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)) return null;
-        return value;
+        // Alert consumers receive a strict DTO; never expose secretRef,
+        // provider metadata, or unrelated ticket fields to the notifier.
+        return {
+          accountId: value.accountId,
+          connectionId: value.connectionId,
+          status: value.status,
+          alertStatus: value.alertStatus,
+          attempts: value.attempts,
+          lastErrorCode: value.lastErrorCode,
+          alertAttempts: value.alertAttempts ?? 0,
+          alertNextAttemptAt: value.alertNextAttemptAt ?? null,
+          alertLastErrorCode: value.alertLastErrorCode ?? null
+        };
       }).filter(Boolean);
     },
 
