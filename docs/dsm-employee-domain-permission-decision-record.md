@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-24 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-25 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -737,6 +737,30 @@ Approved policy in principle:
 
 **Still required before implementation:** select the approved secret manager and key-management service; define secret classes, owners and inventory; configure per-environment workload identities and access policies; establish rotation/expiry SLAs, emergency revocation and recovery; implement repository and CI secret scanning, log redaction and client-bundle checks; define audit retention and independent access review; and add synthetic tests proving unauthorized identities cannot retrieve secrets across environments. No production secret provisioning, key creation or credential rotation is authorized by this policy decision alone.
 
+### L-25 — Strong authentication for administrators and privileged users
+
+**Question:** How must administrators and users with elevated privileges authenticate?
+
+Possible choices:
+- **A. Password-only authentication:** no additional verification.
+- **B. Mandatory multi-factor authentication:** phishing-resistant methods preferred (passkeys or hardware security keys), limited sessions and step-up verification for critical operations.
+- **C. Optional MFA:** each administrator decides whether to enable it.
+
+**Approved 2026-11-27 — option B (mandatory MFA, phishing-resistant methods preferred, limited sessions and step-up verification for critical operations), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Require MFA for all human accounts with administrative, security, support, approval, export, secret-management, production or other elevated privileges. Password-only access is not sufficient for privileged operations.
+- Prefer phishing-resistant authentication such as FIDO2/WebAuthn passkeys or hardware security keys. Any permitted fallback must be explicitly risk-assessed, protected against account recovery abuse and not silently downgrade the required assurance.
+- Require step-up authentication for high-impact actions, including privilege grants/revocations, identity or employee-binding changes, secret/key access, bulk exports, break-glass activation, security configuration changes and production access.
+- Apply bounded session lifetimes, reauthentication after defined inactivity or risk events, secure session/token handling, and prompt session revocation after account compromise, role changes or termination.
+- Separate authentication assurance from authorization: MFA does not grant a role, scope, data permission or approval authority.
+- Enforce privileged access server-side and fail closed when required MFA claims, authentication assurance or recent-authentication evidence is absent or invalid.
+- Provide controlled enrollment, recovery, replacement and loss procedures. Recovery must not be weaker than the authentication it replaces; sensitive recovery and factor replacement require identity verification, audit and independent approval where appropriate.
+- Prohibit shared administrator accounts. Attribute each privileged action to an individual verified identity and record security-relevant authentication and recovery events without logging secrets.
+- Use synthetic identities and emulator/test environments to validate MFA-required and MFA-denied paths. Do not weaken production authentication to accommodate tests or unsupported clients.
+
+**Still required before implementation:** define privileged role inventory and assurance requirements; select supported authenticators and fallback policy; configure MFA enforcement and step-up claims in the identity provider and backend; define session lifetime, revocation and reauthentication semantics; establish enrollment, recovery and emergency access procedures; define audit events and review ownership; and add synthetic tests for missing MFA, stale authentication, recovery abuse, session revocation and privilege escalation. No production MFA configuration, account enrollment or identity-provider change is authorized by this policy decision alone.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -772,6 +796,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-12 Employee access during a dispute | Approved — option B tracked access to relevant records with third-party/restricted-content redaction; implementation gated on scope, disclosure workflow and tests |
 | L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| L-15 Administrator access to employee data | Approved — option B least-privilege, duty-specific permissions with independent controls; implementation gated on role/action/scope mapping and tests |\n| L-16 Periodic and event-driven access reviews | Approved — option B scheduled and lifecycle-triggered reviews with prompt revocation; implementation gated on cadence, ownership, event and revocation controls and tests |\n| L-17 Security log integrity and protection | Approved — option B append-only protected logs with restricted access and integrity verification; implementation gated on storage, key, retention, access and test design |\n| L-18 Technical support access | Approved — option B minimized diagnostics by default; exceptional real-data access strictly necessary, authorized, time-limited and audited; implementation gated on roles, scope, workflow and tests |\n| L-19 Analytics, automation and AI tools | Approved — option B synthetic/anonymized by default; real data only with authorized purpose, minimization, provider/security review and audit; implementation gated |\n| L-20 Security incident response | Approved — option B documented response lifecycle; implementation gated on owners, severity, authority, evidence, notifications, recovery and exercises |\n| L-21 Business continuity and recovery | Approved — option B protected scheduled backups, separate copies, restore tests, RPO/RTO and integrity checks; implementation gated |\n| L-22 Environment separation and promotion | Approved — option B separate environments, credentials and data, least privilege and controlled promotion; implementation gated |\n| L-23 Software dependencies and supply-chain security | Approved — option B inventoried/versioned dependencies, controlled updates, vulnerability/provenance checks, lockfiles and review; implementation gated on inventory, tooling, thresholds, exceptions and CI controls |
 | L-24 Credential and secret management | Approved — option B dedicated secret manager, least privilege, rotation, expiry, audit and no secrets in code/logs; implementation gated on vault, key management, identity, lifecycle and test controls |
+| L-25 Strong authentication for privileged users | Approved — option B mandatory MFA, phishing-resistant methods preferred, bounded sessions and step-up verification; implementation gated on identity provider, recovery, session and test controls |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
