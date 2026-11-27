@@ -2,6 +2,10 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createMailboxConnectionFirestoreAdapters } from "../src/membership/mailbox-connection-firestore-adapters.js";
 
+function secretRef(accountId, connectionId, opaqueId = "syntheticopaqueid123") {
+  return `mailbox/${accountId}/${connectionId}/${opaqueId}`;
+}
+
 function fakeFirestore() {
   const docs = new Map();
   const db = {
@@ -80,7 +84,7 @@ const active = {
   createdByUid: "synthetic-uid",
   createdAt: 1795766400000,
   updatedAt: 1795766400000,
-  credentialSecretRef: "vault://synthetic/secret",
+  credentialSecretRef: secretRef("synthetic-account", "synthetic-connection"),
   consent: { grantedByUid: "synthetic-uid", grantedAt: 1795766400000, version: 1 }
 };
 
@@ -264,7 +268,7 @@ test("cleanup outbox refuses a different secret reference for an existing connec
   };
   await adapters.recordSecretCleanup(input);
   await assert.rejects(adapters.recordSecretCleanup({
-    ...input, secretRef: "vault://different/secret"
+    ...input, secretRef: secretRef(input.accountId, input.connectionId, "differentopaqueid123")
   }), error => error.code === "failed-precondition");
 });
 
@@ -365,7 +369,7 @@ test("pending cleanup query sorts never-attempted and due work ahead of future r
     const connectionId = "future-" + i;
     await adapters.recordSecretCleanup({
       accountId: active.accountId, connectionId,
-      secretRef: "vault://synthetic/" + i, reason: "connection_revoked",
+      secretRef: secretRef(active.accountId, connectionId, "opaqueidentifier" + i), reason: "connection_revoked",
       timestamp: active.createdAt + i
     });
     await adapters.recordSecretCleanupFailure({
@@ -376,7 +380,7 @@ test("pending cleanup query sorts never-attempted and due work ahead of future r
   }
   await adapters.recordSecretCleanup({
     accountId: active.accountId, connectionId: "new-due",
-    secretRef: "vault://synthetic/new", reason: "connection_revoked",
+    secretRef: secretRef(active.accountId, "new-due"), reason: "connection_revoked",
     timestamp: active.createdAt + 10
   });
   const batch = await adapters.listPendingSecretCleanup({ accountId: active.accountId, limit: 1 });
