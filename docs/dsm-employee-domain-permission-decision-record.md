@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-82 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-83 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2134,6 +2134,28 @@ Approved policy in principle:
 
 **Still required before implementation:** batch capability catalogue; per-domain target-selection and item-authorization contract; atomicity and partial-success semantics; preview and approval workflow; item and workload limits; concurrency, timeout and cancellation rules; per-item idempotency/revision strategy; artifact protection; audit schema; and synthetic Emulator tests. This decision does not authorize bulk employee-data export, mass mutation, production execution or bypass of any per-record restriction.
 
+### L-83 — Inbound webhooks, callbacks and external event authenticity
+
+**Question:** How must inbound events from external providers and connected systems be authenticated, validated, deduplicated and authorized so that forged, replayed, delayed or misrouted callbacks cannot mutate employee-domain data or bypass canonical workflows?
+
+**Approved 2026-11-27 — option B (authenticated, allowlisted and replay-resistant event ingress with server-side domain authorization), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat every inbound webhook, callback, event notification and provider response as untrusted until its origin and integrity have been cryptographically verified using the provider's documented signature protocol or an equivalently strong authenticated mechanism.
+- Maintain an explicit inventory of providers, event types, endpoints, signing keys, expected audiences, permitted tenants/domains, schemas, owners and lifecycle. Reject unknown providers, event types, destinations, key identifiers and unsupported protocol versions.
+- Verify signatures over the exact raw request bytes and required signed metadata before parsing or acting on the payload. Enforce timestamp tolerance, key identity, algorithm allowlists and constant-time comparison where applicable; never accept unsigned fallback or client-supplied claims as proof.
+- Protect against replay with provider-scoped event identifiers, bounded timestamp windows, durable deduplication and idempotent processing. Duplicate delivery must not repeat a mutation, approval, payment-related action, notification or privilege grant.
+- Authenticate transport and constrain ingress through approved endpoint configuration, network controls where feasible, request-size limits, content-type/schema validation, rate limits and resource budgets. Do not derive trust from source IP alone.
+- Resolve tenant, actor, employee, resource and workflow context from canonical server-side bindings. Payload identifiers are lookup hints only; they cannot establish ownership, membership, tenant, permission, approval or target scope.
+- Authorize each resulting domain action at processing time against current identity/workload identity, tenant, lifecycle, policy version, scope, field permissions and workflow state. Signature validity proves message authenticity, not authorization to perform the requested action.
+- Separate event receipt from domain mutation. Persist a minimal verified envelope and processing state; use controlled transactional/outbox or equivalent mechanisms to prevent lost, duplicated or partially applied effects. Define retry, dead-letter, ordering and poison-message handling.
+- Handle out-of-order, delayed, expired, malformed and contradictory events through explicit per-event rules and canonical revision checks. Never roll back newer employee, membership, lifecycle, payroll, schedule or permission state based solely on arrival order.
+- Rotate and revoke provider signing secrets through governed secret management, overlap windows and compromise procedures. Bind keys to provider, endpoint, environment and permitted event set; no production/test key reuse.
+- Minimize payload retention and redact credentials, signatures, personal data and sensitive fields from logs, errors, traces and dead-letter queues. Restrict access to retained raw payloads and define expiry and secure disposal.
+- Audit verification outcomes, provider/event identity, deduplication, authorization decisions, processing transitions, retries and final domain outcomes with server-generated time and minimized metadata.
+- Test synthetic valid/invalid signatures, altered raw bytes, expired timestamps, replay, duplicate and reordered events, key rotation/revocation, cross-tenant identifiers, unauthorized event types, schema attacks, oversized payloads, retry storms, poison messages and partial processing failures.
+
+**Still required before implementation:** provider and event inventory; signature-verification contracts; endpoint/audience allowlists; key lifecycle and compromise runbook; event schema/version policy; durable deduplication and idempotency design; ordering/revision rules; transactional processing and dead-letter controls; payload retention/redaction; monitoring and audit taxonomy; and synthetic Emulator/integration tests. This decision does not authorize a new provider integration, production webhook endpoint, external data transfer or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2216,6 +2238,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-80 Real-time subscriptions, event streams and live-data authorization | Approved — option B server-authorized scoped streams, ongoing revalidation and prompt revocation; implementation gated on transport inventory, revocation latency, replay controls and tests |
 | L-81 Data synchronization, offline queues and conflict-safe reconciliation | Approved — option B untrusted client queues, server reauthorization, revision-based reconciliation and explicit conflicts; implementation gated on domain contracts, replay protection and tests |
 | L-82 Bulk operations, batch authorization and partial-failure safety | Approved — option B scoped batch capabilities, per-item authorization, bounded execution and explicit partial outcomes; implementation gated on atomicity, limits, approvals and tests |
+| L-83 Inbound webhooks, callbacks and external event authenticity | Approved — option B authenticated, allowlisted and replay-resistant ingress with server-side domain authorization; implementation gated on provider contracts, key lifecycle and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
