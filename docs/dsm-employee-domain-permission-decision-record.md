@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-79 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-80 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2073,6 +2073,26 @@ Approved policy in principle:
 
 **Still required before implementation:** formal permission algebra and precedence specification; canonical deny/allow representation; role and delegation composition rules; scope-intersection semantics; conflict and duplicate-assignment handling; reviewer-visible decision evidence; adapter conformance vectors; and synthetic Emulator tests for positive, negative and adversarial combinations. This decision does not authorize any new role, permission, delegation, workflow or production activation.
 
+### L-80 — Real-time subscriptions, event streams and live-data authorization
+
+**Question:** How must authorization be enforced for persistent listeners, WebSocket/event streams, live queries, push fan-out and reconnect/replay paths so that an initially authorized subscription cannot continue disclosing data after scope, identity or policy changes?
+
+**Approved 2026-11-27 — option B (server-authorized, narrowly scoped subscriptions with ongoing authorization revalidation and prompt revocation), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat every subscription, listener, stream, channel and push delivery as a distinct protected access path. A successful initial connection or prior read permission does not grant indefinite access to future events.
+- Authenticate the connection using a currently verified identity and derive actor, tenant, membership, lifecycle, ownership and scope from canonical server-side sources. Client-supplied channel names, filters, resource IDs, tenant IDs or query predicates are selectors only, never authorization evidence.
+- Authorize the exact domain, action, resource scope and field projection before establishing a subscription. Enforce query constraints and payload allowlists server-side; do not expose broad collections and rely on client-side filtering.
+- Revalidate authorization on each event or bounded server-defined checkpoint, and immediately after relevant identity, role, membership, placement, lifecycle, binding, delegation, tenant or policy changes. Define and enforce a maximum revocation latency; if it cannot be guaranteed, terminate or suspend the protected stream.
+- On revocation, expiry, scope reduction, policy-version incompatibility, token invalidation or uncertain authorization state, stop delivery, revoke the subscription and require fresh authentication and authorization before reconnecting. Do not let an already-open connection preserve former privileges.
+- Minimize event payloads to the exact authorized projection. Apply field-level and relationship-level restrictions to nested records, counts, metadata, event headers and error frames; avoid revealing the existence or activity of out-of-scope resources.
+- Bind subscriptions to explicit tenant, domain, resource and scope constraints, and prevent channel-guessing, cross-tenant fan-out, confused-deputy delivery and unauthorized subscription multiplexing. Service identities used for fan-out must have narrowly scoped delivery authority and cannot widen the initiating user's access.
+- Govern event replay, resume tokens, offsets, cursors, reconnect buffers and offline queues as protected data access. Bind them to identity, tenant, policy context and scope; make them short-lived and integrity-protected; reauthorize every replayed event. Never replay events accumulated during a period of revoked or uncertain access.
+- Ensure unsubscribe, disconnect, account switch, logout, session revocation and device changes clear server-side subscription state and local buffered payloads within defined limits. A client-side unsubscribe alone is not sufficient evidence of revocation.
+- Audit subscription creation, scope changes, denial, revocation and abnormal reconnect/replay behavior with minimized metadata. Do not log full event payloads, credentials, tokens or sensitive record contents.
+- Test synthetic multi-tenant and multi-role streams, field-level projections, event fan-out, mid-stream lifecycle and scope changes, revoked sessions, expired delegations, policy updates, reconnect/replay, duplicate delivery, queue delays and maximum revocation latency. Include negative tests for direct protected database listeners and client-filter bypasses.
+
+**Still required before implementation:** inventory of all live-data transports and listener paths; subscription authorization contract; server-side query and payload projection rules; maximum revocation-latency objective and enforcement mechanism; token, cursor and replay binding design; fan-out workload identity model; disconnect and buffer-cleanup guarantees; audit taxonomy; and synthetic Emulator/integration conformance tests. This decision does not authorize any new real-time endpoint, direct client listener to protected data, or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2152,6 +2172,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-77 Authorization policy versioning and enforcement consistency | Approved — option B canonical versioned policy, server enforcement, bounded propagation and fail-closed stale-state handling; implementation gated on enforcement inventory, rollout controls and conformance tests |
 | L-78 Trusted time, clock integrity and temporal authorization | Approved — option B authoritative server time, UTC storage, explicit business time zones and fail-closed temporal checks; implementation gated on synchronization, semantics, provenance and tests |
 | L-79 Authorization conflict resolution and permission composition | Approved — option B deny-overrides, least-privilege intersection and no implicit privilege accumulation; implementation gated on formal algebra, scope semantics and conformance tests |
+| L-80 Real-time subscriptions, event streams and live-data authorization | Approved — option B server-authorized scoped streams, ongoing revalidation and prompt revocation; implementation gated on transport inventory, revocation latency, replay controls and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
