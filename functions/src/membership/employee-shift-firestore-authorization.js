@@ -71,6 +71,10 @@ export function createEmployeeShiftFirestoreAuthorization({ db, now = () => Date
         (p.validUntil === null || p.validUntil > date));
       if (matches.length !== 1) deny();
       placement = matches[0];
+      const scopeMatches = principal.scopeType === "site"
+        ? principal.scopeIds.includes(placement.siteId)
+        : principal.scopeType === "department" && principal.scopeIds.includes(placement.departmentId);
+      if (!scopeMatches) deny();
       const [siteSnap, departmentSnap] = await Promise.all([
         tx.get(db.doc(`accounts/${accountId}/sites/${placement.siteId}`)),
         tx.get(db.doc(`accounts/${accountId}/departments/${placement.departmentId}`))
@@ -81,7 +85,10 @@ export function createEmployeeShiftFirestoreAuthorization({ db, now = () => Date
           department.accountId !== accountId || department.departmentId !== placement.departmentId ||
           department.siteId !== placement.siteId || department.status !== "active") deny();
     }
-    return Object.freeze({ employeeId, uid: actorUid, accountId, permission: OPERATIONS[operation], placement });
+    return Object.freeze({
+      employeeId, uid: actorUid, accountId, permission: OPERATIONS[operation],
+      scopeType: principal.scopeType, scopeIds: principal.scopeIds, placement
+    });
   }
   return Object.freeze({
     authorizeActor: async (tx, args) => {
