@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-92 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-93 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2351,6 +2351,29 @@ Approved policy in principle:
 
 **Still required before implementation:** complete domain and DNS inventory; registrar/provider ownership and MFA controls; approved change and dual-control matrix; DNSSEC applicability and key-rotation plan; dangling-record monitoring; certificate authority/CAA policy; private-key custody and renewal automation; certificate-transparency alerting; emergency response runbooks; and synthetic DNS/TLS integration tests. This decision does not authorize changing production DNS, registering domains, issuing certificates or modifying live infrastructure.
 
+### L-93 — Mobile application distribution, deep links and platform integrations
+
+**Question:** How should mobile application packages, deep links, operating-system integrations and platform-to-app handoffs be governed so that untrusted intents, counterfeit builds or exposed local capabilities cannot bypass authentication, tenant isolation or server-side authorization?
+
+**Approved 2026-11-27 — option B (verified application distribution, strict link/intent validation and server-authorized platform handoffs), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Maintain an inventory of supported mobile platforms, application identifiers, signing identities, distribution channels, associated domains, URL schemes, app links/universal links, push integrations and privileged operating-system capabilities. Assign accountable owners and separate development, test and production identities.
+- Distribute release packages only through approved channels and verify package provenance, signing identity, version, integrity and release approval. Protect signing keys in managed custody with least privilege, separation of duties, rotation and compromise-response procedures. Never embed signing or service credentials in the app package.
+- Treat every deep link, custom URL scheme, app link, universal link, notification action, QR code, clipboard value and inter-app intent as untrusted input. Validate scheme, host, path, parameter types, size and allowed destination; reject ambiguous encodings, duplicate parameters, open redirects and unexpected nested URLs.
+- Deep links may navigate to a resource or initiate a user-visible workflow, but must never themselves authenticate a user, establish tenant context, prove record ownership, grant permissions or execute privileged mutations. Resolve resource access only after normal authentication and fresh server-side authorization.
+- Bind sensitive link handoffs to short-lived, single-use, purpose-specific server state where necessary. Do not place access tokens, refresh tokens, passwords, sensitive employee data or reusable authorization codes in URLs, logs, clipboard content or notification payloads.
+- Verify associated-domain and app-link ownership using platform-supported mechanisms and exact approved domains. Avoid broad wildcard associations and custom schemes that can be claimed by another installed application where a verified association is available.
+- Apply safe navigation rules to embedded web views and external browsers. Restrict navigation origins, disable unnecessary JavaScript bridges and file access, prevent mixed-content and certificate-validation bypasses, and require explicit review before exposing native capabilities to web content.
+- Request operating-system permissions only when a documented feature needs them, at the point of use where appropriate. Minimize access to contacts, location, camera, microphone, files, notifications and background execution; provide clear explanations and graceful alternatives when permission is denied.
+- Store authentication material only using platform-supported protected storage with appropriate accessibility and backup controls. Do not place secrets in preferences, databases, logs, clipboard, screenshots, crash reports or unencrypted backups. Clear local account-specific state on logout, account switch and revocation according to the approved data lifecycle.
+- Treat push notifications as untrusted delivery and navigation signals, not as proof of identity or authorization. Keep payloads minimal; fetch protected content only after opening the app and rechecking the current authenticated session and resource permissions.
+- Prevent debug builds, developer menus, test endpoints, verbose logging, emulator bypasses and development signing identities from entering production distribution. Apply release integrity checks and controlled update/rollback procedures.
+- Define lost-device, compromised-package, signing-key compromise and malicious-link response procedures. Revoke affected sessions and credentials, disable compromised distribution paths, publish verified updates and communicate through trusted channels without disclosing sensitive incident data.
+- Audit release provenance, signing, app association changes, privileged platform permission changes and security-relevant link failures with minimized metadata. Do not log full sensitive deep-link parameters or authentication artifacts.
+- Test synthetic malicious links, scheme hijacking, host/path confusion, encoded traversal, duplicate parameters, cross-tenant resource links, stale/replayed handoff state, unauthorized notification actions, web-view bridge abuse, backup leakage, debug-build exposure and signing-key compromise.
+
+**Still required before implementation:** supported platform and distribution matrix; package/signing provenance process; exact associated-domain and URL allowlists; deep-link routing contract; sensitive handoff design; native/web-view capability inventory; platform storage and backup policy; permission rationale and fallback UX; push payload rules; incident runbooks; and synthetic device/browser integration tests. This decision does not authorize publishing a mobile application, changing production app associations or enabling privileged native capabilities.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2443,6 +2466,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-90 Passkeys, WebAuthn credential binding and phishing-resistant authentication | Approved — option B origin-bound WebAuthn, verified enrollment, credential lifecycle and controlled recovery; implementation gated on origin matrix, assurance policy, fallback and tests |
 | L-91 Secrets exposure prevention and credential leak response | Approved — option B preventive scanning, least-privilege secret custody and rapid revocation/rotation; implementation gated on inventory, CI boundaries, response runbooks and tests |
 | L-92 DNS security, domain ownership and certificate lifecycle | Approved — option B governed domain inventory, protected DNS administration, DNSSEC where appropriate and automated certificate lifecycle; implementation gated on ownership, change control, key custody and tests |
+| L-93 Mobile application distribution, deep links and platform integrations | Approved — option B verified distribution, strict intent validation and server-authorized handoffs; implementation gated on platform matrix, signing, link contracts and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
