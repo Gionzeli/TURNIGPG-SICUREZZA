@@ -270,3 +270,26 @@ test("cleanup retry metadata persists backoff and rejects stale attempts", async
     lastErrorCode: "unavailable", timestamp: input.timestamp + 3
   }), error => error.code === "failed-precondition");
 });
+
+
+test("pending cleanup listing excludes malformed retry metadata", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  docs.set(path, { ...docs.get(path), nextAttemptAt: "run-now" });
+  assert.deepEqual(await adapters.listPendingSecretCleanup({
+    accountId: active.accountId
+  }), []);
+  docs.set(path, {
+    ...docs.get(path), nextAttemptAt: null, lastErrorCode: "provider error with details"
+  });
+  assert.deepEqual(await adapters.listPendingSecretCleanup({
+    accountId: active.accountId
+  }), []);
+});
