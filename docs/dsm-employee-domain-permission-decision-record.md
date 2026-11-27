@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-27 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-28 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -810,6 +810,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define per-endpoint limits and risk thresholds; select trusted server-side signals and anti-automation controls; establish temporary restriction duration, reset and appeal/recovery procedures; define monitoring, alerting and false-positive review ownership; align with identity-provider protections; set telemetry minimization and retention; and add synthetic adversarial tests. No production rate-limit configuration, account lockout policy or identity-provider change is authorized by this policy decision alone.
 
+### L-28 — Session and device lifecycle security
+
+**Question:** How should authenticated sessions and registered devices be managed throughout their lifecycle?
+
+Possible choices:
+- **A. Basic session handling:** rely on default identity-provider behavior with limited visibility and revocation controls.
+- **B. Managed session lifecycle:** individual sessions, bounded lifetime, reauthentication for sensitive actions, user/admin revocation, secure token handling and lifecycle-triggered invalidation.
+- **C. Persistent sessions:** long-lived sessions with broad device trust and limited reauthentication.
+
+**Approved 2026-11-27 — option B (managed session lifecycle with bounded lifetime, revocation and reauthentication), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Use individual user sessions; prohibit shared accounts and shared session credentials. Bind each session to a verified identity-provider subject and validate the current canonical membership, lifecycle state, role, scope and permissions server-side for each protected request.
+- Apply bounded idle and absolute session lifetimes appropriate to risk. Require fresh authentication or step-up verification for sensitive actions, privilege changes, recovery, and other high-impact operations.
+- Provide a secure way for users and authorized administrators to review and revoke sessions, subject to least privilege and audit. Revocation must take effect server-side and must not depend solely on client-side sign-out.
+- Revoke or invalidate affected sessions and refresh credentials after account compromise, credential or MFA reset, suspension, termination, UID-to-employee binding revocation, material role/scope changes, and other defined lifecycle events. Do not automatically restore previously revoked sessions or privileges after reactivation.
+- Protect session and refresh tokens in transit and at rest; never place secrets in URLs, logs, analytics, browser-readable persistent storage or error messages. Use secure cookie attributes and appropriate CSRF protections where cookie-based sessions are used.
+- Detect unusual session activity and apply proportionate step-up or revocation controls. Avoid treating device recognition, IP address or a client-side session flag as proof of identity or authorization.
+- Maintain protected, minimized audit events for session creation, renewal, step-up, revocation and material security decisions. Do not record raw tokens or unnecessary device fingerprints.
+- Ensure logout, password/MFA recovery, administrator revocation and lifecycle-triggered revocation are tested across all relevant clients and backend endpoints.
+
+**Still required before implementation:** select session architecture and token storage; define idle/absolute lifetimes and step-up policy; specify device enrollment and trust semantics; map revocation propagation and refresh-token handling for each client/provider; define CSRF protections where applicable, monitoring and audit retention; and add synthetic Emulator tests for expiry, replay, revocation, account switching, role changes and concurrent sessions. This approval does not authorize production identity-provider settings or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -848,6 +871,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-25 Strong authentication for privileged users | Approved — option B mandatory MFA, phishing-resistant methods preferred, bounded sessions and step-up verification; implementation gated on identity provider, recovery, session and test controls |
 | L-26 Account recovery and credential reset | Approved — option B risk-based identity-verified recovery, single-use short-lived mechanisms, notification, session revocation and privileged-account safeguards; implementation gated on identity proofing, workflow, revocation and tests |
 | L-27 Protection against abusive authentication attempts | Approved — option B layered rate limits, brute-force/credential-stuffing defenses, anomaly detection, proportionate temporary restrictions, secure recovery and audit; implementation gated on thresholds, signals, recovery, monitoring and tests |
+| L-28 Session and device lifecycle security | Approved — option B managed sessions, bounded lifetime, step-up authentication, server-side revocation, lifecycle invalidation and protected audit; implementation gated on architecture, token handling, lifetimes and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
