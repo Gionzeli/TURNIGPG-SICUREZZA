@@ -1,4 +1,5 @@
 const ALLOWED = new Set(["gmail_api", "microsoft_graph"]);
+const ID_RE = /^[A-Za-z0-9_-]{1,128}$/;
 const REFRESH_SKEW_MS = 5 * 60 * 1000;
 const MAX_TOKEN_LIFETIME_MS = 31_536_000 * 1000;
 
@@ -25,11 +26,20 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
   const inFlight = new Map();
   return Object.freeze({
     async ensureFresh({accountId,connectionId,provider,secretRef,clientId,clientSecret,tenant}) {
-      if (!accountId || !connectionId || !secretRef || !ALLOWED.has(provider)) {
+      if (typeof accountId !== "string" || !ID_RE.test(accountId) ||
+          typeof connectionId !== "string" || !ID_RE.test(connectionId) ||
+          typeof secretRef !== "string" || secretRef.length < 1 || secretRef.length > 512 ||
+          !ALLOWED.has(provider)) {
         const error=new Error("Token lifecycle input is invalid."); error.code="invalid-argument"; throw error;
       }
-      const lockKey=`${accountId}/${connectionId}`;
-      if(inFlight.has(lockKey)) return inFlight.get(lockKey);
+      const lockKey=JSON.stringify([accountId,connectionId]);
+      if(inFlight.has(lockKey)) {
+        const pending=inFlight.get(lockKey);
+        if(pending.secretRef!==secretRef || pending.provider!==provider) {
+          const error=new Error("Mailbox connection token scope is inconsistent."); error.code="failed-precondition"; throw error;
+        }
+        return pending.operation;
+      }
       const operation=(async()=>{
         let lease;
         try {
@@ -100,9 +110,10 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
           }
         }
       })();
-      inFlight.set(lockKey,operation);
+      const pending={secretRef,provider,operation};
+      inFlight.set(lockKey,pending);
       try { return await operation; }
-      finally { if(inFlight.get(lockKey)===operation) inFlight.delete(lockKey); }
+      finally { if(inFlight.get(lockKey)===pending) inFlight.delete(lockKey); }
     }
   });
 }
