@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-42 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-43 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1158,6 +1158,30 @@ Approved policy in principle:
 
 **Still required before implementation:** define data classification and retention schedules, approved storage locations per domain, encryption/key architecture, offline eligibility and TTLs, logout/account-switch/lifecycle cleanup semantics, backup controls and synthetic tests. This policy does not authorize local payroll/health caching, legacy migration, real-data access or production activation.
 
+### L-43 — Administrative operations and insider-abuse controls
+
+**Question:** How should privileged administrative operations be constrained and monitored to reduce privilege escalation, misuse and insider risk?
+
+Possible choices:
+- **A. Broad administrator trust:** organization administrators may perform most actions, with audit after the fact.
+- **B. Least privilege and independent controls:** separate duties, narrowly scoped grants, independent approval for critical actions, and continuous audit/review.
+- **C. Centralized unrestricted super-admin:** reserve all sensitive operations to one universal administrator role.
+
+**Approved 2026-11-27 — option B (least privilege, separation of duties and independent administrative controls), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Do not treat an organization/account administrator role as universal authority over employee data or every domain; grant permissions by explicit action, domain and organizational scope.
+- Separate identity administration, role/permission granting, employee-data operations, security monitoring and approval duties where practicable.
+- Require independent approval for critical privilege grants, privilege escalation, sensitive data access exceptions, security-control changes and other high-impact administrative actions; prohibit self-approval.
+- Enforce privileged actions server-side using verified actor identity, current lifecycle and membership, explicit permission, scope, reason and approval state; UI controls are not security boundaries.
+- Use time-limited, purpose-bound privileged elevation with expiry and prompt revocation; avoid standing privilege where temporary access suffices.
+- Protect administrator authentication with MFA and step-up verification for critical actions; apply session limits and server-side revocation.
+- Record grants, changes, approvals, denials, use, expiry and revocation in protected audit; monitor unusual access patterns and alert accountable reviewers.
+- Conduct periodic and event-driven reviews of privileged accounts, role assignments, delegations and emergency access; remove stale or conflicting grants.
+- Test privilege escalation, self-approval, cross-domain and cross-scope access, compromised administrator sessions, stale grants and audit tampering using synthetic identities.
+
+**Still required before implementation:** define the privileged role/action/scope matrix, separation-of-duties rules, independent approver eligibility, elevation duration and emergency process, review cadence, alert ownership, audit schema and synthetic negative tests. This policy does not grant administrator privileges, authorize privileged endpoints or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1205,7 +1229,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
 | L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
 | L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
-| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| L-41 Web application and API abuse protection | Approved — option B defense-in-depth validation, authorization, browser protections, outbound controls and abuse limits; implementation gated on route inventory, policies, monitoring and tests |\n| L-42 Stored data and local cache protection | Approved — option B layered encryption, minimization, key governance and strict local/offline persistence limits; implementation gated on classification, retention, storage, lifecycle cleanup and tests |\n| Other lifecycle and historical access | Open — fail closed |
+| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| L-41 Web application and API abuse protection | Approved — option B defense-in-depth validation, authorization, browser protections, outbound controls and abuse limits; implementation gated on route inventory, policies, monitoring and tests |\n| L-42 Stored data and local cache protection | Approved — option B layered encryption, minimization, key governance and strict local/offline persistence limits; implementation gated on classification, retention, storage, lifecycle cleanup and tests |\n| L-43 Administrative operations and insider-abuse controls | Approved — option B least privilege, separation of duties, independent approvals, time-limited elevation and protected audit; implementation gated on role matrix, approver rules, monitoring and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
