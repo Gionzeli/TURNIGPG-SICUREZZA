@@ -1,7 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { createMailboxSecretCleanupWorker } from "../src/membership/mailbox-secret-cleanup-worker.js";
-
 const ticket = {
   accountId: "synthetic-account", connectionId: "synthetic-connection",
   secretRef: "vault://synthetic/ref", status: "pending", attempts: 1,
@@ -23,19 +22,24 @@ test("worker deletes secret and marks durable ticket complete", async () => {
 });
 
 test("worker persists exponential retry delay and alerts at retry ceiling", async () => {
-  let now = 1000;
   const retries = [], alerts = [];
+  let records = [
+    { ...ticket, attempts: 1 },
+    { ...ticket, connectionId: "synthetic-exhausted", attempts: 11 },
+    { ...ticket, connectionId: "future", nextAttemptAt: 9000 }
+  ];
   const worker = createMailboxSecretCleanupWorker({
-    listPending: async () => [
-      { ...ticket, attempts: 1 },
-      { ...ticket, connectionId: "synthetic-exhausted", attempts: 11 },
-      { ...ticket, connectionId: "future", nextAttemptAt: 9000 }
-    ],
+    listPending: async () => records,
     revokeSecret: async () => { throw Object.assign(new Error("masked"), { code: "unavailable" }); },
     completeCleanup: async () => {},
-    recordFailure: async input => retries.push(input),
+    recordFailure: async input => {
+      retries.push(input);
+      records = records.map(item => item.connectionId === input.connectionId
+        ? { ...item, attempts: input.attempts, nextAttemptAt: input.nextAttemptAt }
+        : item);
+    },
     alert: async input => alerts.push(input),
-    now: () => now
+    now: () => 1000
   });
   const result = await worker.runOnce();
   assert.equal(result.scanned, 3);
@@ -48,6 +52,10 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
   assert.equal(retries[1].nextAttemptAt, null);
   assert.equal(alerts.length, 1);
   assert.equal(alerts[0].connectionId, "synthetic-exhausted");
+  const secondRun = await worker.runOnce();
+  assert.deepEqual(secondRun, { scanned: 3, completed: 0, deferred: 1, exhausted: 1 });
+  assert.equal(retries.length, 2, "exhausted tickets are not retried");
+  assert.equal(alerts.length, 1, "exhaustion alert is not repeated");
 });
 
 test("worker validates batch bounds and ignores malformed tickets", async () => {

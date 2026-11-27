@@ -43,6 +43,12 @@ export function createMailboxSecretCleanupWorker({
           summary.deferred++;
           continue;
         }
+        // Exhausted tickets remain pending for operator visibility, but are never
+        // retried or alerted repeatedly by every scheduled worker invocation.
+        if (ticket.attempts >= MAX_ATTEMPTS && ticket.nextAttemptAt === null) {
+          summary.exhausted++;
+          continue;
+        }
         if (Number.isSafeInteger(ticket.nextAttemptAt) && ticket.nextAttemptAt > now()) {
           summary.deferred++;
           continue;

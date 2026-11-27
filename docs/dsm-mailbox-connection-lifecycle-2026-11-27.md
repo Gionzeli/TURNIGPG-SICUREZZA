@@ -248,3 +248,8 @@ Added `functions/src/membership/mailbox-secret-cleanup-worker.js`, a server-only
 Firestore adapter now persists `nextAttemptAt` and `lastErrorCode` on new tickets and provides `recordSecretCleanupFailure`, which transactionally rejects stale attempt numbers and conflicting ticket state. Unit tests cover worker success, future-dated deferral, retry schedule, exhaustion/alert, malformed tickets, and retry metadata persistence.
 
 Still outstanding: a scheduled Cloud Tasks/Functions worker and wiring of trusted Firestore/vault adapters, alert provider, IAM/Rules review, and actual Emulator/CI execution. The worker module alone does not run autonomously.
+
+
+#### Exhausted-ticket handling
+
+Tickets at the retry ceiling (12 attempts with no next retry timestamp) stay pending for operator visibility, but the cleanup worker now treats them as exhausted and skips further vault-delete attempts and repeat alerts on later runs. A synthetic regression covers a second worker run after exhaustion.
