@@ -9,7 +9,8 @@
   },
   "scripts": {
     "test": "node --test",
-    "emulators": "firebase emulators:start --only auth,functions,firestore --config firebase.json"
+    "emulators": "firebase emulators:start --only auth,functions,firestore --config firebase.json",
+    "seed:canonical-account-emulator": "node scripts/seed-canonical-account-emulator.js"
   },
   "dependencies": {
     "firebase-admin": "^13.0.0",
