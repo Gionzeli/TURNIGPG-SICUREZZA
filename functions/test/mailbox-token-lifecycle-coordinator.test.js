@@ -48,7 +48,7 @@ test('fails closed without refresh token and masks vault errors', async () => {
 test('uses distributed lease before refresh and renews before persisting rotated credentials',async()=>{
  const events=[];
  const coordinator=createMailboxTokenLifecycleCoordinator({
-  vault:{loadSecret:async()=>expired,storeSecret:async args=>{events.push(['store',args.expectedVersion]);}},
+  vault:{loadSecret:async()=>expired,storeSecret:async args=>{events.push(['store',args.expectedVersion,args.leaseProof]);}},
   refreshService:{refresh:async()=>{events.push(['refresh']);return {accessToken:'synthetic-new-access-token',refreshToken:'synthetic-new-refresh-token',expiresInSeconds:3600};}},
   leaseService:{
    acquire:async args=>{events.push(['acquire',args.ttlMs]);return {ownerId:'owner_identifier_123',fencingToken:4,expiresAt:200000};},
@@ -60,4 +60,5 @@ test('uses distributed lease before refresh and renews before persisting rotated
  const result=await coordinator.ensureFresh({accountId:'acct',connectionId:'conn',provider:'gmail_api',secretRef:'opaque',clientId:'client-id-12345',clientSecret:'secret'});
  assert.equal(result.refreshed,true);
  assert.deepEqual(events.map(x=>x[0]),['acquire','refresh','renew','store','release']);
+ assert.deepEqual(events.find(x=>x[0]==='store')[2],{ownerId:'owner_identifier_123',fencingToken:4});
 });
