@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-112 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-113 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2811,6 +2811,29 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory paginated endpoints and query consumers; specify cursor format, cryptographic protection, query binding, expiry and snapshot semantics; enforce per-page authorization and bounded query execution; document count/facet disclosure rules; and provide reproducible synthetic tests for tampering, revocation and concurrent updates. No production pagination or query behavior change is authorized by this decision.
 
+### L-113 — HTTP request parsing consistency, proxy trust and request-smuggling resistance
+
+**Question:** How should the application prevent front-end proxies, gateways, load balancers and application servers from interpreting the same HTTP request differently, creating request smuggling, message-boundary confusion or unintended access across users and requests?
+
+**Decision:** Approved — option B, enforce one unambiguous HTTP message interpretation across every trusted hop, reject ambiguous framing and malformed requests at ingress, and tightly constrain proxy-derived identity and routing metadata. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Inventory the complete inbound request path, including CDN/WAF, load balancer, reverse proxy, service mesh, gateway and application server; document protocol versions, termination points, forwarding behavior and parser responsibilities.
+- Prefer a single authoritative HTTP parsing boundary where feasible; ensure every downstream hop receives a normalized, unambiguous request and cannot reinterpret conflicting message boundaries.
+- Reject requests with conflicting or ambiguous message framing, including invalid or duplicate Content-Length values, conflicting Transfer-Encoding and Content-Length, malformed chunking, invalid whitespace or line endings, and prohibited transfer-coding combinations.
+- Explicitly define handling for duplicate security-sensitive headers, header-name normalization, obsolete folding, invalid characters, oversized headers and malformed request targets; reject ambiguity rather than selecting inconsistent first/last values.
+- Validate HTTP/2 and HTTP/3 to HTTP/1.1 translation behavior, including pseudo-header constraints, authority/host consistency, transfer framing and connection reuse; prohibit unsafe downgrade or translation behavior.
+- Strip hop-by-hop headers at each proxy boundary and regenerate only the forwarding metadata required by the next trusted hop; never forward untrusted Connection-nominated headers or client-supplied internal routing directives.
+- Trust Forwarded and X-Forwarded-* metadata only from explicitly configured proxy addresses or authenticated proxy channels; overwrite rather than append untrusted client values, and define canonical client address, scheme and host derivation.
+- Prevent direct network access to origin services that bypasses required ingress controls; restrict origin listeners to approved gateways and authenticated workload paths.
+- Ensure request-body limits, read timeouts, header limits, connection limits and parser error handling are consistent across hops; fail closed on incomplete, oversized, slow or malformed bodies.
+- Ensure rejected or partially parsed requests cannot leave reusable connections in an ambiguous state; close or safely drain connections according to a documented, tested policy.
+- Keep authentication, CSRF, host/origin validation and server-side authorization independent of proxy-provided identity or routing headers; normalized transport metadata never grants application permissions.
+- Log security-relevant parser rejection and proxy anomalies with bounded, redacted metadata; do not record credentials, session tokens or sensitive request bodies.
+- Test framing ambiguities, duplicate headers, HTTP/2 downgrade cases, connection reuse, untrusted forwarding headers, direct-origin bypass and proxy/application parser differentials in an isolated synthetic environment.
+
+**Implementation gates:** Produce an end-to-end ingress and trust-boundary inventory; document canonical parser/framing rules and protocol translation; harden proxy and origin network access; configure consistent resource limits and rejection behavior; and provide reproducible synthetic integration tests across the actual proxy-to-origin chain. No production gateway, proxy or application configuration change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2923,6 +2946,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-110 HTTP response caching, shared intermediaries and authorization-aware isolation | Approved — option B no-store for sensitive responses, shared-cache bypass and authorization-aware invalidation; implementation gated on cache inventory and leakage tests |
 | L-111 Secure URL design, sensitive parameters and referrer leakage | Approved — option B no secrets or sensitive personal data in URLs, scoped opaque references and strict redirect/referrer controls; implementation gated on route inventory and leakage tests |
 | L-112 Secure pagination cursors, snapshot consistency and authorization continuity | Approved — option B opaque query-bound cursors, per-page reauthorization and explicit consistency semantics; implementation gated on cursor design and revocation/concurrency tests |
+| L-113 HTTP request parsing consistency, proxy trust and request-smuggling resistance | Approved — option B consistent parsing, rejection of ambiguous framing and trusted-proxy boundaries; implementation gated on ingress inventory and differential tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
