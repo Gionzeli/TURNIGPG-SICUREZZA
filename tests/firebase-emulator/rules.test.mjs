@@ -144,6 +144,42 @@ test("FR-21 unlisted collections remain denied", async () => {
   }));
 });
 
+test("FR-26 canonical employee, profile, compensation, binding and shift records are never directly readable", async () => {
+  const paths = [
+    "accounts/account-a/employees/employee-a",
+    "accounts/account-a/employees/employee-a/employmentProfiles/current",
+    "accounts/account-a/employees/employee-a/compensation/current",
+    "accounts/account-a/employees/employee-a/placements/placement-a",
+    "accounts/account-a/employeeBindingsByUid/user-a",
+    "accounts/account-a/employeeBindingsByEmployee/employee-a",
+    "accounts/account-a/employeeShifts/shift-a",
+    "accounts/account-a/employeeControl/employee-a"
+  ];
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    for (const path of paths) {
+      await setDoc(doc(db, path), { marker: "synthetic-sensitive-fixture" });
+    }
+  });
+
+  for (const path of paths) {
+    await assertFails(getDoc(doc(verifiedUser(), path)), `verified employee unexpectedly read ${path}`);
+    await assertFails(getDoc(doc(adminUser(), path)), `synthetic admin unexpectedly read ${path}`);
+  }
+});
+
+test("FR-27 employee shift collection cannot be directly enumerated by a signed-in employee", async () => {
+  await env.withSecurityRulesDisabled(async context => {
+    const db = context.firestore();
+    await setDoc(doc(db, "accounts/account-a/employeeShifts/shift-a"), {
+      employeeId: "employee-a",
+      date: "2026-11-27",
+      marker: "synthetic"
+    });
+  });
+  await assertFails(getDocs(collection(verifiedUser(), "accounts/account-a/employeeShifts")));
+});
+
 test("FR-06 rejects access requests with mismatched identity or non-pending status", async () => {
   const db = verifiedUser();
   await assertFails(setDoc(doc(db, "accessRequests/user-a"), {
