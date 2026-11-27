@@ -181,6 +181,13 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
       changes: [{ operation: "create", shift: { date: "2026-06-25", type: "turno", post: "Reception", hours: 6 } }],
       before: [null]
     });
+    const emailProposalList = await handlers.listOwnProposals(proposalRequest({ accountId }));
+    const unverifiedReview = emailProposalList.find(item => item.proposalId === unverifiedEmailProposalId);
+    const verifiedReview = emailProposalList.find(item => item.proposalId === verifiedEmailProposalId);
+    assert.equal(unverifiedReview.source, "unverified");
+    assert.equal(unverifiedReview.canDecide, false);
+    assert.equal(verifiedReview.source, "employer_email");
+    assert.equal(verifiedReview.canDecide, true);
     const emailApproval = await handlers.approveOwnProposal(proposalRequest({
       accountId, proposalId: verifiedEmailProposalId
     }));
