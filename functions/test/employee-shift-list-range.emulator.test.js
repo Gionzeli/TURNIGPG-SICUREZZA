@@ -105,20 +105,35 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     });
     assert.equal(updated.revision, 2);
 
+    // Two writers race with the same expected revision. Firestore must commit
+    // exactly one update; the retrying transaction must observe the new revision.
+    const concurrentUpdates = await Promise.allSettled(["7", "6.5"].map(hours =>
+      handlers.update({
+        rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
+        data: { accountId, shiftId: created.shiftId, expectedRevision: 2, changes: { hours: Number(hours) } }
+      })
+    ));
+    const winners = concurrentUpdates.filter(result => result.status === "fulfilled");
+    const losers = concurrentUpdates.filter(result => result.status === "rejected");
+    assert.equal(winners.length, 1);
+    assert.equal(losers.length, 1);
+    assert.equal(losers[0].reason.code, "failed-precondition");
+    assert.equal(winners[0].value.revision, 3);
+
     const deleted = await handlers.delete({
       rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
-      data: { accountId, shiftId: created.shiftId, expectedRevision: 2 }
+      data: { accountId, shiftId: created.shiftId, expectedRevision: 3 }
     });
-    assert.equal(deleted.revision, 3);
+    assert.equal(deleted.revision, 4);
     assert.equal(deleted.status, "deleted");
 
     const stored = (await collection.doc(created.shiftId).get()).data();
     assert.equal(stored.status, "deleted");
-    assert.equal(stored.revision, 3);
+    assert.equal(stored.revision, 4);
     const audit = await db.collection(`accounts/${accountId}/employeeAudit`).get();
-    assert.equal(audit.size, 3);
+    assert.equal(audit.size, 4);
     assert.deepEqual(audit.docs.map(doc => doc.data().type).sort(), [
-      "employee.shift.created", "employee.shift.deleted", "employee.shift.updated"
+      "employee.shift.created", "employee.shift.deleted", "employee.shift.updated", "employee.shift.updated"
     ]);
   } finally {
     await db.recursiveDelete(root);
