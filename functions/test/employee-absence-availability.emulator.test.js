@@ -19,17 +19,23 @@ test("Firestore Emulator: manager absence view returns date availability only an
       assert.equal(args.actorUid, "manager-1");
       if (authorizationMode === "deny") return { employeeId, placementIds: [] };
       if (authorizationMode === "wrong-employee") return { employeeId: "another-employee", placementIds: ["placement-in-scope"] };
+      if (authorizationMode === "oversized-scope") return { employeeId, placementIds: Array.from({ length: 501 }, (_, i) => `placement-${i}`) };
       return { employeeId, placementIds: ["placement-in-scope"] };
     }
   });
   try {
     await account.set({ accountId, status: "active" });
+    await assert.rejects(service.read({ accountId, actorUid: "manager-1", actorIdentity: { uid: "different-manager" }, employeeId, startDate: "2026-02-01", endDate: "2026-02-02", eventId: "identity-mismatch" }), e => e.code === "permission-denied");
+    assert.equal((await audit.doc("absence-availability-identity-mismatch").get()).exists, false);
     authorizationMode = "deny";
     await assert.rejects(service.read({ accountId, actorUid: "manager-1", actorIdentity: { uid: "manager-1" }, employeeId, startDate: "2026-02-01", endDate: "2026-02-02", eventId: "denied-1" }), e => e.code === "permission-denied");
     assert.equal((await audit.doc("absence-availability-denied-1").get()).exists, false);
     authorizationMode = "wrong-employee";
     await assert.rejects(service.read({ accountId, actorUid: "manager-1", actorIdentity: { uid: "manager-1" }, employeeId, startDate: "2026-02-01", endDate: "2026-02-02", eventId: "wrong-employee-1" }), e => e.code === "permission-denied");
     assert.equal((await audit.doc("absence-availability-wrong-employee-1").get()).exists, false);
+    authorizationMode = "oversized-scope";
+    await assert.rejects(service.read({ accountId, actorUid: "manager-1", actorIdentity: { uid: "manager-1" }, employeeId, startDate: "2026-02-01", endDate: "2026-02-02", eventId: "oversized-scope-1" }), e => e.code === "permission-denied");
+    assert.equal((await audit.doc("absence-availability-oversized-scope-1").get()).exists, false);
     authorizationMode = "allow";
     await Promise.all([
       records.doc("absence-health").set({ accountId, employeeId, placementId: "placement-in-scope", status: "active", kind: "malattia", startDate: "2026-02-01", endDate: "2026-02-03", reason: "synthetic-diagnosis", notes: "synthetic-private-note", documentPath: "private/medical.pdf" }),
