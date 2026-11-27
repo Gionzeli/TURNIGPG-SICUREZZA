@@ -422,6 +422,13 @@ test("exhausted cleanup alert is durably queued and acknowledged", async () => {
     accountId: input.accountId, connectionId: input.connectionId,
     timestamp: input.timestamp + 3
   });
+  const delivered = docs.get("accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection");
+  delivered.alertDeliveredAt = "corrupt";
+  await assert.rejects(adapters.markCleanupAlertDelivered({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 4
+  }), error => error.code === "failed-precondition");
+  assert.equal(delivered.alertDeliveredAt, "corrupt", "malformed terminal state is not silently acknowledged");
 });
 
 
