@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-105 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-106 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2645,6 +2645,28 @@ Approved policy in principle:
 
 **Implementation gates:** Define an account assurance and factor policy matrix; specify protocol-specific enrollment and recovery contracts; document independent verification and privileged-account approval; implement server-side credential inventory, notification, revocation, and audit; and provide reproducible negative tests. No real user factor enrollment, credential reset, or production authentication change is authorized by this decision.
 
+### L-106 — Account discovery, identity enumeration and privacy-preserving authentication responses
+
+**Question:** How should sign-in, invitation, passwordless, recovery, and account-support endpoints respond so that an unauthenticated party cannot discover whether an employee account, email address, UID, or organizational membership exists?
+
+**Decision:** Approved — option B, minimize identity disclosure through consistent external responses, bounded timing variation, endpoint-specific abuse controls, and authenticated disclosure only where the workflow requires it. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Treat account existence, employee membership, invitation state, authentication-factor enrollment, and recovery eligibility as restricted information; do not expose them through unauthenticated API responses, browser messages, redirects, or distinguishable status codes.
+- Use consistent response bodies and externally observable status behavior for existing and nonexistent identities in sign-in, invitation acceptance, passwordless initiation, and recovery initiation, while preserving safe internal workflow outcomes.
+- Avoid obvious timing differences caused by account lookup, provider calls, factor checks, or recovery dispatch; use bounded asynchronous processing and avoid artificial delays that create denial-of-service exposure.
+- Do not reveal whether an email, username, employee number, UID, telephone number, or external identity-provider subject is registered; avoid echoing submitted identifiers in responses, URLs, analytics, and client-side error messages.
+- Apply endpoint-specific rate limits and abuse detection by multiple proportionate signals, including network, device/session, destination, and aggregate behavior; avoid controls that enable attackers to lock out a victim merely by submitting their identifier.
+- Make notifications generic and privacy-conscious; send account-specific details only to previously verified destinations after server-side checks, and never treat delivery success or mailbox access as proof of identity or authorization.
+- Protect invitation and recovery tokens as high-entropy, single-use, short-lived secrets; bind them to purpose and intended verified destination, store only protected representations, and prevent their validity or status from being queried by arbitrary callers.
+- Ensure support and administrative lookup tools require authenticated, scoped permissions, a documented purpose, minimized results, and protected audit; do not provide unrestricted employee search to helpdesk or unauthenticated operators.
+- Keep internal diagnostics sufficiently detailed for authorized investigation but segregated from client responses; redact identifiers and secrets from routine logs, traces, metrics, and third-party analytics.
+- Prevent enumeration through pagination, search suggestions, autocomplete, duplicate-registration errors, invitation resend behavior, export previews, and differences in redirect destinations or client-side state.
+- Provide accessible error messages that explain the next safe action without confirming account existence; do not make security dependent on confusing or inaccessible interaction patterns.
+- Test existing versus nonexistent accounts, timing distributions, rate-limit bypass, identifier variations, invitation and recovery flows, support permissions, notification behavior, and indirect enumeration channels using synthetic identities.
+
+**Implementation gates:** Inventory every endpoint and UI flow that accepts an identity selector; define response equivalence and timing acceptance criteria; implement abuse controls that do not enable victim lockout; segregate internal diagnostics; and provide reproducible enumeration and privacy tests. No real employee directory lookup, account disclosure, or production authentication change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2750,6 +2772,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-103 Secure inbound email, attachments and untrusted message ingestion | Approved — option B quarantine untrusted input, isolate parsing and require authenticated human workflow; implementation gated on mail inventory, scanner isolation and tests |
 | L-104 Secure identity federation, SSO trust and identity-provider lifecycle | Approved — option B registered providers, strict assertion validation, verified canonical binding and fail-closed trust lifecycle; implementation gated on provider register and protocol tests |
 | L-105 Authentication factor enrollment, replacement and recovery lifecycle | Approved — option B verified enrollment, strong recovery, downgrade resistance and server-side revocation; implementation gated on assurance matrix and lifecycle tests |
+| L-106 Account discovery, identity enumeration and privacy-preserving authentication responses | Approved — option B consistent external responses, abuse controls and scoped internal lookup; implementation gated on endpoint inventory and enumeration tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
