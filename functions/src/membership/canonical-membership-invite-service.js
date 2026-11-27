@@ -1,4 +1,4 @@
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { validateCanonicalMembership } from "./membership-policy.js";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
@@ -7,7 +7,10 @@ const LIFETIME = 24 * 60 * 60 * 1000;
 const MFA_WINDOW = 300;
 const fail = (code, message) => { const e = new Error(message); e.code = code; throw e; };
 const validId = value => typeof value === "string" && ID.test(value);
-const emailDigest = value => createHash("sha256").update(value.trim().toLowerCase()).digest("hex");
+const emailDigest = (value, key) => {
+  if (typeof key !== "string" || key.length < 32) fail("failed-precondition", "Invitation email HMAC key is not configured.");
+  return createHmac("sha256", key).update(value.trim().toLowerCase()).digest("hex");
+};
 
 function requireAdmin(membership, uid, accountId, identity, nowMs) {
   if (!identity || identity.uid !== uid || identity.emailVerified !== true ||
@@ -22,7 +25,7 @@ function requireAdmin(membership, uid, accountId, identity, nowMs) {
 }
 
 /** Two-person invitation approval; raw email is never persisted. */
-export async function proposeCanonicalMembershipInvite({ db, accountId, actorUid, actorIdentity, inviteId, email, siteId, now = () => Date.now() }) {
+export async function proposeCanonicalMembershipInvite({ db, accountId, actorUid, actorIdentity, inviteId, email, siteId, emailHmacKey, now = () => Date.now() }) {
   if (!validId(accountId) || !validId(actorUid) || !validId(inviteId) || !validId(siteId) ||
       typeof email !== "string" || email.length > 254 || !EMAIL.test(email.trim())) {
     fail("invalid-argument", "A valid account, invite ID and email are required.");
@@ -40,7 +43,7 @@ export async function proposeCanonicalMembershipInvite({ db, accountId, actorUid
     if (existing.exists) fail("already-exists", "Invite ID already used.");
     const expiresAt = createdAt + LIFETIME;
     tx.create(inviteRef, {
-      accountId, inviteId, emailDigest: emailDigest(email), role: "member",
+      accountId, inviteId, emailDigest: emailDigest(email, emailHmacKey), role: "member",
       scopeType: "site", scopeIds: [siteId], status: "pending",
       proposedBy: actorUid, createdAt, expiresAt
     });
@@ -84,7 +87,7 @@ export async function approveCanonicalMembershipInvite({ db, accountId, actorUid
 }
 
 /** Invitee self-claims only with a revocation-checked, verified Firebase email identity. */
-export async function claimCanonicalMembershipInvite({ db, accountId, inviteId, actorUid, actorIdentity, now = () => Date.now() }) {
+export async function claimCanonicalMembershipInvite({ db, accountId, inviteId, actorUid, actorIdentity, emailHmacKey, now = () => Date.now() }) {
   if (![accountId, inviteId, actorUid].every(validId) || !actorIdentity ||
       actorIdentity.uid !== actorUid || actorIdentity.emailVerified !== true ||
       typeof actorIdentity.email !== "string" || !EMAIL.test(actorIdentity.email)) {
@@ -102,7 +105,7 @@ export async function claimCanonicalMembershipInvite({ db, accountId, inviteId, 
     const value = invite.data();
     if (value.accountId !== accountId || value.inviteId !== inviteId ||
         value.status !== "approved_pending_claim" || !Number.isSafeInteger(value.claimExpiresAt) ||
-        value.claimExpiresAt <= claimedAt || value.emailDigest !== emailDigest(actorIdentity.email)) {
+        value.claimExpiresAt <= claimedAt || value.emailDigest !== emailDigest(actorIdentity.email, emailHmacKey)) {
       fail("permission-denied", "Invite is not claimable by this verified identity.");
     }
     if (member.exists) fail("already-exists", "This UID already has a membership in the account.");
