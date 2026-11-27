@@ -168,6 +168,11 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
         { operation: "delete", shiftId: "in-range-2026-06-18", expectedRevision: 1 }
       ]
     }));
+    const approvalReview = (await handlers.listOwnProposals(proposalRequest({ accountId })))
+      .find(item => item.proposalId === approvalProposal.proposalId);
+    assert.equal(approvalReview.before[1].hours, 8);
+    assert.equal(approvalReview.before[1].revision, 2);
+    assert.equal(approvalReview.before[2].date, "2026-06-18");
     const approved = await handlers.approveOwnProposal(proposalRequest({ accountId, proposalId: approvalProposal.proposalId }));
     assert.equal(approved.status, "approved");
     assert.equal(approved.appliedCount, 3);
