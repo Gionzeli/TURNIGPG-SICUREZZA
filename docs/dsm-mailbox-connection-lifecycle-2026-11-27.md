@@ -239,3 +239,12 @@ or production vault was wired or exercised here.
 
 
 Cleanup-ticket completion is idempotent as well. This covers the crash window where vault deletion succeeded but saving the final `revoked` connection state failed: a retried revocation can safely repeat the vault delete and completion call before finalizing connection metadata.
+
+
+### Cleanup retry worker implementation (not scheduled)
+
+Added `functions/src/membership/mailbox-secret-cleanup-worker.js`, a server-only injected worker contract that processes bounded batches of pending tickets, skips tickets whose `nextAttemptAt` is in the future, retries idempotent vault deletion, completes tickets on confirmed success, persists sanitized failure codes and exponential retry timestamps, and alerts after 12 attempts. Backoff is capped at six hours and each batch is limited to 100. No secret reference or raw provider error is sent to alerts.
+
+Firestore adapter now persists `nextAttemptAt` and `lastErrorCode` on new tickets and provides `recordSecretCleanupFailure`, which transactionally rejects stale attempt numbers and conflicting ticket state. Unit tests cover worker success, future-dated deferral, retry schedule, exhaustion/alert, malformed tickets, and retry metadata persistence.
+
+Still outstanding: a scheduled Cloud Tasks/Functions worker and wiring of trusted Firestore/vault adapters, alert provider, IAM/Rules review, and actual Emulator/CI execution. The worker module alone does not run autonomously.
