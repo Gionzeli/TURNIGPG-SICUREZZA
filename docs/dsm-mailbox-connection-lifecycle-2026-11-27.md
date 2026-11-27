@@ -144,3 +144,22 @@ The Secret Manager CAS backend now requires a lease proof by default (requireLea
 ### Coordinator-to-vault lease-proof regression
 
 The coordinator regression test now asserts that the owner ID and fencing token returned by the renewed lease are forwarded unchanged to the vault write. This verifies the hand-off contract between the refresh coordinator and the Secret Manager/Firestore CAS backend at the unit boundary. It remains a synthetic unit test; no emulator or cloud service was exercised.
+
+
+## Firestore Emulator lease-fencing integration test
+
+Added `functions/test/google-secret-manager-token-cas-emulator.integration.test.js`. When `FIRESTORE_EMULATOR_HOST` is set, the test uses the Firebase Admin SDK against that Firestore Emulator and a synthetic in-memory Secret Manager transport. It creates isolated pointer/lease documents, commits one valid fenced update, replaces the lease owner/fencing token, and verifies that the stale owner cannot advance the pointer. Test documents are deleted in a finally path. It does not contact Google Secret Manager or any live cloud project.
+
+Run from the `functions` directory in one terminal:
+
+```sh
+npm run emulators
+```
+
+Then, in a second terminal:
+
+```sh
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 GCLOUD_PROJECT=demo-dsm-mailbox node --test test/google-secret-manager-token-cas-emulator.integration.test.js
+```
+
+Without `FIRESTORE_EMULATOR_HOST`, Node's test runner marks this integration test skipped; ordinary unit tests remain synthetic. The test has been added but has not been executed in this environment. It validates Firestore transaction behavior with a mocked secret-version API, not actual Secret Manager IAM, version retention, or deployed callable wiring.
