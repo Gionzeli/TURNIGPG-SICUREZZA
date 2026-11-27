@@ -139,17 +139,26 @@ Approved workflow in principle:
 
 Possible choices:
 - **A. No manager absence view:** absence data remains employee/self and explicitly authorized administrative access only.
-- **B. Minimal availability:** only unavailable/available signal and dates, without absence category.
+- **B. Minimal operational status:** unavailable signal, relevant dates, and request workflow status (pending, approved, rejected), without absence category or reason.
 - **C. Operational category:** an enumerated non-health category set, after privacy review.
 - **D. Detailed absence management:** only after a separate approval workflow, legal/privacy review and strict field permissions.
 
-Required safeguards regardless of choice:
-- Never include medical reason, notes, attachments, diagnosis or health details in general team DTOs.
-- A generic schedule or profile permission does not grant absence access.
-- Self-read, manager read, manager manage, approve and export are separate decisions.
-- Notifications, logs, audit and local caches must not disclose restricted details.
+**Approved 2026-11-27 — option B (minimal operational status), by explicit user confirmation in the project conversation.**
 
-**Unapproved:** whether manager view exists and whether any category is visible.
+Approved visibility is limited to:
+- unavailable/available signal and the dates needed for staffing;
+- request workflow status: pending, approved, or rejected.
+
+Explicitly excluded: absence category, reason, medical or health information, diagnosis, notes, attachments, and any sensitive detail. This decision grants read visibility only; it does not grant managers authority to create, edit, approve, reject, or export absence requests.
+
+Required safeguards:
+- Dedicated allowlisted manager DTO; never pass through the general Employee or absence document.
+- Manager eligibility and site/department scope must be separately authorized and checked against canonical records for the relevant dates.
+- Self-read, manager read, manager manage, approve and export remain separate permissions.
+- Notifications, logs, audit and local caches must not disclose excluded details.
+- Unknown or unmapped fields remain denied.
+
+**Still required before implementation:** define eligible manager roles and site/department scope, map canonical absence dates and workflow status, and add negative tests proving category/reason/health fields cannot leak. No manager absence endpoint is authorized by this decision.
 
 ### D-06 — Audit access
 
