@@ -661,3 +661,28 @@ test("worker fails closed when the clock becomes invalid before alert delivery",
   assert.equal(alertCalls, 0);
   assert.equal(clockReads, 2);
 });
+
+
+test("worker requires an explicit positive revocation-gate result before vault deletion", async () => {
+  for (const gateResult of [false, undefined, { status: "active" }]) {
+    const failures = [];
+    const worker = createMailboxSecretCleanupWorker({
+      assertRevocationPending: async () => gateResult,
+      cleanupAdapters: {
+        listPendingSecretCleanup: async () => [ticket],
+        completeSecretCleanup: async () => assert.fail("must not complete"),
+        recordSecretCleanupFailure: async input => failures.push(input),
+        listPendingCleanupAlerts: async () => [],
+        recordCleanupAlertFailure: async () => {},
+        markCleanupAlertDelivered: async () => {}
+      },
+      credentialVault: { revokeSecret: async () => assert.fail("must not delete") },
+      alert: async () => {},
+      now: () => 1000
+    });
+    const result = await worker.runOnce({ accountId: "synthetic-account" });
+    assert.equal(result.deferred, 1);
+    assert.equal(failures.length, 1);
+    assert.equal(failures[0].lastErrorCode, "failed-precondition");
+  }
+});
