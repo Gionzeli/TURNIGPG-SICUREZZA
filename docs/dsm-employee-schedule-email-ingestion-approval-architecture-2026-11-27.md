@@ -15,6 +15,17 @@
 7. È prevista anche l'inserimento manuale di una modifica aziendale da parte del collaboratore; anche questa modifica segue la conferma personale.
 8. Buste paga e documenti individuali restano separati e accessibili solo al collaboratore autorizzato. Payroll rimane deny-by-default finché non esiste una decisione e un'implementazione specifica.
 
+## Modalità di collegamento caselle confermate
+
+Sono supportate entrambe le modalità, con isolamento server-side:
+
+1. **Casella personale del collaboratore** (mode: personal): il collaboratore autorizza la propria casella. La configurazione server-side conserva il riferimento al binding canonico verificato (ownerEmployeeId + ownerUid); il worker risolve nuovamente il binding a ogni ingestione. Il PDF può non riportare un identificativo del collaboratore: l'identità deriva esclusivamente dalla casella personale già associata e verificata. Se il parser restituisce più documenti/persona, l'allegato viene fermato per revisione e non crea proposte.
+2. **Casella aziendale condivisa** (mode: shared): la casella viene autorizzata da un soggetto aziendale con potere di collegamento, senza attribuirgli poteri di approvazione dei turni. Non ha un Employee proprietario. Ogni sezione del PDF deve contenere una chiave di corrispondenza verificabile; il server la risolve tramite mapping canonico, quindi crea proposte separate. Se una persona non è riconosciuta o la corrispondenza è ambigua, quella sezione viene bloccata.
+
+Entrambe le modalità richiedono mittenti autorizzati e autenticazione del messaggio; entrambe usano lo stesso parser, confronto revisionato e approvazione individuale. La casella condivisa non concede all'amministratore accesso alle turnazioni individuali né la possibilità di approvarle. La modalità personale non può essere usata per importare turni di un altro Employee.
+
+**Stato implementativo:** il core server-side ora valida esplicitamente personal/shared, richiede il proprietario canonico per la modalità personale e vincola il risultato del resolver allo stesso Employee/UID. La modalità personale rifiuta allegati suddivisi in più documenti; la modalità condivisa richiede una chiave di matching per ciascuna persona. Sono presenti test sintetici di isolamento per entrambe. I flussi OAuth/IMAP di consenso e revoca, l'interfaccia di collegamento, il worker, la persistenza delle connessioni e il parser PDF/OCR reale restano da implementare.
+
 ## Flusso target
 
 `casella collegata → messaggio/allegato → verifica provenienza → PDF isolato → estrazione → confronto → proposta personale → OK collaboratore → nuova revisione calendario`
