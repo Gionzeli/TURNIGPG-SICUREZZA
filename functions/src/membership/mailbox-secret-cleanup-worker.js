@@ -59,8 +59,9 @@ export function createMailboxSecretCleanupWorker({
           summary.deferred++;
           continue;
         }
-        // Exhausted tickets remain pending for operator visibility, but are never
-        // retried or alerted repeatedly by every scheduled worker invocation.
+        // Defensive compatibility for a pending ticket already at the retry
+        // ceiling (for example, from a legacy adapter). The Firestore adapter
+        // transitions exhausted tickets out of the pending query.
         if (ticket.attempts >= MAX_ATTEMPTS && ticket.nextAttemptAt === null) {
           summary.exhausted++;
           continue;
