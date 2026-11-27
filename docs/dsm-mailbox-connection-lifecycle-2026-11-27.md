@@ -163,3 +163,5 @@ FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 GCLOUD_PROJECT=demo-dsm-mailbox node --te
 ```
 
 Without `FIRESTORE_EMULATOR_HOST`, Node's test runner marks this integration test skipped; ordinary unit tests remain synthetic. The test has been added but has not been executed in this environment. It validates Firestore transaction behavior with a mocked secret-version API, not actual Secret Manager IAM, version retention, or deployed callable wiring.
+
+The Emulator integration test also checks that a write without a lease proof is rejected with `failed-precondition`, and that a current-but-expired lease proof is rejected with `conflict`; in both cases the active Firestore pointer must remain unchanged.
