@@ -36,13 +36,13 @@ function normalizeSenders(values) {
  * never returned or persisted in connection metadata.
  */
 export function createMailboxConnectionService({
-  authorizeActor, exchangeAuthorization, storeSecret, revokeSecret,
+  authorizeActor, exchangeAuthorization, storeSecret, revokeSecret, disableRefresh,
   saveConnection, loadConnection, writeAudit,
   now = () => Date.now(),
   createConnectionId = () => randomUUID().replaceAll("-", "")
 }) {
   for (const [name, fn] of Object.entries({
-    authorizeActor, exchangeAuthorization, storeSecret, revokeSecret,
+    authorizeActor, exchangeAuthorization, storeSecret, revokeSecret, disableRefresh,
     saveConnection, loadConnection, writeAudit
   })) if (typeof fn !== "function") throw new TypeError(name + " dependency is required.");
 
@@ -110,6 +110,7 @@ export function createMailboxConnectionService({
             connection: { ...connection, status: "revocation_pending", updatedAt: now() }
           });
         } catch {}
+        try { await disableRefresh({ accountId, connectionId }); } catch {}
         try { await revokeSecret({ secretRef, accountId, connectionId }); } catch {}
         throw error;
       }
@@ -133,6 +134,7 @@ export function createMailboxConnectionService({
       const timestamp = now();
       const pending = { ...connection, status: "revocation_pending", updatedAt: timestamp };
       await saveConnection({ accountId, connectionId, connection: pending });
+      await disableRefresh({ accountId, connectionId });
       if (typeof connection.credentialSecretRef !== "string" || !connection.credentialSecretRef) {
         fail("failed-precondition", "Credential reference is missing; manual vault review is required.");
       }
