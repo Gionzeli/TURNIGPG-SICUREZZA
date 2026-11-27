@@ -63,3 +63,7 @@ A concrete Admin-SDK adapter for the PKCE transaction store now uses a Firestore
 ## Fixed OAuth authorization URL builder
 
 Added a pure builder for Gmail and Microsoft authorization URLs. Endpoints and scopes are fixed in code (Gmail readonly; Microsoft Mail.Read), with PKCE S256 and a constrained Microsoft tenant selector. The redirect URI must be supplied by trusted server configuration and registered exactly with the provider; this builder validates HTTPS and rejects query/fragment but is not itself an allowlist and must never receive a client-controlled redirect. It is not callable-wired or connected to provider clients.
+
+## Server-side authorization-code token exchange (synthetic tests)
+
+Added a provider-fixed OAuth authorization-code exchange helper using injected server HTTP transport. It posts form data to fixed Google or Microsoft endpoints, uses the stored PKCE verifier, disables redirects, validates JSON/token fields and response size, and masks transport errors. It returns sensitive token material only to trusted server code; callers must verify identity/scopes and store credentials in the vault immediately. No HTTP requests are performed by tests (mock transport only). It is not wired to callables, real provider credentials, or a vault.
