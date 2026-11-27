@@ -16,7 +16,7 @@ function harness(overrides = {}) {
   const calls = { claims: [], proposals: [], finished: [], scans: 0 };
   const service = createEmployeeScheduleEmailIngestion({
     loadMailboxConnection: async () => ({
-      accountId, connectionId, provider: "imap", status: "active", allowedSenders: ["turni@azienda.example"]
+      accountId, connectionId, provider: "imap", mode: "shared", status: "active", allowedSenders: ["turni@azienda.example"]
     }),
     verifyMessage: async () => ({ authenticated: true, senderAllowed: true, dmarc: "pass", dkim: "pass", spf: "pass" }),
     scanAttachment: async () => { calls.scans++; return { status: "clean" }; },
@@ -52,6 +52,69 @@ function harness(overrides = {}) {
   });
   return { service, calls };
 }
+
+test("personal mailbox is bound to one verified Employee even when the PDF has no employee identifier", async () => {
+  const owner = {
+    accountId, employeeId: "synthetic-employee", employeeUid: "synthetic-employee-uid",
+    status: "active", mappingVerified: true
+  };
+  const { service, calls } = harness({
+    loadMailboxConnection: async () => ({
+      accountId, connectionId, provider: "imap", mode: "personal",
+      ownerEmployeeId: owner.employeeId, ownerUid: owner.employeeUid,
+      status: "active", allowedSenders: ["turni@azienda.example"]
+    }),
+    extractSchedule: async () => ({ documents: [{
+      confidence: 0.999,
+      shifts: [{ date: "2026-06-02", type: "turno", post: "Reception", start_time: "08:00", end_time: "14:00", hours: 6 }]
+    }] }),
+    resolveEmployee: async input => {
+      assert.equal(input.mode, "personal");
+      assert.equal(input.employeeMatchKey, null);
+      assert.equal(input.ownerEmployeeId, owner.employeeId);
+      assert.equal(input.ownerUid, owner.employeeUid);
+      return owner;
+    }
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "proposals_created");
+  assert.equal(calls.proposals.length, 1);
+  assert.equal(calls.proposals[0].employeeId, owner.employeeId);
+});
+
+test("personal mailbox cannot create a proposal for a different Employee", async () => {
+  const { service, calls } = harness({
+    loadMailboxConnection: async () => ({
+      accountId, connectionId, provider: "imap", mode: "personal",
+      ownerEmployeeId: "mailbox-owner", ownerUid: "mailbox-owner-uid",
+      status: "active", allowedSenders: ["turni@azienda.example"]
+    }),
+    resolveEmployee: async () => ({
+      accountId, employeeId: "another-employee", employeeUid: "another-uid",
+      status: "active", mappingVerified: true
+    })
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "needs_review");
+  assert.equal(calls.proposals.length, 0);
+});
+
+test("personal mailbox rejects a PDF split into multiple employee documents", async () => {
+  const { service, calls } = harness({
+    loadMailboxConnection: async () => ({
+      accountId, connectionId, provider: "imap", mode: "personal",
+      ownerEmployeeId: "synthetic-employee", ownerUid: "synthetic-employee-uid",
+      status: "active", allowedSenders: ["turni@azienda.example"]
+    }),
+    extractSchedule: async () => ({ documents: [
+      { employeeMatchKey: "one", confidence: 0.999, shifts: [{ date: "2026-06-02", type: "turno", post: "A", start_time: "08:00", end_time: "14:00", hours: 6 }] },
+      { employeeMatchKey: "two", confidence: 0.999, shifts: [{ date: "2026-06-02", type: "turno", post: "B", start_time: "14:00", end_time: "20:00", hours: 6 }] }
+    ] })
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "needs_review");
+  assert.equal(calls.proposals.length, 0);
+});
 
 test("trusted email ingestion creates per-employee proposals but never mutates the live schedule", async () => {
   const { service, calls } = harness();
