@@ -149,7 +149,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         }
         tx.set(ref, {
           accountId, connectionId, secretRef, reason, status: "pending",
-          attempts: 1, createdAt: timestamp, updatedAt: timestamp
+          attempts: 1, nextAttemptAt: null, lastErrorCode: null,
+          createdAt: timestamp, updatedAt: timestamp
         });
       });
     },
@@ -188,6 +189,35 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           !["pending", "complete"].includes(value.status) ||
           !Number.isSafeInteger(value.attempts) || value.attempts < 1) return null;
       return value;
+    },
+
+    async recordSecretCleanupFailure({ accountId, connectionId, secretRef, attempts, nextAttemptAt, lastErrorCode, timestamp = Date.now() }) {
+      if (!validId(accountId) || !validId(connectionId) ||
+          typeof secretRef !== "string" || secretRef.length < 1 || secretRef.length > 2048 ||
+          !Number.isSafeInteger(attempts) || attempts < 2 || attempts > 1000 ||
+          !(nextAttemptAt === null || (Number.isSafeInteger(nextAttemptAt) && nextAttemptAt >= timestamp)) ||
+          typeof lastErrorCode !== "string" || !/^[a-z0-9_-]{1,64}$/.test(lastErrorCode) ||
+          !Number.isSafeInteger(timestamp) || timestamp < 1) {
+        invalid("Cleanup retry update is malformed.");
+      }
+      const ref = db.doc(`accounts/${accountId}/mailboxCredentialCleanup/${connectionId}`);
+      await db.runTransaction(async tx => {
+        const snapshot = await tx.get(ref);
+        if (!snapshot.exists) {
+          const error = new Error("Cleanup ticket not found.");
+          error.code = "not-found";
+          throw error;
+        }
+        const previous = snapshot.data();
+        if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
+            previous.secretRef !== secretRef || previous.status !== "pending" ||
+            attempts < previous.attempts) {
+          const error = new Error("Cleanup retry ticket is stale or conflicting.");
+          error.code = "failed-precondition";
+          throw error;
+        }
+        tx.set(ref, { ...previous, attempts, nextAttemptAt, lastErrorCode, updatedAt: timestamp });
+      });
     },
 
     async completeSecretCleanup({ accountId, connectionId, timestamp = Date.now() }) {
