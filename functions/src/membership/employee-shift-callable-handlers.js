@@ -23,6 +23,19 @@ function validDate(value) { if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2
 const DTO_KEYS = ["date", "type", "post", "start_time", "end_time", "hours", "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"];
 
 const PROPOSAL_FIELDS = new Set(["date", "type", "post", "start_time", "end_time", "hours", "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"]);
+function validateProposedFields(fields, { allowDate }) {
+  if (!fields || typeof fields !== "object" || Array.isArray(fields)) fail("invalid-argument", "Shift fields must be an object.");
+  for (const [key, value] of Object.entries(fields)) {
+    if (!PROPOSAL_FIELDS.has(key) || (!allowDate && key === "date")) fail("invalid-argument", "Unsupported shift field.");
+    if (key === "date" && !validDate(value)) fail("invalid-argument", "Invalid proposed shift date.");
+    if (key === "type" && (typeof value !== "string" || !["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"].includes(value))) fail("invalid-argument", "Invalid shift type.");
+    if (key === "post" && (typeof value !== "string" || value.length > 80)) fail("invalid-argument", "Invalid shift post.");
+    if (["start_time", "end_time"].includes(key) && (typeof value !== "string" || (value !== "" && !/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value)))) fail("invalid-argument", "Invalid shift time.");
+    if (key === "hours" && (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 48)) fail("invalid-argument", "Invalid shift hours.");
+    if (["is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"].includes(key) && typeof value !== "boolean") fail("invalid-argument", "Invalid shift flag.");
+  }
+  if (Object.hasOwn(fields, "start_time") !== Object.hasOwn(fields, "end_time")) fail("invalid-argument", "Shift start and end times must be supplied together.");
+}
 function validateProposalChanges(changes) {
   if (!Array.isArray(changes) || changes.length < 1 || changes.length > 30) fail("invalid-argument", "A proposal must contain 1 to 30 shift changes.");
   const seen = new Set();
@@ -31,14 +44,10 @@ function validateProposalChanges(changes) {
         !["create", "update", "delete"].includes(item.operation)) fail("invalid-argument", "Invalid shift proposal operation.");
     const operation = item.operation;
     if (operation === "create") {
-      if (Object.keys(item).some(k => !["operation", "shift"].includes(k)) || !item.shift ||
-          typeof item.shift !== "object" || Array.isArray(item.shift)) fail("invalid-argument", "Invalid create proposal.");
-      const shift = item.shift;
-      if (Object.keys(shift).some(k => !PROPOSAL_FIELDS.has(k)) || !validDate(shift.date) ||
-          typeof shift.type !== "string" || shift.type.length > 40 ||
-          (shift.post !== undefined && (typeof shift.post !== "string" || shift.post.length > 80)) ||
-          (shift.hours !== undefined && (typeof shift.hours !== "number" || !Number.isFinite(shift.hours) || shift.hours < 0 || shift.hours > 48))) fail("invalid-argument", "Invalid proposed shift fields.");
-      return { operation, shift: { ...shift } };
+      if (Object.keys(item).some(k => !["operation", "shift"].includes(k))) fail("invalid-argument", "Invalid create proposal.");
+      validateProposedFields(item.shift, { allowDate: true });
+      if (!validDate(item.shift.date) || typeof item.shift.type !== "string") fail("invalid-argument", "Create proposal requires date and type.");
+      return { operation, shift: { ...item.shift } };
     }
     if (Object.keys(item).some(k => !["operation", "shiftId", "expectedRevision", "changes"].includes(k)) ||
         !validId(item.shiftId) || !Number.isSafeInteger(item.expectedRevision) || item.expectedRevision < 1 ||
@@ -48,10 +57,8 @@ function validateProposalChanges(changes) {
       if (item.changes !== undefined) fail("invalid-argument", "Delete proposal cannot contain changes.");
       return { operation, shiftId: item.shiftId, expectedRevision: item.expectedRevision };
     }
-    if (!item.changes || typeof item.changes !== "object" || Array.isArray(item.changes) ||
-        Object.keys(item.changes).length < 1 || Object.keys(item.changes).some(k => !PROPOSAL_FIELDS.has(k) || k === "date")) {
-      fail("invalid-argument", "Invalid update proposal fields.");
-    }
+    validateProposedFields(item.changes, { allowDate: false });
+    if (Object.keys(item.changes).length < 1) fail("invalid-argument", "Update proposal requires changes.");
     return { operation, shiftId: item.shiftId, expectedRevision: item.expectedRevision, changes: { ...item.changes } };
   });
 }
