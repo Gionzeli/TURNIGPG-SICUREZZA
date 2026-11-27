@@ -9,6 +9,7 @@ export function mountDSMCanonicalAccountBridge(container, {
   listCanonicalAccounts,
   resolveAuthorization,
   listOwnEmployeeShifts,
+  readOwnEmployeeEmploymentProfile,
   createAuthAdapter,
   openDatabase,
   closeDatabase,
@@ -45,6 +46,18 @@ export function mountDSMCanonicalAccountBridge(container, {
   const note = document.createElement("p");
   note.className = "hint";
   note.textContent = "Dopo la verifica puoi consultare esclusivamente i turni associati al tuo Employee canonico. La consultazione non importa né modifica dati.";
+
+  const profilePanel = document.createElement("section");
+  profilePanel.className = "card";
+  profilePanel.hidden = true;
+  const profileTitle = document.createElement("h3");
+  profileTitle.textContent = "Il mio profilo lavorativo";
+  const profileStatus = document.createElement("p");
+  profileStatus.className = "hint";
+  profileStatus.setAttribute("role", "status");
+  profileStatus.setAttribute("aria-live", "polite");
+  const profileResults = document.createElement("dl");
+  profilePanel.append(profileTitle, profileStatus, profileResults);
 
   const shiftsPanel = document.createElement("section");
   shiftsPanel.className = "card";
@@ -83,11 +96,12 @@ export function mountDSMCanonicalAccountBridge(container, {
   shiftsResults.setAttribute("aria-live", "polite");
   shiftsPanel.append(shiftsTitle, shiftsIntro, shiftsForm, shiftsStatus, shiftsResults);
 
-  container.replaceChildren(title, status, select, button, note, shiftsPanel);
+  container.replaceChildren(title, status, select, button, note, profilePanel, shiftsPanel);
 
   let disposed = false;
   let generation = 0;
   let shiftQueryGeneration = 0;
+  let profileQueryGeneration = 0;
   let selectionRevision = 0;
   let selectedAccountId = null;
   let availableAccounts = [];
@@ -107,6 +121,53 @@ export function mountDSMCanonicalAccountBridge(container, {
     const active = session?.accountContext.getActive();
     return active?.identitySource === "firebase" ? active.accountId : null;
   };
+
+  function clearProfileView() {
+    profileQueryGeneration += 1;
+    profilePanel.hidden = true;
+    profileStatus.textContent = "";
+    profileResults.replaceChildren();
+  }
+
+  function renderEmploymentProfile(result) {
+    profileResults.replaceChildren();
+    const rows = [
+      ["ID Employee", result.employeeId],
+      ["CCNL", result.employmentProfile?.ccnl],
+      ["Sezione", result.employmentProfile?.section],
+      ["Livello", result.employmentProfile?.level],
+      ["Mansione", result.employmentProfile?.role],
+      ["Decorrenza dichiarata", result.employmentProfile?.effectiveDate]
+    ];
+    for (const [label, value] of rows) {
+      const term = document.createElement("dt");
+      term.textContent = label;
+      const description = document.createElement("dd");
+      description.textContent = value === null || value === undefined || value === "" ? "Non disponibile" : String(value);
+      profileResults.append(term, description);
+    }
+  }
+
+  function loadEmploymentProfile(accountId) {
+    if (typeof readOwnEmployeeEmploymentProfile !== "function") return;
+    const current = ++profileQueryGeneration;
+    profilePanel.hidden = false;
+    profileStatus.textContent = "Caricamento del profilo lavorativo…";
+    profileResults.replaceChildren();
+    Promise.resolve().then(() => readOwnEmployeeEmploymentProfile({ accountId })).then(result => {
+      if (disposed || current !== profileQueryGeneration || activeFirebaseAccountId() !== accountId || selectedAccountId !== accountId) return;
+      if (!result || typeof result.employeeId !== "string" || !result.employmentProfile || typeof result.employmentProfile !== "object") {
+        throw new Error("Risposta profilo non valida.");
+      }
+      renderEmploymentProfile(result);
+      profileStatus.textContent = "Profilo canonico in sola lettura. I valori non sono modificabili da questa schermata.";
+    }).catch(() => {
+      if (!disposed && current === profileQueryGeneration) {
+        profileResults.replaceChildren();
+        profileStatus.textContent = "Profilo non disponibile o accesso non autorizzato. Nessun dato locale è stato importato.";
+      }
+    });
+  }
 
   function clearShiftResults() {
     shiftsResults.replaceChildren();
@@ -179,6 +240,7 @@ export function mountDSMCanonicalAccountBridge(container, {
     select.disabled = true;
     button.disabled = true;
     hideShiftView();
+    clearProfileView();
     setStatus(message);
   }
 
@@ -234,6 +296,7 @@ export function mountDSMCanonicalAccountBridge(container, {
     selectedAccountId = nextAccountId;
     selectionRevision += 1;
     hideShiftView();
+    clearProfileView();
     const active = session?.accountContext.getActive();
     if (active?.identitySource === "firebase" && active.accountId !== nextAccountId) {
       button.disabled = true;
@@ -309,8 +372,9 @@ export function mountDSMCanonicalAccountBridge(container, {
           selectedAccountId !== selected.accountId) {
         throw new Error("Il contesto DSM non corrisponde all'account selezionato.");
       }
-      setStatus(`Identità verificata e account DSM ${selected.accountId} collegato. Puoi consultare i tuoi turni personali.`);
+      setStatus(`Identità verificata e account DSM ${selected.accountId} collegato. Puoi consultare i tuoi dati personali autorizzati.`);
       showShiftView();
+      loadEmploymentProfile(selected.accountId);
     })();
     activationPromise = task;
     try {
@@ -330,6 +394,7 @@ export function mountDSMCanonicalAccountBridge(container, {
       disposed = true;
       generation += 1;
       shiftQueryGeneration += 1;
+      clearProfileView();
       authUnsubscribe?.();
       select.removeEventListener("change", onSelectChange);
       authAdapter.dispose();
