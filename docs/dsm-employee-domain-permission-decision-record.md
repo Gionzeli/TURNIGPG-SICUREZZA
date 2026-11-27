@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-39 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-40 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1089,6 +1089,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define severity thresholds and risk criteria, scanners and provenance sources, license policy, CI workflow/permissions, remediation ownership and deadlines, exception workflow, and synthetic validation of blocking behavior. This policy does not claim scans currently run, authorize dependency changes, merge, deploy or production activation.
 
+### L-40 — Transport security and data-in-transit protection
+
+**Question:** How should communications between clients, services and external providers protect data and credentials in transit?
+
+Possible choices:
+- **A. Basic transport:** rely on platform defaults and application-level precautions.
+- **B. Enforced secure transport:** require modern TLS, secure endpoint configuration, strict credential handling, controlled origins and leakage-resistant errors/logging.
+- **C. Network isolation only:** rely primarily on private networks without consistent end-to-end transport requirements.
+
+**Approved 2026-11-27 — option B (enforced secure transport and leakage prevention), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Require HTTPS/TLS for all production-bound client/service and service/provider communications; reject plaintext or downgraded transport except isolated local Emulator/test traffic explicitly configured for development.
+- Use platform-supported modern TLS configurations and validate certificates/hostnames; prohibit disabling certificate validation or accepting invalid certificates in production code.
+- Protect authentication tokens, session credentials and API secrets: transmit only through approved secure mechanisms, never in URLs, query strings, referrers, analytics, crash reports or ordinary logs.
+- Restrict browser origins with explicit allowlists and appropriate CORS/CSRF protections where applicable; CORS is not an authorization boundary.
+- Apply secure cookie/session attributes where cookies are used, and avoid exposing tokens to browser storage or scripts unnecessarily; enforce authorization independently of transport security.
+- Minimize sensitive data in request/response payloads; prevent leakage through verbose errors, redirects, tracing, telemetry and third-party resources.
+- Define outbound destination controls for server integrations; validate provider endpoints and prevent SSRF, open redirects and unintended cross-origin data transfer.
+- Test insecure transport rejection, certificate/hostname failures, token leakage paths, origin abuse and error/log redaction using synthetic data.
+
+**Still required before implementation:** define supported TLS/platform baselines, endpoint and origin inventories, token/session transport architecture, cookie/CSRF requirements, outbound destination policy, redaction rules and automated tests. This policy does not certify current transport configuration, authorize a real provider connection, merge, deploy or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1136,7 +1159,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
 | L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
 | L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
-| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| Other lifecycle and historical access | Open — fail closed |
+| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| L-39 CI dependency and vulnerability gates | Approved — option B risk-based enforced inventory, vulnerability/provenance checks and blocking thresholds; implementation gated on tooling, thresholds, CI permissions, exceptions and tests |\n| L-40 Transport security and data-in-transit protection | Approved — option B enforced TLS, credential protection, origin/destination controls and leakage-resistant errors/logs; implementation gated on architecture, baselines, policies and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
