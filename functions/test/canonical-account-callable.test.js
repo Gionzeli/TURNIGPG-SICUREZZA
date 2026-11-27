@@ -76,7 +76,8 @@ test("lists only active canonical accounts for the verified UID", async () => {
     "dsm:employee:shift:read:self",
     "dsm:employee:shift:create:self",
     "dsm:employee:shift:update:self",
-    "dsm:employee:shift:delete:self"
+    "dsm:employee:shift:delete:self",
+    "dsm:employee:employment-profile:read:self"
   ]);
   assert.deepEqual(verifyCalls, [["signed-token", true]]);
   assert.deepEqual(calls[0], ["where", "uid", "==", "employee-uid-1"]);
