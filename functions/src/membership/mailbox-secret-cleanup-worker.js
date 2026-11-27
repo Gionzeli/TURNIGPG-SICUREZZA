@@ -10,6 +10,16 @@ function retryDelay(attempt) {
   const exponent = Math.max(0, Math.min(20, attempt - 1));
   return Math.min(60_000 * (2 ** exponent), MAX_BACKOFF_MS);
 }
+function readWorkerTimestamp(now) {
+  const timestamp = now();
+  if (!Number.isSafeInteger(timestamp) || timestamp < 1 ||
+      timestamp > Number.MAX_SAFE_INTEGER - MAX_BACKOFF_MS) {
+    const error = new Error("Cleanup worker clock returned an invalid timestamp.");
+    error.code = "failed-precondition";
+    throw error;
+  }
+  return timestamp;
+}
 
 /**
  * Server-only retry worker. Dependencies must be trusted adapters; vault delete
@@ -45,13 +55,7 @@ export function createMailboxSecretCleanupWorker({
         error.code = "invalid-argument";
         throw error;
       }
-      const runTimestamp = now();
-      if (!Number.isSafeInteger(runTimestamp) || runTimestamp < 1 ||
-          runTimestamp > Number.MAX_SAFE_INTEGER - MAX_BACKOFF_MS) {
-        const error = new Error("Cleanup worker clock returned an invalid timestamp.");
-        error.code = "failed-precondition";
-        throw error;
-      }
+      const runTimestamp = readWorkerTimestamp(now);
       const tickets = await cleanupAdapters.listPendingSecretCleanup({ accountId, limit });
       if (!Array.isArray(tickets) || tickets.length > limit ||
           tickets.some(ticket => !ticket || typeof ticket.connectionId !== "string") ||
@@ -88,6 +92,7 @@ export function createMailboxSecretCleanupWorker({
           summary.deferred++;
           continue;
         }
+        const operationTimestamp = readWorkerTimestamp(now);
         try {
           await credentialVault.revokeSecret({
             accountId: ticket.accountId,
@@ -96,12 +101,14 @@ export function createMailboxSecretCleanupWorker({
           });
           await cleanupAdapters.completeSecretCleanup({
             accountId: ticket.accountId, connectionId: ticket.connectionId,
-            timestamp: runTimestamp
+            timestamp: operationTimestamp
           });
           summary.completed++;
         } catch (error) {
           const attempts = ticket.attempts + 1;
-          const timestamp = runTimestamp;
+          let timestamp;
+          try { timestamp = readWorkerTimestamp(now); }
+          catch { summary.deferred++; continue; }
           const exhausted = attempts >= MAX_ATTEMPTS;
           const nextAttemptAt = exhausted ? null : timestamp + retryDelay(attempts);
           let retryRecorded = false;
@@ -147,7 +154,8 @@ export function createMailboxSecretCleanupWorker({
             !(ticket.alertLastErrorCode === null || ticket.alertLastErrorCode === undefined ||
               (typeof ticket.alertLastErrorCode === "string" &&
                /^[a-z0-9_-]{1,64}$/.test(ticket.alertLastErrorCode)))) continue;
-        if (Number.isSafeInteger(ticket.alertNextAttemptAt) && ticket.alertNextAttemptAt > runTimestamp) continue;
+        const alertTimestamp = readWorkerTimestamp(now);
+        if (Number.isSafeInteger(ticket.alertNextAttemptAt) && ticket.alertNextAttemptAt > alertTimestamp) continue;
         const alertId = accountId + ":" + ticket.connectionId + ":cleanup-exhausted";
         try {
           await alert({
@@ -155,12 +163,12 @@ export function createMailboxSecretCleanupWorker({
             attempts: ticket.attempts, code: ticket.lastErrorCode
           });
           await cleanupAdapters.markCleanupAlertDelivered({
-            accountId, connectionId: ticket.connectionId, timestamp: runTimestamp
+            accountId, connectionId: ticket.connectionId, timestamp: alertTimestamp
           });
         } catch (error) {
           // Persist bounded exponential backoff; the durable alert remains pending.
           const attempts = (ticket.alertAttempts ?? 0) + 1;
-          const timestamp = runTimestamp
+          const timestamp = alertTimestamp;
           try {
             await cleanupAdapters.recordCleanupAlertFailure({
               accountId, connectionId: ticket.connectionId, attempts,
