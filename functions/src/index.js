@@ -59,7 +59,7 @@ export const health = onCall(async () => ({
   identityAndMembershipResolutionImplemented: true,
   organizationMutationCallablesImplemented: true,
   organizationMutationAuthorizationImplemented: true,
-  protectedEmployeeDataApisImplemented: true,
+  protectedEmployeeDataApisImplemented: false,
   ownEmploymentProfileReadImplemented: true,
   protectedEmployeeShiftApisImplemented: true,
   employeeShiftSelfAuthorizationImplemented: true,
