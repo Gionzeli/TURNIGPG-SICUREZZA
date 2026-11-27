@@ -154,6 +154,28 @@ export function createMailboxConnectionFirestoreAdapters(db) {
       });
     },
 
+    async listPendingSecretCleanup({ accountId, limit = 50 }) {
+      if (!validId(accountId) || !Number.isInteger(limit) || limit < 1 || limit > 100) {
+        invalid("Mailbox cleanup query is malformed.");
+      }
+      if (typeof db.collection !== "function") {
+        const error = new Error("Firestore collection queries are unavailable.");
+        error.code = "failed-precondition";
+        throw error;
+      }
+      const snapshot = await db.collection(`accounts/${accountId}/mailboxCredentialCleanup`)
+        .where("status", "==", "pending").orderBy("createdAt", "asc").limit(limit).get();
+      return snapshot.docs.map(doc => {
+        const value = doc.data();
+        if (!value || value.accountId !== accountId ||
+            typeof value.connectionId !== "string" || !validId(value.connectionId) ||
+            typeof value.secretRef !== "string" || value.secretRef.length < 1 ||
+            value.status !== "pending" || !Number.isSafeInteger(value.attempts) ||
+            value.attempts < 1) return null;
+        return value;
+      }).filter(Boolean);
+    },
+
     async loadSecretCleanup({ accountId, connectionId }) {
       if (!validId(accountId) || !validId(connectionId)) return null;
       const snapshot = await db.doc(
