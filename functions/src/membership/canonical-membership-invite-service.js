@@ -62,8 +62,9 @@ export async function approveCanonicalMembershipInvite({ db, accountId, actorUid
     requireAdmin(actor.exists ? actor.data() : null, actorUid, accountId, actorIdentity, approvedAt);
     if (!invite.exists) fail("not-found", "Invite proposal not found.");
     const value = invite.data();
+    if (value.proposedBy === actorUid) fail("permission-denied", "A different admin must approve the invite.");
     if (value.accountId !== accountId || value.inviteId !== inviteId || value.status !== "pending" ||
-        !validId(value.proposedBy) || value.proposedBy === actorUid ||
+        !validId(value.proposedBy) ||
         typeof value.emailDigest !== "string" || !/^[a-f0-9]{64}$/.test(value.emailDigest) ||
         value.role !== "member" || value.scopeType !== "site" || !Array.isArray(value.scopeIds) ||
         !Number.isSafeInteger(value.createdAt) || !Number.isSafeInteger(value.expiresAt) ||
