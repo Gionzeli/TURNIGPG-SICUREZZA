@@ -481,3 +481,14 @@ metadata still says `active`, or its state cannot be established, cleanup is
 not attempted. This avoids a durable cleanup ticket or worker deleting a
 credential still referenced by an active connection. A synthetic regression
 test covers failed audit plus failed pending transition.
+
+
+#### Cleanup worker requires durable revocation gate
+
+Before deleting a secret from a pending cleanup ticket, the worker now calls
+the lease service's `assertRevocationPending` guard. The guard reads the
+server-only per-connection lease record and requires a well-formed record
+whose monotonic `revocationPending` flag is true. Missing, malformed, or
+not-yet-disabled gates prevent vault deletion and are recorded as retryable
+cleanup failures. A durable cleanup ticket alone is not authorization to
+delete a credential. The gate is never cleared by the lease lifecycle.
