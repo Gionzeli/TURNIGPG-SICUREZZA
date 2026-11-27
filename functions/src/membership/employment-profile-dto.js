@@ -9,7 +9,7 @@ function optionalText(value, field) {
   if (typeof value !== "string") throw new TypeError(`Invalid employment profile field: ${field}`);
   const normalized = value.trim();
   if (!normalized) return null;
-  if (normalized.length > 100 || /[\\u0000-\\u001f\\u007f]/.test(normalized)) {
+  if (normalized.length > 100 || /[\u0000-\u001f\u007f]/.test(normalized)) {
     throw new TypeError(`Invalid employment profile field: ${field}`);
   }
   return normalized;
@@ -17,7 +17,7 @@ function optionalText(value, field) {
 
 function optionalDate(value) {
   if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) {
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
     throw new TypeError("Invalid employment profile field: effectiveDate");
   }
   const [year, month, day] = value.split("-").map(Number);
