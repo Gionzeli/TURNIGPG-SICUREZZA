@@ -51,6 +51,7 @@ export function createMailboxSecretCleanupWorker({
         summary.scanned++;
         if (!ticket || ticket.accountId !== accountId ||
             typeof ticket.connectionId !== "string" ||
+            !/^[A-Za-z0-9_-]{1,128}$/.test(ticket.connectionId) ||
             typeof ticket.secretRef !== "string" || ticket.secretRef.length < 1 ||
             ticket.secretRef.length > 2048 || ticket.status !== "pending" ||
             !Number.isSafeInteger(ticket.attempts) || ticket.attempts < 1 ||
@@ -116,6 +117,7 @@ export function createMailboxSecretCleanupWorker({
       for (const ticket of pendingAlerts) {
         if (!ticket || ticket.accountId !== accountId ||
             typeof ticket.connectionId !== "string" ||
+            !/^[A-Za-z0-9_-]{1,128}$/.test(ticket.connectionId) ||
             ticket.status !== "exhausted" || ticket.alertStatus !== "pending" ||
             !Number.isSafeInteger(ticket.attempts) || ticket.attempts < MAX_ATTEMPTS ||
             typeof ticket.lastErrorCode !== "string" ||
