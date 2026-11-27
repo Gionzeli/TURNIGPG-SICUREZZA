@@ -52,7 +52,7 @@ export function createMailboxConnectionService({
   })) if (typeof fn !== "function") throw new TypeError(name + " dependency is required.");
 
   async function disableRefreshAndConfirm({ accountId, connectionId }) {
-    const result = await disableRefreshAndConfirm({ accountId, connectionId });
+    const result = await disableRefresh({ accountId, connectionId });
     if (result?.status !== "revocation_pending") {
       fail("failed-precondition", "Mailbox refresh disable was not confirmed.");
     }
