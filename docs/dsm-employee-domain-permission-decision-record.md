@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-69 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-70 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1876,6 +1876,26 @@ Approved policy in principle:
 
 **Still required before implementation:** approved lifecycle event catalogue and definitions; authorized initiator/verifier/approver matrix and separation of duties; effective-time and timezone rules; capability-by-event access matrix; employee/manager/self-service visibility rules; shift-boundary and pending-workflow handling; extension, cancellation and return-to-work procedures; notification and retention rules; and synthetic Emulator tests proving server-side enforcement and fail-closed behavior. This decision does not define statutory leave entitlements, authorize collection or disclosure of medical reasons, alter employment status automatically, or approve real-data processing or production activation.
 
+### L-70 — Account archival, restoration and archived organizational units
+
+**Question:** How should inactive employee accounts and archived organizational units be preserved and, where justified, restored without confusing archival with deletion or reviving obsolete access?
+
+**Approved 2026-11-27 — option B (controlled, reversible archival with separately authorized restoration), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat archival as a distinct lifecycle state and operation, not as deletion, anonymization, employment termination, account suspension or a legal hold. Define the permitted reasons, initiating authority, approval requirements, effective time and affected resources before implementation.
+- Before archival, calculate and review the exact impact: authentication/account state, active sessions and credentials, delegated grants, employee bindings, pending approvals, scheduled/background work, organizational memberships, shift assignments, references and required historical records. No broad cascade or destructive cleanup by implication.
+- Revoke operational access and invalidate sessions, tokens, delegations and workload permissions that must no longer operate. Any narrowly retained self-service, privacy-request or statutory access must be separately authorized, time-bounded where appropriate and independently tested.
+- Preserve only records required for legitimate operational, contractual, legal or audit purposes under the applicable retention schedule and holds. Minimize archived personal data, restrict access by purpose and role, record access, and prevent ordinary operational search or roster views from exposing archived records.
+- Preserve referential integrity and provenance for historical shifts, approvals, audit evidence and organizational assignments. Do not rewrite historical ownership or silently move records when a site, department or organizational unit is archived.
+- Archive an organizational unit only through an explicit, approved workflow that identifies its members, open assignments, pending work, delegations, references and historical dependencies. Require a separately approved reassignment or closure plan; do not infer a replacement unit or automatically grant its managers access to archived records.
+- Restoration must be a new, explicitly authorized and audited workflow, not a reversal of a flag. Revalidate identity, employment relationship, canonical UID↔Employee binding, current organizational placement, role grants, unit status, credentials, security posture and outstanding holds before enabling any operation.
+- Never automatically restore old roles, delegated privileges, manager scope, sessions, invitations, API credentials, scheduled jobs or prior assignments. Recreate only the minimum current grants through the normal approval process; unresolved or conflicting state remains fail closed.
+- Require preview, impact summary, independent approval, revision checks and idempotent execution for archival and restoration. Provide safe cancellation before commit and a documented recovery path for partial failures; do not silently retry destructive side effects.
+- Record actor, approver, reason code, target, effective time, affected resource references, revocation outcomes, retention disposition, restoration checks and final result in protected audit evidence, without copying unnecessary sensitive content into logs.
+- Test synthetic cases for unauthorized archive/restore, cross-organization scope, stale approvals, partial failure, session/token survival, orphaned references, archived-unit membership, historical record leakage, legal holds, expired retention and attempts to resurrect obsolete privileges.
+
+**Still required before implementation:** archival eligibility and reason catalogue; resource and dependency inventory; approval/separation-of-duties matrix; retention and legal-hold mapping; exact account/session/credential/job revocation semantics; organizational-unit closure and reassignment workflow; restoration identity and authorization checklist; partial-failure/recovery design; audit schema and access controls; and synthetic Emulator tests across account, employee, unit and historical-record boundaries. This decision does not authorize bulk deletion, automatic restoration, retention overrides, real-data processing, production account changes or deployment.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1945,6 +1965,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-67 Accessibility, inclusive design and assistive-technology security | Approved — option B accessible workflows with equivalent server-enforced security; implementation gated on conformance target, supported technology matrix, authentication accommodations and manual assistive-technology tests |
 | L-68 Data quality, accuracy, correction and provenance governance | Approved — option B governed field-level sources, validation, provenance, reconciliation and human-reviewed correction; implementation gated on catalogue, workflows, integrity, retention and tests |
 | L-69 Employee leave lifecycle and temporary work-status transitions | Approved — option B explicit, time-bounded transitions with minimized data and scoped access; implementation gated on event catalogue, authority, effective-time rules, access matrix and tests |
+| L-70 Account archival, restoration and archived organizational units | Approved — option B controlled reversible archival and separately authorized restoration; implementation gated on impact inventory, revocation, retention, approval and recovery tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
