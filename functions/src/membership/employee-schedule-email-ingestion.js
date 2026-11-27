@@ -223,14 +223,26 @@ export function createEmployeeScheduleEmailIngestion({
             const fromDate = shifts.reduce((min, shift) => shift.date < min ? shift.date : min, shifts[0].date);
             const toDate = shifts.reduce((max, shift) => shift.date > max ? shift.date : max, shifts[0].date);
             const existing = await loadEmployeeShifts({ accountId, employeeId: employee.employeeId, fromDate, toDate });
-            if (!Array.isArray(existing) || existing.length > 200 ||
-                existing.some(row => row.employeeId !== employee.employeeId || !ID.test(row.shiftId ?? "") ||
-                  !Number.isSafeInteger(row.revision) || row.revision < 1 || !validDate(row.date))) {
+            let normalizedExisting;
+            try {
+              if (!Array.isArray(existing) || existing.length > 200) throw new Error("Invalid existing schedule bound.");
+              normalizedExisting = existing.map(row => {
+                if (!row || row.accountId !== accountId || row.employeeId !== employee.employeeId ||
+                    !ID.test(row.shiftId ?? "") || !Number.isSafeInteger(row.revision) || row.revision < 1 ||
+                    !validDate(row.date) || row.date < fromDate || row.date > toDate) throw new Error("Invalid existing shift identity.");
+                const fields = Object.fromEntries([...SHIFT_FIELDS].filter(key => Object.hasOwn(row, key)).map(key => [key, row[key]]));
+                return {
+                  ...normalizeShift({ ...fields, post: fields.post ?? "", start_time: fields.start_time ?? "",
+                    end_time: fields.end_time ?? "", hours: fields.hours ?? 0 }),
+                  accountId, employeeId: employee.employeeId, shiftId: row.shiftId, revision: row.revision
+                };
+              });
+            } catch {
               blocked.push({ reason: "existing_schedule_unavailable" });
               continue;
             }
             let diff;
-            try { diff = buildChanges(shifts, existing); }
+            try { diff = buildChanges(shifts, normalizedExisting); }
             catch { blocked.push({ reason: "ambiguous_schedule_diff" }); continue; }
             if (diff.changes.length === 0) {
               proposals.push({ employeeId: employee.employeeId, status: "unchanged", changeCount: 0 });
