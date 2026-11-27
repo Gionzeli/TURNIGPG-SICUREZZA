@@ -248,3 +248,52 @@ test("worker rejects malformed connection ids before vault or alert side effects
   assert.equal(vaultCalls, 0);
   assert.equal(alertCalls, 0);
 });
+
+
+test("worker fails closed when an adapter exceeds the requested batch limit", async () => {
+  let vaultCalls = 0;
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [ticket, ticket],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => { vaultCalls++; } },
+    alert: async () => {},
+    now: () => 1000
+  });
+  await assert.rejects(
+    worker.runOnce({ accountId: "synthetic-account", limit: 1 }),
+    error => error.code === "failed-precondition"
+  );
+  assert.equal(vaultCalls, 0);
+});
+
+test("worker skips an oversized alert batch without sending notifications", async () => {
+  let alertCalls = 0;
+  const alertTicket = {
+    accountId: "synthetic-account", connectionId: "safe-connection",
+    status: "exhausted", alertStatus: "pending", attempts: 12,
+    lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
+  };
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [alertTicket, alertTicket],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async () => { alertCalls++; },
+    now: () => 1000
+  });
+  assert.deepEqual(await worker.runOnce({ accountId: "synthetic-account", limit: 1 }), {
+    scanned: 0, completed: 0, deferred: 0, exhausted: 0
+  });
+  assert.equal(alertCalls, 0);
+});
