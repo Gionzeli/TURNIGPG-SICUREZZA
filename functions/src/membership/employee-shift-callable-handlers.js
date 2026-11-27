@@ -35,6 +35,7 @@ function validateProposedFields(fields, { allowDate }) {
     if (["is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"].includes(key) && typeof value !== "boolean") fail("invalid-argument", "Invalid shift flag.");
   }
   if (Object.hasOwn(fields, "start_time") !== Object.hasOwn(fields, "end_time")) fail("invalid-argument", "Shift start and end times must be supplied together.");
+  if (fields.start_time && fields.end_time && fields.start_time === fields.end_time) fail("invalid-argument", "Shift start and end times must differ.");
 }
 function validateProposalChanges(changes) {
   if (!Array.isArray(changes) || changes.length < 1 || changes.length > 30) fail("invalid-argument", "A proposal must contain 1 to 30 shift changes.");
