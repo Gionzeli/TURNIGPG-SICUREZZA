@@ -92,6 +92,7 @@ export async function claimCanonicalMembershipInvite({ db, accountId, inviteId, 
   const accountRef = db.doc(`accounts/${accountId}`);
   const inviteRef = db.doc(`accounts/${accountId}/membershipInviteProposals/${inviteId}`);
   const memberRef = db.doc(`accounts/${accountId}/members/${actorUid}`);
+  const siteRef = db.doc(`accounts/${accountId}/sites/${inviteId}`);
   const auditRef = db.doc(`accounts/${accountId}/membershipInviteAudit/claim-${inviteId}`);
   return db.runTransaction(async tx => {
     const [account, invite, member, audit] = await Promise.all([tx.get(accountRef), tx.get(inviteRef), tx.get(memberRef), tx.get(auditRef)]);
@@ -105,14 +106,16 @@ export async function claimCanonicalMembershipInvite({ db, accountId, inviteId, 
       fail("permission-denied", "Invite is not claimable by this verified identity.");
     }
     if (member.exists) fail("already-exists", "This UID already has a membership in the account.");
+    if (!Array.isArray(value.scopeIds) || value.scopeIds.length !== 1 || !validId(value.scopeIds[0])) fail("failed-precondition", "Invite scope is malformed.");
+    const claimedSiteRef = db.doc(`accounts/${accountId}/sites/${value.scopeIds[0]}`);
+    const claimedSite = await tx.get(claimedSiteRef);
+    if (!claimedSite.exists || claimedSite.data().accountId !== accountId || claimedSite.data().siteId !== value.scopeIds[0] || claimedSite.data().status !== "active") fail("failed-precondition", "Invited site is no longer active.");
     if (audit.exists) fail("already-exists", "Invite claim audit event already exists.");
     const membership = {
       accountId, uid: actorUid, status: "active", role: "member",
       scopeType: "site", scopeIds: [value.scopeIds[0]], validFrom: new Date(claimedAt), validUntil: null,
       inviteId, createdAt: claimedAt, approvedBy: value.approvedBy
     };
-    // Site scope must be explicitly assigned before an employee can be provisioned.
-    // An empty scope is deliberately invalid under membership policy, so no authority is granted here.
     tx.create(memberRef, { ...membership, status: "active" });
     tx.update(inviteRef, { status: "claimed", claimedBy: actorUid, claimedAt });
     tx.create(auditRef, { eventId: `claim-${inviteId}`, type: "membership.invite.claimed", accountId, inviteId, actorUid, occurredAt: claimedAt });
