@@ -9,7 +9,7 @@ function optionalText(value, field) {
   if (typeof value !== "string") throw new TypeError(`Invalid employment profile field: ${field}`);
   const normalized = value.trim();
   if (!normalized) return null;
-  if (normalized.length > 100 || /[\u0000-\u001f\u007f]/.test(normalized)) {
+  if (normalized.length > 100 || /[\\u0000-\\u001f\\u007f]/.test(normalized)) {
     throw new TypeError(`Invalid employment profile field: ${field}`);
   }
   return normalized;
@@ -17,11 +17,15 @@ function optionalText(value, field) {
 
 function optionalDate(value) {
   if (value === undefined || value === null || value === "") return null;
-  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) {
     throw new TypeError("Invalid employment profile field: effectiveDate");
   }
   const [year, month, day] = value.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
+  // Date.UTC treats years 0–99 as 1900–1999; setUTCFullYear avoids that
+  // legacy offset while retaining strict calendar-date validation.
+  const date = new Date(0);
+  date.setUTCHours(0, 0, 0, 0);
+  date.setUTCFullYear(year, month - 1, day);
   if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 ||
       date.getUTCDate() !== day) {
     throw new TypeError("Invalid employment profile field: effectiveDate");
