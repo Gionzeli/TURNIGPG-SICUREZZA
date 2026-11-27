@@ -71,7 +71,13 @@ test("lists only active canonical accounts for the verified UID", async () => {
   });
   const result = await handlers.listMine(request());
   assert.deepEqual(result.map(item => item.accountId), ["acct-a", "acct-b"]);
-  assert.deepEqual(result[0].permissions, ["dsm:read:own-scope"]);
+  assert.deepEqual(result[0].permissions, [
+    "dsm:read:own-scope",
+    "dsm:employee:shift:read:self",
+    "dsm:employee:shift:create:self",
+    "dsm:employee:shift:update:self",
+    "dsm:employee:shift:delete:self"
+  ]);
   assert.deepEqual(verifyCalls, [["signed-token", true]]);
   assert.deepEqual(calls[0], ["where", "uid", "==", "employee-uid-1"]);
   assert.deepEqual(calls[1], ["limit", 101]);
