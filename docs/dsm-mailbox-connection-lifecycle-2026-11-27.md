@@ -530,3 +530,14 @@ does not delete the secret or enqueue cleanup; the caller receives the existing
 fail-closed setup error and the orphan requires vault review. Synthetic tests
 cover both the gate-before-cleanup order and gate failure. No live vault or
 Firestore service was used.
+
+
+#### Explicit confirmation from the cleanup revocation gate
+
+The cleanup worker now requires the gate assertion to return the exact
+`status: "revocation_pending"` confirmation before invoking the credential
+vault. A callback that resolves without throwing but returns `false`, no value,
+or any other status is treated as a failed precondition and follows the normal
+retry path. This makes the injected gate contract fail closed even if an
+incorrect adapter implementation silently returns a negative result. Synthetic
+regressions cover false, missing, and mismatched confirmations.
