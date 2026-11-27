@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-37 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-38 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1045,6 +1045,28 @@ Approved policy in principle:
 
 **Still required before implementation:** define domain schemas and canonical ownership binding, expected-revision and transaction/idempotency semantics, audit schema, anomaly signals/monitoring, and synthetic test coverage. This approval authorizes no database implementation, real-data mutation or production activation.
 
+### L-38 — Verification evidence and test governance
+
+**Question:** What evidence is required to claim that security controls are verified and a change is ready for review?
+
+Possible choices:
+- **A. Informal evidence:** developer reports and spot checks are sufficient.
+- **B. Reproducible evidence gates:** documented, repeatable tests in isolated environments; traceable results; review of failures; explicit release-blocking criteria.
+- **C. Formal certification for every change:** require external certification regardless of risk.
+
+**Approved 2026-11-27 — option B (reproducible, traceable security evidence gates), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Security claims must be backed by reproducible test procedures, environment/configuration details, test inputs (synthetic only), expected outcomes and captured results.
+- Map each applicable security requirement and threat-model mitigation to implementation references and evidence; distinguish policy approval, code review, tests executed, tests passed, unresolved findings and release authorization.
+- Test both permitted and denied paths, abuse cases, edge cases, lifecycle transitions, failures and concurrency behavior in isolated Emulator/test environments.
+- Evidence must identify the commit/version tested and be retained in a reviewable form; rerun affected checks when code, dependencies, configuration or security assumptions change.
+- Critical/high findings and failed mandatory checks block release unless a documented, scoped, time-limited exception is approved by accountable reviewers with compensating controls.
+- Reviewers must not accept unexecuted, stale, incomplete or non-reproducible tests as passing; do not imply tests were run when only reviewed or planned.
+- Synthetic fixtures only; no real employee/customer data, live credentials or production access in test evidence.
+
+**Still required before implementation:** define evidence format and storage, requirement-to-test mapping, test ownership, risk severity thresholds, CI enforcement, exception approval/expiry, and reviewer criteria. This decision establishes governance policy only; it does not assert current CI/test status, certify security, or authorize merge/deployment/production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1092,7 +1114,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
 | L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
 | L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
-| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| Other lifecycle and historical access | Open — fail closed |
+| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| L-38 Verification evidence and test governance | Approved — option B reproducible, traceable security evidence gates; implementation gated on evidence format, mapping, CI, severity/exception criteria and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
