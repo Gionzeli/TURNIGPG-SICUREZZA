@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-63 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-64 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1723,6 +1723,35 @@ Approved policy in principle:
 
 **Still required before implementation:** environment inventory and boundaries, deployment role/approval matrix, infrastructure-as-code standards, protected runner and credential design, readiness criteria, rollout/stop thresholds, migration compatibility rules, rollback and restore runbooks, drift detection, emergency procedure, audit schema, retention and synthetic end-to-end tests. This policy does not authorize production deployment, real infrastructure changes, real data migrations, Firebase activation or release execution.
 
+### L-64 — Security assurance, independent review and risk acceptance
+
+**Question:** What independent assurance and formal risk-acceptance process must be completed before security-sensitive capabilities or material changes are considered ready for use?
+
+Possible choices:
+- **A. Team self-attestation:** the implementation team declares completion based on its own checklist and tests.
+- **B. Risk-based independent assurance and time-bounded exception governance:** require traceable evidence, reviewers independent of implementation for material risks, explicit residual-risk ownership and expiry for exceptions.
+- **C. External certification for every change:** require a formal external certification before any software or configuration change can proceed.
+
+**Approved 2026-11-27 — option B (risk-based independent assurance and time-bounded exception governance), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Define security assurance scope from documented assets, data classifications, threat models, trust boundaries, user impact and change risk; scale depth to risk without waiving baseline controls.
+- Maintain traceability from security requirements and approved decisions to implementation, code review, threat analysis, test cases, results, artifacts and release/deployment records.
+- Require independent review by a qualified person who did not author or solely implement the material control being assessed; identify conflicts of interest and escalate unresolved disagreements.
+- Require targeted security testing for authentication, authorization, ownership, organizational scope, sensitive-field exposure, lifecycle revocation, concurrency, abuse controls, logging, privacy and recovery as applicable to the change.
+- Include negative tests and adversarial cases; passing happy-path tests alone is insufficient evidence of enforcement.
+- Record test environment, synthetic fixture version, source commit, tool versions, execution time, results, failures, limitations and artifact digest; do not describe unexecuted or stale tests as passing.
+- Treat static analysis, dependency scanning, automated tests and external assessments as complementary evidence, not substitutes for design review or runtime authorization verification.
+- Block release/use when critical security checks fail, required evidence is missing, a material finding is unresolved, or the tested artifact cannot be tied to the candidate artifact.
+- Require each residual-risk exception to state the affected asset/control, threat and impact, reason, compensating controls, scope, accountable risk owner, independent approver, monitoring, remediation plan and explicit expiry.
+- Prohibit self-approval of exceptions by the implementer or sole risk owner; prohibit exceptions that waive legal obligations, identity/ownership checks, tenant isolation, or fundamental authorization boundaries.
+- Reassess exceptions on expiry, material change, incident, newly discovered vulnerability or changed threat context; expired exceptions fail closed and block the affected capability until renewed or remediated.
+- Preserve review evidence and decisions in protected, access-controlled records with retention and integrity safeguards; avoid storing secrets or unnecessary personal data.
+- Distinguish policy approval, design approval, implementation completion, test evidence, independent assurance, release authorization and production operation as separate states; never infer one from another.
+- Test synthetic scenarios for false-positive assurance, missing evidence, stale test results, reviewer conflicts, unapproved risk acceptance, expired exceptions and artifact/evidence mismatch.
+
+**Still required before implementation:** assurance ownership and reviewer qualifications, risk tiers and review triggers, evidence catalogue and retention, required test matrix, finding severity and blocking thresholds, exception workflow and approver matrix, expiry enforcement, and independent review exercises. This policy does not certify the system, attest that controls are implemented, declare tests passed, authorize production activation or replace legal/privacy review.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1786,6 +1815,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-61 Privacy protection for test data, fixtures and development environments | Approved — option B synthetic-first data with tightly governed exceptions; implementation gated on fixture standards, environment isolation, exception review, scanning and tests |
 | L-62 Secure software release, build and distribution pipeline | Approved — option B isolated, reproducible and attestable pipeline with signed immutable artifacts and controlled promotion; implementation gated on source protection, runner isolation, provenance, signing and release workflow tests |
 | L-63 Controlled deployment and infrastructure change management | Approved — option B explicit environment approvals, verified immutable artifacts, staged rollout, monitored stop/rollback and audited infrastructure changes; implementation gated on environment boundaries, approval matrix, runner controls and recovery tests |
+| L-64 Security assurance, independent review and risk acceptance | Approved — option B risk-based independent assurance, traceable evidence and time-bounded exceptions; implementation gated on review ownership, evidence standards, blocking criteria and expiry enforcement |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
