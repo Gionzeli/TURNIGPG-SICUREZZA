@@ -36,6 +36,19 @@ test("Firestore Emulator: Employee placement creation and transfer preserve half
     assert.equal(nextSnap.data().validUntil, null);
     assert.equal(controlSnap.data().placementRevision, 2);
     assert.equal(audit.data().type, "employee.placement.transferred");
+    const concurrent = await Promise.allSettled([
+      transferEmployeePlacement({ ...common, placementId: "placement-race-a", siteId: "site-3", departmentId: "dept-3", validFrom: "2026-07-01", eventId: "transfer-race-a", now: () => 3000 }),
+      transferEmployeePlacement({ ...common, placementId: "placement-race-b", siteId: "site-4", departmentId: "dept-4", validFrom: "2026-07-01", eventId: "transfer-race-b", now: () => 3000 })
+    ]);
+    assert.equal(concurrent.filter(result => result.status === "fulfilled").length, 1);
+    assert.equal(concurrent.filter(result => result.status === "rejected").length, 1);
+    const [afterRaceControl, afterRacePlacements, raceAudits] = await Promise.all([
+      control.get(), placements.get(),
+      db.collection("accounts/" + accountId + "/employeeAudit").where("type", "==", "employee.placement.transferred").get()
+    ]);
+    assert.equal(afterRaceControl.data().placementRevision, 3);
+    assert.equal(afterRacePlacements.docs.filter(doc => doc.data().validFrom === "2026-07-01").length, 1);
+    assert.equal(raceAudits.size, 2);
     await assert.rejects(createInitialEmployeePlacement({ ...common, placementId: "overlap", siteId: "site-1", departmentId: "dept-1", validFrom: "2026-05-01", eventId: "overlap-1" }), e => e.code === "failed-precondition");
     assert.equal((await placements.doc("overlap").get()).exists, false);
     await inverseBinding.update({ revision: 2 });
