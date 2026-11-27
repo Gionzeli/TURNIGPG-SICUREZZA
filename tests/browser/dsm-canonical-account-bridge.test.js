@@ -24,6 +24,19 @@ let controller;
 const dependencies = {
   auth, onAuthStateChanged,
   listCanonicalAccounts: async () => accounts,
+  listOwnEmployeeShifts: async data => {
+    window.__shiftQuery = data;
+    return [{
+      shiftId: "synthetic-shift-01",
+      date: data.fromDate,
+      type: "turno",
+      post: "Postazione sintetica",
+      start_time: "08:00",
+      end_time: "16:00",
+      hours: 8,
+      revision: 1
+    }];
+  },
   resolveAuthorization: async ({ uid, accountId }) => ({
     principal: {
       uid, accountId, role: "member", status: "active",
@@ -62,6 +75,26 @@ if (session?.accountContext.getActive()?.identitySource !== "firebase" ||
   throw new Error("Canonical Firebase principal was not activated.");
 }
 document.documentElement.dataset.bridgeResult = "active";
+const shiftPanel = root.querySelector("section.card");
+if (!shiftPanel || shiftPanel.hidden) throw new Error("Own shifts view was not enabled after account activation.");
+root.querySelector('input[aria-label="Data iniziale"]').value = "2026-06-01";
+root.querySelector('input[aria-label="Data finale"]').value = "2026-06-30";
+root.querySelector('form').dispatchEvent(new Event("submit", { bubbles: true, cancelable: true }));
+await new Promise((resolve, reject) => {
+  const started = Date.now();
+  const check = () => {
+    if (root.textContent.includes("Postazione sintetica")) return resolve();
+    if (Date.now() - started > 5000) return reject(new Error("Own employee shifts query timed out."));
+    setTimeout(check, 20);
+  };
+  check();
+});
+if (JSON.stringify(window.__shiftQuery) !== JSON.stringify({
+  accountId: accounts[0].accountId, fromDate: "2026-06-01", toDate: "2026-06-30"
+})) throw new Error("Own shifts callable received unexpected selectors.");
+if (root.textContent.includes("synthetic-employee-uid") || root.textContent.includes("compensation")) {
+  throw new Error("Own shifts view exposed an identity or non-allowlisted field.");
+}
 const accountSelect = root.querySelector("select");
 accountSelect.value = accounts[1].accountId;
 accountSelect.dispatchEvent(new Event("change", { bubbles: true }));
@@ -74,6 +107,10 @@ await new Promise((resolve, reject) => {
   };
   check();
 });
+if (!root.querySelector("section.card").hidden ||
+    root.textContent.includes("Postazione sintetica")) {
+  throw new Error("Own shift data remained visible after account switch.");
+}
 if (session.accountContext.getActive() !== null) {
   throw new Error("Previous DSM account remained active after selection changed.");
 }
