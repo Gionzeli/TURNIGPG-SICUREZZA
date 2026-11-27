@@ -685,3 +685,13 @@ while exhausted attempts require `nextAttemptAt: null`. Malformed combinations
 are rejected before any ticket mutation, preventing a pending ticket from being
 persisted without its intended backoff or an exhausted ticket from carrying a
 misleading scheduled retry.
+
+
+#### Cleanup alert retry timestamp validation
+
+Pending exhaustion-alert retries must always carry a valid `nextAttemptAt`
+timestamp at or after the failure timestamp. Unlike credential cleanup tickets,
+alert delivery has no exhausted-attempt terminal state; a null retry time would
+make the outbox entry unscheduled and potentially strand it. The Firestore
+adapter now rejects null, past, and otherwise invalid retry timestamps before
+updating the alert ticket.
