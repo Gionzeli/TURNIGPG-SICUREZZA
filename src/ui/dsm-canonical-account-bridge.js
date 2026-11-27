@@ -8,17 +8,19 @@ export function mountDSMCanonicalAccountBridge(container, {
   onAuthStateChanged,
   listCanonicalAccounts,
   resolveAuthorization,
+  listOwnEmployeeShifts,
   createAuthAdapter,
   openDatabase,
   closeDatabase,
   createSession
 } = {}) {
   const required = [auth, onAuthStateChanged, listCanonicalAccounts, resolveAuthorization,
-    createAuthAdapter, openDatabase, closeDatabase, createSession];
+    listOwnEmployeeShifts, createAuthAdapter, openDatabase, closeDatabase, createSession];
   if (!container || required.some(value => !value) ||
       typeof onAuthStateChanged !== "function" ||
       typeof listCanonicalAccounts !== "function" ||
       typeof resolveAuthorization !== "function" ||
+      typeof listOwnEmployeeShifts !== "function" ||
       typeof createAuthAdapter !== "function" ||
       typeof openDatabase !== "function" ||
       typeof closeDatabase !== "function" ||
@@ -42,11 +44,50 @@ export function mountDSMCanonicalAccountBridge(container, {
   button.disabled = true;
   const note = document.createElement("p");
   note.className = "hint";
-  note.textContent = "Il collegamento abilita soltanto il contesto account locale DSM. Non importa dati e non abilita API Employee non ancora implementate.";
-  container.replaceChildren(title, status, select, button, note);
+  note.textContent = "Dopo la verifica puoi consultare esclusivamente i turni associati al tuo Employee canonico. La consultazione non importa né modifica dati.";
+
+  const shiftsPanel = document.createElement("section");
+  shiftsPanel.className = "card";
+  shiftsPanel.hidden = true;
+  const shiftsTitle = document.createElement("h3");
+  shiftsTitle.textContent = "I miei turni";
+  const shiftsIntro = document.createElement("p");
+  shiftsIntro.className = "hint";
+  shiftsIntro.textContent = "Consulta i turni del tuo Employee canonico in un intervallo di date. La ricerca è di sola lettura.";
+  const shiftsForm = document.createElement("form");
+  shiftsForm.className = "row";
+  const fromLabel = document.createElement("label");
+  fromLabel.textContent = "Dal";
+  const fromInput = document.createElement("input");
+  fromInput.type = "date";
+  fromInput.required = true;
+  fromInput.setAttribute("aria-label", "Data iniziale");
+  fromLabel.append(fromInput);
+  const toLabel = document.createElement("label");
+  toLabel.textContent = "Al";
+  const toInput = document.createElement("input");
+  toInput.type = "date";
+  toInput.required = true;
+  toInput.setAttribute("aria-label", "Data finale");
+  toLabel.append(toInput);
+  const searchButton = document.createElement("button");
+  searchButton.type = "submit";
+  searchButton.className = "pri";
+  searchButton.textContent = "Cerca i miei turni";
+  shiftsForm.append(fromLabel, toLabel, searchButton);
+  const shiftsStatus = document.createElement("p");
+  shiftsStatus.className = "hint";
+  shiftsStatus.setAttribute("role", "status");
+  shiftsStatus.setAttribute("aria-live", "polite");
+  const shiftsResults = document.createElement("div");
+  shiftsResults.setAttribute("aria-live", "polite");
+  shiftsPanel.append(shiftsTitle, shiftsIntro, shiftsForm, shiftsStatus, shiftsResults);
+
+  container.replaceChildren(title, status, select, button, note, shiftsPanel);
 
   let disposed = false;
   let generation = 0;
+  let shiftQueryGeneration = 0;
   let selectionRevision = 0;
   let selectedAccountId = null;
   let availableAccounts = [];
@@ -62,6 +103,66 @@ export function mountDSMCanonicalAccountBridge(container, {
     accountId: selectedAccountId,
     revision: selectionRevision
   });
+  const activeFirebaseAccountId = () => {
+    const active = session?.accountContext.getActive();
+    return active?.identitySource === "firebase" ? active.accountId : null;
+  };
+
+  function clearShiftResults() {
+    shiftsResults.replaceChildren();
+  }
+
+  function hideShiftView() {
+    shiftQueryGeneration += 1;
+    shiftsPanel.hidden = true;
+    shiftsForm.reset();
+    clearShiftResults();
+    shiftsStatus.textContent = "Collega un account DSM verificato per consultare i tuoi turni.";
+    searchButton.disabled = false;
+  }
+
+  function showShiftView() {
+    shiftsPanel.hidden = false;
+    shiftsStatus.textContent = "Seleziona l'intervallo di date e avvia la ricerca.";
+  }
+
+  function renderShifts(items) {
+    clearShiftResults();
+    if (!items.length) {
+      shiftsResults.append(document.createTextNode("Nessun turno trovato nell'intervallo selezionato."));
+      return;
+    }
+    const table = document.createElement("table");
+    const head = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    for (const label of ["Data", "Tipo", "Postazione", "Inizio", "Fine", "Ore"]) {
+      const cell = document.createElement("th");
+      cell.scope = "col";
+      cell.textContent = label;
+      headerRow.append(cell);
+    }
+    head.append(headerRow);
+    const body = document.createElement("tbody");
+    for (const item of items) {
+      const row = document.createElement("tr");
+      const values = [
+        item.date,
+        item.type,
+        item.post ?? "",
+        item.start_time ?? "",
+        item.end_time ?? "",
+        typeof item.hours === "number" ? String(item.hours) : ""
+      ];
+      for (const value of values) {
+        const cell = document.createElement("td");
+        cell.textContent = String(value ?? "");
+        row.append(cell);
+      }
+      body.append(row);
+    }
+    table.append(head, body);
+    shiftsResults.append(table);
+  }
 
   authAdapter = createAuthAdapter({
     auth,
@@ -77,6 +178,7 @@ export function mountDSMCanonicalAccountBridge(container, {
     select.replaceChildren();
     select.disabled = true;
     button.disabled = true;
+    hideShiftView();
     setStatus(message);
   }
 
@@ -131,6 +233,7 @@ export function mountDSMCanonicalAccountBridge(container, {
       ? select.value : null;
     selectedAccountId = nextAccountId;
     selectionRevision += 1;
+    hideShiftView();
     const active = session?.accountContext.getActive();
     if (active?.identitySource === "firebase" && active.accountId !== nextAccountId) {
       button.disabled = true;
@@ -146,6 +249,44 @@ export function mountDSMCanonicalAccountBridge(container, {
     button.disabled = !selectedAccountId || Boolean(activationPromise);
   };
   select.addEventListener("change", onSelectChange);
+
+  shiftsForm.addEventListener("submit", async event => {
+    event.preventDefault();
+    const accountId = activeFirebaseAccountId();
+    const fromDate = fromInput.value;
+    const toDate = toInput.value;
+    if (!accountId || accountId !== selectedAccountId) {
+      hideShiftView();
+      setStatus("Sessione DSM non attiva. Verifica nuovamente l'account.");
+      return;
+    }
+    if (!fromDate || !toDate || !/^\d{4}-\d{2}-\d{2}$/.test(fromDate) ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(toDate) || toDate < fromDate) {
+      shiftsStatus.textContent = "Intervallo non valido: controlla la data iniziale e finale.";
+      return;
+    }
+    const current = ++shiftQueryGeneration;
+    clearShiftResults();
+    shiftsStatus.textContent = "Ricerca dei tuoi turni in corso…";
+    searchButton.disabled = true;
+    try {
+      const items = await listOwnEmployeeShifts({ accountId, fromDate, toDate });
+      if (disposed || current !== shiftQueryGeneration ||
+          activeFirebaseAccountId() !== accountId || selectedAccountId !== accountId) return;
+      if (!Array.isArray(items) || items.length > 200) {
+        throw new Error("Risposta turni non valida.");
+      }
+      renderShifts(items);
+      shiftsStatus.textContent = `Ricerca completata: ${items.length} turni trovati.`;
+    } catch {
+      if (!disposed && current === shiftQueryGeneration) {
+        clearShiftResults();
+        shiftsStatus.textContent = "Non è stato possibile caricare i turni. Verifica l'accesso e riprova.";
+      }
+    } finally {
+      if (!disposed && current === shiftQueryGeneration) searchButton.disabled = false;
+    }
+  });
 
   button.addEventListener("click", async () => {
     if (disposed || !selectedAccountId || activationPromise) return;
@@ -164,15 +305,18 @@ export function mountDSMCanonicalAccountBridge(container, {
       const result = await session.activateFirebase();
       if (disposed) return;
       if (!result || result.state !== "active" || result.accountId !== selected.accountId ||
-          session.accountContext.getActive()?.identitySource !== "firebase") {
+          session.accountContext.getActive()?.identitySource !== "firebase" ||
+          selectedAccountId !== selected.accountId) {
         throw new Error("Il contesto DSM non corrisponde all'account selezionato.");
       }
-      setStatus(`Identità verificata e account DSM ${selected.accountId} collegato. Dati operativi e API Employee restano disabilitati finché non saranno completati e verificati.`);
+      setStatus(`Identità verificata e account DSM ${selected.accountId} collegato. Puoi consultare i tuoi turni personali.`);
+      showShiftView();
     })();
     activationPromise = task;
     try {
       await task;
     } catch {
+      hideShiftView();
       setStatus("Collegamento non riuscito o autorizzazione revocata. Nessun dato operativo è stato importato.");
     } finally {
       activationPromise = null;
@@ -185,6 +329,7 @@ export function mountDSMCanonicalAccountBridge(container, {
       if (disposed) return;
       disposed = true;
       generation += 1;
+      shiftQueryGeneration += 1;
       authUnsubscribe?.();
       select.removeEventListener("change", onSelectChange);
       authAdapter.dispose();
