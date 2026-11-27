@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-61 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-62 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1666,6 +1666,34 @@ Approved policy in principle:
 
 **Still required before implementation:** fixture-generation standard and ownership, synthetic data schema/catalogue, environment and credential isolation, approved fake-provider strategy, exception and privacy-review workflow, scanning/redaction controls, artifact retention and cleanup rules, and automated negative tests. This policy does not authorize copying, importing or processing real employee/collaborator data in test or development environments, nor production access or deployment.
 
+### L-62 — Secure software release, build and distribution pipeline
+
+**Question:** How should source changes be built, verified, packaged, signed, promoted and distributed so that artifacts are traceable, reproducible and protected against unauthorized substitution?
+
+Possible choices:
+- **A. Developer-controlled releases:** developers build and distribute artifacts manually from local workstations.
+- **B. Governed, isolated and attestable release pipeline:** use protected source controls, isolated reproducible builds, verified dependencies, artifact provenance, signing and controlled promotion.
+- **C. Trust the latest successful build:** distribute whichever artifact is most recent without a formal provenance or approval chain.
+
+**Approved 2026-11-27 — option B (governed, isolated and attestable release pipeline), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat the protected source revision, reviewed change set and approved build definition as the authoritative inputs; prohibit release builds from unreviewed branches or uncontrolled local workstations.
+- Require peer review, branch protection, required checks and separation of duties for security-sensitive changes, workflow modifications, release configuration and signing policy.
+- Run builds in ephemeral, isolated workers with least-privilege identities, no unnecessary network access, no persistent shared workspace and environment-specific credentials.
+- Pin dependencies and build tools, verify provenance/integrity, use lockfiles and controlled registries, and apply vulnerability and license review gates appropriate to risk.
+- Make build inputs explicit and versioned; aim for reproducible builds and retain enough metadata to independently reproduce or verify the artifact.
+- Generate machine-readable provenance/attestation linking source commit, build definition, dependencies, builder identity, test evidence and artifact digest.
+- Sign release artifacts and attestations with protected, purpose-specific keys; verify signatures and digests before promotion, installation or distribution.
+- Prevent untrusted pull-request code from accessing release secrets, signing keys, privileged runners or production credentials.
+- Promote the same immutable artifact through environments; do not rebuild silently between test, staging and production, and require explicit approvals and environment gates for each promotion.
+- Keep release permissions separate from code-write and ordinary admin permissions; require independent approval for production release and emergency bypasses.
+- Maintain an inventory of released artifacts, versions, digests, provenance, approvers, deployment targets and rollback compatibility; support prompt withdrawal and revocation of compromised artifacts.
+- Protect build logs and artifacts against unauthorized access and tampering; redact secrets and personal data and apply retention/deletion rules.
+- Test synthetic scenarios for dependency substitution, compromised runner, poisoned cache, untrusted PR secret access, signature mismatch, provenance gaps, artifact replacement and rollback failure.
+
+**Still required before implementation:** source and branch protection configuration, build platform and runner isolation, dependency/registry policy, reproducibility requirements, provenance format and verifier, signing-key custody/rotation, approval matrix, artifact registry, promotion and rollback workflows, emergency release controls, retention and synthetic end-to-end tests. This policy does not authorize a production build, signing with real keys, artifact distribution, deployment or release activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1727,6 +1755,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-59 Security log monitoring, retention and tamper detection | Approved — option B minimized, centrally protected and tamper-evident logs with monitored response; implementation gated on event taxonomy, integrity design, retention, access and tests |
 | L-60 Secure service-to-service communication and machine identity | Approved — option B distinct workload identities, short-lived audience-bound credentials and authenticated transport; implementation gated on identity model, service authorization, rotation, isolation and tests |
 | L-61 Privacy protection for test data, fixtures and development environments | Approved — option B synthetic-first data with tightly governed exceptions; implementation gated on fixture standards, environment isolation, exception review, scanning and tests |
+| L-62 Secure software release, build and distribution pipeline | Approved — option B isolated, reproducible and attestable pipeline with signed immutable artifacts and controlled promotion; implementation gated on source protection, runner isolation, provenance, signing and release workflow tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
