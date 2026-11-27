@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-91 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-92 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2328,6 +2328,29 @@ Approved policy in principle:
 
 **Still required before implementation:** secret inventory and ownership; approved secret manager and workload identity model; scanning tools and blocking thresholds; CI trust boundaries; redaction rules; false-positive exception process; provider-specific emergency revoke/rotate runbooks; artifact and history exposure assessment; audit taxonomy; and synthetic end-to-end leak-response tests. This decision does not authorize creating, revealing, rotating or using any real production secret.
 
+### L-92 — DNS security, domain ownership and certificate lifecycle
+
+**Question:** How should the application protect domain names, DNS resolution and TLS certificate lifecycle so that users, browsers and service-to-service clients cannot be redirected to unauthorized endpoints or silently trust an incorrectly provisioned domain?
+
+**Approved 2026-11-27 — option B (governed domain inventory, protected DNS changes and automated certificate lifecycle controls), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Maintain an authoritative inventory of application domains, subdomains, environment ownership, DNS zones, registrars, hosting destinations, certificate authorities, renewal contacts and accountable owners. Every production hostname must have an approved business and technical owner.
+- Restrict registrar, DNS provider, zone, nameserver and certificate-management access to named least-privilege identities protected by strong authentication and independent approval for high-impact changes. Prohibit shared administrative accounts and unmanaged recovery channels.
+- Protect domain registration and DNS administration with registry/registrar locks, MFA, change notifications, controlled recovery contacts and documented emergency procedures where supported. Review delegation, nameservers, DNSSEC configuration and account recovery paths periodically and after ownership changes.
+- Use DNSSEC validation where supported and operationally appropriate; document zones and resolvers where it is enabled, monitor validation failures and define safe handling of DNSSEC rollover and key-signing changes. DNSSEC does not replace TLS authentication or application authorization.
+- Require authenticated change management for records that affect application routing, including A/AAAA, CNAME, MX where relevant, NS, DS, TXT verification, CAA and service-discovery records. Validate intended targets, TTL, propagation and rollback before applying high-impact changes.
+- Prevent dangling DNS records and abandoned cloud resources from enabling subdomain takeover. Inventory external hosting references, verify resource ownership continuously and remove or quarantine stale records before releasing associated resources.
+- Issue certificates only for verified, approved names and approved environments. Protect certificate private keys in managed key storage, restrict access, automate renewal, monitor expiry and issuance, and define rapid revocation and replacement procedures for suspected compromise.
+- Configure TLS with current secure protocol and cipher baselines, complete certificate chains, correct hostname validation and automated checks. Never disable certificate verification to work around test or production connectivity problems.
+- Use CAA records where appropriate to constrain authorized certificate authorities; monitor certificate-transparency signals and unexpected issuance for owned domains, with a documented response process for misissuance or unauthorized certificates.
+- Separate production, staging, development and preview domains. Do not let preview deployments inherit production cookies, credentials, privileged callbacks or broad cross-origin trust. Prevent untrusted pull-request previews from controlling production DNS or certificate issuance.
+- Treat DNS names and resolved addresses as routing data, not authorization. Continue validating service identity, TLS peer identity, tenant context and application permissions at every protected boundary; defend outbound services against DNS rebinding and time-of-check/time-of-use changes.
+- Define controlled DNS and certificate emergency response: identify affected names and dependencies, contain unauthorized changes, revoke or replace compromised certificates/keys, restore verified records, invalidate exposed sessions or credentials where warranted, and preserve minimized evidence.
+- Audit domain ownership, DNS modifications, delegation, certificate issuance/renewal/revocation and emergency actions with actor, approval, target, timestamp and outcome. Do not place private keys, registrar recovery secrets or credential-bearing values in logs.
+- Test synthetic registrar compromise, unauthorized nameserver changes, DNSSEC validation failure, dangling records, subdomain takeover scenarios, unexpected certificate issuance, expired/mismatched certificates, private-key exposure, renewal failure, DNS cache/TTL effects and environment cross-contamination.
+
+**Still required before implementation:** complete domain and DNS inventory; registrar/provider ownership and MFA controls; approved change and dual-control matrix; DNSSEC applicability and key-rotation plan; dangling-record monitoring; certificate authority/CAA policy; private-key custody and renewal automation; certificate-transparency alerting; emergency response runbooks; and synthetic DNS/TLS integration tests. This decision does not authorize changing production DNS, registering domains, issuing certificates or modifying live infrastructure.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2419,6 +2442,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-89 Browser security policy, origin isolation and response headers | Approved — option B restrictive environment-specific CSP, secure headers, origin/CORS controls and monitored enforcement; implementation gated on origin inventory, compatibility, exception process and tests |
 | L-90 Passkeys, WebAuthn credential binding and phishing-resistant authentication | Approved — option B origin-bound WebAuthn, verified enrollment, credential lifecycle and controlled recovery; implementation gated on origin matrix, assurance policy, fallback and tests |
 | L-91 Secrets exposure prevention and credential leak response | Approved — option B preventive scanning, least-privilege secret custody and rapid revocation/rotation; implementation gated on inventory, CI boundaries, response runbooks and tests |
+| L-92 DNS security, domain ownership and certificate lifecycle | Approved — option B governed domain inventory, protected DNS administration, DNSSEC where appropriate and automated certificate lifecycle; implementation gated on ownership, change control, key custody and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
