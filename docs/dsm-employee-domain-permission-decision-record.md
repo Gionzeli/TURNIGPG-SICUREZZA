@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-17 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-18 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -561,6 +561,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define event taxonomy and required fields; select and review the storage and cryptographic integrity design; establish key custody and rotation; separate log writer, reader, verifier and retention-administrator duties; define access scope, retention, archival, backup and lawful deletion; specify alerting, failure behavior and incident response; and add synthetic Emulator/integration tests for tampering, truncation, replay, unauthorized deletion, privilege escalation, missing events and integrity verification. No production immutable-log service or audit export endpoint is authorized until these details are approved and tested.
 
+### L-18 — Technical support access to employee data
+
+**Question:** What access should technical support personnel have when diagnosing or resolving a system issue?
+
+Possible choices:
+- **A. Full data access:** support personnel may inspect all employee data to make troubleshooting easier.
+- **B. Minimized diagnostics by default:** use synthetic or minimized data; exceptional access to real data only when strictly necessary, specifically authorized, time-limited and audited.
+- **C. Unrestricted support access:** any assigned technician may freely access all data.
+
+**Approved 2026-11-27 — option B (synthetic/minimized diagnostics by default; exceptional, necessary, authorized, time-limited and audited access to real data), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Support workflows must use synthetic fixtures, redacted diagnostics, aggregate metrics and technical metadata wherever reasonably sufficient. Production data must not be copied into development, test, ticketing, chat, email or external support systems as a routine troubleshooting method.
+- Support role or employment by a vendor does not itself grant permission to read employee, payroll, absence, identity, document or other personal data. Technical access and business-data access must be separately authorized.
+- If access to real data is demonstrably indispensable, require a documented support case/incident reference, specific purpose, narrowly identified records and fields, named individual, approved actions, start and expiry, and approval by an authorized data owner/security approver independent of the requester where practicable.
+- Access must be read-only by default, least-privilege and scoped to the minimum records, fields and duration. Any write, correction, export, impersonation or privileged operation requires a distinct authorization and approval; this decision does not authorize those capabilities.
+- Access must be performed through controlled, individually attributable identities with strong authentication. Shared accounts, credential sharing, unlogged impersonation and bypassing application authorization are prohibited. Support access must not bypass server-side domain, field, ownership, lifecycle or scope checks.
+- Every request, approval, access start, relevant read/action, extension, denial, expiry and revocation must be audited without copying sensitive payloads into the audit trail. Access must be monitored and reviewed after completion; unexpected access or scope expansion must be escalated.
+- Access expires automatically at the approved end time and must be revocable earlier. Extensions require renewed justification and approval. The support provider must be bound by confidentiality, security, data-handling and deletion obligations appropriate to its role.
+- Where the issue can be diagnosed with synthetic data, the support workflow must not expose production data. Screenshots, recordings, traces and diagnostic bundles must be screened and minimized before disclosure.
+
+**Still required before implementation:** define eligible support roles and providers; approved case categories and approvers; identity/authentication and just-in-time grant workflow; exact data domains/fields and permitted actions; technical controls against broad queries, bulk export and unlogged impersonation; expiry/revocation and monitoring; vendor access, confidentiality and deletion requirements; evidence handling and incident escalation; and synthetic Emulator tests for scope enforcement, attribution, expiry, revocation, export denial and audit completeness. No production support-access or impersonation endpoint is authorized until these details are approved and tested.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -594,7 +617,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-10 Sensitive data corrections | Approved — option B tracked request, operator verification, separate approval and recorded change history; implementation gated on field catalogue, workflow and tests |
 | L-11 Data deletion and retention | Approved — option B tracked request, retention review, permitted deletion/anonymization and recorded outcome; implementation gated on retention rules, scope and tests |
 | L-12 Employee access during a dispute | Approved — option B tracked access to relevant records with third-party/restricted-content redaction; implementation gated on scope, disclosure workflow and tests |
-| L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| L-15 Administrator access to employee data | Approved — option B least-privilege, duty-specific permissions with independent controls; implementation gated on role/action/scope mapping and tests |\n| L-16 Periodic and event-driven access reviews | Approved — option B scheduled and lifecycle-triggered reviews with prompt revocation; implementation gated on cadence, ownership, event and revocation controls and tests |\n| L-17 Security log integrity and protection | Approved — option B append-only protected logs with restricted access and integrity verification; implementation gated on storage, key, retention, access and test design |\n| Other lifecycle and historical access | Open — fail closed |
+| L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| L-15 Administrator access to employee data | Approved — option B least-privilege, duty-specific permissions with independent controls; implementation gated on role/action/scope mapping and tests |\n| L-16 Periodic and event-driven access reviews | Approved — option B scheduled and lifecycle-triggered reviews with prompt revocation; implementation gated on cadence, ownership, event and revocation controls and tests |\n| L-17 Security log integrity and protection | Approved — option B append-only protected logs with restricted access and integrity verification; implementation gated on storage, key, retention, access and test design |\n| L-18 Technical support access | Approved — option B minimized diagnostics by default; exceptional real-data access strictly necessary, authorized, time-limited and audited; implementation gated on roles, scope, workflow and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
