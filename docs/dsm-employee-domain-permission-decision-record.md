@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-71 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-72 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1916,6 +1916,25 @@ Approved policy in principle:
 
 **Still required before implementation:** historical record-category and field catalogue; lawful-purpose and role-specific access matrix reviewed by privacy/legal owners; authoritative historical placement/assignment schema; self-service identity and redaction workflow; retention/hold interaction; grant duration, review and revocation rules; query/export/background-job enforcement design; audit requirements; and synthetic Emulator tests for each lifecycle and historical boundary. This decision does not determine statutory entitlements, authorize general HR/payroll access, create retention periods, permit bulk exports, or approve real-data processing or production activation.
 
+### L-72 — Legal-hold release and post-hold disposition
+
+**Question:** How should a legal or regulatory hold be formally released and retained records subsequently reviewed for disposition, without premature deletion, indefinite preservation by default or inconsistent copies?
+
+**Approved 2026-11-27 — option B (verified, scoped hold release followed by a separate retention-based disposition workflow), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat hold creation, amendment, suspension, release and final record disposition as distinct, explicitly authorized events. A hold must identify its authority, matter/reference, covered data subjects and record categories, custodians or systems, scope, effective time, review date and responsible owner; do not accept an unstructured client flag as authority.
+- Require documented confirmation from the authorized legal/privacy owner before a hold is released or narrowed. Where policy requires, use independent approval and verify that no overlapping matter, statutory preservation duty, investigation, appeal or other active hold still covers the records.
+- Record the exact scope and effective time of each release or amendment, its approver, rationale and evidence reference in protected audit records. Preserve the prior hold history; never overwrite or erase the fact that a hold existed.
+- Releasing a hold does not itself delete, anonymize, export or unlock records. Recalculate disposition eligibility against the applicable retention schedule, purpose, legal basis, other holds, contractual duties and pending verified requests through a separate controlled decision.
+- If retention remains required, keep only the minimum necessary records with restricted access and a new review/disposition date. If disposition is permitted, use the separately approved deletion or anonymization workflow, with preview, scope validation, separation of duties, idempotency and protected evidence.
+- Propagate authorized hold changes and dispositions to all governed copies and processing locations, including primary stores, replicas, search indexes, caches, generated exports, document stores, backups and authorized processors, subject to technically documented backup-expiry and restore controls. Do not claim complete erasure where immutable backups or third-party copies remain until their governed expiry or verified disposition.
+- Prevent restored backups, replayed events, delayed jobs or re-imports from silently reintroducing records whose disposition status remains effective. Reconcile restored data against authoritative hold and disposition state before access is enabled.
+- Keep hold metadata and audit evidence minimized and access-restricted. Ordinary managers, employees, support staff and system administrators must not infer or alter legal strategy or hold scope from broad record visibility; access to matter details is separately restricted.
+- Provide a controlled exception path for conflicting instructions or uncertain authority: suspend destructive disposition for the affected scope, preserve current evidence, escalate to the designated legal/privacy owner and record the resolution. Do not treat uncertainty as permission for broad access or indefinite blanket retention.
+- Test synthetic cases for overlapping holds, partial release, wrong-scope release, unauthorized approver, expired review date, pending litigation/investigation, retention still active, delayed deletion jobs, replica/index/cache propagation, processor failure, backup restoration and attempted resurrection of disposed records.
+
+**Still required before implementation:** hold authority and owner matrix; matter/scope metadata schema; release and independent-approval workflow; overlapping-hold resolution rules; retention schedule linkage and disposition decision evidence; inventory of replicas, indexes, exports, backups and processors; deletion/anonymization propagation and restore-reconciliation design; exception/escalation process; audit access controls; and synthetic Emulator tests. This decision does not determine legal sufficiency, set retention periods, authorize immediate deletion on hold release, override statutory duties, or approve real-data processing or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1987,6 +2006,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-69 Employee leave lifecycle and temporary work-status transitions | Approved — option B explicit, time-bounded transitions with minimized data and scoped access; implementation gated on event catalogue, authority, effective-time rules, access matrix and tests |
 | L-70 Account archival, restoration and archived organizational units | Approved — option B controlled reversible archival and separately authorized restoration; implementation gated on impact inventory, revocation, retention, approval and recovery tests |
 | L-71 Historical employee records after termination or lifecycle change | Approved — option B purpose-limited, read-only, time-bounded historical access; implementation gated on lawful-purpose review, historical scope model, revocation, query enforcement and tests |
+| L-72 Legal-hold release and post-hold disposition | Approved — option B verified hold release followed by separate retention-based disposition; implementation gated on legal authority, overlapping-hold checks, copy propagation and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
