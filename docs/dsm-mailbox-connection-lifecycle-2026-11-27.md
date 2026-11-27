@@ -432,3 +432,17 @@ The persisted `revokedAt`, final `updatedAt`, and revocation audit timestamp
 therefore describe completion rather than the beginning of a potentially slow
 cleanup. A synthetic regression test advances the injected clock during vault
 deletion and checks all three timestamps.
+
+
+#### Revocation audit failure recovery
+
+Revocation now writes its immutable audit event before changing connection
+metadata from `revocation_pending` to `revoked`. If audit persistence fails,
+the connection remains non-active and retains its credential reference and
+durable cleanup ticket, so a later revoke attempt can repeat idempotent cleanup
+and retry the audit instead of returning early as already revoked. A synthetic
+service regression test covers a transient audit outage followed by successful
+retry. There remains an at-least-once edge if audit creation succeeds but the
+subsequent final metadata write fails: a retry may create a duplicate audit
+event. A deterministic audit idempotency key or transactional audit/state
+adapter is still required to eliminate that duplicate window.
