@@ -299,6 +299,29 @@ test("cleanup outbox exposes only validated pending tickets for an account", asy
 });
 
 
+test("pending cleanup reads reject inconsistent retry state", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  await adapters.recordSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  });
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  const initial = docs.get(path);
+  docs.set(path, { ...initial, attempts: 2, nextAttemptAt: null, lastErrorCode: null });
+  assert.deepEqual(await adapters.listPendingSecretCleanup({ accountId: active.accountId }), []);
+  assert.equal(await adapters.loadSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId
+  }), null);
+  docs.set(path, { ...initial, attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable" });
+  assert.deepEqual(await adapters.listPendingSecretCleanup({ accountId: active.accountId }), []);
+  assert.equal(await adapters.loadSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId
+  }), null);
+});
+
+
 test("cleanup retry metadata persists backoff and rejects stale attempts", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
