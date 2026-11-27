@@ -172,17 +172,17 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
       const data = dataObject(request, ["accountId", "proposalId"]);
       const identity = await actor(request), accountId = id(data.accountId), proposalId = id(data.proposalId);
       const createdShiftIds = new Map();
-      const auditIds = new Map();
       // Stable IDs across Firestore transaction retries.
       for (let index = 0; index < 30; index++) {
         createdShiftIds.set(index, randomUUID().replace(/-/g, ""));
-        auditIds.set(index, randomUUID().replace(/-/g, ""));
       }
       return db.runTransaction(async tx => {
         const principal = await authorization.loadOwnPrincipal(tx, { accountId, actorUid: identity.uid, operation: "read" });
         const proposalRef = db.doc(`accounts/${accountId}/employeeShiftProposals/${proposalId}`);
-        const proposalSnap = await tx.get(proposalRef);
+        const decisionRef = db.doc(`accounts/${accountId}/employeeShiftProposalDecisions/${proposalId}`);
+        const [proposalSnap, decisionSnap] = await Promise.all([tx.get(proposalRef), tx.get(decisionRef)]);
         if (!proposalSnap.exists) fail("not-found", "Proposal not found.");
+        if (decisionSnap.exists) fail("already-exists", "Proposal decision already exists.");
         const proposal = proposalSnap.data();
         if (proposal.accountId !== accountId || proposal.employeeId !== principal.employeeId ||
             proposal.proposerUid !== identity.uid) fail("permission-denied", "Proposal does not belong to this employee.");
@@ -259,7 +259,6 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
         }
         // No writes have occurred before this point.
         for (const item of prepared) {
-          const eventId = auditIds.get(item.index);
           if (item.operation === "create") {
             tx.create(item.shiftRef, {
               ...item.normalized, accountId, employeeId: principal.employeeId,
@@ -311,9 +310,14 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
             });
           }
         }
+        const appliedShiftIds = prepared.map(item => item.shiftId);
         tx.update(proposalRef, {
           status: "approved", decidedAt: timestamp, decidedBy: identity.uid,
-          updatedAt: timestamp, appliedShiftIds: prepared.map(item => item.shiftId)
+          updatedAt: timestamp, appliedShiftIds
+        });
+        tx.create(decisionRef, {
+          proposalId, accountId, employeeId: principal.employeeId, actorUid: identity.uid,
+          decision: "approved", decidedAt: timestamp, appliedShiftIds, source: proposal.source, schemaVersion: 1
         });
         return { proposalId, status: "approved", appliedCount: prepared.length, shiftIds: prepared.map(item => item.shiftId) };
       });
@@ -324,14 +328,17 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
       return db.runTransaction(async tx => {
         const principal = await authorization.loadOwnPrincipal(tx, { accountId, actorUid: identity.uid, operation: "read" });
         const ref = db.doc(`accounts/${accountId}/employeeShiftProposals/${proposalId}`);
-        const snapshot = await tx.get(ref);
+        const decisionRef = db.doc(`accounts/${accountId}/employeeShiftProposalDecisions/${proposalId}`);
+        const [snapshot, decisionSnap] = await Promise.all([tx.get(ref), tx.get(decisionRef)]);
         if (!snapshot.exists) fail("not-found", "Proposal not found.");
+        if (decisionSnap.exists) fail("already-exists", "Proposal decision already exists.");
         const proposal = snapshot.data();
         if (proposal.accountId !== accountId || proposal.employeeId !== principal.employeeId || proposal.proposerUid !== identity.uid) fail("permission-denied", "Proposal does not belong to this employee.");
         if (proposal.status !== "pending") fail("failed-precondition", "Only pending proposals can be rejected.");
         const timestamp = now();
         if (!Number.isSafeInteger(timestamp)) fail("failed-precondition", "Invalid trusted clock.");
         tx.update(ref, { status: "rejected", decidedAt: timestamp, decidedBy: identity.uid, updatedAt: timestamp });
+        tx.create(decisionRef, { proposalId, accountId, employeeId: principal.employeeId, actorUid: identity.uid, decision: "rejected", decidedAt: timestamp, appliedShiftIds: [], source: proposal.source, schemaVersion: 1 });
         return { proposalId, status: "rejected" };
       });
     },
