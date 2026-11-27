@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-89 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-90 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2286,6 +2286,27 @@ Approved policy in principle:
 
 **Still required before implementation:** origin and asset inventory; approved CSP baseline per application/environment; header and cookie configuration ownership; exact CORS and embedding requirements; reporting endpoint protections; third-party script inventory and integrity strategy; Trusted Types compatibility assessment; exception workflow; automated header and browser integration tests. This decision does not authorize production header changes, new third-party scripts, or deployment.
 
+### L-90 — Passkeys, WebAuthn credential binding and phishing-resistant authentication
+
+**Question:** How should passkeys and WebAuthn authenticators be enrolled, used, recovered, replaced and revoked so that phishing-resistant authentication strengthens account security without creating an ungoverned credential-transfer or account-recovery path?
+
+**Approved 2026-11-27 — option B (origin-bound WebAuthn with verified enrollment, lifecycle governance and risk-based step-up), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Prefer standards-based WebAuthn authentication with correctly validated challenge, origin, RP ID, authenticator data, signature, user-presence and user-verification requirements. Validate challenges server-side, make them unpredictable, short-lived and single-use, and bind them to the initiating session and intended operation.
+- Maintain an authoritative server-side credential registry bound to the verified local account and credential identifier. Never accept client-provided credential labels, counters, attestation claims or user identifiers as proof of ownership or authorization.
+- Require an already authenticated, appropriately verified account and a risk-appropriate reauthentication step before adding, replacing or removing an authenticator. Notify the account holder of material credential changes through a separately protected channel where feasible.
+- Enforce exact expected origin and RP ID values for each environment. Reject unexpected origins, RP IDs, cross-environment credentials and malformed or replayed assertions. Do not weaken origin checks to accommodate development, preview or alternate domains.
+- Define supported authenticator assurance requirements, including user verification, backup eligibility/state interpretation where available, and attestation policy. Do not overstate device or hardware assurance from synced passkeys or optional attestation; collect and retain only necessary metadata.
+- Treat passkeys as an authentication factor, not as proof of employment, tenant membership, role, record ownership, approval authority or permission. Continue server-side lifecycle and domain authorization checks for every protected operation.
+- Provide a controlled credential inventory and revocation workflow. Lost, compromised, transferred or suspected credentials must be revocable; credential revocation must invalidate affected authentication sessions and require fresh authentication before further protected access.
+- Govern account recovery and authenticator replacement independently. Recovery must not silently enroll a new passkey based only on access to an existing session, email link, device signal or support request; require approved identity verification and additional safeguards for privileged accounts.
+- Prevent downgrade and fallback abuse. Define allowed alternate authentication methods, step-up requirements and restrictions for high-risk actions; do not silently fall back to weaker methods when WebAuthn is unavailable or fails.
+- Protect registration and authentication ceremonies against CSRF, session swapping, user/account confusion, concurrent enrollment races and credential deletion abuse. Bind ceremonies to the intended account and operation, and make state transitions atomic.
+- Minimize credential metadata and audit enrollment, authentication failures, replacement, revocation and recovery events without logging private keys, raw assertions beyond justified short-lived diagnostic needs, reusable challenges or unnecessary device fingerprints.
+- Test synthetic wrong-origin and wrong-RP-ID assertions, challenge replay, expired challenges, user-verification downgrade, cross-account credential substitution, concurrent enrollment, revoked credentials, synced-passkey assurance assumptions, recovery abuse and privileged-account fallback.
+
+**Still required before implementation:** supported WebAuthn platform/browser matrix; RP ID and origin inventory per environment; user-verification and authenticator assurance policy; registration/replacement/revocation workflow; recovery and fallback rules; session invalidation contract; minimal credential metadata and retention; audit taxonomy; and synthetic Emulator/browser integration tests. This decision does not authorize mandatory passkey enrollment, removal of existing recovery protections, or production authentication changes.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2375,6 +2396,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-87 Device registration, endpoint trust and device-risk changes | Approved — option B risk-based supplemental device signals, explicit registration/revocation and no device-only authorization; implementation gated on platform, privacy and recovery controls |
 | L-88 Delegated authorization, OAuth consent and connected-account revocation | Approved — option B purpose-bound least-privilege grants, secure token custody and revocation lifecycle; implementation gated on provider, scope, consent and test contracts |
 | L-89 Browser security policy, origin isolation and response headers | Approved — option B restrictive environment-specific CSP, secure headers, origin/CORS controls and monitored enforcement; implementation gated on origin inventory, compatibility, exception process and tests |
+| L-90 Passkeys, WebAuthn credential binding and phishing-resistant authentication | Approved — option B origin-bound WebAuthn, verified enrollment, credential lifecycle and controlled recovery; implementation gated on origin matrix, assurance policy, fallback and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
