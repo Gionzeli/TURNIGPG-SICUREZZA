@@ -76,6 +76,29 @@ test("Firestore Emulator: Employee provisioning requires two admins and atomical
       error => error.code === "already-exists"
     );
     assert.equal((await db.doc(`accounts/${accountId}/employees/employee-2`).get()).exists, false);
+
+    const inactiveMember = db.doc(`accounts/${accountId}/members/member-inactive`);
+    await inactiveMember.set({
+      uid: "member-inactive", accountId, status: "inactive",
+      validFrom: new Date(0), validUntil: null, role: "member",
+      scopeType: "department", scopeIds: ["dept-1"]
+    });
+    await proposeEmployeeProvisioning({
+      db, accountId, actorUid: "admin-proposer",
+      actorIdentity: identity("admin-proposer", 5000),
+      proposalId: "proposal-3", targetUid: "member-inactive",
+      employeeId: "employee-3", verificationRef: "manual-check-003", now: () => 5000
+    });
+    await assert.rejects(
+      approveEmployeeProvisioning({
+        db, accountId, actorUid: "admin-approver",
+        actorIdentity: identity("admin-approver", 6000),
+        proposalId: "proposal-3", now: () => 6000
+      }),
+      error => error.code === "failed-precondition"
+    );
+    assert.equal((await db.doc(`accounts/${accountId}/employees/employee-3`).get()).exists, false);
+    assert.equal((await db.doc(`accounts/${accountId}/employeeBindingsByUid/member-inactive`).get()).exists, false);
   } finally {
     const collections = [
       db.collection(`accounts/${accountId}/members`),
