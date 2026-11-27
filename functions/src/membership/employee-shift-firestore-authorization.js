@@ -100,7 +100,17 @@ export function createEmployeeShiftFirestoreAuthorization({ db, now = () => Date
       const matches = history.filter(p => p.employeeId === employeeId && p.validFrom <= date &&
         (p.validUntil === null || p.validUntil > date));
       if (matches.length !== 1) deny();
-      return matches[0];
+      const placement = matches[0];
+      const [siteSnap, departmentSnap] = await Promise.all([
+        tx.get(db.doc(`accounts/${accountId}/sites/${placement.siteId}`)),
+        tx.get(db.doc(`accounts/${accountId}/departments/${placement.departmentId}`))
+      ]);
+      if (!siteSnap.exists || !departmentSnap.exists) deny();
+      const site = siteSnap.data(), department = departmentSnap.data();
+      if (site.accountId !== accountId || site.siteId !== placement.siteId || site.status !== "active" ||
+          department.accountId !== accountId || department.departmentId !== placement.departmentId ||
+          department.siteId !== placement.siteId || department.status !== "active") deny();
+      return placement;
     },
     loadOwnPrincipal: (tx, args) => load(tx, args)
   });
