@@ -26,6 +26,16 @@ function normalizedEmail(value) {
   return typeof value === "string" && value.length <= 254 &&
     value === value.trim().toLowerCase() && EMAIL.test(value);
 }
+function validPendingCleanupState(value) {
+  if (!Number.isSafeInteger(value.attempts) || value.attempts < 1 || value.attempts >= 12) return false;
+  if (value.attempts === 1) {
+    return (value.nextAttemptAt === null || value.nextAttemptAt === undefined) &&
+      (value.lastErrorCode === null || value.lastErrorCode === undefined);
+  }
+  return Number.isSafeInteger(value.nextAttemptAt) && value.nextAttemptAt >= 1 &&
+    typeof value.lastErrorCode === "string" &&
+    /^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode);
+}
 function validPendingAlertState(value) {
   const attempts = value.alertAttempts ?? 0;
   if (!Number.isSafeInteger(attempts) || attempts < 0) return false;
@@ -198,13 +208,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         if (!value || value.accountId !== accountId ||
             typeof value.connectionId !== "string" || !validId(value.connectionId) ||
             !validSecretRef(value.secretRef, accountId, value.connectionId) ||
-            value.status !== "pending" || !Number.isSafeInteger(value.attempts) ||
-            value.attempts < 1 ||
-            !(value.nextAttemptAt === null ||
-              (Number.isSafeInteger(value.nextAttemptAt) && value.nextAttemptAt >= 1)) ||
-            !(value.lastErrorCode === null ||
-              (typeof value.lastErrorCode === "string" &&
-               /^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)))) return null;
+            value.status !== "pending" || !validPendingCleanupState(value)) return null;
         return value;
       }).filter(Boolean);
     },
@@ -219,7 +223,11 @@ export function createMailboxConnectionFirestoreAdapters(db) {
       if (!value || value.accountId !== accountId || value.connectionId !== connectionId ||
           !validSecretRef(value.secretRef, accountId, connectionId) ||
           !["pending", "exhausted", "complete"].includes(value.status) ||
-          !Number.isSafeInteger(value.attempts) || value.attempts < 1) return null;
+          !Number.isSafeInteger(value.attempts) || value.attempts < 1 ||
+          (value.status === "pending" && !validPendingCleanupState(value)) ||
+          (value.status === "exhausted" && (value.attempts < 12 ||
+            value.nextAttemptAt !== null || typeof value.lastErrorCode !== "string" ||
+            !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)))) return null;
       return value;
     },
 
@@ -245,7 +253,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
             previous.secretRef !== secretRef || previous.status !== "pending" ||
-            attempts <= previous.attempts) {
+            !validPendingCleanupState(previous) || attempts <= previous.attempts) {
           const error = new Error("Cleanup retry ticket is stale or conflicting.");
           error.code = "failed-precondition";
           throw error;
