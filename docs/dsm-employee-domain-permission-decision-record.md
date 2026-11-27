@@ -247,8 +247,23 @@ Approved policy in principle:
 
 **Still required before implementation:** define canonical transfer effective-time semantics and timezone, treatment of shifts/records spanning the transfer boundary, retention and correction of placement history, and negative tests proving the previous manager cannot read post-transfer records. This policy does not authorize historical access for other lifecycle events.
 
+### L-02 — Access during employee suspension
+
+**Question:** Which access remains available while an employee is suspended?
+
+**Approved 2026-11-27 — option B (revoke operational access and privileges; retain only narrowly necessary personal access where separately authorized), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- On suspension becoming effective, revoke operational access and delegated privileges, including manager, approver, administrative, shift-management and other work-related capabilities.
+- A minimal personal self-service view may remain available only where separately authorized, necessary, and safe; it does not include operational tools, other employees' data, or privileged actions.
+- Every request must re-check canonical lifecycle status server-side; client state, cached sessions, and previously issued permissions do not override suspension.
+- Existing sessions and credentials must be invalidated or denied according to the backend's revocation checks; failure to establish current status fails closed.
+- Suspension does not itself authorize deletion or alteration of historical records.
+
+**Still required before implementation:** define the canonical suspension state and effective timestamp, which exact personal self-service domains (if any) remain available, session/token revocation behavior, treatment of pending proposals/approvals, and tests for immediate denial of operational actions. No suspended-user exception is implied for compensation, exports, or sensitive data.
+
 Other lifecycle decisions remain open and fail closed:
-- leave, suspension, termination and reactivation;
+- leave, termination and reactivation;
 - account/site/department archive and restoration;
 - binding revocation, reassignment and duplicate/conflicting bindings;
 - access to historical shifts, absences, profiles and payroll after termination or other lifecycle changes;
@@ -269,7 +284,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | D-05 Manager absence visibility | Approved — option B minimal availability, dates and request status; implementation gated on roles/scope/schema |
 | D-06 Audit read | Approved — option B scoped, minimized manager event visibility; implementation gated on roles/scope/event taxonomy/retention |
 | D-07 Export/report | Approved — option B narrow per-domain exports in principle; no endpoint until per-export details and review are approved |
-| L-01 Transfer and prior-manager historical access | Approved — option B limited to operational records within former assignment interval; implementation gated on temporal semantics and tests |\n| Other lifecycle and historical access | Open — fail closed |
+| L-01 Transfer and prior-manager historical access | Approved — option B limited to operational records within former assignment interval; implementation gated on temporal semantics and tests |\n| L-02 Suspension access | Approved — option B operational access revoked; narrowly necessary self-service only if separately authorized; implementation gated on status/revocation details |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
