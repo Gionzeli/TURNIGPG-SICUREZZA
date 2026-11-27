@@ -30,7 +30,7 @@ function validateProposedFields(fields, { allowDate }) {
     if (key === "date" && !validDate(value)) fail("invalid-argument", "Invalid proposed shift date.");
     if (key === "type" && (typeof value !== "string" || !["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"].includes(value))) fail("invalid-argument", "Invalid shift type.");
     if (key === "post" && (typeof value !== "string" || value.length > 80)) fail("invalid-argument", "Invalid shift post.");
-    if (["start_time", "end_time"].includes(key) && (typeof value !== "string" || (value !== "" && !/^(?:[01]\\d|2[0-3]):[0-5]\\d$/.test(value)))) fail("invalid-argument", "Invalid shift time.");
+    if (["start_time", "end_time"].includes(key) && (typeof value !== "string" || (value !== "" && !/^(?:[01]\d|2[0-3]):[0-5]\d$/.test(value)))) fail("invalid-argument", "Invalid shift time.");
     if (key === "hours" && (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 48)) fail("invalid-argument", "Invalid shift hours.");
     if (["is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"].includes(key) && typeof value !== "boolean") fail("invalid-argument", "Invalid shift flag.");
   }
