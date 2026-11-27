@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-122 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-123 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -3048,6 +3048,29 @@ Approved policy in principle:
 
 **Implementation gates:** Build a complete data-flow and consumer inventory; document each feed's purpose, schema, tenant/field scope, identity, region, retention and lifecycle obligations; define freshness and revocation service levels; and produce reproducible synthetic replication/CDC tests, including outage, replay, restore and deletion reconciliation. No real replica, CDC pipeline, production data export, downstream integration or production configuration is authorized by this decision.
 
+### L-123 — Database encryption boundaries, field-level protection and key custody
+
+**Question:** How should encryption for database records, sensitive fields, indexes, backups and database-adjacent storage be designed so that encryption meaningfully limits exposure without confusing encryption at rest with authorization or tenant isolation?
+
+**Decision:** Approved — option B, use layered encryption with independently governed keys, risk-based field-level protection for highly sensitive data, and explicit controls over plaintext access and cryptographic operations. This is a policy decision only.
+
+**Required controls:**
+- Classify database fields and storage artifacts before selecting controls. Apply platform-supported encryption at rest to database files, managed storage, snapshots and backups, while recognizing that storage encryption alone does not protect data from an authorized database process or compromised privileged identity.
+- Define a key-management model with approved custodians, least-privilege key-use identities, environment separation, documented key purpose, rotation, revocation, recovery and compromise procedures. Keep key-encryption keys separate from encrypted data and do not store usable keys alongside ciphertext.
+- Use a managed key service or equivalent protected key custody where available. Restrict decrypt and unwrap operations to narrowly scoped server-side workloads; prohibit browser clients, ordinary database readers and unrelated operators from obtaining key material.
+- Apply field-level or envelope encryption to data whose classification and threat model require protection beyond storage-level encryption. Keep cryptographic metadata versioned and authenticated; bind ciphertext to its record, field and tenant context using authenticated associated data where supported, so ciphertext cannot be transplanted across records or tenants undetected.
+- Ensure encryption does not replace server-side authorization. Authenticate and authorize every read, write, decrypt, export and key-use operation against current identity, membership, lifecycle, purpose, field permission and tenant scope.
+- Minimize plaintext lifetime and exposure. Decrypt only in the narrowest trusted service boundary, avoid plaintext in logs, traces, error messages, analytics, caches, crash dumps and temporary files, and clear transient buffers where the runtime permits.
+- Review database indexes, search, uniqueness checks, sorting, filtering and query plans for encrypted fields. Do not silently fall back to plaintext storage or broad decryption to preserve convenience; approve any searchable-encryption or tokenization design separately with its leakage properties and threat model documented.
+- Use deterministic encryption only where a reviewed requirement justifies its equality leakage and linkability risks. Prefer randomized authenticated encryption by default; never reuse nonces where the selected algorithm requires uniqueness.
+- Protect key backups and recovery material with independent access controls, dual control where proportionate, integrity checks and tested recovery. A database backup is not recoverable merely because its ciphertext is intact; verify that the authorized recovery path can restore keys without exposing them broadly.
+- Define rotation and re-encryption behavior for active records, historical copies, replicas, CDC payloads and backups. Track key versions and migration progress; do not destroy old keys until retention, legal-hold, restore and downstream-copy obligations are resolved and verified.
+- Treat key compromise, suspected plaintext exposure or cryptographic integrity failure as security incidents. Support scoped key disablement/revocation, containment, evidence preservation, impact assessment and controlled re-encryption or data recovery.
+- Test with synthetic fixtures for unauthorized decrypt attempts, cross-tenant ciphertext substitution, altered authentication tags, missing/retired key versions, rotation interruption, backup restoration, log leakage and failure of key services. Fail closed when integrity or key availability cannot be established.
+- Record encryption profiles, key ownership, key-use grants, rotation status, exceptions and test evidence in protected audit records without storing secrets or plaintext sensitive values.
+
+**Implementation gates:** Inventory database engines, storage/backups, data classifications, encryption defaults, key services and all plaintext/decrypt paths; define field-level requirements and cryptographic formats; assign key custodians and workload identities; document rotation/recovery and retention interactions; and produce reproducible synthetic tests for confidentiality, integrity, isolation and recovery. No real key creation, rotation, re-encryption, database configuration, Firebase change or production deployment is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3170,6 +3193,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-120 Database schema migrations, data backfills and authorization-invariant preservation | Approved — option B reviewed staged migrations, bounded idempotent backfills and invariant/recovery gates; implementation gated on schema inventory and synthetic migration tests |
 | L-121 Database privilege boundaries and row-level security | Approved — option B least-privilege roles, defense-in-depth row policies and constrained bypass paths; implementation gated on privilege inventory and synthetic tests |
 | L-122 Database replication, read replicas and CDC feeds | Approved — option B separately governed, minimized and revocation-aware replication; implementation gated on feed inventory and synthetic lifecycle tests |
+| L-123 Database encryption boundaries and key custody | Approved — option B layered encryption, protected key use and field-level controls; implementation gated on inventory and synthetic cryptographic tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
