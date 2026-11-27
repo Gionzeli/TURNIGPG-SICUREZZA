@@ -600,6 +600,18 @@ try {
     migrationPolicy.includes("connect-src 'none'") &&
     migrationPolicy.includes("form-action 'none'"),
     "La fixture migrazione DSM non applica la CSP restrittiva.");
+  const migrationGate = await migrationPage.evaluate(() => ({
+    enabled: window.TURNI_DSM_CANONICAL_AUTH_ENABLED === true,
+    bridgeText: document.querySelector("#dsm-canonical-account-root")?.textContent || "",
+    inviteText: document.querySelector("#dsm-membership-invite-root")?.textContent || "",
+    bridgeControls: document.querySelectorAll("#dsm-canonical-account-root button, #dsm-canonical-account-root input, #dsm-canonical-account-root select").length,
+    inviteControls: document.querySelectorAll("#dsm-membership-invite-root button, #dsm-membership-invite-root input, #dsm-membership-invite-root select").length
+  }));
+  assert.equal(migrationGate.enabled, false, "La fixture di default non deve attivare il bridge canonico.");
+  assert.match(migrationGate.bridgeText, /È disattivato in questa build/i);
+  assert.match(migrationGate.inviteText, /disattivata insieme al collegamento Firebase/i);
+  assert.equal(migrationGate.bridgeControls, 0, "Il bridge disattivato non deve esporre controlli operativi.");
+  assert.equal(migrationGate.inviteControls, 0, "Gli inviti disattivati non devono esporre controlli operativi.");
   const syntheticLegacyExport = {
     app: "Turni Gpg/sicurezza online",
     params: {},
