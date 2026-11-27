@@ -37,7 +37,12 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
       if (!validDate(data.fromDate) || !validDate(data.toDate) || data.toDate < data.fromDate) fail("invalid-argument", "Invalid shift date range.");
       return db.runTransaction(async tx => {
         const principal = await authorization.loadOwnPrincipal(tx, { accountId, actorUid: identity.uid, operation: "read" });
-        const query = db.collection(`accounts/${accountId}/employeeShifts`).where("employeeId", "==", principal.employeeId).limit(201);
+        const query = db.collection(`accounts/${accountId}/employeeShifts`)
+          .where("employeeId", "==", principal.employeeId)
+          .where("date", ">=", data.fromDate)
+          .where("date", "<=", data.toDate)
+          .orderBy("date", "asc")
+          .limit(201);
         const snapshots = await tx.get(query);
         if (snapshots.size > 200) fail("resource-exhausted", "Shift result exceeds the safe response bound.");
         const result = [];
