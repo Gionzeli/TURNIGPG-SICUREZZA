@@ -524,3 +524,57 @@ test("concurrent stale revocation finalization cannot rewrite terminal revoked m
   assert.equal(stored.revokedAt, firstFinal.revokedAt);
   assert.equal(stored.updatedAt, firstFinal.updatedAt);
 });
+
+
+test("stale cleanup failure cannot reopen a ticket after successful completion", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 1
+  });
+  await assert.rejects(adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    secretRef: input.secretRef, attempts: 2,
+    nextAttemptAt: input.timestamp + 60000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 2
+  }), error => error.code === "failed-precondition");
+  const stored = docs.get("accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection");
+  assert.equal(stored.status, "complete");
+  assert.equal(stored.attempts, 1);
+});
+
+test("stale alert failure cannot revert a delivered exhaustion notification", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  await adapters.markCleanupAlertDelivered({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  });
+  await assert.rejects(adapters.recordCleanupAlertFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    attempts: 1, nextAttemptAt: input.timestamp + 60000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 3
+  }), error => error.code === "failed-precondition");
+  const stored = docs.get("accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection");
+  assert.equal(stored.alertStatus, "delivered");
+  assert.equal(stored.alertAttempts, 0);
+  assert.equal(stored.alertNextAttemptAt, null);
+});
