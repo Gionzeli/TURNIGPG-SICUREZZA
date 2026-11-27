@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-14 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-15 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -492,6 +492,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define eligible matter types and legal/privacy review; authorized initiators and independent approvers; canonical hold identifiers and resource/category mapping; conflict handling with correction/deletion/retention workflows; review intervals, extensions and release authority; access and disclosure roles; audit and retention requirements; and synthetic Emulator tests for scope isolation, unauthorized hold creation/release, expiry, extension, correction while held, and prevention of evidence alteration. No hold endpoint, automatic employee-wide freeze, or production legal-hold integration is authorized until these details are approved and tested.
 
+### L-15 — Administrator access to employee data
+
+**Question:** What principle governs administrative access to employee personal and employment data?
+
+Possible choices:
+- **A. Universal administrator access:** every administrator may read and modify all employee data.
+- **B. Least-privilege administrative access:** administrators receive only the domains and actions necessary for their assigned duties, with separate permissions, audit and independent controls for sensitive operations.
+- **C. Unrestricted primary administrator:** one primary administrator may access everything without additional approval.
+
+**Approved 2026-11-27 — option B (least-privilege, duty-specific administrative access with separate permissions, audit and independent controls), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- An administrator role, account ownership, or technical ability to operate the system does not by itself grant access to employee personal, compensation, absence, identity, audit, or other protected data.
+- Administrative capabilities must be separated by domain and action, and granted only where required for a documented operational responsibility. Read, create, change, approve, export, delete, and security/audit access remain distinct permissions.
+- Administrative scope must be explicit and enforced server-side for every request. Organization-wide scope is not implied by an administrator label.
+- Sensitive operations require the applicable independent approval, separation-of-duties, verification and audit controls; no administrator may approve their own sensitive request or bypass an established workflow.
+- Technical service identities and backend execution privileges must not be exposed as interactive human access. Server-side code must enforce business authorization even where infrastructure credentials can bypass database security rules.
+- Emergency access remains governed by L-09; correction, deletion, dispute access and preservation remain governed by L-10 through L-14. This decision does not weaken those controls or authorize blanket access.
+- Administrative access itself must be logged with minimized metadata, reviewed periodically, and revoked promptly when the role, duty, scope or employment relationship no longer justifies it.
+- Unknown roles, permissions, scopes, or actions fail closed. No direct database edit or alternate administrative interface may bypass the approved authorization path.
+
+**Still required before implementation:** define the administrative role and duty catalogue; map each role to exact domains, actions and scopes; identify high-risk operations requiring independent approval or dual control; specify service-identity boundaries and privileged-access procedures; define periodic access review and revocation; and add synthetic Emulator tests for cross-domain denial, scope escalation, self-approval, direct-write bypass and stale privilege revocation. No universal administrator permission or production administrative endpoint is authorized until these details are approved and tested.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -525,7 +548,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-10 Sensitive data corrections | Approved — option B tracked request, operator verification, separate approval and recorded change history; implementation gated on field catalogue, workflow and tests |
 | L-11 Data deletion and retention | Approved — option B tracked request, retention review, permitted deletion/anonymization and recorded outcome; implementation gated on retention rules, scope and tests |
 | L-12 Employee access during a dispute | Approved — option B tracked access to relevant records with third-party/restricted-content redaction; implementation gated on scope, disclosure workflow and tests |
-| L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| Other lifecycle and historical access | Open — fail closed |
+| L-13 Security notifications | Approved — option B minimized notices for defined material events; implementation gated on event catalogue, channel, exception and delivery controls |\n| L-14 Evidence preservation and scoped holds | Approved — option B scoped preservation with restricted access, defined duration and review; implementation gated on authority, scope, lifecycle and tests |\n| L-15 Administrator access to employee data | Approved — option B least-privilege, duty-specific permissions with independent controls; implementation gated on role/action/scope mapping and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
