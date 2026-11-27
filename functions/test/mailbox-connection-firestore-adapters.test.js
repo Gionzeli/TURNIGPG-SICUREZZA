@@ -244,3 +244,29 @@ test("cleanup outbox exposes only validated pending tickets for an account", asy
     accountId: active.accountId, limit: 1000
   }), error => error.code === "invalid-argument");
 });
+
+
+test("cleanup retry metadata persists backoff and rejects stale attempts", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  const ticketPath = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 2, nextAttemptAt: input.timestamp + 60000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 2
+  });
+  assert.equal(docs.get(ticketPath).attempts, 2);
+  assert.equal(docs.get(ticketPath).nextAttemptAt, input.timestamp + 60000);
+  assert.equal(docs.get(ticketPath).lastErrorCode, "unavailable");
+  await assert.rejects(adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 1, nextAttemptAt: input.timestamp + 30000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 3
+  }), error => error.code === "failed-precondition");
+});
