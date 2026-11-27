@@ -29,12 +29,12 @@ The backend now includes a canonical membership invitation workflow. It is delib
 
 1. A verified, recent TOTP account admin proposes an invite for an email address and an existing active site in this account.
 2. Only a different verified, recent TOTP account admin can approve it. Both admins are revalidated as active account admins inside the Firestore transaction.
-3. The raw email is not persisted: the proposal stores only a SHA-256 digest of the normalized address. The invite expires after 24 hours.
+3. The raw email is not persisted: the proposal stores only an HMAC-SHA-256 digest of the normalized address, using the server-side `DSM_INVITE_EMAIL_HMAC_KEY` (minimum 32 characters). If the key is missing or too short, invite creation/claim fails closed. CI uses a synthetic key only. The invite expires after 24 hours.
 4. The invitee must authenticate with Firebase and claim using a revocation-checked ID token whose verified email matches the digest. The account and site are revalidated at claim time.
 5. Only then is an active, site-scoped canonical `member` record created, with an audit event in the same transaction. Invited/pending proposals grant no permissions.
 6. The existing Employee provisioning flow remains a second, independent two-person approval: one admin proposes UID↔Employee association and a different recent-TOTP admin approves. Employee creation, both binding mirrors, control revision, proposal transition and audit append are atomic.
 
-Callable endpoints: `proposeCanonicalMembershipInvite`, `approveCanonicalMembershipInvite`, and `claimCanonicalMembershipInvite`. The invite workflow does not send email or deliver a link: distribution of the opaque `inviteId` is an out-of-band operational step and no email provider is connected. No raw email is returned by the callable or stored in Firestore.
+Callable endpoints: `proposeCanonicalMembershipInvite`, `approveCanonicalMembershipInvite`, and `claimCanonicalMembershipInvite`. The invite workflow does not send email or deliver a link: distribution of the opaque `inviteId` is an out-of-band operational step and no email provider is connected. A real deployment must provision a separate strong secret for `DSM_INVITE_EMAIL_HMAC_KEY`; never reuse the CI fixture key. No raw email is returned by the callable or stored in Firestore.
 
 This is backend scaffolding, not a complete user-facing onboarding experience. The UI does not yet provide the invite administration/claim screens, and no real Firebase project or collaborator has been configured. The synthetic owner fixture remains test bootstrap only.
 
