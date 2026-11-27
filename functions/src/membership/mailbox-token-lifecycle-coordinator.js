@@ -46,7 +46,7 @@ export function createMailboxTokenLifecycleCoordinator({ vault, refreshService, 
           expiresAt: newExpiry,
           scopes: fresh.scope ? fresh.scope.split(" ").filter(Boolean) : stored.scopes
         };
-        try { await vault.storeSecret({ secretRef, secretMaterial: nextSecret }); } catch {
+        try { await vault.storeSecret({ secretRef, secretMaterial: nextSecret, expectedVersion: stored.version }); } catch {
           const error = new Error("Mailbox credential persistence failed."); error.code = "unavailable"; throw error;
         }
         return Object.freeze({ status: "active", accessToken: fresh.accessToken, expiresAt: newExpiry, refreshed: true });
