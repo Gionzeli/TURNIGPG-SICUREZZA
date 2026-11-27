@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-85 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-86 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2199,6 +2199,28 @@ Approved policy in principle:
 
 **Still required before implementation:** attachment domain inventory and classification; upload/retrieval permission matrix; file-type and resource limits; quarantine and scanning architecture; isolated parser/preview design; private object-storage policy; temporary-link contract; derived-artifact lifecycle; retention and deletion integration; audit taxonomy; and synthetic security tests. This decision does not authorize real employee document uploads, public storage, new storage providers or production activation.
 
+### L-86 — Aggregate reporting, small-group disclosure and inference resistance
+
+**Question:** How must dashboards, workforce statistics and aggregate reports prevent users from inferring an individual's protected employee information through small groups, repeated queries, filtering, differencing or combinations of otherwise permitted results?
+
+**Approved 2026-11-27 — option B (purpose-scoped aggregate access with disclosure controls, query governance and server-enforced boundaries), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Treat aggregate and statistical outputs as potentially disclosive data, not automatically anonymous merely because direct identifiers are omitted.
+- Require a distinct permission for each reporting domain, purpose, tenant and organizational scope. Enforce authorization server-side before aggregation; client-side filters, hidden chart segments and UI-only restrictions are not security controls.
+- Compute aggregates only over records the requesting actor is authorized to use for the stated purpose. Prevent unauthorized records from influencing totals, trends, denominators, rankings, comparison baselines or other derived outputs.
+- Define minimum cohort sizes and suppression rules for sensitive or high-risk dimensions. Suppress or generalize small groups and complementary cells where totals or adjacent categories could reveal suppressed values.
+- Control query combinations and repeated differencing. Apply rate limits, query budgets, cooldowns or privacy-preserving statistical methods where risk warrants; account for overlapping filters, time windows, dimensions, exports and repeated snapshots.
+- Prevent arbitrary high-cardinality slicing, rare-category exposure, exact timestamps and unique combinations that can isolate an employee. Generalize time, location, role or other dimensions to the least detailed level needed for the approved purpose.
+- Do not expose sensitive domains such as compensation, absence, health-related status, disciplinary matters or protected personal attributes through aggregates unless a separate explicit policy, lawful purpose, approved audience and disclosure assessment authorize the specific output.
+- Apply consistent suppression across UI, APIs, downloads, scheduled reports, caches and derived datasets. Do not reveal suppressed values through tooltips, totals, error messages, metadata, sorting, pagination, downloadable source data or alternate endpoints.
+- Treat access to report definitions, saved filters, query histories and shared dashboards as governed resources. Reauthorize viewers at access time; sharing a report must not transfer the creator's privileges or broaden its original scope.
+- Re-evaluate authorization and disclosure risk when memberships, organizational boundaries, cohort composition, policy versions or underlying data change. Cached aggregates must expire or be invalidated within defined limits.
+- Clearly label approximate, suppressed or generalized results so users do not interpret them as exact. Preserve analytical utility without exposing individual-level records or implying unsupported certainty.
+- Audit report creation, query dimensions, scope, suppression decisions, exports and exceptional access using minimized metadata; avoid logging raw employee-level inputs or sensitive result payloads.
+- Test synthetic cohorts at and below thresholds, complementary suppression, differencing across time, overlapping groups, rare categories, cross-tenant aggregation, saved-report sharing, cache invalidation and export parity.
+
+**Still required before implementation:** reporting-domain and audience matrix; approved purposes and sensitive-domain exclusions; cohort thresholds and complementary-suppression rules; query-combination and budget model; cache expiry/invalidation objectives; report-sharing contract; export parity controls; audit taxonomy; and synthetic disclosure-risk tests. This decision does not authorize employee-level analytics, compensation/health aggregation, external analytics sharing or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2284,6 +2306,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-83 Inbound webhooks, callbacks and external event authenticity | Approved — option B authenticated, allowlisted and replay-resistant ingress with server-side domain authorization; implementation gated on provider contracts, key lifecycle and tests |
 | L-84 Deletion propagation, derived copies and verifiable disposition | Approved — option B centrally tracked disposition, dependency inventory, propagation controls and verifiable completion; implementation gated on system inventory, tombstone contract and tests |
 | L-85 File attachments, upload processing and secure retrieval | Approved — option B quarantined uploads, defense-in-depth inspection and per-request authorized retrieval; implementation gated on storage, scanning, preview and access contracts |
+| L-86 Aggregate reporting, small-group disclosure and inference resistance | Approved — option B purpose-scoped aggregates, disclosure controls, query governance and server-enforced boundaries; implementation gated on cohort, suppression and test rules |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
