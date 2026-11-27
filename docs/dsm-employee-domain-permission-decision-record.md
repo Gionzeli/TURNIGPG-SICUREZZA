@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-53 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-54 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1447,6 +1447,33 @@ Approved policy in principle:
 
 **Still required before implementation:** workload identity catalogue, per-job permission matrix, queue schema and integrity design, execution-time authorization contract, retry/dead-letter policy, cancellation and compensation workflows, resource budgets, audit/monitoring ownership and synthetic test coverage. This policy does not authorize unattended production jobs, real-data processing, broad service identities or deployment.
 
+### L-54 — Secure onboarding, invitations and account activation
+
+**Question:** How should employee onboarding, invitations and account activation establish verified identity and canonical account ownership without allowing fraudulent enrollment or privilege acquisition?
+
+Possible choices:
+- **A. Self-service activation:** allow invite recipients to activate accounts with an email link and basic profile matching.
+- **B. Verified, independently approved provisioning:** bind verified identity to an authoritative employee record through a scoped, expiring invitation and independent approval workflow.
+- **C. Administrator-created unrestricted accounts:** allow administrators to create accounts and assign roles directly.
+
+**Approved 2026-11-27 — option B (verified identity, canonical binding and independent provisioning approval), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Treat invitations as short-lived, single-use workflow references, not as proof of identity, employment, organizational scope or permission.
+- Verify the invitee's identity through an approved authentication and verification process before account activation or binding; do not rely solely on possession of an email address or invitation URL.
+- Derive the canonical employee record, organization and permitted placement from authoritative server-side records; reject client-supplied UID, employee ID, role, organization or scope as authority.
+- Require a unique, unambiguous active UID-to-Employee binding and prevent duplicate, conflicting or cross-organization bindings.
+- Require independent approval for provisioning and sensitive account-to-employee binding changes; prohibit requester self-approval and enforce separation server-side.
+- Bind invitation tokens cryptographically to their intended workflow, purpose and expiry; store only protected token verifiers, avoid plaintext secrets in logs and responses, and support immediate revocation.
+- Revalidate invitation status, identity verification, employment lifecycle, target record, approval and current authorization atomically at activation time.
+- Apply least-privilege initial access; do not infer manager, administrator or other elevated roles from invitation metadata or employee attributes without a separately approved role workflow.
+- Notify relevant parties of invitation, activation, binding and rejection events using minimized content and verified destinations.
+- Audit issuance, delivery attempt, verification, approval, activation, binding, expiry, revocation and denial with protected, minimized evidence.
+- Provide safe recovery for expired, misdirected or compromised invitations; never reactivate a revoked invitation or silently transfer an existing binding.
+- Test synthetic cases for invitation replay, token theft, email mismatch, duplicate employee records, conflicting bindings, self-approval, stale lifecycle state, role injection and concurrent activation.
+
+**Still required before implementation:** identity-proofing assurance, invitation delivery and token lifecycle, canonical employee matching rules, approver quorum and separation, atomic binding contract, notification rules, recovery procedures and synthetic test coverage. This policy does not authorize real employee onboarding, real account activation, production invitations or privilege grants.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1500,6 +1527,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-51 Secure search and query authorization | Approved — option B server-enforced identity, scope and field constraints, minimized results, bounded queries and protected audit; implementation gated on field catalogue, query design, thresholds and tests |
 | L-52 Concurrent data integrity and conflict control | Approved — option B server-enforced revisions, atomicity, idempotency, explicit conflict handling and protected audit; implementation gated on revision model, transaction boundaries, workflows and tests |
 | L-53 Secure background jobs and scheduled processing | Approved — option B scoped workload identities, execution-time authorization, bounded/idempotent processing, cancellation and protected audit; implementation gated on workload matrix, queue design, workflows and tests |
+| L-54 Secure onboarding, invitations and account activation | Approved — option B verified identity, expiring scoped invitations, canonical binding, independent approval and protected audit; implementation gated on identity proofing, workflows, binding contract and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
