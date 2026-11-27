@@ -221,7 +221,72 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           error.code = "failed-precondition";
           throw error;
         }
-        tx.set(ref, { ...previous, status: attempts >= 12 ? "exhausted" : "pending", attempts, nextAttemptAt: attempts >= 12 ? null : nextAttemptAt, lastErrorCode, updatedAt: timestamp });
+        const exhausted = attempts >= 12;
+        tx.set(ref, {
+          ...previous,
+          status: exhausted ? "exhausted" : "pending",
+          attempts,
+          nextAttemptAt: exhausted ? null : nextAttemptAt,
+          lastErrorCode,
+          alertStatus: exhausted ? "pending" : null,
+          alertDeliveredAt: null,
+          updatedAt: timestamp
+        });
+      });
+    },
+
+    async listPendingCleanupAlerts({ accountId, limit = 50 }) {
+      if (!validId(accountId) || !Number.isInteger(limit) || limit < 1 || limit > 100) {
+        invalid("Cleanup alert query is malformed.");
+      }
+      if (typeof db.collection !== "function") {
+        const error = new Error("Firestore collection queries are unavailable.");
+        error.code = "failed-precondition";
+        throw error;
+      }
+      const snapshot = await db.collection("accounts/" + accountId + "/mailboxCredentialCleanup")
+        .where("status", "==", "exhausted")
+        .where("alertStatus", "==", "pending")
+        .orderBy("updatedAt", "asc").limit(limit).get();
+      return snapshot.docs.map(doc => {
+        const value = doc.data();
+        if (!value || value.accountId !== accountId ||
+            typeof value.connectionId !== "string" || !validId(value.connectionId) ||
+            value.status !== "exhausted" || value.alertStatus !== "pending" ||
+            !Number.isSafeInteger(value.attempts) || value.attempts < 12 ||
+            typeof value.lastErrorCode !== "string" ||
+            !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)) return null;
+        return value;
+      }).filter(Boolean);
+    },
+
+    async markCleanupAlertDelivered({ accountId, connectionId, timestamp = Date.now() }) {
+      if (!validId(accountId) || !validId(connectionId) ||
+          !Number.isSafeInteger(timestamp) || timestamp < 1) {
+        invalid("Cleanup alert acknowledgement is malformed.");
+      }
+      const ref = db.doc("accounts/" + accountId + "/mailboxCredentialCleanup/" + connectionId);
+      await db.runTransaction(async tx => {
+        const snapshot = await tx.get(ref);
+        if (!snapshot.exists) {
+          const error = new Error("Cleanup alert ticket not found.");
+          error.code = "not-found";
+          throw error;
+        }
+        const previous = snapshot.data();
+        if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
+            previous.status !== "exhausted") {
+          const error = new Error("Cleanup alert ticket is not exhausted.");
+          error.code = "failed-precondition";
+          throw error;
+        }
+        if (previous.alertStatus === "delivered") return;
+        if (previous.alertStatus !== "pending") {
+          const error = new Error("Cleanup alert is not pending.");
+          error.code = "failed-precondition";
+          throw error;
+        }
+        tx.set(ref, { ...previous, alertStatus: "delivered", alertDeliveredAt: timestamp, updatedAt: timestamp });
       });
     },
 
