@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
-const SHA256 = /^[a-f0-9]{64}$/;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const TYPES = new Set(["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"]);
@@ -155,13 +154,15 @@ export function createEmployeeScheduleEmailIngestion({
       const allowlist = Array.isArray(connection.allowedSenders) ? connection.allowedSenders.map(normalizedEmail) : [];
       if (!allowlist.includes(sender)) fail("permission-denied", "Email sender is not in the verified mailbox allowlist.");
       const auth = await verifyMessage({ connection, message, sender });
-      if (!auth || auth.authenticated !== true || auth.senderAllowed !== true) {
+      if (!auth || auth.authenticated !== true || auth.senderAllowed !== true || auth.dmarc !== "pass" ||
+          (auth.dkim !== "pass" && auth.spf !== "pass")) {
         fail("permission-denied", "Email sender authentication or allowlist verification failed.");
       }
       const results = [];
       for (const attachment of attachments) {
         if (!attachment || typeof attachment !== "object" || typeof attachment.filename !== "string" ||
-            attachment.filename.length > 180 || !attachment.filename.toLowerCase().endsWith(".pdf") ||
+            attachment.filename.length > 180 || /[\\u0000-\\u001f\\u007f]/.test(attachment.filename) ||
+          !attachment.filename.toLowerCase().endsWith(".pdf") ||
             !["application/pdf", "application/octet-stream"].includes(attachment.contentType)) {
           results.push({ status: "ignored", reason: "not_a_pdf" });
           continue;
@@ -201,6 +202,7 @@ export function createEmployeeScheduleEmailIngestion({
           }
           const proposals = [];
           const blocked = [];
+          const resolvedEmployeeIds = new Set();
           for (const document of parsed.documents) {
             if (!document || typeof document.employeeMatchKey !== "string" ||
                 document.employeeMatchKey.length < 1 || document.employeeMatchKey.length > 128 ||
@@ -217,6 +219,11 @@ export function createEmployeeScheduleEmailIngestion({
               blocked.push({ reason: "employee_mapping_unverified" });
               continue;
             }
+            if (resolvedEmployeeIds.has(employee.employeeId)) {
+              blocked.push({ reason: "duplicate_employee_document" });
+              continue;
+            }
+            resolvedEmployeeIds.add(employee.employeeId);
             let shifts;
             try { shifts = document.shifts.map(normalizeShift); }
             catch { blocked.push({ reason: "invalid_parsed_shift" }); continue; }
