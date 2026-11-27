@@ -411,3 +411,14 @@ the retry timestamp is sampled after the acknowledgement failure and that a
 subsequent successful acknowledgement ends delivery retries. This is a
 synthetic adapter test; it does not exercise a live notification provider or
 Firestore Emulator.
+
+
+#### Emulator regression for stale alert retry races
+
+Added a Firestore Emulator integration case that marks an exhausted-cleanup
+alert delivered, then simulates a delayed worker attempting to persist a retry
+from an earlier failed acknowledgement. The adapter must reject that stale
+retry with `failed-precondition`; a repeated delivery acknowledgement remains
+idempotent and preserves the original delivery timestamp. This verifies the
+transactional state boundary against Emulator Firestore, subject to the
+Emulator integration workflow actually running.
