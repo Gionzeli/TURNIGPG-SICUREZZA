@@ -144,6 +144,52 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     assert.equal(proposals[0].status, "pending");
     assert.equal(proposals[0].source, "employee_manual");
     assert.equal(proposals[0].changes[0].shift.post, "Postazione A");
+    const staleProposal = await handlers.proposeOwn(proposalRequest({
+      accountId, source: "employee_manual",
+      changes: [
+        { operation: "create", shift: { date: "2026-06-23", type: "turno", hours: 6 } },
+        { operation: "update", shiftId: "in-range-2026-06-04", expectedRevision: 99, changes: { hours: 7 } }
+      ]
+    }));
+    await assert.rejects(
+      handlers.approveOwnProposal(proposalRequest({ accountId, proposalId: staleProposal.proposalId })),
+      error => error.code === "failed-precondition",
+      "stale expected revision must block the whole proposal"
+    );
+    assert.equal((await collection.where("date", "==", "2026-06-23").get()).size, 0,
+      "failed approval must not partially create shifts");
+
+    const approvalProposal = await handlers.proposeOwn(proposalRequest({
+      accountId, source: "employee_manual",
+      changes: [
+        { operation: "create", shift: { date: "2026-06-24", type: "turno", post: "Postazione B", start_time: "09:00", end_time: "17:00", hours: 8 } },
+        { operation: "update", shiftId: "in-range-2026-06-04", expectedRevision: 1, changes: { hours: 7 } },
+        { operation: "delete", shiftId: "in-range-2026-06-18", expectedRevision: 1 }
+      ]
+    }));
+    const approved = await handlers.approveOwnProposal(proposalRequest({ accountId, proposalId: approvalProposal.proposalId }));
+    assert.equal(approved.status, "approved");
+    assert.equal(approved.appliedCount, 3);
+    const updatedShift = (await collection.doc("in-range-2026-06-04").get()).data();
+    assert.equal(updatedShift.hours, 7);
+    assert.equal(updatedShift.revision, 2);
+    const deletedShift = (await collection.doc("in-range-2026-06-18").get()).data();
+    assert.equal(deletedShift.status, "deleted");
+    assert.equal(deletedShift.revision, 2);
+    const createdShift = (await collection.doc(approved.shiftIds[0]).get()).data();
+    assert.equal(createdShift.employeeId, employeeId);
+    assert.equal(createdShift.date, "2026-06-24");
+    assert.equal(createdShift.post, "Postazione B");
+    assert.equal(createdShift.revision, 1);
+    const approvalAudit = await db.collection(`accounts/${accountId}/employeeAudit`)
+      .where("proposalId", "==", approvalProposal.proposalId).get();
+    assert.equal(approvalAudit.size, 3);
+    await assert.rejects(
+      handlers.approveOwnProposal(proposalRequest({ accountId, proposalId: approvalProposal.proposalId })),
+      error => error.code === "failed-precondition",
+      "an approved proposal cannot be applied twice"
+    );
+
     const rejected = await handlers.rejectOwnProposal(proposalRequest({ accountId, proposalId: proposed.proposalId }));
     assert.deepEqual(rejected, { proposalId: proposed.proposalId, status: "rejected" });
     proposals = await handlers.listOwnProposals(proposalRequest({ accountId }));
