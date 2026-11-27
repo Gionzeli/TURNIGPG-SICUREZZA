@@ -6,7 +6,7 @@ const request = (data, authorization = "Bearer token") => ({ data, rawRequest: {
 test("invite callables derive identity from revoked-token-checked Firebase verification and reject extra fields", async () => {
   const calls = [];
   const handlers = createCanonicalMembershipInviteHandlers({
-    db: { doc: () => ({}), runTransaction: async () => {} },
+    db: { doc: () => ({}), runTransaction: async () => {} }, emailHmacKey: "synthetic-test-invite-hmac-key-000000000000000000000000",
     verifyToken: async (token, checkRevoked) => {
       calls.push([token, checkRevoked]);
       return { uid: "admin-a", email: "admin@example.test", email_verified: true, auth_time: 100, firebase: { sign_in_second_factor: "totp" } };
@@ -32,7 +32,7 @@ test("invite callable passes only verified identity and allowed selectors to ser
     })
   };
   const handlers = createCanonicalMembershipInviteHandlers({
-    db, now: () => 100_000,
+    db, emailHmacKey: "synthetic-test-invite-hmac-key-000000000000000000000000", now: () => 100_000,
     verifyToken: async (_token, checkRevoked) => {
       assert.equal(checkRevoked, true);
       return { uid: "admin-a", email: "admin@example.test", email_verified: true, auth_time: 100, firebase: { sign_in_second_factor: "totp" } };
