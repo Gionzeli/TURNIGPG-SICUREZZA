@@ -123,6 +123,8 @@ test('fences Secret Manager pointer update against the live Firestore lease in t
  });
  assert.equal(result.version,'2');
  assert.equal(activeVersion,'2');
+ // A successor takes over the lease; the stale owner's otherwise-current CAS must fail.
+ lease={ownerId:'successor_owner_identifier',fencingToken:8,expiresAt:60000};
  await assert.rejects(()=>backend.replaceSecret({
   secretRef:ref,payload:{accessToken:'synthetic-access-token-0003',refreshToken:'synthetic-refresh-token-0003',expiresAt:999000},
   expectedVersion:'2',leaseProof:proof
