@@ -50,6 +50,27 @@ function validPendingAlertState(value) {
   }
   return retryScheduled;
 }
+function validExhaustedCleanupState(value) {
+  if (!Number.isSafeInteger(value.attempts) || value.attempts < 12 ||
+      value.nextAttemptAt !== null ||
+      typeof value.lastErrorCode !== "string" ||
+      !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)) return false;
+  if (value.alertStatus === "pending") return validPendingAlertState(value);
+  if (value.alertStatus === "delivered") {
+    const attempts = value.alertAttempts ?? 0;
+    return Number.isSafeInteger(attempts) && attempts >= 0 &&
+      (value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined) &&
+      (value.alertLastErrorCode === null || value.alertLastErrorCode === undefined ||
+        (typeof value.alertLastErrorCode === "string" &&
+         /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode))) &&
+      Number.isSafeInteger(value.alertDeliveredAt) && value.alertDeliveredAt >= 1;
+  }
+  if (value.alertStatus === "resolved") {
+    return Number.isSafeInteger(value.alertResolvedAt) && value.alertResolvedAt >= 1 &&
+      (value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined);
+  }
+  return false;
+}
 function validateConnection(accountId, connectionId, value) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
       Object.keys(value).some(key => !CONNECTION_KEYS.has(key))) {
@@ -225,9 +246,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           !["pending", "exhausted", "complete"].includes(value.status) ||
           !Number.isSafeInteger(value.attempts) || value.attempts < 1 ||
           (value.status === "pending" && !validPendingCleanupState(value)) ||
-          (value.status === "exhausted" && (value.attempts < 12 ||
-            value.nextAttemptAt !== null || typeof value.lastErrorCode !== "string" ||
-            !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)))) return null;
+          (value.status === "exhausted" && !validExhaustedCleanupState(value))) return null;
       return value;
     },
 
@@ -293,10 +312,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         if (!value || value.accountId !== accountId ||
             typeof value.connectionId !== "string" || !validId(value.connectionId) ||
             value.status !== "exhausted" || value.alertStatus !== "pending" ||
-            !Number.isSafeInteger(value.attempts) || value.attempts < 12 ||
-            typeof value.lastErrorCode !== "string" ||
-            !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode) ||
-            !validPendingAlertState(value)) return null;
+            !validExhaustedCleanupState(value)) return null;
         // Alert consumers receive a strict DTO; never expose secretRef,
         // provider metadata, or unrelated ticket fields to the notifier.
         return {
