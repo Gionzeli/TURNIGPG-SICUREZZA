@@ -10,6 +10,7 @@ const ticket = {
 test("worker deletes secret and marks durable ticket complete", async () => {
   const calls = [];
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async input => { calls.push({ listed: input }); return [ticket]; },
       completeSecretCleanup: async input => calls.push({ completed: input }),
@@ -35,6 +36,7 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
     { ...ticket, connectionId: "future", nextAttemptAt: 9000 }
   ];
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async ({ accountId }) => records.filter(item => item.accountId === accountId && item.status !== "exhausted"),
       completeSecretCleanup: async () => {},
@@ -80,6 +82,7 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
 
 test("worker validates batch bounds and ignores malformed tickets", async () => {
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [{ secretRef: "invalid" }],
       completeSecretCleanup: async () => {},
@@ -100,6 +103,7 @@ test("worker validates batch bounds and ignores malformed tickets", async () => 
 test("worker rejects cross-account tickets before calling the vault", async () => {
   let revoked = 0;
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [
         { ...ticket, accountId: "different-account" }
@@ -123,6 +127,7 @@ test("worker rejects cross-account tickets before calling the vault", async () =
 test("worker does not alert exhaustion until the exhausted state is durably recorded", async () => {
   const alerts = [];
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [{ ...ticket, attempts: 11 }],
       completeSecretCleanup: async () => {},
@@ -150,6 +155,7 @@ test("worker retries failed exhaustion alert delivery on a later invocation", as
   let alertAttempts = 0;
   let alertNextAttemptAt = null;
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [],
       completeSecretCleanup: async () => {},
@@ -192,6 +198,7 @@ test("worker retries failed exhaustion alert delivery on a later invocation", as
 test("worker passes only the alert allowlist even when an adapter returns extra fields", async () => {
   const delivered = [];
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [],
       completeSecretCleanup: async () => {},
@@ -226,6 +233,7 @@ test("worker rejects malformed connection ids before vault or alert side effects
   let vaultCalls = 0;
   let alertCalls = 0;
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [{ ...ticket, connectionId: "bad/id" }],
       completeSecretCleanup: async () => {},
@@ -253,6 +261,7 @@ test("worker rejects malformed connection ids before vault or alert side effects
 test("worker fails closed when an adapter exceeds the requested batch limit", async () => {
   let vaultCalls = 0;
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [ticket, ticket],
       completeSecretCleanup: async () => {},
@@ -280,6 +289,7 @@ test("worker skips an oversized alert batch without sending notifications", asyn
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [],
       completeSecretCleanup: async () => {},
@@ -303,6 +313,7 @@ test("worker rejects duplicate cleanup tickets before any vault side effect", as
   let vaultCalls = 0;
   const duplicate = { ...ticket };
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [ticket, duplicate],
       completeSecretCleanup: async () => {},
@@ -330,6 +341,7 @@ test("worker does not send duplicate alert tickets from a malformed adapter batc
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [],
       completeSecretCleanup: async () => {},
@@ -353,6 +365,7 @@ test("worker rejects an invalid clock before querying adapters or touching secre
   let listCalls = 0;
   let vaultCalls = 0;
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => { listCalls++; return [ticket]; },
       completeSecretCleanup: async () => {},
@@ -377,6 +390,7 @@ test("worker rejects an invalid clock before querying adapters or touching secre
 test("worker rejects a clock too close to the safe-integer ceiling for retry arithmetic", async () => {
   let listCalls = 0;
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => { listCalls++; return []; },
       completeSecretCleanup: async () => {},
@@ -401,6 +415,7 @@ test("worker bases retry backoff on the failure time, not the batch start", asyn
   const recorded = [];
   const times = [1000, 5000, 9000];
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [ticket],
       completeSecretCleanup: async () => {},
@@ -425,6 +440,7 @@ test("worker timestamps cleanup acknowledgement after vault deletion completes",
   let clock = 1000;
   let completedAt = null;
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [ticket],
       completeSecretCleanup: async input => { completedAt = input.timestamp; },
@@ -451,6 +467,7 @@ test("worker timestamps alert acknowledgement after notification completes", asy
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [],
       completeSecretCleanup: async () => {},
@@ -479,6 +496,7 @@ test("worker leaves a sent alert pending if acknowledgement clock validation fai
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [],
       completeSecretCleanup: async () => {},
@@ -509,6 +527,7 @@ test("worker schedules alert retry from the time a failed send completes", async
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [],
       completeSecretCleanup: async () => {},
@@ -543,6 +562,7 @@ test("worker retries a delivered alert when durable acknowledgement fails, reusi
     status: "exhausted", attempts: 12, lastErrorCode: "unavailable"
   };
   const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
       listPendingSecretCleanup: async () => [],
       completeSecretCleanup: async () => {},
@@ -584,4 +604,29 @@ test("worker retries a delivered alert when durable acknowledgement fails, reusi
   assert.equal(sentIds.length, 2);
   assert.equal(sentIds[0], "synthetic-account:ack-retry-connection:cleanup-exhausted");
   assert.equal(sentIds[1], sentIds[0]);
+});
+
+
+test("worker refuses secret deletion when durable revocation gate is absent", async () => {
+  const calls = [];
+  const worker = createMailboxSecretCleanupWorker({
+    assertRevocationPending: async () => {
+      throw Object.assign(new Error("gate absent"), { code: "failed-precondition" });
+    },
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [ticket],
+      completeSecretCleanup: async () => assert.fail("must not complete"),
+      recordSecretCleanupFailure: async input => calls.push(input),
+      listPendingCleanupAlerts: async () => [],
+      recordCleanupAlertFailure: async () => {},
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => assert.fail("must not delete") },
+    alert: async () => {},
+    now: () => 1000
+  });
+  const result = await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(result.deferred, 1);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].attempts, ticket.attempts + 1);
 });
