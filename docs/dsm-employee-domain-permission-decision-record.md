@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-05 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-06 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -309,10 +309,26 @@ Approved policy in principle:
 
 **Still required before implementation:** define archival authority and approval, effective timestamp/timezone, handling of open shifts and pending proposals, whether an archived unit can be restored, how employees are reassigned when no active destination exists, and synthetic tests for blocked operations and preserved historical access. No automatic transfer, deletion, or new archive endpoint is authorized by this decision.
 
+### L-06 — UID-to-employee binding revocation and reassignment
+
+**Question:** What happens when an account's UID-to-employee binding is revoked or needs to be reassigned?
+
+**Approved 2026-11-27 — option B (revoke the binding immediately, preserve historical records, and allow a new binding only after verification and two-person approval), by explicit user confirmation in the project conversation.**
+
+Approved policy in principle:
+- Revocation immediately ends the revoked UID's authority to access the employee record through that binding. Requests relying on a revoked, missing, duplicate, or ambiguous binding fail closed.
+- Historical employee records, prior assignments, and audit history are preserved under their applicable retention rules. Revocation is not deletion and does not rewrite historical actor or ownership references.
+- A replacement binding is never inferred from email address, display name, client state, or other mutable identifiers; no automatic relinking is permitted.
+- A new binding requires identity re-verification, confirmation of the canonical employee record and current employment/lifecycle state, and approval by two distinct authorized administrators.
+- The binding must be unique and atomically established by the backend. Conflicting or duplicate bindings block the operation pending controlled resolution; creating a second employee profile to bypass the conflict is prohibited.
+- All authorization checks use the current backend-owned binding state on each request; stale sessions or cached client state cannot preserve access after revocation.
+
+**Still required before implementation:** define authorized revocation initiators and approval roles, identity re-verification strength, treatment of pending shift/absence proposals and delegated privileges, conflict-resolution and recovery workflow, effective timestamp, session/token invalidation guarantees, audit event fields and retention, and synthetic Emulator tests for immediate denial, duplicate/conflicting bindings, atomic reassignment, and stale sessions. This decision does not authorize a production binding endpoint or automatic data migration.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
-- binding revocation, reassignment and duplicate/conflicting bindings;
+- other lifecycle transitions and archive restoration;
 - access to historical shifts, absences, profiles and payroll after termination or other lifecycle changes;
 - audit retention, legal holds, deletion and export.
 
@@ -336,6 +352,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-03 Termination access | Approved — option B operational access revoked; temporary, limited personal document access only if separately authorized; implementation gated on duration/document allowlist/revocation |
 | L-04 Reactivation | Approved — option B re-verify identity, employment, placement and permissions; restore only newly approved permissions; implementation gated on transition/approval details and tests |
 | L-05 Archived site/department | Approved — option B block operations, preserve history, require explicit reassignment; implementation gated on archival semantics, open-work handling and tests |
+| L-06 UID/employee binding revocation | Approved — option B immediate revocation, preserve history, rebind only after verification and two-person approval; implementation gated on workflow, conflict handling and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
