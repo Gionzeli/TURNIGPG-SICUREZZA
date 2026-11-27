@@ -283,7 +283,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
 
     async recordCleanupAlertFailure({ accountId, connectionId, attempts, nextAttemptAt, lastErrorCode, timestamp = Date.now() }) {
       if (!validId(accountId) || !validId(connectionId) ||
-          !Number.isSafeInteger(attempts) || attempts < 1 || attempts > 1000 ||
+          !Number.isSafeInteger(attempts) || attempts < 1 ||
           !(nextAttemptAt === null || (Number.isSafeInteger(nextAttemptAt) && nextAttemptAt >= timestamp)) ||
           typeof lastErrorCode !== "string" || !/^[a-z0-9_-]{1,64}$/.test(lastErrorCode) ||
           !Number.isSafeInteger(timestamp) || timestamp < 1) {
