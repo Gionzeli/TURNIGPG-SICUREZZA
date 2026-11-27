@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-109 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-110 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2736,6 +2736,32 @@ Approved policy in principle:
 
 **Implementation gates:** Map all cookie-authenticated state-changing endpoints and browser origins; document cookie, CORS, Origin/Referer and Fetch Metadata policies; implement server-side CSRF validation and method constraints; verify session rotation and subdomain isolation; and provide reproducible synthetic cross-origin tests. No production cookie, CORS or authentication configuration change is authorized by this decision.
 
+### L-110 — Secure HTTP response caching, shared intermediaries and authorization-aware cache isolation
+
+**Question:** How should browsers, reverse proxies, CDNs and other shared intermediaries cache authenticated application responses without exposing employee information across users, sessions, tenants or changing permission states?
+
+**Decision:** Approved — option B, default to non-storage of sensitive authenticated responses by browsers and shared intermediaries, permit caching only for explicitly classified public or non-sensitive content, and bind any approved private caching to a narrowly defined identity and authorization lifecycle. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Inventory cache layers and paths, including browser HTTP caches, service workers, reverse proxies, CDNs, API gateways, framework caches, server-side memoization and third-party acceleration services.
+- Classify response data before caching; employee profiles, shifts, absences, compensation, audit evidence, account state and authorization-dependent results must not enter shared caches.
+- Set explicit response directives for sensitive authenticated data, normally including Cache-Control: no-store; do not rely on browser defaults, URL secrecy or client-side cleanup to prevent storage.
+- Ensure shared intermediaries do not cache authenticated or authorization-dependent responses; configure CDN and proxy bypass rules for authenticated requests and verify that origin Cache-Control directives are honored end-to-end.
+- Treat private as insufficient for highly sensitive data: it limits shared-cache reuse but may still permit browser storage; use no-store for sensitive responses unless a documented, separately approved use case establishes otherwise.
+- Define cache keys and Vary behavior for any permitted cacheable response; never rely on an incomplete key that omits security-relevant representation dimensions, and do not vary on untrusted client-supplied tenant or role claims as authority.
+- Derive tenant, user and authorization scope from verified server-side identity and membership; never use a client-provided cache key, header or query parameter as proof of access rights.
+- Prevent cache poisoning and response confusion by canonicalizing cache-relevant request inputs, rejecting ambiguous headers and duplicate parameters, and ensuring the cache and origin interpret requests consistently.
+- Ensure authorization is re-evaluated on every protected request, including cache hits; avoid serving stale representations after role changes, account suspension, tenant reassignment, session revocation or employee lifecycle transitions.
+- For any explicitly approved private cache, define a strict TTL, identity partitioning, authorization version binding, invalidation triggers and fail-closed behavior when invalidation or policy freshness cannot be established.
+- Treat purge and invalidation as defense in depth, not as a substitute for correct no-store and shared-cache bypass policy; document purge propagation, failure handling and evidence of completion.
+- Prevent sensitive data leakage through 304 responses, ETags, Last-Modified validators, cache status headers, stale-if-error behavior, stale-while-revalidate and error pages; validators must not disclose cross-user existence or allow unauthorized reuse.
+- Ensure redirects, downloads, document previews and API errors inherit appropriate cache restrictions; avoid caching authentication, recovery, invitation and authorization-denial responses where they can reveal account or workflow state.
+- Verify that compression, content negotiation, locale, device variants and other representation dimensions cannot cause one principal to receive another principal's cached response.
+- Monitor cache configuration drift and provider behavior; restrict administrative purge and configuration permissions, protect audit records and review third-party processor access.
+- Test with synthetic users and tenants for cross-account cache reuse, permission changes, logout, revocation, tenant switching, poisoned keys, conditional requests, CDN bypass, stale responses and invalidation failures.
+
+**Implementation gates:** Produce a complete cache-layer and response-classification inventory; define endpoint-level cache directives and intermediary bypass rules; verify CDN/proxy behavior from the deployed configuration without exposing production employee data; specify any permitted private-cache partitioning and invalidation contract; and provide reproducible synthetic tests for cross-principal leakage and stale authorization. No production CDN, proxy or browser-cache configuration change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2845,6 +2871,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-107 Cryptographically secure randomness, nonce generation and uniqueness | Approved — option B platform CSPRNGs, protocol-specific entropy and replay-safe uniqueness; implementation gated on inventory and failure/concurrency tests |
 | L-108 Secure cross-window messaging, postMessage and embedded-frame trust | Approved — option B strict origin/source validation, minimal schemas and independent server authorization; implementation gated on inventory and browser security tests |
 | L-109 Web origin isolation, CSRF defenses and cookie policy | Approved — option B explicit origin boundaries, secure cookie attributes and server-validated CSRF controls; implementation gated on endpoint inventory and cross-origin tests |
+| L-110 HTTP response caching, shared intermediaries and authorization-aware isolation | Approved — option B no-store for sensitive responses, shared-cache bypass and authorization-aware invalidation; implementation gated on cache inventory and leakage tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
