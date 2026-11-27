@@ -24,6 +24,7 @@ export function createMailboxSecretCleanupWorker({
     ["completeSecretCleanup", cleanupAdapters?.completeSecretCleanup],
     ["recordSecretCleanupFailure", cleanupAdapters?.recordSecretCleanupFailure],
     ["listPendingCleanupAlerts", cleanupAdapters?.listPendingCleanupAlerts],
+    ["recordCleanupAlertFailure", cleanupAdapters?.recordCleanupAlertFailure],
     ["markCleanupAlertDelivered", cleanupAdapters?.markCleanupAlertDelivered],
     ["revokeSecret", credentialVault?.revokeSecret],
     ["alert", alert]
@@ -118,7 +119,14 @@ export function createMailboxSecretCleanupWorker({
             ticket.status !== "exhausted" || ticket.alertStatus !== "pending" ||
             !Number.isSafeInteger(ticket.attempts) || ticket.attempts < MAX_ATTEMPTS ||
             typeof ticket.lastErrorCode !== "string" ||
-            !/^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode)) continue;
+            !/^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode) ||
+            !Number.isSafeInteger(ticket.alertAttempts ?? 0) || (ticket.alertAttempts ?? 0) < 0 ||
+            !(ticket.alertNextAttemptAt === null || ticket.alertNextAttemptAt === undefined ||
+              (Number.isSafeInteger(ticket.alertNextAttemptAt) && ticket.alertNextAttemptAt >= 1)) ||
+            !(ticket.alertLastErrorCode === null || ticket.alertLastErrorCode === undefined ||
+              (typeof ticket.alertLastErrorCode === "string" &&
+               /^[a-z0-9_-]{1,64}$/.test(ticket.alertLastErrorCode)))) continue;
+        if (Number.isSafeInteger(ticket.alertNextAttemptAt) && ticket.alertNextAttemptAt > now()) continue;
         const alertId = accountId + ":" + ticket.connectionId + ":cleanup-exhausted";
         try {
           await alert({
@@ -128,8 +136,19 @@ export function createMailboxSecretCleanupWorker({
           await cleanupAdapters.markCleanupAlertDelivered({
             accountId, connectionId: ticket.connectionId, timestamp: now()
           });
-        } catch {
-          // Leave the durable alert pending for the next worker invocation.
+        } catch (error) {
+          // Persist bounded exponential backoff; the durable alert remains pending.
+          const attempts = (ticket.alertAttempts ?? 0) + 1;
+          const timestamp = now();
+          try {
+            await cleanupAdapters.recordCleanupAlertFailure({
+              accountId, connectionId: ticket.connectionId, attempts,
+              nextAttemptAt: timestamp + retryDelay(attempts),
+              lastErrorCode: safeCode(error), timestamp
+            });
+          } catch {
+            // If persistence fails, leave the prior pending record unchanged.
+          }
         }
       }
       return summary;
