@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-123 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-124 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -3071,6 +3071,30 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory database engines, storage/backups, data classifications, encryption defaults, key services and all plaintext/decrypt paths; define field-level requirements and cryptographic formats; assign key custodians and workload identities; document rotation/recovery and retention interactions; and produce reproducible synthetic tests for confidentiality, integrity, isolation and recovery. No real key creation, rotation, re-encryption, database configuration, Firebase change or production deployment is authorized by this decision.
 
+### L-124 — Database observability, query logging and sensitive diagnostic data
+
+**Question:** How should database query logs, traces, metrics, audit events and diagnostic tooling be designed so that operational visibility does not expose employee data, credentials, tenant identifiers or sensitive query results, and so that monitoring cannot become an unauthorized access path?
+
+**Decision:** Approved — option B, use privacy-preserving, access-controlled observability with structured allowlisted telemetry, strict separation from business data and audited, time-limited access to exceptional diagnostics. This is a policy decision only.
+
+**Required controls:**
+- Inventory database logs, query traces, slow-query records, error reports, metrics, profiling tools, dashboards, support consoles, log exports and third-party observability processors. Identify data fields, access roles, retention, destinations and cross-environment paths.
+- Define an explicit telemetry schema and allowlist. Prefer operation identifiers, normalized query fingerprints, duration, bounded resource metrics, result counts and coarse failure categories over raw SQL parameters, returned rows or full request payloads.
+- Never log passwords, authentication tokens, session cookies, cryptographic keys, connection strings, secret values or raw credential-bearing headers. Redact or omit personal data, payroll, health-related information and employee content by default.
+- Disable or tightly constrain parameter and result capture, query-plan capture, automatic exception payloads and verbose database debug modes. Ensure production-safe defaults are enforced centrally and cannot be casually enabled by client flags or individual developers.
+- Treat query text, table/column names, tenant identifiers, employee IDs and query fingerprints as potentially sensitive metadata. Minimize, pseudonymize or aggregate them where possible, and prevent high-cardinality labels from creating unintended identity disclosure.
+- Keep security audit evidence distinct from general performance telemetry. Audit events must be purpose-limited, integrity-protected and access-restricted; performance dashboards must not become a substitute audit store or expose broader employee-level activity.
+- Restrict observability access by role, purpose, environment and time. Use separate identities, MFA for privileged consoles, just-in-time elevation where feasible, and protected audit of searches, exports, configuration changes and diagnostic access.
+- Require a tracked, approved, time-limited diagnostic exception when raw query details or sensitive context are genuinely necessary. Minimize the fields and records, mask unrelated tenants and employees, record the reason and approver, and automatically expire the elevated access.
+- Protect telemetry in transit and at rest, separate production from development/test destinations, and prevent production diagnostics from being copied into public tickets, chat systems, developer laptops or unapproved third-party services.
+- Apply bounded retention and controlled disposal to logs, traces, snapshots and exported diagnostic bundles. Align retention with incident, legal-hold and privacy obligations; do not retain sensitive diagnostics indefinitely for convenience.
+- Validate redaction at the source, not only in dashboard presentation. Ensure downstream processors, alert payloads, dead-letter queues and backup copies do not preserve fields that the primary logging pipeline masks.
+- Bound query logging and profiling overhead to prevent resource exhaustion or denial of service. Monitor telemetry pipeline failures and alert on loss of required security evidence without falling back to unrestricted raw logging.
+- Test synthetic cases containing recognizable fake secrets, employee identifiers, payroll/health markers, malicious query values and cross-tenant context. Verify that each is omitted or safely transformed in logs, traces, metrics, alerts, exports and support tools, and test access denial for unauthorized operators.
+- Record telemetry schema versions, redaction tests, diagnostic exceptions, access reviews and retention/disposal outcomes in protected evidence without reproducing the sensitive data being controlled.
+
+**Implementation gates:** Inventory all database observability and diagnostic sinks; define a reviewed telemetry allowlist and source-side redaction policy; configure production-safe defaults and role-scoped access; establish retention and exceptional diagnostic approval workflows; and produce reproducible synthetic leakage and access-control tests across the full telemetry pipeline. No real production logging change, raw-query capture, external processor connection or diagnostic privilege grant is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3194,6 +3218,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-121 Database privilege boundaries and row-level security | Approved — option B least-privilege roles, defense-in-depth row policies and constrained bypass paths; implementation gated on privilege inventory and synthetic tests |
 | L-122 Database replication, read replicas and CDC feeds | Approved — option B separately governed, minimized and revocation-aware replication; implementation gated on feed inventory and synthetic lifecycle tests |
 | L-123 Database encryption boundaries and key custody | Approved — option B layered encryption, protected key use and field-level controls; implementation gated on inventory and synthetic cryptographic tests |
+| L-124 Database observability and sensitive diagnostic data | Approved — option B allowlisted telemetry, source-side redaction and audited diagnostic access; implementation gated on sink inventory and synthetic leakage tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
