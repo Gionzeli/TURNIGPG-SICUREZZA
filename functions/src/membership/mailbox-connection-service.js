@@ -97,7 +97,12 @@ export function createMailboxConnectionService({
         // reference. Attempt scoped cleanup when a non-empty reference exists;
         // never persist it as connection metadata.
         if (typeof secretRef === "string" && secretRef.length > 0) {
-          try { await cleanupSecret({ accountId, connectionId, secretRef, reason: "invalid_secret_ref" }); } catch {}
+          try {
+            // The retry worker requires a durable revocation gate even when
+            // connection metadata was never created for this malformed ref.
+            await disableRefresh({ accountId, connectionId });
+            await cleanupSecret({ accountId, connectionId, secretRef, reason: "invalid_secret_ref" });
+          } catch {}
         }
         fail("failed-precondition", "Credential vault did not return a valid secret reference; cleanup may require vault review.");
       }
