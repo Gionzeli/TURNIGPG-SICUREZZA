@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-93 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-94 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2374,6 +2374,29 @@ Approved policy in principle:
 
 **Still required before implementation:** supported platform and distribution matrix; package/signing provenance process; exact associated-domain and URL allowlists; deep-link routing contract; sensitive handoff design; native/web-view capability inventory; platform storage and backup policy; permission rationale and fallback UX; push payload rules; incident runbooks; and synthetic device/browser integration tests. This decision does not authorize publishing a mobile application, changing production app associations or enabling privileged native capabilities.
 
+### L-94 — Service worker, progressive web app lifecycle and browser cache integrity
+
+**Question:** How should service workers, progressive web app (PWA) installation, browser caches and offline application updates be controlled so that stale or attacker-influenced client code cannot persist, cross account boundaries or weaken current server authorization?
+
+**Approved 2026-11-27 — option B (strict service-worker scope, integrity-controlled releases, non-sensitive cache policy and fail-closed update lifecycle), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+- Maintain an inventory of service workers, registration scopes, script URLs, cache names, cached resource classes, PWA manifests, update channels and responsible owners. Limit each worker to the narrowest required same-origin path and prevent overlapping or unexpectedly broad registrations.
+- Serve service-worker scripts and application assets only over authenticated HTTPS origins with correct content types and restrictive security headers. Prevent untrusted user content, uploads, third-party scripts and mutable cross-origin resources from controlling the worker or its update path.
+- Treat a service worker as privileged persistent client code. Require reviewed, versioned and provenance-verified release artifacts; prohibit runtime code generation, remotely supplied executable code and unreviewed dynamic imports in the controlled application shell.
+- Define explicit cache allowlists by resource type. Cache only immutable, versioned static assets where appropriate. Do not cache authentication responses, tokens, employee records, payroll, absence details, private API responses or other sensitive/tenant-specific data in shared Cache Storage.
+- Ensure any permitted offline data is separately approved, minimized, encrypted where appropriate, partitioned by authenticated account and tenant, and subject to expiry and server-driven revocation limitations. Offline availability must never imply continued permission to access or mutate protected records.
+- On account switch, logout, membership change, suspension, termination or authorization revocation, invalidate applicable local state and remove account-scoped caches and queued material. Do not rely on client cleanup as the sole security boundary; the server must reject stale credentials and reauthorize every protected request.
+- Use atomic cache versioning and controlled activation. Avoid deleting the currently working cache before a verified replacement is available; conversely, do not let an old worker indefinitely serve obsolete application code after a security-critical update.
+- Define safe update behavior for open tabs and active sessions. Detect controller changes, prevent mixed-version execution where incompatible, prompt or coordinate reload when needed, and ensure stale clients cannot bypass current server-side schema, policy or revision checks.
+- Restrict navigation fallback so that API endpoints, authentication routes, downloads, uploads and non-document responses are never accidentally served the application shell. Validate navigation destinations and prevent cache fallback from converting protected resource requests into apparently successful offline responses.
+- Treat messages between pages and service workers as untrusted input. Validate message type, schema, origin, client identity and permitted operation; do not expose privileged cache operations or secrets through message channels.
+- Apply cache-control directives and origin isolation deliberately. Prevent shared intermediary or browser caches from storing personalized responses; ensure private content has explicit no-store behavior where required and test back/forward cache and browser restore behavior for sensitive screens.
+- Provide an emergency worker retirement and recovery procedure for compromised scripts, cache poisoning, bad releases and signing/provenance failures. Verify the replacement worker and assets, invalidate affected caches, revoke impacted sessions when warranted and preserve minimized incident evidence.
+- Audit worker registration and version changes, update failures, cache policy violations and security-relevant invalidation outcomes without recording sensitive cached payloads or tokens.
+- Test synthetic scenarios for broad worker scope, hostile same-origin content, cache poisoning, stale worker persistence, interrupted updates, mixed application versions, cross-account cache reuse, logout and revocation cleanup, offline mutation replay, API navigation fallback, message spoofing and emergency worker retirement.
+
+**Still required before implementation:** complete worker/cache inventory; approved scope and script-origin rules; resource-by-resource cache classification; offline data threat model and explicit allowlist; account/lifecycle invalidation contract; update/activation and rollback state machine; cache-control policy; browser support matrix; emergency retirement runbook; and synthetic browser/Emulator tests. This decision does not authorize deployment of a service worker, enabling offline access to employee data or changing production cache headers.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2467,6 +2490,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-91 Secrets exposure prevention and credential leak response | Approved — option B preventive scanning, least-privilege secret custody and rapid revocation/rotation; implementation gated on inventory, CI boundaries, response runbooks and tests |
 | L-92 DNS security, domain ownership and certificate lifecycle | Approved — option B governed domain inventory, protected DNS administration, DNSSEC where appropriate and automated certificate lifecycle; implementation gated on ownership, change control, key custody and tests |
 | L-93 Mobile application distribution, deep links and platform integrations | Approved — option B verified distribution, strict intent validation and server-authorized handoffs; implementation gated on platform matrix, signing, link contracts and tests |
+| L-94 Service worker, PWA lifecycle and browser cache integrity | Approved — option B strict worker scope, verified updates, non-sensitive cache policy and fail-closed lifecycle; implementation gated on inventory, cache allowlist and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
