@@ -591,7 +591,7 @@ try {
   await migrationPage.locator('form button[type="submit"]').click();
   await migrationPage.getByText("Backup pronto per la revisione d'importazione").waitFor({ state: "visible" });
   assert.match(await migrationPage.locator("#dsm-migration-root").textContent(), /Turni validi/);
-  assert.match(await migrationPage.locator("#dsm-migration-root").textContent(), /Il file non viene caricato, salvato o importato/);
+  assert.match(await migrationPage.locator("#dsm-migration-root").textContent(), /il file non viene caricato, salvato o importato/i);
   assert.equal(migrationErrors.length, 0, migrationErrors.join("; "));
   assert.ok(migrationRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
     "La pagina migrazione DSM ha effettuato richieste esterne.");
