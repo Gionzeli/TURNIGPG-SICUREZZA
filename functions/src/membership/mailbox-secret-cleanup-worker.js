@@ -85,16 +85,18 @@ export function createMailboxSecretCleanupWorker({
           const timestamp = now();
           const exhausted = attempts >= MAX_ATTEMPTS;
           const nextAttemptAt = exhausted ? null : timestamp + retryDelay(attempts);
+          let retryRecorded = false;
           try {
             await cleanupAdapters.recordSecretCleanupFailure({
               accountId: ticket.accountId, connectionId: ticket.connectionId,
               secretRef: ticket.secretRef, attempts, nextAttemptAt,
               lastErrorCode: safeCode(error), timestamp
             });
+            retryRecorded = true;
           } catch {
             // Ticket remains pending; do not surface sensitive backend details.
           }
-          if (exhausted) {
+          if (exhausted && retryRecorded) {
             summary.exhausted++;
             try {
               await alert({ accountId: ticket.accountId, connectionId: ticket.connectionId,
