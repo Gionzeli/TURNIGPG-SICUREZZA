@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-36 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-37 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -1022,6 +1022,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define risk tiers and review triggers; select threat-model template and ownership; specify review/approval roles and independent-review criteria; establish security acceptance-criteria and evidence linkage; define exception process and expiry; and implement automated/ manual checks and synthetic threat tests. This approval does not certify the code, approve deployment or authorize production changes.
 
+### L-37 — Data integrity and unauthorized modification prevention
+
+**Question:** How should record integrity and client-submitted mutations be protected?
+
+Possible choices:
+- **A. Basic validation:** client validation with basic server checks.
+- **B. Strict integrity controls:** server-side schema validation, canonical ownership/authorization checks, revision/concurrency controls, integrity auditing and abuse detection.
+- **C. Trust client record IDs and fields** when requests are authenticated.
+
+**Approved 2026-11-27 — option B (strict server-side integrity controls), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Validate every input at a trusted server boundary against explicit schemas, types, lengths, canonicalization rules and allowed fields; reject unknown or authority-bearing fields.
+- Authorize every write using verified actor identity, canonical employee binding, membership/lifecycle, scope, role, action and field permissions—not client claims.
+- Protect record ownership and domain boundaries. Client-supplied IDs, owner UID, role, scope, revision, timestamps or approval metadata are never authoritative without server-derived verification.
+- Apply expected-revision/optimistic concurrency checks, idempotency for retry-sensitive operations, and atomic transactions where feasible to prevent stale, duplicate or conflicting mutations.
+- Generate minimized protected audit events for actor, action, target, scope, outcome and revision; do not log secrets or sensitive payloads.
+- Detect and monitor integrity anomalies, rejected writes, inconsistent bindings and out-of-band modifications; investigate with controlled response.
+- Enforce query constraints and validate records on both reads and writes. Malformed, unknown or inconsistent records fail closed.
+- Test synthetic abuse cases: authority-field injection, cross-domain writes, stale revisions, replay/double submission, ID spoofing, concurrent mutation and malformed payloads.
+
+**Still required before implementation:** define domain schemas and canonical ownership binding, expected-revision and transaction/idempotency semantics, audit schema, anomaly signals/monitoring, and synthetic test coverage. This approval authorizes no database implementation, real-data mutation or production activation.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1069,7 +1092,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
 | L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
 | L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
-| Other lifecycle and historical access | Open — fail closed |
+| L-37 Data integrity and unauthorized modification prevention | Approved — option B strict server-side integrity controls; implementation gated on schemas, ownership binding, revision/idempotency, audit, monitoring and tests |\n| Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
 
