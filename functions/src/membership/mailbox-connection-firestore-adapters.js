@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHash } from "node:crypto";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -380,10 +380,15 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           !Number.isSafeInteger(event.timestamp)) {
         invalid("Mailbox audit event is malformed.");
       }
+      // Stable event identity makes retries idempotent. Timestamp is not
+      // part of the key because a retry may happen later than the first write.
+      const eventKey = createHash("sha256")
+        .update([event.accountId, event.connectionId, event.action].join("\\0"))
+        .digest("hex");
       const ref = db.doc(
-        `accounts/${event.accountId}/mailboxConnectionAudit/${randomUUID().replaceAll("-", "")}`
+        `accounts/${event.accountId}/mailboxConnectionAudit/${eventKey}`
       );
-      await ref.create({
+      const record = {
         accountId: event.accountId,
         actorUid: event.actorUid,
         action: event.action,
@@ -391,7 +396,27 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         mode: event.mode,
         provider: event.provider,
         timestamp: event.timestamp
-      });
+      };
+      try {
+        await ref.create(record);
+      } catch (error) {
+        if (error?.code !== "already-exists" && error?.code !== 6 && error?.code !== "6") {
+          throw error;
+        }
+        const existing = await ref.get();
+        const previous = existing.exists ? existing.data() : null;
+        const sameEvent = previous &&
+          ["accountId", "actorUid", "action", "connectionId", "mode", "provider"]
+            .every(key => previous[key] === record[key]) &&
+          Number.isSafeInteger(previous.timestamp) && previous.timestamp > 0;
+        if (!sameEvent) {
+          const conflict = new Error("A conflicting immutable mailbox audit event exists.");
+          conflict.code = "failed-precondition";
+          throw conflict;
+        }
+        // Keep the first timestamp; repeated delivery is an acknowledgement,
+        // not a new audit event.
+      }
     }
   });
 }
