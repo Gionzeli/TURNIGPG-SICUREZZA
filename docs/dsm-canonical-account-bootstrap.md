@@ -25,15 +25,18 @@ The script requires `FIRESTORE_EMULATOR_HOST` and a project ID beginning with `d
 
 ## Collaborator association
 
-The existing Employee provisioning service remains a separate two-person process:
+The backend now includes a canonical membership invitation workflow. It is deliberately separate from Employee provisioning:
 
-1. A verified, recent TOTP account admin proposes a target Firebase UID, Employee ID and opaque out-of-band verification reference.
-2. A different verified, recent TOTP account admin approves.
-3. The target must already have an active canonical `member` membership under this account.
-4. Employee creation, forward and reverse UID↔Employee reservations, control revision, proposal approval and audit append commit atomically.
-5. Existing reservations, mismatches, expired proposals or missing canonical membership fail closed. No overwrite or automatic legacy mapping is allowed.
+1. A verified, recent TOTP account admin proposes an invite for an email address and an existing active site in this account.
+2. Only a different verified, recent TOTP account admin can approve it. Both admins are revalidated as active account admins inside the Firestore transaction.
+3. The raw email is not persisted: the proposal stores only a SHA-256 digest of the normalized address. The invite expires after 24 hours.
+4. The invitee must authenticate with Firebase and claim using a revocation-checked ID token whose verified email matches the digest. The account and site are revalidated at claim time.
+5. Only then is an active, site-scoped canonical `member` record created, with an audit event in the same transaction. Invited/pending proposals grant no permissions.
+6. The existing Employee provisioning flow remains a second, independent two-person approval: one admin proposes UID↔Employee association and a different recent-TOTP admin approves. Employee creation, both binding mirrors, control revision, proposal transition and audit append are atomic.
 
-The current prototype does not yet include a safe end-to-end invitation/membership creation workflow for real collaborators. Therefore the synthetic owner fixture is a test bootstrap only; it is not a claim that production onboarding is complete.
+Callable endpoints: `proposeCanonicalMembershipInvite`, `approveCanonicalMembershipInvite`, and `claimCanonicalMembershipInvite`. The invite workflow does not send email or deliver a link: distribution of the opaque `inviteId` is an out-of-band operational step and no email provider is connected. No raw email is returned by the callable or stored in Firestore.
+
+This is backend scaffolding, not a complete user-facing onboarding experience. The UI does not yet provide the invite administration/claim screens, and no real Firebase project or collaborator has been configured. The synthetic owner fixture remains test bootstrap only.
 
 ## Verification boundary
 
