@@ -149,8 +149,12 @@ export function createEmployeeScheduleEmailIngestion({
       const connection = await loadMailboxConnection({ accountId, connectionId });
       if (!connection || connection.accountId !== accountId || connection.connectionId !== connectionId ||
           connection.status !== "active" || typeof connection.provider !== "string" ||
-          !["imap", "gmail_api", "microsoft_graph", "custom_api"].includes(connection.provider)) {
-        fail("failed-precondition", "Mailbox connection is not active or supported.");
+          !["imap", "gmail_api", "microsoft_graph", "custom_api"].includes(connection.provider) ||
+          !["personal", "shared"].includes(connection.mode) ||
+          (connection.mode === "personal" &&
+            (!ID.test(connection.ownerEmployeeId ?? "") || !ID.test(connection.ownerUid ?? ""))) ||
+          (connection.mode === "shared" && (connection.ownerEmployeeId != null || connection.ownerUid != null))) {
+        fail("failed-precondition", "Mailbox connection is not active, supported or correctly scoped.");
       }
       const sender = normalizedEmail(message.from);
       if (!sender || !Number.isSafeInteger(message.receivedAt) || message.receivedAt < 1) fail("invalid-argument", "Invalid sender or received timestamp.");
@@ -198,27 +202,38 @@ export function createEmployeeScheduleEmailIngestion({
             continue;
           }
           const parsed = await extractSchedule({ bytes, filename: attachment.filename, sha256: attachmentSha256 });
-          if (!parsed || !Array.isArray(parsed.documents) || parsed.documents.length < 1 || parsed.documents.length > 100) {
-            await finishIngestionJob({ accountId, jobId: claim.jobId, status: "needs_review", reason: "no_structured_schedule" });
-            results.push({ status: "needs_review", jobId: claim.jobId, reason: "no_structured_schedule" });
+          if (!parsed || !Array.isArray(parsed.documents) || parsed.documents.length < 1 || parsed.documents.length > 100 ||
+              (connection.mode === "personal" && parsed.documents.length !== 1)) {
+            await finishIngestionJob({ accountId, jobId: claim.jobId, status: "needs_review", reason: "no_structured_schedule_or_personal_mailbox_mismatch" });
+            results.push({ status: "needs_review", jobId: claim.jobId, reason: "no_structured_schedule_or_personal_mailbox_mismatch" });
             continue;
           }
           const proposals = [];
           const blocked = [];
           const resolvedEmployeeIds = new Set();
           for (const document of parsed.documents) {
-            if (!document || typeof document.employeeMatchKey !== "string" ||
-                document.employeeMatchKey.length < 1 || document.employeeMatchKey.length > 128 ||
+            const hasMatchKey = typeof document?.employeeMatchKey === "string" &&
+              document.employeeMatchKey.length >= 1 && document.employeeMatchKey.length <= 128;
+            if (!document || (connection.mode === "shared" && !hasMatchKey) ||
+                (hasMatchKey && (document.employeeMatchKey.length < 1 || document.employeeMatchKey.length > 128)) ||
                 !Number.isFinite(document.confidence) || document.confidence < minConfidence ||
                 !Array.isArray(document.shifts) || document.shifts.length < 1 || document.shifts.length > 62) {
               blocked.push({ reason: "low_confidence_or_invalid_document" });
               continue;
             }
             let employee;
-            try { employee = await resolveEmployee({ accountId, connectionId, employeeMatchKey: document.employeeMatchKey }); }
-            catch { employee = null; }
+            try {
+              employee = await resolveEmployee({
+                accountId, connectionId, mode: connection.mode,
+                employeeMatchKey: hasMatchKey ? document.employeeMatchKey : null,
+                ownerEmployeeId: connection.mode === "personal" ? connection.ownerEmployeeId : null,
+                ownerUid: connection.mode === "personal" ? connection.ownerUid : null
+              });
+            } catch { employee = null; }
             if (!employee || employee.accountId !== accountId || !ID.test(employee.employeeId ?? "") ||
-                !ID.test(employee.employeeUid ?? "") || employee.status !== "active" || employee.mappingVerified !== true) {
+                !ID.test(employee.employeeUid ?? "") || employee.status !== "active" || employee.mappingVerified !== true ||
+                (connection.mode === "personal" &&
+                  (employee.employeeId !== connection.ownerEmployeeId || employee.employeeUid !== connection.ownerUid))) {
               blocked.push({ reason: "employee_mapping_unverified" });
               continue;
             }
