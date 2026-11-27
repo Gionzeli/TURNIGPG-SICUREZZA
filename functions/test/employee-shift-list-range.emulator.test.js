@@ -116,6 +116,21 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     const proposalRequest = data => ({
       rawRequest: { headers: { authorization: "Bearer synthetic-token" } }, data
     });
+    await assert.rejects(
+      handlers.proposeOwn(proposalRequest({ accountId, employeeId, source: "employee_manual", changes: [{ operation: "create", shift: { date: "2026-06-22", type: "turno" } }] })),
+      error => error.code === "invalid-argument",
+      "client-selected Employee identity must be rejected"
+    );
+    await assert.rejects(
+      handlers.proposeOwn(proposalRequest({ accountId, source: "employer_email", changes: [{ operation: "create", shift: { date: "2026-06-22", type: "turno" } }] })),
+      error => error.code === "invalid-argument",
+      "client must not claim verified employer-email provenance"
+    );
+    await assert.rejects(
+      handlers.proposeOwn(proposalRequest({ accountId, source: "employee_manual", changes: [{ operation: "create", shift: { date: "2026-06-22", type: "turno", compensation: 123 } }] })),
+      error => error.code === "invalid-argument",
+      "proposal DTO must reject fields outside the shift allowlist"
+    );
     const proposed = await handlers.proposeOwn(proposalRequest({
       accountId,
       source: "employee_manual",
