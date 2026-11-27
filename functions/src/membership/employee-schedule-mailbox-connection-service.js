@@ -4,7 +4,7 @@ const MODES = new Set(["personal", "shared"]);
 const fail = (code, message) => { const error = new Error(message); error.code = code; throw error; };
 const validId = value => typeof value === "string" && ID.test(value);
 const cleanEmail = value => typeof value === "string" && value.length <= 254 &&
-  /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(value.trim()) ? value.trim().toLowerCase() : null;
+  /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim()) ? value.trim().toLowerCase() : null;
 
 /**
  * Provider-neutral mailbox connection lifecycle.
@@ -54,7 +54,7 @@ export function createEmployeeScheduleMailboxConnectionService({
         accountId, connectionId, provider, credential
       });
       if (typeof secretRef !== "string" || secretRef.length < 1 || secretRef.length > 512 ||
-          /[\\r\\n]/.test(secretRef)) {
+          /[\r\n]/.test(secretRef)) {
         fail("failed-precondition", "Credential vault did not return a valid secret reference.");
       }
       const createdAt = now();
