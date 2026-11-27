@@ -17,6 +17,11 @@ function invalid(message) {
   throw error;
 }
 function validId(value) { return typeof value === "string" && ID.test(value); }
+function validSecretRef(value, accountId, connectionId) {
+  if (typeof value !== "string" || value.length > 512) return false;
+  const match = /^mailbox\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{16,128})$/.exec(value);
+  return !!match && match[1] === accountId && match[2] === connectionId;
+}
 function normalizedEmail(value) {
   return typeof value === "string" && value.length <= 254 &&
     value === value.trim().toLowerCase() && EMAIL.test(value);
@@ -34,8 +39,7 @@ function validateConnection(accountId, connectionId, value) {
       value.updatedAt < value.createdAt ||
       (value.status === "revoked"
         ? value.credentialSecretRef !== null
-        : (typeof value.credentialSecretRef !== "string" ||
-           value.credentialSecretRef.length < 1 || value.credentialSecretRef.length > 512)) ||
+        : !validSecretRef(value.credentialSecretRef, accountId, connectionId)) ||
       !Array.isArray(value.allowedSenders) || value.allowedSenders.length < 1 ||
       value.allowedSenders.length > 30 ||
       value.allowedSenders.some(item => !normalizedEmail(item)) ||
@@ -136,7 +140,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
 
     async recordSecretCleanup({ accountId, connectionId, secretRef, reason, timestamp = Date.now() }) {
       if (!validId(accountId) || !validId(connectionId) ||
-          typeof secretRef !== "string" || secretRef.length < 1 || secretRef.length > 2048 ||
+          !validSecretRef(secretRef, accountId, connectionId) ||
           typeof reason !== "string" || !/^[a-z0-9_-]{1,64}$/.test(reason) ||
           !Number.isSafeInteger(timestamp) || timestamp < 1) {
         invalid("Mailbox secret cleanup record is malformed.");
@@ -179,7 +183,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const value = doc.data();
         if (!value || value.accountId !== accountId ||
             typeof value.connectionId !== "string" || !validId(value.connectionId) ||
-            typeof value.secretRef !== "string" || value.secretRef.length < 1 ||
+            !validSecretRef(value.secretRef, accountId, value.connectionId) ||
             value.status !== "pending" || !Number.isSafeInteger(value.attempts) ||
             value.attempts < 1 ||
             !(value.nextAttemptAt === null ||
@@ -199,7 +203,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
       if (!snapshot.exists) return null;
       const value = snapshot.data();
       if (!value || value.accountId !== accountId || value.connectionId !== connectionId ||
-          typeof value.secretRef !== "string" || value.secretRef.length < 1 ||
+          !validSecretRef(value.secretRef, accountId, connectionId) ||
           !["pending", "exhausted", "complete"].includes(value.status) ||
           !Number.isSafeInteger(value.attempts) || value.attempts < 1) return null;
       return value;
@@ -207,7 +211,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
 
     async recordSecretCleanupFailure({ accountId, connectionId, secretRef, attempts, nextAttemptAt, lastErrorCode, timestamp = Date.now() }) {
       if (!validId(accountId) || !validId(connectionId) ||
-          typeof secretRef !== "string" || secretRef.length < 1 || secretRef.length > 2048 ||
+          !validSecretRef(secretRef, accountId, connectionId) ||
           !Number.isSafeInteger(attempts) || attempts < 2 || attempts > 1000 ||
           !(nextAttemptAt === null || (Number.isSafeInteger(nextAttemptAt) && nextAttemptAt >= timestamp)) ||
           typeof lastErrorCode !== "string" || !/^[a-z0-9_-]{1,64}$/.test(lastErrorCode) ||
