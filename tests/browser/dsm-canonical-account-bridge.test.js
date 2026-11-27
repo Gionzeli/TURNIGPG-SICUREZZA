@@ -117,6 +117,26 @@ if (root.textContent.includes("synthetic-employee-uid") || root.textContent.incl
 if (shiftPanel.querySelector("tbody button") || shiftPanel.textContent.includes("Modifica")) {
   throw new Error("Employee calendar must not expose direct shift mutation controls.");
 }
+await new Promise((resolve, reject) => {
+  const started = Date.now();
+  const check = () => {
+    if (root.textContent.includes("Postazione nuova") && root.textContent.includes("Approva e aggiorna il calendario")) return resolve();
+    if (Date.now() - started > 5000) return reject(new Error("Personal proposal review UI did not load."));
+    setTimeout(check, 20);
+  };
+  check();
+});
+const personalApprove = [...root.querySelectorAll("button")].find(item => item.textContent === "Approva e aggiorna il calendario");
+personalApprove.click();
+await new Promise((resolve, reject) => {
+  const started = Date.now();
+  const check = () => {
+    if (window.__approvedProposal?.proposalId === "synthetic-proposal-01") return resolve();
+    if (Date.now() - started > 5000) return reject(new Error("Personal employee approval action was not invoked."));
+    setTimeout(check, 20);
+  };
+  check();
+});
 const accountSelect = root.querySelector("select");
 accountSelect.value = accounts[1].accountId;
 accountSelect.dispatchEvent(new Event("change", { bubbles: true }));
