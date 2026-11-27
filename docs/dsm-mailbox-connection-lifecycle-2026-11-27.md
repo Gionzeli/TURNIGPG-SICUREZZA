@@ -34,3 +34,17 @@ The adapter is unit-tested with an in-memory Firestore-shaped fixture. It is
 not instantiated by `functions/src/index.js`, and no callable or real
 Firestore operation invokes it yet. It does not make provider authorization or
 secret storage available; those adapters remain absent.
+
+## Personal actor authorization adapter
+
+A separate server-side resolver now reloads the active Firebase Auth user,
+canonical account and membership, and both reciprocal UID↔Employee binding
+documents in one Firestore transaction. It also verifies the Employee lifecycle
+record. It rejects disabled or unverified Auth users, inactive/expired
+membership, stale or mismatched reciprocal bindings, and every shared-mode
+request. The callable layer must still verify the incoming Firebase ID token
+with revocation checking before invoking the mailbox service; the resolver
+does not accept a client-supplied Employee ID.
+
+This resolver is not yet wired into a callable. No provider authorization
+payload is accepted from the browser, and no mailbox connection is enabled.
