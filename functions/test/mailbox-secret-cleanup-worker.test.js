@@ -49,6 +49,7 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
       },
       listPendingCleanupAlerts: async ({ accountId }) => records.filter(item =>
         item.accountId === accountId && item.status === "exhausted" && item.alertStatus === "pending"),
+      recordCleanupAlertFailure: async () => {},
       markCleanupAlertDelivered: async ({ connectionId }) => {
         records = records.map(item => item.connectionId === connectionId
           ? { ...item, alertStatus: "delivered" } : item);
