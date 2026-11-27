@@ -466,3 +466,65 @@ test("worker timestamps alert acknowledgement after notification completes", asy
   await worker.runOnce({ accountId: "synthetic-account" });
   assert.equal(deliveredAt, 8000);
 });
+
+
+test("worker leaves a sent alert pending if acknowledgement clock validation fails", async () => {
+  let clockReads = 0;
+  let sends = 0;
+  let marks = 0;
+  let failureWrites = 0;
+  const alertTicket = {
+    accountId: "synthetic-account", connectionId: "safe-connection",
+    status: "exhausted", alertStatus: "pending", attempts: 12,
+    lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
+  };
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [alertTicket],
+      recordCleanupAlertFailure: async () => { failureWrites++; },
+      markCleanupAlertDelivered: async () => { marks++; }
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async input => {
+      sends++;
+      assert.equal(input.alertId, "synthetic-account:safe-connection:cleanup-exhausted");
+    },
+    now: () => (++clockReads === 1 ? 1000 : Number.NaN)
+  });
+  await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(sends, 1);
+  assert.equal(marks, 0);
+  assert.equal(failureWrites, 0);
+});
+
+test("worker schedules alert retry from the time a failed send completes", async () => {
+  let clock = 1000;
+  let recorded = null;
+  const alertTicket = {
+    accountId: "synthetic-account", connectionId: "safe-connection",
+    status: "exhausted", alertStatus: "pending", attempts: 12,
+    lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
+  };
+  const worker = createMailboxSecretCleanupWorker({
+    cleanupAdapters: {
+      listPendingSecretCleanup: async () => [],
+      completeSecretCleanup: async () => {},
+      recordSecretCleanupFailure: async () => {},
+      listPendingCleanupAlerts: async () => [alertTicket],
+      recordCleanupAlertFailure: async input => { recorded = input; },
+      markCleanupAlertDelivered: async () => {}
+    },
+    credentialVault: { revokeSecret: async () => {} },
+    alert: async () => {
+      clock = 7000;
+      throw Object.assign(new Error("synthetic"), { code: "unavailable" });
+    },
+    now: () => clock
+  });
+  await worker.runOnce({ accountId: "synthetic-account" });
+  assert.equal(recorded.timestamp, 7000);
+  assert.equal(recorded.nextAttemptAt, 127000);
+});
