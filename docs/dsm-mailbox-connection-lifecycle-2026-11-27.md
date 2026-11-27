@@ -703,3 +703,13 @@ Before advancing or acknowledging a pending exhaustion alert, the Firestore
 adapter now validates its persisted retry counter, next-attempt timestamp, and
 last error code. Malformed stored metadata fails closed instead of being
 coerced during retry comparison or silently acknowledged as delivered.
+
+
+#### Cleanup alert retry-state consistency
+
+A pending exhaustion alert has two valid persisted states: the initial state
+(zero attempts, no scheduled retry, no last error) or a retry state (one or more
+attempts, a positive next-attempt timestamp, and a validated last error code).
+The Firestore adapter applies this invariant both when listing pending alerts
+and before retry/acknowledgement transitions, preventing partially populated
+metadata from being treated as an immediately due alert.
