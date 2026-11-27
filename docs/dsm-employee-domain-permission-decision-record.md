@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-35 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-36 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -999,6 +999,29 @@ Approved policy in principle:
 
 **Still required before implementation:** define the impact classification and action catalogue; confirmation and preview requirements per action; approval/separation-of-duties matrix; concurrency/idempotency strategy; reversibility and retention constraints; bulk-operation limits and recovery procedures; audit schema; and synthetic tests for each guarded action. This approval does not authorize destructive or bulk operations, real-data changes or production activation.
 
+### L-36 — Secure design, threat modeling and security review gates
+
+**Question:** How should security requirements be incorporated into feature design and changes?
+
+Possible choices:
+- **A. Reactive security:** perform security review mainly after implementation or when incidents arise.
+- **B. Security-by-design gates:** threat model material changes, define security acceptance criteria, review architecture and abuse cases before implementation, and validate them with tests.
+- **C. Full pre-approval for every minor change:** require formal security review for all changes regardless of risk or impact.
+
+**Approved 2026-11-27 — option B (risk-based security-by-design and review gates), selected under the user's standing authorization for ChatGPT to choose and record the recommended security option.**
+
+Approved policy in principle:
+- Integrate security, privacy and abuse-case analysis into planning and design for new features and material changes, proportional to risk and impact.
+- Maintain a threat model that identifies assets, trust boundaries, actors, attack surfaces, abuse cases, assumptions, mitigations and residual risks. Revisit it when architecture, data flows, permissions or integrations change.
+- Define security acceptance criteria before implementation for authentication, authorization, data minimization, lifecycle, audit, failure behavior and tests as applicable.
+- Require peer review for security-sensitive changes and independent review for critical boundaries, privileged actions, authentication, authorization, sensitive data handling and external integrations.
+- Validate requirements with automated and manual tests in isolated environments using synthetic data. Include abuse cases, negative tests and failure paths, not only happy-path tests.
+- Document risk exceptions with scope, justification, accountable approval, compensating controls and expiry; do not silently waive security gates.
+- Keep review artifacts and decisions traceable to implementation and test evidence. Policy approval, review completion, implementation, passing tests and deployment remain distinct states.
+- Prevent security gates from becoming ceremonial checklists: reviewers must be able to reject incomplete evidence and require remediation.
+
+**Still required before implementation:** define risk tiers and review triggers; select threat-model template and ownership; specify review/approval roles and independent-review criteria; establish security acceptance-criteria and evidence linkage; define exception process and expiry; and implement automated/ manual checks and synthetic threat tests. This approval does not certify the code, approve deployment or authorize production changes.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -1045,6 +1068,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-33 Business continuity and incident recovery | Approved — option B planned continuity, domain-specific RTO/RPO, protected backups, tested restores and integrity/authorization validation; implementation gated on impact analysis, architecture, owners and exercises |
 | L-34 Third-party integrations | Approved — option B risk-reviewed integration governance, minimal data/scope, credential isolation, monitoring, periodic review and offboarding; implementation gated on provider inventory, risk/privacy review, contracts, ownership and tests |
 | L-35 Human error and irreversible operations | Approved — option B guarded operations with explicit confirmation, preview, stale-state validation, reversibility, separation of duties and protected audit; implementation gated on action classification, approval matrix, safeguards and tests |
+| L-36 Security-by-design and threat modeling | Approved — option B risk-based threat modeling, security acceptance criteria, review gates, evidence-linked testing and time-bounded risk exceptions; implementation gated on ownership, review triggers, process and tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
