@@ -196,3 +196,16 @@ The coordinator unit tests also verify that if lease renewal fails after the pro
 ### Revocation error classification
 
 Lease acquisition now preserves the explicit `failed-precondition` result when the per-connection revocation marker is present, rather than flattening it into a generic coordination outage. The existing synthetic lease-service regression asserts this exact code. This is diagnostic/API error classification only; it does not change the fail-closed behavior.
+
+
+### In-flight revocation race: composed Emulator coverage
+
+Extended `functions/test/mailbox-token-lifecycle-emulator.integration.test.js` with a second scenario. It starts a refresh through the coordinator, waits until the synthetic provider is in flight, activates the Firestore revocation gate through the lease service, and then releases the provider response. The coordinator must fail lease renewal and leave the Secret Manager version pointer on the original credential. The test also attempts a direct vault write with the formerly valid owner/fencing proof and verifies the backend transaction rejects it with a conflict after observing `revocationPending`. The original refresh token and version remain unchanged.
+
+Run this together with the existing lifecycle Emulator scenario using:
+
+```sh
+FIRESTORE_EMULATOR_HOST=127.0.0.1:8081 GCLOUD_PROJECT=demo-dsm-mailbox node --test test/mailbox-token-lifecycle-emulator.integration.test.js
+```
+
+The test is added but has not been executed in this environment. It uses Firestore Emulator plus synthetic in-memory Secret Manager and provider transports; it is not evidence of live provider cancellation, cloud Secret Manager behavior, production IAM, or callable/worker wiring.
