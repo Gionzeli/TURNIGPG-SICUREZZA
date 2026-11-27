@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-114 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-115 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -2858,6 +2858,32 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory API routes and all method-override behavior; document canonical method and path rules for each supported protocol and framework; align gateway, middleware, router, cache and audit semantics; reject ambiguous aliases; and provide reproducible synthetic integration tests proving that authorization and handler dispatch use the same canonical operation and resource. No production routing or gateway configuration change is authorized by this decision.
 
+### L-115 — API media-type enforcement, content negotiation and parser consistency
+
+**Question:** How should API endpoints prevent media-type confusion, parser differentials and unsafe content negotiation from causing request bodies or responses to be interpreted differently by gateways, middleware and application handlers?
+
+**Decision:** Approved — option B, define a narrow per-endpoint media-type contract, reject unsupported or ambiguous content types and encodings, and ensure validation, authorization and handler execution operate on the same parsed representation. This is a policy decision only; implementation and verification remain gated.
+
+**Required controls:**
+- Define an explicit request and response media-type allowlist for each API endpoint and operation; do not accept arbitrary formats or infer a trusted format from file extensions or client hints.
+- Require an accurate Content-Type for endpoints with bodies; reject missing, malformed, duplicated or conflicting Content-Type headers and unsupported media-type parameters.
+- Define strict handling for charset parameters, content encodings and structured syntax suffixes; accept only explicitly supported combinations and reject ambiguous or unsupported declarations.
+- Do not use MIME sniffing to decide how security-sensitive request bodies are parsed; the selected parser must follow the endpoint contract and validated media type.
+- Ensure gateways, request validators, authorization middleware, application frameworks and business handlers agree on the exact media type, content encoding and parsed body representation.
+- Reject requests that could be interpreted by different parsers or formats across layers; prohibit silent fallback from JSON to form, XML, multipart or other parsers.
+- For JSON endpoints, require strict JSON parsing, reject malformed input and duplicate object member names where parser disagreement could change security-relevant values; define number, Unicode and null handling consistently.
+- Disable XML and other complex parsers unless a documented endpoint requires them; if enabled, prohibit external entity resolution, external resource retrieval and unsafe expansion features, and enforce bounded depth, size and processing time.
+- Treat multipart and form parsers as endpoint-specific capabilities; enforce field and part allowlists, count and size limits, filename handling and safe parser behavior without allowing body fields to override server-controlled identity, scope or permission data.
+- Validate the fully parsed representation against a strict versioned schema before business processing; reject unknown security-sensitive fields and duplicate or conflicting representations rather than silently choosing one.
+- Ensure content negotiation through Accept and related headers cannot downgrade a protected response to an unsafe or less constrained representation; return only explicitly supported response types.
+- Keep authorization decisions independent of content-type claims while binding the authorized operation to the validated schema and parsed values that the handler actually consumes.
+- Prevent response media-type confusion by setting the correct Content-Type, applying X-Content-Type-Options: nosniff where appropriate, and avoiding mixed active content or unsafe inline rendering of untrusted data.
+- Apply consistent body-size, decompression-ratio, nesting-depth, parser-time and resource limits; reject decompression bombs and excessive structured input before expensive processing.
+- Log bounded parser and validation failure categories without storing raw sensitive bodies, credentials or personal data; ensure error responses do not disclose parser internals or restricted record existence.
+- Test mismatched and duplicate media types, unsupported charsets/encodings, parser disagreement, duplicate JSON keys, malformed structured bodies, unsafe XML features, multipart boundary edge cases, content-negotiation downgrade and resource-exhaustion cases using synthetic requests.
+
+**Implementation gates:** Inventory endpoint media-type contracts and parser stacks; define supported request/response formats and strict parsing behavior; align gateway and application validation; configure bounded parser and decompression limits; and provide reproducible synthetic integration tests proving identical interpretation from ingress through handler execution. No production API parser or content-negotiation change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -2972,6 +2998,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-112 Secure pagination cursors, snapshot consistency and authorization continuity | Approved — option B opaque query-bound cursors, per-page reauthorization and explicit consistency semantics; implementation gated on cursor design and revocation/concurrency tests |
 | L-113 HTTP request parsing consistency, proxy trust and request-smuggling resistance | Approved — option B consistent parsing, rejection of ambiguous framing and trusted-proxy boundaries; implementation gated on ingress inventory and differential tests |
 | L-114 HTTP method override, route canonicalization and authorization-path consistency | Approved — option B explicit methods, canonical route interpretation and authorization/handler alignment; implementation gated on route inventory and differential tests |
+| L-115 API media-type enforcement, content negotiation and parser consistency | Approved — option B endpoint media-type allowlists, strict unified parsing and bounded processing; implementation gated on parser inventory and differential tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
