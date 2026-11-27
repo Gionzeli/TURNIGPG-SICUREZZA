@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-125 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-126 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -3120,6 +3120,30 @@ Approved policy in principle:
 
 **Implementation gates:** Inventory database and service dependencies, backup/replica topology, key custody, recovery identities and current restore procedures; approve domain-specific RTO/RPO and failover authority; define authorization-state reconciliation and split-brain controls; and produce reproducible synthetic recovery exercises with recorded integrity, isolation, revocation and audit checks. No real backup restore, failover, regional promotion, production recovery action or service activation is authorized by this decision.
 
+### L-126 — Database geographic residency, regional processing and cross-border data movement
+
+**Question:** How should database hosting regions, replicas, backups, support access and cross-region processing be governed so that employee and organizational data is not moved, exposed or made accessible in an unreviewed jurisdiction or location?
+
+**Decision:** Approved — option B, maintain an explicit data-location inventory and approved-region policy for each data class and processing purpose, and block unapproved storage, replication, backup, support access or transfer pending documented privacy, legal and security review. This is a policy decision only.
+
+**Required controls:**
+- Inventory the geographic location of primary databases, replicas, caches, backups, snapshots, logs, telemetry, encryption-key services, disaster-recovery environments and downstream processors. Record the legal entity/provider, region, data classes, purpose, retention and access locations.
+- Define approved locations by data class and processing purpose, not by a broad assumption that one cloud region governs every copy or access path. Include the location from which provider personnel, support teams and subprocessors may access plaintext or administrative interfaces.
+- Document applicable legal basis, contractual commitments, data-transfer mechanisms, processor/subprocessor terms and privacy assessments before enabling a new region or cross-border processing path. Obtain qualified legal/privacy review; this policy record does not make legal determinations.
+- Configure region allowlists and organization-level guardrails for database creation, replication, backup, export and managed service deployment. Deny unapproved regions by default and alert on attempted or detected location drift.
+- Ensure infrastructure-as-code, deployment configuration and migration workflows declare intended regions explicitly. Review regional changes as security/privacy-impacting changes, with independent approval and evidence of the resulting resource locations.
+- Treat failover and disaster recovery as geographic transfers when the target region differs. A recovery plan must not silently promote an unapproved region; verify location approval, key availability, contractual coverage and data-protection controls before promotion.
+- Restrict remote administrative and support access by approved role, purpose, location and duration. Data residency is not satisfied merely because disks remain in one region if personnel or services elsewhere can access plaintext or export records.
+- Govern encryption keys and key-management operations consistently with approved location and access requirements. Record key custody and administrative access locations; do not assume encryption alone resolves residency or transfer obligations.
+- Apply the same location and transfer policy to CDC streams, event feeds, analytics, observability, temporary processing, support bundles and vendor subprocessors. Prevent unreviewed onward transfer or use for unrelated purposes.
+- Keep synthetic test data geographically separate from production data and ensure test fixtures do not contain real employee information. Any approved exception involving real data must have a separate documented purpose, scope, safeguards and expiry.
+- Monitor actual resource regions, backup destinations, replication targets, support sessions and provider/subprocessor changes. Reconcile observed locations against the approved inventory and promptly investigate drift.
+- Define change, incident and provider-exit procedures for region discontinuation, legal restrictions, provider acquisition, subprocessor changes or loss of contractual safeguards. Include controlled migration, secure disposal of old copies and verifiable completion.
+- Test policy enforcement using synthetic deployments and configuration checks: prohibited-region creation, cross-region replica, backup destination drift, failover target, support access, downstream feed and infrastructure-as-code review. Verify deny and alert behavior.
+- Maintain protected evidence of region approvals, assessments, processor terms, configuration checks, exceptions, access reviews and disposition outcomes without copying unnecessary personal data.
+
+**Implementation gates:** Establish the actual processing and resource-location inventory; obtain jurisdiction-specific legal/privacy and security review; define approved locations and transfer conditions by data class; implement preventive region guardrails and drift monitoring; and produce reproducible synthetic tests covering storage, backup, support, replication, failover and downstream processing. No region change, cross-border transfer, production resource creation or provider connection is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3245,6 +3269,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-123 Database encryption boundaries and key custody | Approved — option B layered encryption, protected key use and field-level controls; implementation gated on inventory and synthetic cryptographic tests |
 | L-124 Database observability and sensitive diagnostic data | Approved — option B allowlisted telemetry, source-side redaction and audited diagnostic access; implementation gated on sink inventory and synthetic leakage tests |
 | L-125 Database availability, failover and recovery | Approved — option B tested recovery with authorization reconciliation and fail-closed restoration; implementation gated on topology inventory and synthetic exercises |
+| L-126 Database geographic residency and cross-border processing | Approved — option B approved-region inventory, transfer review and deny-by-default guardrails; implementation gated on legal/privacy review and synthetic location tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
