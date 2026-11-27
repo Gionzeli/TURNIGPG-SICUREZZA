@@ -206,7 +206,7 @@ test("an absent optional flag in a PDF does not clear a previously recorded valu
 test("authenticated but non-allowlisted sender is rejected", async () => {
   const { service, calls } = harness({
     loadMailboxConnection: async () => ({
-      accountId, connectionId, provider: "imap", status: "active",
+      accountId, connectionId, provider: "imap", mode: "shared", status: "active",
       allowedSenders: ["ufficio@azienda.example"]
     })
   });
