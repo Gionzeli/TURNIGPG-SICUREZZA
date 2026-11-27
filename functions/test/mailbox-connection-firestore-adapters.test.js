@@ -733,7 +733,11 @@ test("cleanup alert transitions reject malformed persisted retry metadata", asyn
     { alertAttempts: "0" },
     { alertAttempts: -1 },
     { alertNextAttemptAt: -1 },
-    { alertLastErrorCode: "INVALID CODE" }
+    { alertLastErrorCode: "INVALID CODE" },
+    { alertAttempts: 1 },
+    { alertNextAttemptAt: input.timestamp + 5000 },
+    { alertAttempts: 1, alertNextAttemptAt: input.timestamp + 5000 },
+    { alertAttempts: 1, alertNextAttemptAt: input.timestamp + 5000, alertLastErrorCode: null }
   ]) {
     docs.set(path, { ...original, ...malformed });
     await assert.rejects(adapters.recordCleanupAlertFailure({
