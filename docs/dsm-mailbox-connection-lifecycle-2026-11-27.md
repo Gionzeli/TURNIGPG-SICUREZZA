@@ -55,3 +55,7 @@ A new server-only transaction coordinator provides OAuth state binding and PKCE 
 
 
 This is not a provider integration: redirect URI validation, OAuth client configuration, consent screens, callback HTTP handling, provider token exchange, encrypted vault storage, and Firebase callable wiring remain to be implemented and security-reviewed. The transaction store contract requires atomic consume/delete; no real provider or Firebase service has been accessed.
+
+## Firestore OAuth transaction storage (server-only, synthetic tests)
+
+A concrete Admin-SDK adapter for the PKCE transaction store now uses a Firestore transaction to read and delete a state-hash document atomically. Document IDs are SHA-256 state hashes; raw OAuth state is never persisted. The adapter validates record shape, provider allowlist, verifier format, and the fixed ten-minute lifetime. Expired/malformed transactions are deleted on consumption and fail closed. This adapter is not wired to Firebase or a callable; provider callback and configuration remain absent.
