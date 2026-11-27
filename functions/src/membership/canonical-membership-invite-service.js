@@ -22,24 +22,26 @@ function requireAdmin(membership, uid, accountId, identity, nowMs) {
 }
 
 /** Two-person invitation approval; raw email is never persisted. */
-export async function proposeCanonicalMembershipInvite({ db, accountId, actorUid, actorIdentity, inviteId, email, now = () => Date.now() }) {
-  if (!validId(accountId) || !validId(actorUid) || !validId(inviteId) ||
+export async function proposeCanonicalMembershipInvite({ db, accountId, actorUid, actorIdentity, inviteId, email, siteId, now = () => Date.now() }) {
+  if (!validId(accountId) || !validId(actorUid) || !validId(inviteId) || !validId(siteId) ||
       typeof email !== "string" || email.length > 254 || !EMAIL.test(email.trim())) {
     fail("invalid-argument", "A valid account, invite ID and email are required.");
   }
   const accountRef = db.doc(`accounts/${accountId}`);
   const actorRef = db.doc(`accounts/${accountId}/members/${actorUid}`);
+  const siteRef = db.doc(`accounts/${accountId}/sites/${siteId}`);
   const inviteRef = db.doc(`accounts/${accountId}/membershipInviteProposals/${inviteId}`);
   return db.runTransaction(async tx => {
-    const [account, actor, existing] = await Promise.all([tx.get(accountRef), tx.get(actorRef), tx.get(inviteRef)]);
+    const [account, actor, site, existing] = await Promise.all([tx.get(accountRef), tx.get(actorRef), tx.get(siteRef), tx.get(inviteRef)]);
     const createdAt = now();
     if (!account.exists || account.data().status !== "active") fail("failed-precondition", "Active account required.");
     requireAdmin(actor.exists ? actor.data() : null, actorUid, accountId, actorIdentity, createdAt);
+    if (!site.exists || site.data().accountId !== accountId || site.data().siteId !== siteId || site.data().status !== "active") fail("failed-precondition", "Active site in this account required.");
     if (existing.exists) fail("already-exists", "Invite ID already used.");
     const expiresAt = createdAt + LIFETIME;
     tx.create(inviteRef, {
       accountId, inviteId, emailDigest: emailDigest(email), role: "member",
-      scopeType: "site", scopeIds: [], status: "pending",
+      scopeType: "site", scopeIds: [siteId], status: "pending",
       proposedBy: actorUid, createdAt, expiresAt
     });
     return Object.freeze({ inviteId, status: "pending", expiresAt });
@@ -106,14 +108,14 @@ export async function claimCanonicalMembershipInvite({ db, accountId, inviteId, 
     if (audit.exists) fail("already-exists", "Invite claim audit event already exists.");
     const membership = {
       accountId, uid: actorUid, status: "active", role: "member",
-      scopeType: "site", scopeIds: [], validFrom: new Date(claimedAt), validUntil: null,
+      scopeType: "site", scopeIds: [value.scopeIds[0]], validFrom: new Date(claimedAt), validUntil: null,
       inviteId, createdAt: claimedAt, approvedBy: value.approvedBy
     };
     // Site scope must be explicitly assigned before an employee can be provisioned.
     // An empty scope is deliberately invalid under membership policy, so no authority is granted here.
-    tx.create(memberRef, { ...membership, status: "invited_pending_scope" });
-    tx.update(inviteRef, { status: "claimed_pending_scope", claimedBy: actorUid, claimedAt });
+    tx.create(memberRef, { ...membership, status: "active" });
+    tx.update(inviteRef, { status: "claimed", claimedBy: actorUid, claimedAt });
     tx.create(auditRef, { eventId: `claim-${inviteId}`, type: "membership.invite.claimed", accountId, inviteId, actorUid, occurredAt: claimedAt });
-    return Object.freeze({ inviteId, status: "claimed_pending_scope" });
+    return Object.freeze({ inviteId, status: "claimed" });
   });
 }
