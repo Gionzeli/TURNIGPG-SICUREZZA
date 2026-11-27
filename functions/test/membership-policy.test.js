@@ -11,7 +11,8 @@ test("derives member permissions and ignores client-injected permissions", () =>
     "dsm:employee:shift:read:self",
     "dsm:employee:shift:create:self",
     "dsm:employee:shift:update:self",
-    "dsm:employee:shift:delete:self"
+    "dsm:employee:shift:delete:self",
+    "dsm:employee:employment-profile:read:self"
   ]);
   assert.equal(Object.isFrozen(result), true);
   assert.equal(Object.isFrozen(result.scopeIds), true);
@@ -84,7 +85,8 @@ test("manager and admin roles do not inherit employee self-shift permissions", (
     "dsm:employee:shift:read:self",
     "dsm:employee:shift:create:self",
     "dsm:employee:shift:update:self",
-    "dsm:employee:shift:delete:self"
+    "dsm:employee:shift:delete:self",
+    "dsm:employee:employment-profile:read:self"
   ]) {
     assert.equal(manager.permissions.includes(permission), false);
     assert.equal(admin.permissions.includes(permission), false);
