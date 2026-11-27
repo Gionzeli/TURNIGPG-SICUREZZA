@@ -107,3 +107,11 @@ test('disable creates a permanent fail-closed gate when no lease record exists',
  assert.equal(f.record.fencingToken,0);
  await assert.rejects(()=>f.service.acquire({...scope}),{code:'failed-precondition'});
 });
+
+
+test('cleanup gate assertion succeeds only after durable revocation disable',async()=>{
+ const f=fixture();
+ await assert.rejects(()=>f.service.assertRevocationPending(scope),{code:'failed-precondition'});
+ await f.service.disable(scope);
+ assert.deepEqual(await f.service.assertRevocationPending(scope),{status:'revocation_pending'});
+});
