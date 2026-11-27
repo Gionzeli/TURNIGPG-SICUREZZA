@@ -501,3 +501,26 @@ test("deterministic audit identity rejects incompatible event contents", async (
   assert.equal([...docs.keys()].filter(path =>
     path.includes("/mailboxConnectionAudit/")).length, 1);
 });
+
+
+test("concurrent stale revocation finalization cannot rewrite terminal revoked metadata", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const args = { accountId: active.accountId, connectionId: active.connectionId };
+  await adapters.saveConnection({ ...args, connection: active });
+  const pending = { ...active, status: "revocation_pending", updatedAt: active.updatedAt + 1 };
+  await adapters.saveConnection({ ...args, connection: pending });
+  const firstFinal = {
+    ...pending, status: "revoked", credentialSecretRef: null,
+    revokedAt: pending.updatedAt + 10, updatedAt: pending.updatedAt + 10
+  };
+  await adapters.saveConnection({ ...args, connection: firstFinal });
+  const staleFinal = {
+    ...pending, status: "revoked", credentialSecretRef: null,
+    revokedAt: pending.updatedAt + 50, updatedAt: pending.updatedAt + 50
+  };
+  await adapters.saveConnection({ ...args, connection: staleFinal });
+  const stored = docs.get("accounts/synthetic-account/mailboxConnections/synthetic-connection");
+  assert.equal(stored.revokedAt, firstFinal.revokedAt);
+  assert.equal(stored.updatedAt, firstFinal.updatedAt);
+});
