@@ -7,19 +7,19 @@ function fakeFirestore() {
   const db = {
     collection(path) {
       return {
-        where(field, value, expected) {
+        where(whereField, operator, expected) {
           return {
-            orderBy(field, direction) {
+            orderBy(orderField, direction) {
               return {
                 limit(max) {
                   return {
                     async get() {
                       const prefix = path + "/";
                       const docsFound = [...docs.entries()]
-                        .filter(([key, item]) => key.startsWith(prefix) && item[field] === expected)
+                        .filter(([key, item]) => key.startsWith(prefix) && item[whereField] === expected)
                         .sort((a, b) => {
-                          const av = a[1].nextAttemptAt ?? 0;
-                          const bv = b[1].nextAttemptAt ?? 0;
+                          const av = a[1][orderField] ?? 0;
+                          const bv = b[1][orderField] ?? 0;
                           return av - bv || (a[1].createdAt ?? 0) - (b[1].createdAt ?? 0);
                         })
                         .slice(0, max)
