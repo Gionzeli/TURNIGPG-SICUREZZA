@@ -665,3 +665,13 @@ persisted `revocationPending` marker unless it is absent or a boolean. In
 particular, string values such as `"false"` cannot bypass the revocation gate.
 Synthetic regression coverage verifies acquisition/disable fail closed and
 renewal treats malformed persisted state as a lost lease.
+
+
+#### Explicit refresh-gate confirmation
+
+The mailbox connection lifecycle now requires the injected refresh-disable
+adapter to return exactly `{ status: "revocation_pending" }` before either
+setup-failure cleanup or user-requested revocation can delete credentials.
+A void, false, or differently-stated response fails closed and leaves the
+connection non-active without attempting vault deletion. This mirrors the
+cleanup worker's explicit gate-confirmation contract.
