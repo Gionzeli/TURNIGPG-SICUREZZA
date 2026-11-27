@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - dsm-enterprise/core-v1
+      - codex/employee-shift-date-range-query
   workflow_dispatch:
 
 permissions:
