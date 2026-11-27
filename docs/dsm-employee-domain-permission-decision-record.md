@@ -1,6 +1,6 @@
 # Employee data permissions — decision record for review
 
-**Status:** D-01 through D-07 and L-01 through L-126 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
+**Status:** D-01 through D-07 and L-01 through L-127 have recorded policy approvals as detailed below; implementation remains gated on the stated role, scope, schema, workflow, lifecycle, and test requirements. No approval authorizes production activation.
 **Scope:** clarify decisions required before implementing protected Employee profile, compensation, shift, absence, audit, or export endpoints.
 **Development boundary:** documentation on `codex/employee-shift-date-range-query`; synthetic data only.
 **Related decisions:** `dsm-employee-firestore-decision.md`, `dsm-data-domain-authorization-matrix.md`, `dsm-hybrid-data-protection-plan.md`.
@@ -3144,6 +3144,30 @@ Approved policy in principle:
 
 **Implementation gates:** Establish the actual processing and resource-location inventory; obtain jurisdiction-specific legal/privacy and security review; define approved locations and transfer conditions by data class; implement preventive region guardrails and drift monitoring; and produce reproducible synthetic tests covering storage, backup, support, replication, failover and downstream processing. No region change, cross-border transfer, production resource creation or provider connection is authorized by this decision.
 
+### L-127 — Database schema and metadata discovery, catalog access and information disclosure
+
+**Question:** How should database catalogs, schema introspection, metadata APIs and discovery tools be secured so that table names, column definitions, tenant structure, employee identifiers, relationship metadata and operational details are not exposed to unauthorized users or used to infer protected data?
+
+**Decision:** Approved — option B, restrict metadata discovery by identity, purpose and environment; expose only explicitly approved schema information to application workloads and users; and treat catalog access as a separately controlled information surface. This is a policy decision only.
+
+**Required controls:**
+- Inventory database catalogs, information-schema views, system tables, schema registries, ORM introspection endpoints, migration tooling, admin consoles, query explain/plan interfaces and metadata APIs.
+- Classify metadata by sensitivity. Table and column names, tenant identifiers, employee relationships, role mappings, index definitions, constraints, database versions and query plans may reveal business structure or sensitive processing even when row values are absent.
+- Deny public, anonymous and ordinary client access to system catalogs and administrative introspection endpoints. Do not expose database credentials or catalog access through browser/mobile clients.
+- Grant application workloads only the metadata privileges needed for their runtime function. Separate runtime identities from migration, DBA, support and security-review identities; avoid broad catalog-wide grants where object-scoped access is supported.
+- Provide developers and operators with sanitized, environment-appropriate schema documentation or reviewed metadata snapshots instead of unrestricted production catalog access. Use synthetic schemas for routine development and testing.
+- Protect schema registries and generated API/ORM metadata as governed artifacts. Review publication scope, remove sensitive annotations and internal-only fields, version changes and ensure public documentation does not disclose privileged routes or hidden data domains.
+- Require authentication, authorization, purpose limitation and audit for schema browser, query-plan, explain, profiling and support-console features. Apply time-bound elevation for exceptional production inspection and record the exact objects and actions accessed.
+- Ensure introspection responses do not include sample rows, literal query parameters, secrets, connection details, raw employee identifiers or tenant-specific values. Redact sensitive comments, default expressions, view definitions and function source where their disclosure is unnecessary.
+- Review stored procedures, views, triggers, functions and security-definer metadata for indirect disclosure through catalog visibility or error messages. Apply safe ownership and execution semantics and do not let introspection reveal broader object privileges.
+- Prevent error responses, ORM diagnostics, generated stack traces and migration failures from returning full schema dumps or internal object names to untrusted clients. Return generic external errors and retain minimized protected diagnostics server-side.
+- Restrict metadata search and discovery queries with resource bounds, rate limits and monitored access to prevent enumeration, denial of service and systematic mapping of tenant structures.
+- Reassess catalog and metadata grants whenever new tables, columns, views, functions, tenants, roles or schema registries are introduced. Newly created objects must not inherit unintended discovery privileges.
+- Test synthetic environments for anonymous catalog access, cross-tenant metadata enumeration, unauthorized schema browsing, query-plan leakage, sensitive comments/defaults, error disclosure and overbroad migration/runtime grants.
+- Preserve a reviewable inventory of metadata surfaces, grants, publication decisions, exceptions, access events and test results without collecting unnecessary employee data.
+
+**Implementation gates:** Inventory actual database metadata surfaces, catalog grants, schema registries, introspection endpoints and diagnostic tools; classify publishable versus restricted metadata; define distinct runtime, migration and support permissions; and run reproducible synthetic tests for enumeration, cross-tenant discovery and metadata leakage. No production catalog grant, schema publication, database console access or configuration change is authorized by this decision.
+
 Other lifecycle decisions remain open and fail closed:
 - leave and other lifecycle transitions;
 - account archive/restoration and archived-unit restoration;
@@ -3270,6 +3294,7 @@ Record each decision explicitly, including approver, date, exact option and fiel
 | L-124 Database observability and sensitive diagnostic data | Approved — option B allowlisted telemetry, source-side redaction and audited diagnostic access; implementation gated on sink inventory and synthetic leakage tests |
 | L-125 Database availability, failover and recovery | Approved — option B tested recovery with authorization reconciliation and fail-closed restoration; implementation gated on topology inventory and synthetic exercises |
 | L-126 Database geographic residency and cross-border processing | Approved — option B approved-region inventory, transfer review and deny-by-default guardrails; implementation gated on legal/privacy review and synthetic location tests |
+| L-127 Database metadata discovery and catalog access | Approved — option B restricted metadata visibility, least-privilege catalog grants and audited introspection; implementation gated on inventory and synthetic disclosure tests |
 | Other lifecycle and historical access | Open — fail closed |
 
 ## 6. Explicit non-authorization
