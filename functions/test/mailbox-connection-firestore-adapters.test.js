@@ -5,6 +5,30 @@ import { createMailboxConnectionFirestoreAdapters } from "../src/membership/mail
 function fakeFirestore() {
   const docs = new Map();
   const db = {
+    collection(path) {
+      return {
+        where(field, value, expected) {
+          return {
+            orderBy() {
+              return {
+                limit(max) {
+                  return {
+                    async get() {
+                      const prefix = path + "/";
+                      const docsFound = [...docs.entries()]
+                        .filter(([key, item]) => key.startsWith(prefix) && item[field] === expected)
+                        .slice(0, max)
+                        .map(([key, value]) => ({ id: key.slice(prefix.length), data: () => value }));
+                      return { docs: docsFound };
+                    }
+                  };
+                }
+              };
+            }
+          };
+        }
+      };
+    },
     doc(path) {
       return {
         path,
@@ -198,4 +222,24 @@ test("cleanup outbox refuses a different secret reference for an existing connec
   await assert.rejects(adapters.recordSecretCleanup({
     ...input, secretRef: "vault://different/secret"
   }), error => error.code === "failed-precondition");
+});
+
+
+test("cleanup outbox exposes only validated pending tickets for an account", async () => {
+  const { db } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  await adapters.recordSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  });
+  const pending = await adapters.listPendingSecretCleanup({ accountId: active.accountId });
+  assert.equal(pending.length, 1);
+  assert.equal(pending[0].secretRef, active.credentialSecretRef);
+  assert.deepEqual(await adapters.listPendingSecretCleanup({
+    accountId: "another-account"
+  }), []);
+  await assert.rejects(adapters.listPendingSecretCleanup({
+    accountId: active.accountId, limit: 1000
+  }), error => error.code === "invalid-argument");
 });
