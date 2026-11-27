@@ -29,7 +29,7 @@ const accountPath = "accounts/turnigpg-sicurezza";
 const sitePath = `${accountPath}/sites/site-1`;
 const seed = () => ({
   [accountPath]: { accountId: "turnigpg-sicurezza", status: "active", schemaVersion: 1, version: 1 },
-  [sitePath]: { accountId: "turnigpg-sicurezza", siteId: "site-1", status: "active" },
+  [sitePath]: { accountId: "turnigpg-sicurezza", siteId: "site-1", status: "active", version: 1 },
   [`${accountPath}/members/admin-a`]: admin("admin-a"),
   [`${accountPath}/members/admin-b`]: admin("admin-b")
 });
