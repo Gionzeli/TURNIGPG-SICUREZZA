@@ -172,7 +172,12 @@ export function createMailboxConnectionFirestoreAdapters(db) {
             typeof value.connectionId !== "string" || !validId(value.connectionId) ||
             typeof value.secretRef !== "string" || value.secretRef.length < 1 ||
             value.status !== "pending" || !Number.isSafeInteger(value.attempts) ||
-            value.attempts < 1) return null;
+            value.attempts < 1 ||
+            !(value.nextAttemptAt === null ||
+              (Number.isSafeInteger(value.nextAttemptAt) && value.nextAttemptAt >= 1)) ||
+            !(value.lastErrorCode === null ||
+              (typeof value.lastErrorCode === "string" &&
+               /^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)))) return null;
         return value;
       }).filter(Boolean);
     },
