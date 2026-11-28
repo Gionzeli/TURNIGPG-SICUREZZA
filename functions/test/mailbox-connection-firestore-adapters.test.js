@@ -904,3 +904,28 @@ test("repeat completion rejects corrupt resolved alert retry history", async () 
   assert.equal(stored.status, "complete");
   assert.equal(stored.alertStatus, "resolved");
 });
+
+
+test("repeat completion rejects stray alert metadata when no alert status exists", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 1
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  const stored = docs.get(path);
+  stored.alertResolvedAt = input.timestamp + 2;
+  await assert.rejects(adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 3
+  }), error => error.code === "failed-precondition");
+  assert.equal(stored.status, "complete");
+  assert.equal(stored.alertStatus, null);
+});
