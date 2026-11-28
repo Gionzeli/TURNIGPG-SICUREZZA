@@ -38,10 +38,7 @@
       try{
         window.Tesseract=undefined;
         window.LocalPaddleOCR=undefined;
-        const [{createLocalQwen},{default:unused}]=await Promise.all([
-          import("../../local-qwen.js"),
-          Promise.resolve({default:null})
-        ]);
+        const {createLocalQwen}=await import("../../local-qwen.js");
         await import("../../local-reader.js");
         const fixture=document.createElement("canvas");
         fixture.width=32;fixture.height=32;
