@@ -375,6 +375,29 @@ test("cleanup outbox exposes only validated pending tickets for an account", asy
 });
 
 
+test("pending cleanup queries exclude stray alert metadata", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  await adapters.recordSecretCleanup({
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  });
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  const valid = docs.get(path);
+  for (const [field, value] of [
+    ["alertStatus", "pending"], ["alertAttempts", 0],
+    ["alertNextAttemptAt", 1000], ["alertLastErrorCode", "unavailable"],
+    ["alertDeliveredAt", 1000], ["alertResolvedAt", 1000]
+  ]) {
+    docs.set(path, { ...valid, [field]: value });
+    assert.deepEqual(await adapters.listPendingSecretCleanup({
+      accountId: active.accountId
+    }), [], field + " must not appear on a pending cleanup ticket");
+  }
+});
+
+
 test("pending cleanup reads reject inconsistent retry state", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
