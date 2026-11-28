@@ -370,6 +370,46 @@ test("pending cleanup reads reject inconsistent retry state", async () => {
 });
 
 
+test("cleanup transitions reject timestamps older than persisted update time", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 100
+  };
+  await adapters.recordSecretCleanup(input);
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  await assert.rejects(adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 2, nextAttemptAt: input.timestamp + 60000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp - 1
+  }), error => error.code === "failed-precondition");
+  assert.equal(docs.get(path).attempts, 1);
+
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 2, nextAttemptAt: input.timestamp + 60000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
+    timestamp: input.timestamp + 2
+  });
+  const exhaustedAt = docs.get(path).updatedAt;
+  await assert.rejects(adapters.recordCleanupAlertFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    attempts: 1, nextAttemptAt: exhaustedAt + 60000,
+    lastErrorCode: "unavailable", timestamp: exhaustedAt - 1
+  }), error => error.code === "failed-precondition");
+  await assert.rejects(adapters.markCleanupAlertDelivered({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: exhaustedAt - 1
+  }), error => error.code === "failed-precondition");
+  assert.equal(docs.get(path).alertStatus, "pending");
+});
+
 test("pending cleanup reads reject retry timestamps older than the last update", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
