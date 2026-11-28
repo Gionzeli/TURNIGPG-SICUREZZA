@@ -87,3 +87,15 @@ test("same idempotency key cannot silently change proposal content", async () =>
     ...input, changes: [{ operation: "create", shift: { date: "2026-12-02", type: "turno" } }]
   }), { code: "failed-precondition" });
 });
+
+
+test("invalid calendar dates and shift fields are rejected before transaction", async () => {
+  const { adapter, db } = harness();
+  await assert.rejects(adapter.createEmployeeProposal({
+    ...input, changes: [{ operation: "create", shift: { ...input.changes[0].shift, date: "2026-02-30" } }]
+  }), { code: "invalid-argument" });
+  await assert.rejects(adapter.createEmployeeProposal({
+    ...input, changes: [{ operation: "create", shift: { ...input.changes[0].shift, is_night: "false" } }]
+  }), { code: "invalid-argument" });
+  assert.equal(db.values.size, 2);
+});
