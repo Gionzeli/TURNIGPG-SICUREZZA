@@ -490,6 +490,49 @@ test("pending cleanup listing excludes malformed retry metadata", async () => {
   }), []);
 });
 
+test("pending cleanup listing rejects document IDs that disagree with ticket identity", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  const correctPath = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  const wrongPath = "accounts/synthetic-account/mailboxCredentialCleanup/other-connection";
+  const ticket = docs.get(correctPath);
+  docs.delete(correctPath);
+  docs.set(wrongPath, ticket);
+  assert.deepEqual(await adapters.listPendingSecretCleanup({
+    accountId: input.accountId
+  }), []);
+});
+
+test("pending cleanup alert listing rejects document IDs that disagree with ticket identity", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
+    timestamp: input.timestamp + 1
+  });
+  const correctPath = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  const wrongPath = "accounts/synthetic-account/mailboxCredentialCleanup/other-connection";
+  const ticket = docs.get(correctPath);
+  docs.delete(correctPath);
+  docs.set(wrongPath, ticket);
+  assert.deepEqual(await adapters.listPendingCleanupAlerts({
+    accountId: input.accountId
+  }), []);
+});
+
 test("cleanup retry ceiling moves tickets out of the pending queue", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
