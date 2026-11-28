@@ -385,7 +385,7 @@ test("PDF extra notes are kept separate from calendar shift fields for the info 
   assert.deepEqual(proposal.additionalInfo, ["Portare il badge", "Cambio ingresso dalle 18:00"]);
   assert.equal(proposal.changes.some(change => JSON.stringify(change).includes("badge")), false);
   assert.equal(proposal.changes.some(change => Object.hasOwn(change.shift ?? change.changes ?? {}, "additionalInfo")), false);
-  assert.deepEqual(Object.keys(proposal.changes[0].changes).sort(), ["start_time"]);
+  assert.deepEqual(Object.keys(proposal.changes[0].changes).sort(), ["end_time", "hours"]);
 });
 
 test("excessive PDF extra notes are blocked instead of entering a proposal", async () => {
