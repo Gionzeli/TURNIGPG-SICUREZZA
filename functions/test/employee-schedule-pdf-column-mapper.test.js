@@ -97,3 +97,24 @@ test("extractor verifies PDF signature and content digest before calling the eng
   );
   assert.equal(calls, 0);
 });
+
+test("extractor snapshots attachment bytes before asynchronous parser access", async () => {
+  const original = Buffer.from("%PDF-synthetic");
+  const expected = Buffer.from(original);
+  const sha256 = createHash("sha256").update(expected).digest("hex");
+  let parserBytes;
+  let releaseParser;
+  const parserGate = new Promise(resolve => { releaseParser = resolve; });
+  const extract = createPdfScheduleColumnExtractor({
+    extractPdfTables: async input => {
+      parserBytes = Buffer.from(input.bytes);
+      await parserGate;
+      return { documents: [tableDocument] };
+    }
+  });
+  const pending = extract({ bytes: original, filename: "turni.pdf", sha256 });
+  original.fill(0);
+  releaseParser();
+  await pending;
+  assert.deepEqual(parserBytes, expected);
+});
