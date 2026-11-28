@@ -14,11 +14,11 @@ function fail(code, message) {
  * A cursor advances only after every fetched message has been processed.
  */
 export function createMailboxScheduleIngestionWorker({
-  listDueConnections, loadConnection, acquireLease, releaseLease,
+  listDueConnections, loadConnection, acquireLease, renewLease, releaseLease,
   providerAdapters, ingestMessage, saveCheckpoint, now = () => Date.now()
 }) {
   for (const [name, fn] of Object.entries({
-    listDueConnections, loadConnection, acquireLease, releaseLease,
+    listDueConnections, loadConnection, acquireLease, renewLease, releaseLease,
     ingestMessage, saveCheckpoint
   })) if (typeof fn !== "function") throw new TypeError(name + " dependency is required.");
   if (!providerAdapters || typeof providerAdapters !== "object") {
@@ -49,6 +49,8 @@ export function createMailboxScheduleIngestionWorker({
           continue;
         }
         try {
+          let activeLease = await renewLease({ accountId, connectionId, lease, timestamp: now() });
+          if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt)) fail("failed-precondition", "Mailbox lease renewal failed.");
           const connection = await loadConnection({ accountId, connectionId });
           if (!connection || connection.accountId !== accountId ||
               connection.connectionId !== connectionId || connection.status !== "active" ||
@@ -61,6 +63,8 @@ export function createMailboxScheduleIngestionWorker({
             results.push({ connectionId, status: "provider_unavailable" });
             continue;
           }
+          activeLease = await renewLease({ accountId, connectionId, lease: activeLease, timestamp: now() });
+          if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt)) fail("failed-precondition", "Mailbox lease renewal failed.");
           const batch = await adapter.fetchMessages({
             accountId, connectionId, connection, cursor: candidate.cursor ?? null, limit: 50
           });
@@ -74,10 +78,14 @@ export function createMailboxScheduleIngestionWorker({
             if (!item || !item.message || !Array.isArray(item.attachments)) {
               fail("failed-precondition", "Provider returned an invalid normalized message.");
             }
+            activeLease = await renewLease({ accountId, connectionId, lease: activeLease, timestamp: now() });
+            if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt)) fail("failed-precondition", "Mailbox lease renewal failed.");
             const outcomes = await ingestMessage({
               accountId, connectionId, message: item.message, attachments: item.attachments
             });
             if (!Array.isArray(outcomes)) fail("failed-precondition", "Ingestion returned an invalid result.");
+            activeLease = await renewLease({ accountId, connectionId, lease: activeLease, timestamp: now() });
+            if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt)) fail("failed-precondition", "Mailbox lease renewal failed.");
             messageCount++;
             attachmentCount += item.attachments.length;
           }
@@ -89,7 +97,7 @@ export function createMailboxScheduleIngestionWorker({
           }
           await saveCheckpoint({
             accountId, connectionId, expectedCursor: candidate.cursor ?? null,
-            nextCursor: batch.nextCursor, lease, timestamp: now()
+            nextCursor: batch.nextCursor, lease: activeLease, timestamp: now()
           });
           results.push({ connectionId, status: "processed", messageCount, attachmentCount });
         } catch {
