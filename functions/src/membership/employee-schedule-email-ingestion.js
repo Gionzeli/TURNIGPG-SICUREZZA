@@ -5,7 +5,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const TYPES = new Set(["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"]);
 const SHIFT_FIELDS = new Set(["date", "type", "post", "start_time", "end_time", "hours", "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"]);
-const PARSED_SHIFT_FIELDS = new Set(["date", "type", "post", "start_time", "end_time"]);
+const PARSED_SHIFT_FIELDS = new Set(["date", "type", "post", "start_time", "end_time", "hours"]);
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 function fail(code, message) {
