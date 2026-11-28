@@ -119,8 +119,8 @@ test("lease is renewed before fetch, before ingestion, and after ingestion", asy
     renewLease: async ({ lease, timestamp }) => {
       renewalTimes.push(timestamp);
       return { ...lease, expiresAt: timestamp + 120000 };
-    }
-    , now: (() => { let n = 100; return () => n++; })()
+    },
+    now: (() => { let n = 100; return () => n++; })()
   });
   const result = await worker.run({ accountId });
   assert.equal(result[0].status, "processed");
