@@ -347,3 +347,21 @@ test("partially recognized multi-employee PDF creates only the verified employee
   assert.equal(calls.finished[0].proposalCount, 1);
   assert.equal(calls.finished[0].blockedCount, 1);
 });
+
+
+test("shared mailbox rejects blank or control-character employee match keys", async () => {
+  let resolutions = 0;
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [{
+      employeeMatchKey: "  \\t",
+      confidence: 0.999,
+      shifts: [{ date: "2026-06-02", type: "turno", post: "A", start_time: "08:00", end_time: "14:00", hours: 6 }]
+    }] }),
+    resolveEmployee: async () => { resolutions++; return null; }
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "needs_review");
+  assert.equal(result[0].blocked[0].reason, "low_confidence_or_invalid_document");
+  assert.equal(resolutions, 0);
+  assert.equal(calls.proposals.length, 0);
+});
