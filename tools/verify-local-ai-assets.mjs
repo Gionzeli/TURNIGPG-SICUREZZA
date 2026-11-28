@@ -3,7 +3,15 @@ import { readFile, lstat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const testRootIndex = process.argv.indexOf("--test-root");
+const testRoot = testRootIndex >= 0 ? process.argv[testRootIndex + 1] : null;
+if (testRootIndex >= 0 && (!testRoot || testRoot.startsWith("--"))) {
+  console.error("--test-root richiede una directory di fixture");
+  process.exit(2);
+}
+const root = testRootIndex >= 0
+  ? path.resolve(testRoot)
+  : path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const manifestPath = path.join(root, "local-ai-assets.json");
 const requiredRoles = [
   "pdfjs-browser", "pdfjs-worker",
