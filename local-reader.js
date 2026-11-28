@@ -358,7 +358,7 @@ function parseTurns(text){
   const counts=known.reduce((acc,c)=>(acc[c.key]=(acc[c.key]||0)+1,acc),{});
   const date=known.find(c=>c.key==="date"),start=known.find(c=>c.key==="start"),end=known.find(c=>c.key==="end"),time=known.find(c=>c.key==="time"),post=known.find(c=>c.key==="post");
   const duplicate=Object.values(counts).some(count=>count>1);
-  if(duplicate||!(time||(start&&end))||!post||!(date||/\\bdata\\b|\\bgiorno\\b/.test(joined)))return null;
+  if(duplicate||!(time||(start&&end))||!post||!(date||/\bdata\b|\bgiorno\b/.test(joined)))return null;
   return {columns,dateX:date?.x??null,timeX:time?.x??null,startX:start?.x??null,endX:end?.x??null,postX:post.x};
  };
  for(const raw of lines){
