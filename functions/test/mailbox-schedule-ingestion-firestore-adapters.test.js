@@ -35,10 +35,6 @@ function fakeFirestore(seed = {}) {
   };
   return db;
 }
-function pathPrefix(path) {
-  const parts = path.split("/");
-  return parts.slice(0, 3).join("/") + "/mailboxPolling/";
-}
 const accountId = "synthetic-account";
 const connectionId = "synthetic-mailbox";
 const pollingPath = `accounts/${accountId}/mailboxPolling/${connectionId}`;
@@ -124,6 +120,7 @@ test("checkpoint rejects a lease proof superseded by a newer fencing token", asy
 
 test("initializes polling state only for active canonical mailbox and is idempotent", async () => {
   const { adapters, db } = harness();
+  db.values.delete(pollingPath);
   await adapters.initializePollingState({ accountId, connectionId, timestamp: 1000 });
   assert.deepEqual(db.values.get(pollingPath), {
     accountId, connectionId, cursor: null, nextPollAt: 1000, updatedAt: 1000
@@ -134,7 +131,8 @@ test("initializes polling state only for active canonical mailbox and is idempot
 
 test("does not initialize polling for revoked mailbox", async () => {
   const { adapters, db } = harness();
+  db.values.delete(pollingPath);
   db.values.set(connectionPath, { accountId, connectionId, provider: "imap", status: "revoked" });
   await assert.rejects(adapters.initializePollingState({ accountId, connectionId, timestamp: 1000 }), { code: "failed-precondition" });
-  assert.equal(db.values.has(pollingPath), true);
+  assert.equal(db.values.has(pollingPath), false);
 });
