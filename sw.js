@@ -1,6 +1,6 @@
 /* Turni GPG/sicurezza - service worker. Gli asset AI sono preinstallati e verificati. */
 const VERSION="tg-v3.177";
-const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","local-ai-assets.json","local-reader.js","local-qwen.js","local-learning.js","src/ui/legacy-migration-page.js?v=1","src/ui/dsm-canonical-account-bridge.js","src/ui/dsm-canonical-account-bootstrap.js","src/ui/dsm-membership-invite-page.js","src/adapters/firebase/firebase-auth-adapter.js","src/core/legacy/legacy-read-adapter.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
+const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","local-ai-assets.json","local-reader.js","local-qwen.js","local-ai-bootstrap.js","local-learning.js","src/ui/legacy-migration-page.js?v=1","src/ui/dsm-canonical-account-bridge.js","src/ui/dsm-canonical-account-bootstrap.js","src/ui/dsm-membership-invite-page.js","src/adapters/firebase/firebase-auth-adapter.js","src/core/legacy/legacy-read-adapter.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
 const REQUIRED_ROLES=["pdfjs-browser","pdfjs-worker","tesseract-browser","tesseract-worker","tesseract-core","tesseract-ita","tesseract-eng","paddle-wrapper","paddle-model","onnxruntime-wasm","transformers-runtime","qwen-model"];
 const APP_SCOPE=new URL("./",self.registration.scope);
 
