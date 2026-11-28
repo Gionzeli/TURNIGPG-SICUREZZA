@@ -109,7 +109,7 @@ Questo è il primo collegamento di orchestrazione tra polling provider e pipelin
 - salva il cursore in transazione solo se il cursore precedente coincide e il lease owner/fencing token sono ancora quelli del worker, non scaduti e non revocati;
 - pianifica il prossimo polling dopo il completamento del batch.
 
-È stato aggiunto l'indice Firestore per `mailboxPolling.nextPollAt`. L'inizializzazione dello stato deve essere invocata dal flusso di creazione connessione prima che la casella entri nel polling; questa invocazione e il worker schedulato Firebase non sono ancora cablati. Il test harness è sintetico: l'esecuzione Emulator resta da fare.
+È stato aggiunto l'indice Firestore per `mailboxPolling.nextPollAt`. L'inizializzazione dello stato è ora invocata dal servizio di creazione connessione tramite una dipendenza obbligatoria; il composition root deve ancora iniettare l'adapter Firestore e il worker schedulato Firebase non è ancora cablato. Il test harness unitario è sintetico; è stato aggiunto anche un test d'integrazione condizionato alla presenza del Firebase Emulator, non ancora eseguito.
 
 ## Collegamento alla creazione della casella
 
