@@ -21,7 +21,7 @@ The polling worker now rejects malformed message objects and attachments arrays 
 
 The ingestion core derives an attachment identity from provider, mailbox connection, provider message ID and SHA-256 of the PDF. The resulting job ID is supplied to proposal creation, and each employee proposal receives the stable key `{jobId}_{employeeId}`. A duplicate completed job is skipped before scanning/parsing; proposal persistence must enforce uniqueness on that stable key.
 
-A remaining integration requirement is durable claim recovery: the injected `claimIngestionJob` implementation must distinguish a completed duplicate from an abandoned/in-progress job and atomically reclaim only jobs whose processing lease expired. It must not report every existing job as a completed duplicate. Proposal creation must be transactionally idempotent on the stable employee key, so a crash after proposal persistence but before job completion can safely resume. No concrete Firestore job/proposal adapter is wired yet; this behavior is a required contract, not a claim of completed integration.
+A remaining integration requirement is durable claim recovery: the injected `claimIngestionJob` implementation must distinguish a completed duplicate from an abandoned/in-progress job and atomically reclaim only jobs whose processing lease expired. It must not report every existing job as a completed duplicate. Proposal creation must be transactionally idempotent on the stable employee key, so a crash after proposal persistence but before job completion can safely resume. Concrete Firestore job and proposal adapters have since been added and are composed by the persistence helper below; provider and end-to-end integration remain outstanding.
 
 
 ## Firestore ingestion job claims
@@ -51,3 +51,8 @@ A final validation pass aligned proposal validation with the existing employee s
 Added `employee-schedule-email-ingestion-firestore-persistence.js` as a narrow composition helper for the existing ingestion core. It combines the durable job claim/finish adapter with the fenced proposal adapter and supplies employee authorization through `createEmployeeShiftFirestoreAuthorization` in the same Firestore transaction. The canonical authorization result now explicitly exposes `status: "active"` only after validating the account, membership permissions, reciprocal UID↔Employee bindings, Employee record and control record.
 
 The helper only constructs dependencies; it performs no Firestore reads/writes at construction and does not activate the mailbox polling composition, provider adapters, scheduled handler, Firebase trigger or callable. Callers must still inject the remaining ingestion dependencies (mailbox verification, malware scan, PDF extraction, employee resolution and existing-shift loading). This is persistence wiring, not a production-ready provider integration.
+
+
+### Terminal completion replay correction
+
+A review found that terminal job completion clears the lease token, while the completion method originally checked that token before recognizing an already-terminal job. That made a repeated completion fail instead of returning the intended idempotent result. The adapter now validates account/job identity first, returns a duplicate result only when the requested terminal status matches, and still requires the live lease token for any transition from `processing`. A regression test also verifies that a different terminal result is rejected.
