@@ -9,11 +9,18 @@ const localQwen = createLocalQwen();
 // Lettore locale: OCR PaddleOCR/Tesseract, parser deterministici e suggerimenti Qwen facoltativi. Nessun upload dei documenti.
 let _ocrModule=null;
 async function loadOCR(onProgress){
+ // Strict offline mode: SDK, worker, WASM core and language data must be
+ // packaged with the application. Never inject scripts or fetch OCR assets.
  if(!window.Tesseract||typeof window.Tesseract.createWorker!=="function"){
-  if(!_ocrModule){_ocrModule=new Promise((resolve,reject)=>{const s=document.createElement("script");let done=false;const timer=setTimeout(()=>{if(done)return;done=true;s.remove();reject(new Error("Tempo scaduto nel download del componente OCR"))},20000);s.src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js";s.async=true;s.onload=()=>{if(done)return;done=true;clearTimeout(timer);window.Tesseract&&typeof window.Tesseract.createWorker==="function"?resolve(window.Tesseract):reject(new Error("OCR non disponibile"))};s.onerror=()=>{if(done)return;done=true;clearTimeout(timer);reject(new Error("Download componente OCR non riuscito"))};document.head.appendChild(s)}).catch(e=>{_ocrModule=null;throw e})}
-  await _ocrModule;
+  throw new Error("Tesseract offline non installato: SDK locale assente.");
  }
- return window.Tesseract.createWorker(["ita","eng"],1,{workerPath:"https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/worker.min.js",corePath:"https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1",langPath:"https://tessdata.projectnaptha.com/4.0.0",logger:m=>onProgress?.({phase:"ocr",progress:Number.isFinite(m?.progress)?Math.round(m.progress*100):null,status:m?.status||"",detail:m?.status?("OCR: "+m.status):"Preparazione OCR…" })});
+ onProgress?.({phase:"ocr",detail:"Avvio Tesseract con componenti locali…"});
+ return window.Tesseract.createWorker(["ita","eng"],1,{
+  workerPath:"./vendor/tesseract/worker.min.js",
+  corePath:"./vendor/tesseract/",
+  langPath:"./vendor/tesseract/lang/",
+  logger:m=>onProgress?.({phase:"ocr",progress:Number.isFinite(m?.progress)?Math.round(m.progress*100):null,status:m?.status||"",detail:m?.status?("OCR: "+m.status):"Preparazione OCR…"})
+ });
 }
 function rowsFromWords(words){
  const clean=(words||[]).filter(w=>String(w.text||"").trim()&&w.bbox),hs=clean.map(w=>Math.max(1,w.bbox.y1-w.bbox.y0)).sort((a,b)=>a-b),tol=Math.max(2.5,(hs[Math.floor(hs.length/2)]||14)*.34),rows=[];
@@ -31,10 +38,13 @@ async function ocrImages(images,onProgress){
 
 let _paddleCtor=null,_paddleInstance=null;
 async function loadPaddleOCR(onProgress){
+ // PaddleOCR is accepted only from a locally bundled module exposed by the app.
+ // No dynamic CDN import, remote model resolution or network fallback is allowed.
  if(!_paddleCtor){
-  _paddleCtor=import("https://cdn.jsdelivr.net/npm/@paddleocr/paddleocr-js@0.4.2/+esm")
-   .then(m=>{if(!m.PaddleOCR)throw new Error("SDK PaddleOCR non disponibile");return m.PaddleOCR})
-   .catch(e=>{_paddleCtor=null;throw e});
+  _paddleCtor=Promise.resolve(window.PaddleOCR||null).then(m=>{
+   if(!m||typeof m.create!=="function")throw new Error("SDK PaddleOCR offline non installato.");
+   return m;
+  }).catch(e=>{_paddleCtor=null;throw e});
  }
  const PaddleOCR=await _paddleCtor;
  if(!_paddleInstance){
