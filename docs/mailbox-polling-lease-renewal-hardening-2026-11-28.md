@@ -56,3 +56,8 @@ The helper only constructs dependencies; it performs no Firestore reads/writes a
 ### Terminal completion replay correction
 
 A review found that terminal job completion clears the lease token, while the completion method originally checked that token before recognizing an already-terminal job. That made a repeated completion fail instead of returning the intended idempotent result. The adapter now validates account/job identity first, returns a duplicate result only when the requested terminal status matches, and still requires the live lease token for any transition from `processing`. A regression test also verifies that a different terminal result is rejected.
+
+
+### Composed ingestion persistence regression coverage
+
+The synthetic persistence test now exercises the composed Firestore boundary end to end with an in-memory transaction store: it claims an account-scoped ingestion job, validates the canonical active membership and reciprocal UID-to-Employee binding, creates a pending employee proposal, and marks the job terminal. A negative case confirms that a UID cannot create a proposal for a different Employee ID. This is a deterministic fake-store test, not a Firebase Emulator execution; production provider, parser, scheduler and callable wiring remain disabled.
