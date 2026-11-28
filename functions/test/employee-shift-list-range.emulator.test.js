@@ -67,7 +67,7 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
         placementId: "range-placement", siteId: "synthetic-range-site",
         departmentId: "synthetic-range-department", revision: 1, hours: 8,
         ownerUid: "must-not-leak", compensation: 9999, medicalReason: "synthetic-sensitive",
-        absenceNotes: "must-not-leak", internalAudit: { actorUid: "must-not-leak" },\n        scheduleInfo: ["Portare il badge", "Ingresso lato nord"]
+        absenceNotes: "must-not-leak", internalAudit: { actorUid: "must-not-leak" },\n        scheduleInfo: ["Portare il badge", "Ingresso lato nord", "Nota\\u0000non valida"]
       });
     }
     await batch.commit();
@@ -93,6 +93,8 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
       assert.equal(Object.hasOwn(item, "medicalReason"), false);
       assert.equal(Object.hasOwn(item, "absenceNotes"), false);
       assert.equal(Object.hasOwn(item, "internalAudit"), false);
+      assert.deepEqual(item.scheduleInfo, ["Portare il badge", "Ingresso lato nord"],
+        "only bounded plain-text information is exposed to the employee");
     }
 
     const mutationRequest = data => ({
@@ -183,6 +185,7 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
       source: "employer_email", sourceVerified: true, ingestionJobId: "synthetic-ingestion-job",
       attachmentSha256: "a".repeat(64), receivedAt: Date.UTC(2026, 5, 1),
       sender: "turni@azienda.example", status: "pending", createdAt: Date.UTC(2026, 5, 1),
+      additionalInfo: ["Portare il badge", "Ingresso lato nord"],
       changes: [{ operation: "create", shift: { date: "2026-06-25", type: "turno", post: "Reception", hours: 6 } }],
       before: [null]
     });
@@ -198,6 +201,14 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     }));
     assert.equal(emailApproval.status, "approved");
     assert.equal(emailApproval.appliedCount, 1);
+    const approvedEmailShift = (await collection.doc(emailApproval.shiftIds[0]).get()).data();
+    assert.deepEqual(approvedEmailShift.scheduleInfo, ["Portare il badge", "Ingresso lato nord"]);
+    const calendarAfterEmailApproval = await handlers.listOwn({
+      rawRequest: { headers: { authorization: "Bearer synthetic-token" } },
+      data: { accountId, fromDate: "2026-06-25", toDate: "2026-06-25" }
+    });
+    assert.deepEqual(calendarAfterEmailApproval[0].scheduleInfo, ["Portare il badge", "Ingresso lato nord"],
+      "the info-only notes survive approval and reach the calendar DTO");
     const emailDecision = (await db.doc(`accounts/${accountId}/employeeShiftProposalDecisions/${verifiedEmailProposalId}`).get()).data();
     assert.equal(emailDecision.source, "employer_email");
 
