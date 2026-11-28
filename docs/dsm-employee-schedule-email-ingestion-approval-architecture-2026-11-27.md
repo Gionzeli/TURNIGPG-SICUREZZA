@@ -99,3 +99,14 @@ I nomi e i campi sono una proposta, non una migrazione già autorizzata. Le scri
 - rilascia il lease anche in caso di errore, lasciando la scadenza del lease come recupero se il rilascio fallisce.
 
 Questo è il primo collegamento di orchestrazione tra polling provider e pipeline di proposte; non abilita ancora provider reali. Restano da implementare e collegare adapter IMAP/Gmail/Graph, lease e checkpoint Firestore transazionali, scheduler/worker Firebase, scansione antivirus e parser PDF reali. Il worker non è esportato come callable e non viene eseguito automaticamente. Test esclusivamente sintetici; nessun account reale o deploy.
+
+## Collegamento Firestore del polling
+
+È stato aggiunto `mailbox-schedule-ingestion-firestore-adapters.js`:
+- interroga `accounts/{accountId}/mailboxPolling` per `nextPollAt <= now`, con batch limitato;
+- inizializza idempotentemente lo stato di polling solo per una connessione canonica attiva;
+- legge la connessione canonica e delega acquire/release al servizio lease già esistente;
+- salva il cursore in transazione solo se il cursore precedente coincide e il lease owner/fencing token sono ancora quelli del worker, non scaduti e non revocati;
+- pianifica il prossimo polling dopo il completamento del batch.
+
+È stato aggiunto l'indice Firestore per `mailboxPolling.nextPollAt`. L'inizializzazione dello stato deve essere invocata dal flusso di creazione connessione prima che la casella entri nel polling; questa invocazione e il worker schedulato Firebase non sono ancora cablati. Il test harness è sintetico: l'esecuzione Emulator resta da fare.
