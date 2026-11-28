@@ -142,6 +142,9 @@ export function createMailboxSecretCleanupWorker({
             error.code = "failed-precondition";
             throw error;
           }
+          // Re-sample after the gate check so retry backoff is based on the
+          // time of the attempted vault operation, not the batch start.
+          readWorkerTimestamp(now);
           await credentialVault.revokeSecret({
             accountId: ticket.accountId,
             connectionId: ticket.connectionId,
