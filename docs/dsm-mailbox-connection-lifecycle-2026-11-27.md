@@ -887,3 +887,8 @@ The worker now independently validates the pending ticket's creation/update chro
 ### Cleanup worker validates exhausted alert tickets
 
 Before alert delivery, the worker independently checks exhausted-ticket chronology, terminal cleanup state, alert retry counters/schedule, and absence of delivered/resolved timestamps on pending alerts. Malformed alert records are skipped without delivery or acknowledgement. Synthetic regressions cover inconsistent timestamps, retry history, and terminal metadata.
+
+
+### Alert outbox DTO and worker contract
+
+The Firestore alert-list adapter now includes only the cleanup ticket's validated creation/update timestamps and terminal cleanup retry deadline in addition to its existing minimal alert fields. These fields let the worker independently validate chronology and exhausted state without exposing the credential secret reference, reason, or provider metadata. The adapter regression asserts the added fields and continues to assert secret-reference omission.
