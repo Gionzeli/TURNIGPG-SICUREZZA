@@ -373,6 +373,18 @@ function parseTurns(text){
    }
    continue;
   }
+  // I PDF multipagina ripetono spesso l'intestazione a ogni pagina.
+  // Non lasciare che una data unita della pagina precedente attraversi
+  // una nuova intestazione: il nuovo blocco deve fornire una data propria.
+  const repeatedHeader=norm(tokens.map(t=>t.text).join(" "));
+  if(tokens.length>=3&&/\b(?:data|giorno|date)\b/.test(repeatedHeader)&&
+     /\b(?:postazione|post|sede)\b/.test(repeatedHeader)&&
+     /\b(?:orario|ora|fascia|inizio|dalle)\b/.test(repeatedHeader)&&
+     !/\b\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4}\b/.test(repeatedHeader)&&
+     !/\b(?:[01]?\d|2[0-3])\s*[:,.]\s*[0-5]\d\b/.test(repeatedHeader)){
+   geoCurrentDate="";
+   continue;
+  }
   // Associa ogni parola alla colonna fisica più vicina, incluse le colonne
   // non consentite. Le colonne sconosciute vengono scartate, mai riversate
   // nella colonna consentita più vicina (es. Note/Totale -> Postazione).
