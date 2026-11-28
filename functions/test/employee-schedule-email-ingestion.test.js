@@ -311,3 +311,39 @@ test("recovered proposal keeps its current decision status in the ingestion resu
   assert.equal(result[0].proposals[0].status, "approved");
   assert.equal(calls.finished[0].status, "proposals_created");
 });
+
+
+test("partially recognized multi-employee PDF creates only the verified employee proposal", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [
+      { employeeMatchKey: "verified-A", confidence: 0.999, shifts: [
+        { date: "2026-06-02", type: "turno", post: "A", start_time: "08:00", end_time: "14:00", hours: 6 }
+      ] },
+      { employeeMatchKey: "unknown-B", confidence: 0.999, shifts: [
+        { date: "2026-06-02", type: "turno", post: "B", start_time: "14:00", end_time: "20:00", hours: 6 }
+      ] }
+    ] }),
+    resolveEmployee: async ({ employeeMatchKey }) => employeeMatchKey === "verified-A" ? ({
+      accountId, employeeId: "employee-A", employeeUid: "uid-A",
+      status: "active", mappingVerified: true
+    }) : null,
+    loadEmployeeShifts: async ({ employeeId }) => [{
+      accountId, employeeId, shiftId: "existing-" + employeeId,
+      date: "2026-06-02", type: "turno", post: "A",
+      start_time: "07:00", end_time: "13:00", hours: 6, revision: 1
+    }],
+    createEmployeeProposal: async input => {
+      calls.proposals.push(input);
+      return { proposalId: "proposal-" + input.employeeId, status: "pending", duplicate: false };
+    }
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "partially_processed");
+  assert.deepEqual(calls.proposals.map(item => item.employeeId), ["employee-A"]);
+  assert.equal(result[0].proposals.length, 1);
+  assert.equal(result[0].blocked.length, 1);
+  assert.equal(result[0].blocked[0].reason, "employee_mapping_unverified");
+  assert.equal(calls.finished[0].status, "partially_processed");
+  assert.equal(calls.finished[0].proposalCount, 1);
+  assert.equal(calls.finished[0].blockedCount, 1);
+});
