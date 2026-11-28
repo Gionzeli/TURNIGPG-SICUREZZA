@@ -65,7 +65,6 @@ async function bootstrapLocalAI() {
         !/^[a-f0-9]{64}$/i.test(item.sha256 || "")) {
       throw new Error("Provenienza o integrità mancante per " + (item.path || "asset"));
     }
-    byRole.set(item.role, item);
   }
   const missing = REQUIRED_ROLES.filter(role => !byRole.get(role)?.length);
   if (missing.length) throw new Error("Pacchetto AI incompleto: " + missing.join(", "));
