@@ -191,6 +191,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
                 const snapshot = Object.fromEntries(DTO_KEYS.filter(key =>
                   Object.hasOwn(item, key) && ["string", "number", "boolean"].includes(typeof item[key])
                 ).map(key => [key, item[key]]));
+                snapshot.scheduleInfo = safeAdditionalInfo(item.scheduleInfo);
                 if (Number.isSafeInteger(item.revision) && item.revision > 0) snapshot.revision = item.revision;
                 return snapshot;
               })
