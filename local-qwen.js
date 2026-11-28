@@ -101,7 +101,7 @@ export function createLocalQwen(options = {}) {
               progress_callback(progress) {
                 if (!progress) return;
                 if (progress.status === "progress" && Number.isFinite(progress.progress)) {
-                  onProgress?.("Download modello locale: " + Math.round(progress.progress) + "%");
+                  onProgress?.("Caricamento modello locale: " + Math.round(progress.progress) + "%");
                 } else if (progress.status) {
                   onProgress?.("Preparazione modello: " + progress.status);
                 }
