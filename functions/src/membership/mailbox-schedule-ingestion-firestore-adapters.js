@@ -80,13 +80,16 @@ export function createMailboxScheduleIngestionFirestoreAdapters({
     async releaseLease({ accountId, connectionId, lease }) {
       return leaseService.release({ accountId, connectionId, lease });
     },
-    async saveCheckpoint({ accountId, connectionId, expectedCursor, nextCursor, timestamp }) {
+    async saveCheckpoint({ accountId, connectionId, expectedCursor, nextCursor, lease, timestamp }) {
       const { pollingRef, leaseRef } = scope(accountId, connectionId);
       if (!validCursor(expectedCursor) || typeof nextCursor !== "string" || nextCursor.length > 2048 ||
+          !lease || typeof lease.ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(lease.ownerId) ||
+          !Number.isSafeInteger(lease.fencingToken) || lease.fencingToken < 1 ||
           !Number.isSafeInteger(timestamp) || timestamp < 1 ||
           !Number.isSafeInteger(timestamp + pollIntervalMs)) {
         fail("invalid-argument", "Mailbox checkpoint is invalid.");
       }
+      const leaseProof = lease;
       try {
         await db.runTransaction(async tx => {
           const [pollingSnapshot, leaseSnapshot] = await Promise.all([tx.get(pollingRef), tx.get(leaseRef)]);
@@ -101,6 +104,7 @@ export function createMailboxScheduleIngestionFirestoreAdapters({
           if (!lease || lease.revocationPending === true ||
               (lease.revocationPending !== undefined && typeof lease.revocationPending !== "boolean") ||
               typeof lease.ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(lease.ownerId) ||
+              lease.ownerId !== leaseProof.ownerId || lease.fencingToken !== leaseProof.fencingToken ||
               !Number.isSafeInteger(lease.fencingToken) || lease.fencingToken < 1 ||
               !Number.isSafeInteger(lease.expiresAt) || lease.expiresAt <= timestamp) {
             fail("failed-precondition", "Mailbox checkpoint requires a live, non-revoked lease.");
