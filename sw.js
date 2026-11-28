@@ -29,7 +29,7 @@ async function installLocalAIAssets(cache){
     }
     if(seen.has(url.href))throw new Error("Asset AI duplicato");
     seen.add(url.href);
-    if(!Number.isSafeInteger(item.sizeBytes)||item.sizeBytes<1||!/^[a-f0-9]{64}$/i.test(item.sha256||"")){
+    if(!Number.isSafeInteger(item.sizeBytes)||item.sizeBytes<1||!/^[a-f0-9]{64}$/i.test(item.sha256||"")||!item.version||!item.license||!item.source){
       throw new Error("Dimensione o SHA-256 mancante per "+item.path);
     }
     const assetResponse=await fetch(url.href,{cache:"no-store",credentials:"same-origin"});
