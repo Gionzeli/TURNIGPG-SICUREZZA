@@ -349,8 +349,8 @@ export function mountDSMCanonicalAccountBridge(container, {
         cell.textContent = String(value ?? "");
         row.append(cell);
       }
+      const infoCell = document.createElement("td");
       if (Array.isArray(item.scheduleInfo) && item.scheduleInfo.length) {
-        const infoCell = document.createElement("td");
         const infoButton = document.createElement("button");
         infoButton.type = "button";
         infoButton.textContent = "ℹ️";
@@ -369,8 +369,8 @@ export function mountDSMCanonicalAccountBridge(container, {
           infoButton.setAttribute("aria-expanded", String(!infoContent.hidden));
         });
         infoCell.append(infoButton, infoContent);
-        row.append(infoCell);
       }
+      row.append(infoCell);
       body.append(row);
     }
     table.append(head, body);
