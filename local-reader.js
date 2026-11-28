@@ -316,8 +316,10 @@ function parseTurns(text){
  const lines=String(text||"").replace(/\r/g,"\n").split("\n");let currentDate="",periodStart="";
  const addRest=(date,type,raw)=>{const x={date,type,post:"",start_time:"",end_time:"",piantonamento:false,notturno:false,ore:0};const key=[date,type,norm(raw)].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}};
  const addShift=(date,segment,start,end,postRaw)=>{
-  let post=String(postRaw||"").replace(/\s*\|\s*/g," ").replace(/\bVIGILANZA\s+FISSA\b/ig," ").replace(/\bAOUC\s+POLICLINICO\s+BARI\b/ig," ").replace(/\b(?:lun|mar|mer|gio|ven|sab|dom)(?:ed[iì])?\.?\b/ig," ").replace(/\s+/g," ").replace(/^[\s|,:;.-]+|[\s|,:;.-]+$/g,"").trim();
-  const n=norm(segment),x={date,type:"turno",post:post.slice(0,120),start_time:start,end_time:end,piantonamento:/piant/i.test(n+" "+norm(post)),notturno:false,ore:0};x.notturno=+end.slice(0,2)<+start.slice(0,2);
+  // Residual row text is not proof of a Postazione column: accept only an explicit label.
+  const labelled=String(postRaw||"").match(/POSTAZIONE\\s*:\\s*([^|;]+)/i);
+  const post=labelled?labelled[1].replace(/\\s+/g," ").trim().slice(0,120):"";
+  const x={date,type:"turno",post,start_time:start,end_time:end,piantonamento:false,notturno:false,ore:0};
   const key=[date,"turno",start,end,norm(post)].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}
  };
  for(const raw of lines){
