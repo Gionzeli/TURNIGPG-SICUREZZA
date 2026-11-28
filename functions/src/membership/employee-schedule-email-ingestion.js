@@ -189,7 +189,7 @@ export function createEmployeeScheduleEmailIngestion({
           messageId: message.messageId, attachmentSha256, idempotencyKey,
           receivedAt: Number.isSafeInteger(message.receivedAt) ? message.receivedAt : null
         });
-        if (!claim || typeof claim.jobId !== "string" || !ID.test(claim.jobId)) fail("failed-precondition", "Ingestion job could not be claimed.");
+        if (!claim || typeof claim.jobId !== "string" || !ID.test(claim.jobId) || claim.duplicate !== true && (typeof claim.leaseToken !== "string" || !/^[a-f0-9]{32,128}$/.test(claim.leaseToken) || !Number.isSafeInteger(claim.fencingToken) || claim.fencingToken < 1)) fail("failed-precondition", "Ingestion job could not be claimed.");
         if (claim.duplicate === true) {
           results.push({ status: "duplicate", jobId: claim.jobId });
           continue;
@@ -197,7 +197,7 @@ export function createEmployeeScheduleEmailIngestion({
         try {
           const scan = await scanAttachment({ bytes, filename: attachment.filename, sha256: attachmentSha256 });
           if (!scan || scan.status !== "clean") {
-            await finishIngestionJob({ accountId, jobId: claim.jobId, status: "quarantined", reason: "malware_or_scan_unavailable" });
+            await finishIngestionJob({ accountId, jobId: claim.jobId, leaseToken: claim.leaseToken, status: "quarantined", reason: "malware_or_scan_unavailable" });
             results.push({ status: "quarantined", jobId: claim.jobId, reason: "malware_or_scan_unavailable" });
             continue;
           }
@@ -278,7 +278,7 @@ export function createEmployeeScheduleEmailIngestion({
             const created = await createEmployeeProposal({
               accountId, employeeId: employee.employeeId, employeeUid: employee.employeeUid,
               source: "employer_email", sourceVerified: true, proposerUid: employee.employeeUid,
-              ingestionJobId: claim.jobId, attachmentSha256, receivedAt: message.receivedAt,
+              ingestionJobId: claim.jobId, ingestionLeaseToken: claim.leaseToken, ingestionFencingToken: claim.fencingToken, attachmentSha256, receivedAt: message.receivedAt,
               sender, idempotencyKey: claim.jobId + "_" + employee.employeeId,
               changes: diff.changes, before: diff.before
             });
@@ -291,7 +291,7 @@ export function createEmployeeScheduleEmailIngestion({
           const status = blocked.length ? (proposals.length ? "partially_processed" : "needs_review") :
             proposals.some(item => item.status === "pending") ? "proposals_created" : "unchanged";
           await finishIngestionJob({
-            accountId, jobId: claim.jobId, status, attachmentSha256,
+            accountId, jobId: claim.jobId, leaseToken: claim.leaseToken, status, attachmentSha256,
             proposalCount: proposals.filter(item => item.status === "pending").length,
             blockedCount: blocked.length
           });
