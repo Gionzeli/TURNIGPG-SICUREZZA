@@ -8,7 +8,7 @@ const input = {
   messageId: "synthetic-message", attachmentSha256: "a".repeat(64),
   idempotencyKey: "b".repeat(64), receivedAt: 1000
 };
-function harness() {
+function harness({ jobRefForKey } = {}) {
   const values = new Map();
   const db = {
     values,
@@ -26,7 +26,8 @@ function harness() {
   let token = 0;
   const adapter = createEmployeeScheduleIngestionJobFirestoreAdapter({
     db, now: () => clock, leaseMs: 10_000,
-    createLeaseToken: () => (++token).toString(16).padStart(64, "0")
+    createLeaseToken: () => (++token).toString(16).padStart(64, "0"),
+    ...(jobRefForKey ? { jobRefForKey } : {})
   });
   return { adapter, db, setTime: value => { clock = value; } };
 }
@@ -82,4 +83,26 @@ test("malformed identity and expired completion fail closed", async () => {
   await assert.rejects(adapter.finishIngestionJob({
     accountId, jobId: claim.jobId, leaseToken: claim.leaseToken, status: "failed"
   }), { code: "failed-precondition" });
+});
+
+
+test("finish uses the same injected document reference as claim", async () => {
+  const { adapter, db } = harness({
+    jobRefForKey: ({ accountId, idempotencyKey }) => ({
+      path: `tenants/${accountId}/jobs/${idempotencyKey}`
+    })
+  });
+  const claim = await adapter.claimIngestionJob(input);
+  await adapter.finishIngestionJob({
+    accountId, jobId: claim.jobId, leaseToken: claim.leaseToken, status: "unchanged"
+  });
+  assert.equal(db.values.get(`tenants/${accountId}/jobs/${claim.jobId}`).status, "unchanged");
+  assert.equal(db.values.size, 1);
+});
+
+test("unsafe initial lease expiry is rejected before creating a job", async () => {
+  const { adapter, db, setTime } = harness();
+  setTime(Number.MAX_SAFE_INTEGER - 5_000);
+  await assert.rejects(adapter.claimIngestionJob(input), { code: "unavailable" });
+  assert.equal(db.values.size, 0);
 });
