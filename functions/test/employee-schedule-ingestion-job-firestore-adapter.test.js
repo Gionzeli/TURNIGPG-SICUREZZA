@@ -72,6 +72,7 @@ test("terminal completion is idempotent and subsequent claim is a duplicate", as
   const finish = { accountId, jobId: claim.jobId, leaseToken: claim.leaseToken, status: "proposals_created" };
   assert.equal((await adapter.finishIngestionJob(finish)).duplicate, false);
   assert.equal((await adapter.finishIngestionJob(finish)).duplicate, true);
+  await assert.rejects(adapter.finishIngestionJob({ ...finish, status: "failed" }), { code: "failed-precondition" });
   assert.equal((await adapter.claimIngestionJob(input)).duplicate, true);
 });
 
