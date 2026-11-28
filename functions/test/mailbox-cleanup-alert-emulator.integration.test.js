@@ -18,17 +18,20 @@ test('Firestore Emulator durably queues and acknowledges exhausted cleanup alert
   const connectionId = 'it_connection_' + suffix;
   const ref = db.doc('accounts/' + accountId + '/mailboxCredentialCleanup/' + connectionId);
   const adapters = createMailboxConnectionFirestoreAdapters(db);
-  const secretRef = 'vault://synthetic/' + suffix;
+  const secretRef = `mailbox/${accountId}/${connectionId}/syntheticopaqueid123456`;
   const timestamp = Date.now();
 
   try {
     await adapters.recordSecretCleanup({
       accountId, connectionId, secretRef, reason: 'connection_revoked', timestamp
     });
-    await adapters.recordSecretCleanupFailure({
-      accountId, connectionId, secretRef, attempts: 12, nextAttemptAt: null,
-      lastErrorCode: 'unavailable', timestamp: timestamp + 1
-    });
+    for (let attempts = 2; attempts <= 12; attempts++) {
+      await adapters.recordSecretCleanupFailure({
+        accountId, connectionId, secretRef, attempts,
+        nextAttemptAt: attempts >= 12 ? null : timestamp + 60000,
+        lastErrorCode: 'unavailable', timestamp: timestamp + 1
+      });
+    }
     const queued = await adapters.listPendingCleanupAlerts({ accountId });
     assert.equal(queued.length, 1);
     assert.equal(queued[0].connectionId, connectionId);
@@ -71,17 +74,20 @@ test('Firestore Emulator prevents a stale alert retry from reopening a delivered
   const connectionId = 'it_connection_' + suffix;
   const ref = db.doc('accounts/' + accountId + '/mailboxCredentialCleanup/' + connectionId);
   const adapters = createMailboxConnectionFirestoreAdapters(db);
-  const secretRef = 'vault://synthetic/' + suffix;
+  const secretRef = `mailbox/${accountId}/${connectionId}/syntheticopaqueid123456`;
   const timestamp = Date.now();
 
   try {
     await adapters.recordSecretCleanup({
       accountId, connectionId, secretRef, reason: 'connection_revoked', timestamp
     });
-    await adapters.recordSecretCleanupFailure({
-      accountId, connectionId, secretRef, attempts: 12, nextAttemptAt: null,
-      lastErrorCode: 'unavailable', timestamp: timestamp + 1
-    });
+    for (let attempts = 2; attempts <= 12; attempts++) {
+      await adapters.recordSecretCleanupFailure({
+        accountId, connectionId, secretRef, attempts,
+        nextAttemptAt: attempts >= 12 ? null : timestamp + 60000,
+        lastErrorCode: 'unavailable', timestamp: timestamp + 1
+      });
+    }
 
     await adapters.markCleanupAlertDelivered({
       accountId, connectionId, timestamp: timestamp + 2
