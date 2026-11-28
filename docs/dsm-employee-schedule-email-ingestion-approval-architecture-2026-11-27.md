@@ -124,3 +124,7 @@ Il checkpoint usa ora l'orologio server dell'adapter Firestore per calcolare `up
 ### Composition root isolato (nuovo)
 
 Creato `mailbox-schedule-ingestion-composition.js`: compone gli adapter Firestore e il worker dietro un flag esplicito `enabled` (default false). In modalità disabilitata, run e inizializzazione rifiutano l'esecuzione senza toccare Firestore. La modalità attiva richiede provider adapter e handler ingestion iniettati. Non è un trigger Firebase e non viene esportato da `src/index.js`; scheduler, provider reali, parser e AV restano non collegati. Test sintetici aggiunti, non eseguiti.
+
+### Orchestratore schedulato account-scoped (scaffold)
+
+Aggiunto `mailbox-schedule-ingestion-scheduled-handler.js`, non esposto come trigger: flag disabilitato di default, discovery account e factory di composizione iniettate, limiti batch (account/connessioni), validazione batch account prima delle side-effect e risultati aggregati sanitizzati per evitare divulgare connection ID o errori provider. Test sintetici creati, non eseguiti. Trigger Firebase, discovery account reale e provider restano non collegati.
