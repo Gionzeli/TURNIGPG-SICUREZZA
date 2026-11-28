@@ -79,9 +79,9 @@ function canEmployeeDecideProposal(proposal) {
 function safeAdditionalInfo(value) {
   if (!Array.isArray(value) || value.length > 8) return [];
   const items = value.filter(item => typeof item === "string" && item.length <= 300 &&
-    item === item.trim() && !/[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/.test(item));
+    item === item.trim() && !/[\x00-\x08\x0b\x0c\x0e-\x1f\\x7f]/.test(item));
   const unique = [...new Set(items)];
-  return unique.join("\\n").length <= 1500 ? unique : [];
+  return unique.join("\n").length <= 1500 ? unique : [];
 }
 
 export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () => Date.now() }) {
