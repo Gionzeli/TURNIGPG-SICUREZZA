@@ -41,7 +41,7 @@ Scatti anzianità</pre>
         const source = document.querySelector("#fixture").textContent;
         const safe = sanitizeLabelContext(source, "payroll");
         if (!safe.toLocaleLowerCase("it-IT").includes("paga base") || !safe.toLocaleLowerCase("it-IT").includes("scatti")) {
-          throw new Error("Etichette generiche attese non conservate.");
+          throw new Error("Etichette generiche attese non conservate. Contesto ridotto: " + JSON.stringify(safe));
         }
         if (/1[.,]468|RSSMRA|mario@example|H501U|80A01/i.test(safe)) {
           throw new Error("Il contesto ridotto contiene ancora dati numerici o identificativi.");
