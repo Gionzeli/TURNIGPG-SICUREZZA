@@ -232,6 +232,40 @@ test("worker passes only the alert allowlist even when an adapter returns extra 
 });
 
 
+test("worker rejects inconsistent alert retry history before notification", async () => {
+  let alertCalls = 0;
+  const malformed = [
+    { alertAttempts: 0, alertNextAttemptAt: null, alertLastErrorCode: "unavailable" },
+    { alertAttempts: 0, alertNextAttemptAt: 2000, alertLastErrorCode: null },
+    { alertAttempts: 1, alertNextAttemptAt: null, alertLastErrorCode: "unavailable" },
+    { alertAttempts: 1, alertNextAttemptAt: 2000, alertLastErrorCode: null },
+    { alertAttempts: Number.MAX_SAFE_INTEGER, alertNextAttemptAt: 2000, alertLastErrorCode: "unavailable" }
+  ];
+  for (const metadata of malformed) {
+    const worker = createMailboxSecretCleanupWorker({
+      assertRevocationPending: async () => ({ status: "revocation_pending" }),
+      cleanupAdapters: {
+        listPendingSecretCleanup: async () => [],
+        completeSecretCleanup: async () => {},
+        recordSecretCleanupFailure: async () => {},
+        listPendingCleanupAlerts: async ({ accountId }) => [{
+          accountId, connectionId: "safe-alert", status: "exhausted",
+          alertStatus: "pending", attempts: 12, lastErrorCode: "unavailable",
+          ...metadata
+        }],
+        recordCleanupAlertFailure: async () => {},
+        markCleanupAlertDelivered: async () => assert.fail("invalid alert must not be acknowledged")
+      },
+      credentialVault: { revokeSecret: async () => {} },
+      alert: async () => { alertCalls++; },
+      now: () => 1000
+    });
+    await worker.runOnce({ accountId: "synthetic-account" });
+  }
+  assert.equal(alertCalls, 0);
+});
+
+
 test("worker rejects malformed connection ids before vault or alert side effects", async () => {
   let vaultCalls = 0;
   let alertCalls = 0;
