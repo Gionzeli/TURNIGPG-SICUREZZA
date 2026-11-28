@@ -47,10 +47,15 @@ if (!manifest.enabled) {
 }
 
 const seenRoles = new Set();
+const knownRoles = new Set(requiredRoles);
 const seenPaths = new Set();
 for (const item of manifest.assets) {
   if (!item || typeof item.role !== "string" || typeof item.path !== "string") {
     fail("voce asset incompleta");
+    continue;
+  }
+  if (!knownRoles.has(item.role)) {
+    fail("ruolo asset sconosciuto: " + item.role);
     continue;
   }
   if (!/^(vendor|models)\/[a-zA-Z0-9._\/-]+$/.test(item.path) ||
