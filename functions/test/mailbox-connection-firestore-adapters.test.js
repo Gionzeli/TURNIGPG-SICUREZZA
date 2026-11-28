@@ -387,16 +387,14 @@ test("cleanup transitions reject timestamps older than persisted update time", a
   }), error => error.code === "failed-precondition");
   assert.equal(docs.get(path).attempts, 1);
 
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 2, nextAttemptAt: input.timestamp + 60000,
-    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
-    timestamp: input.timestamp + 2
-  });
+  for (let attempts = 2; attempts <= 12; attempts += 1) {
+    const timestamp = input.timestamp + attempts;
+    await adapters.recordSecretCleanupFailure({
+      accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+      attempts, nextAttemptAt: attempts >= 12 ? null : timestamp + 60000,
+      lastErrorCode: "unavailable", timestamp
+    });
+  }
   const exhaustedAt = docs.get(path).updatedAt;
   await assert.rejects(adapters.recordCleanupAlertFailure({
     accountId: input.accountId, connectionId: input.connectionId,
