@@ -71,7 +71,7 @@ test("PDF composition routes parsed data through strict columns before proposing
   });
   assert.equal(calls.parser, 1);
   assert.equal(calls.proposals.length, 1);
-  assert.deepEqual(calls.proposals[0].changes[0].after, {
+  assert.deepEqual(calls.proposals[0].changes[0].shift, {
     date: "2026-06-02",
     type: "turno",
     post: "Reception",
