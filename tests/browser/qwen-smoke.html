@@ -24,6 +24,9 @@
     <pre id="fixture">Paga base 1.468,80 €
 Codice fiscale RSSMRA80A01H501U
 Email mario@example.test
+IBAN IT60X0542811101000000123456
+Telefono 3331234567
+Indirizzo Via Roma 12 Torino
 Scatti anzianità</pre>
     <button id="run" type="button">Esegui controlli locali</button>
     <p id="status" role="status" aria-live="polite">In attesa.</p>
@@ -47,7 +50,7 @@ Scatti anzianità</pre>
         if (!/RSSMRA80A01H501U/i.test(source) || /RSSMRA80A01H501U/i.test(safe)) {
           throw new Error("Il codice fiscale sintetico deve essere escluso dal contesto.");
         }
-        if (/1[.,]468|RSSMRA|mario@example|H501U|80A01/i.test(safe)) {
+        if (/1[.,]468|RSSMRA|mario@example|H501U|80A01|IT60X0542811101000000123456|3331234567|Via Roma|Torino/i.test(safe)) {
           throw new Error("Il contesto ridotto contiene ancora dati numerici o identificativi.");
         }
         let refused = false;
