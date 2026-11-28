@@ -836,3 +836,8 @@ records and a valid completed ticket. No live Firestore service was used.
 ### Completed cleanup retry schedule normalization
 
 When vault deletion succeeds, the completed cleanup ticket now clears its obsolete `nextAttemptAt` schedule while retaining the bounded attempt count and sanitized last error code as retry history. Completed-ticket validation checks that retained history directly rather than applying the pending-ticket scheduling rule, which would incorrectly reject a valid completion occurring after its prior retry deadline. Repeated completion uses the same complete-state validator as ticket reads. Synthetic regression coverage exercises completion after a scheduled retry deadline, repeat completion, and malformed retained error metadata.
+
+
+### Cleanup queue document identity binding
+
+Pending credential-cleanup and exhaustion-alert queries now require the Firestore document ID to equal the persisted `connectionId`, in addition to validating account scope, secret-reference scope (for credential cleanup), status, and retry metadata. This prevents a malformed or misplaced queue document from being acted on under an identity different from its storage path. Synthetic tests move otherwise valid tickets to a mismatched document ID and confirm both queue readers exclude them.
