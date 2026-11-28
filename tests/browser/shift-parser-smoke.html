@@ -65,8 +65,17 @@
         if(mergedDate.length!==2||mergedDate[0].date!=="2026-12-08"||mergedDate[1].date!=="2026-12-08"||mergedDate[1].start_time!=="14:00"||mergedDate[1].end_time!=="22:00"){
           throw new Error("Contesto data delle celle unite non mantenuto: "+JSON.stringify(mergedDate));
         }
-        status.textContent="PASS — coordinate OCR: solo data, orari e Postazione; intestazioni multi-parola, date unite e colonne escluse verificate.";
-        result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0],geometryColumns:geometry[0],splitTimeColumns:split[0],excludedColumns:excluded[0],multiwordHeader:multiword[0],splitStartEndLabels:splitLabels[0],mergedDateRows:mergedDate},null,2);
+        const repeatedHeader=parser([
+          "RIGA 1: @100:Data | @300:Orario | @600:Postazione",
+          "RIGA 2: @100:09/12/2026 | @300:06:00 | @360:14:00 | @600:Sede Iota",
+          "RIGA 3: @100:Data | @300:Orario | @600:Postazione",
+          "RIGA 4: @100: | @300:14:00 | @360:22:00 | @600:Sede Kappa"
+        ].join("\n"));
+        if(repeatedHeader.length!==1||repeatedHeader[0].date!=="2026-12-09"||repeatedHeader[0].post!=="Sede Iota"){
+          throw new Error("La data della pagina precedente è stata ereditata oltre una nuova intestazione: "+JSON.stringify(repeatedHeader));
+        }
+        status.textContent="PASS — coordinate OCR: solo data, orari e Postazione; date unite, intestazioni ripetute e colonne escluse verificate.";
+        result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0],geometryColumns:geometry[0],splitTimeColumns:split[0],excludedColumns:excluded[0],multiwordHeader:multiword[0],splitStartEndLabels:splitLabels[0],mergedDateRows:mergedDate,repeatedHeader},null,2);
       }catch(error){
         status.textContent="FAIL — controllo parser non superato.";
         result.textContent=String(error?.stack||error?.message||error);
