@@ -67,11 +67,11 @@ function normalizeAdditionalInfo(value) {
   if (!Array.isArray(value) || value.length > 8) fail("invalid-argument", "Additional schedule information is invalid.");
   const items = value.map(item => {
     if (typeof item !== "string") fail("invalid-argument", "Additional schedule information must be text.");
-    const normalized = item.replace(/[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/g, "").trim();
+    const normalized = item.replace(/[\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/g, "").trim();
     if (normalized.length > 300) fail("invalid-argument", "Additional schedule information is too long.");
     return normalized;
   }).filter(Boolean);
-  if (items.join("\\n").length > 1500) fail("invalid-argument", "Additional schedule information exceeds its limit.");
+  if (items.join("\n").length > 1500) fail("invalid-argument", "Additional schedule information exceeds its limit.");
   return [...new Set(items)];
 }
 function shiftKey(shift) {
@@ -239,7 +239,7 @@ export function createEmployeeScheduleEmailIngestion({
             const hasRawMatchKey = !!document && Object.hasOwn(document, "employeeMatchKey");
             const hasMatchKey = typeof document?.employeeMatchKey === "string" &&
               document.employeeMatchKey.length >= 1 && document.employeeMatchKey.length <= 128 &&
-              document.employeeMatchKey.trim().length > 0 && !/[\\x00-\\x1f\\x7f]/.test(document.employeeMatchKey);
+              document.employeeMatchKey.trim().length > 0 && !/[\x00-\\x1f\\x7f]/.test(document.employeeMatchKey);
             if (!document || (connection.mode === "shared" && !hasMatchKey) ||
                 (hasRawMatchKey && !hasMatchKey) ||
                 !Number.isFinite(document.confidence) || document.confidence < minConfidence ||
