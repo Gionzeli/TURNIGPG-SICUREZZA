@@ -10,3 +10,8 @@ This narrows stale-worker windows but is not a continuous heartbeat: a single sl
 ## Emulator integration follow-up (2026-11-28)
 
 The Firestore Emulator integration scenario now processes one synthetic message with one synthetic attachment instead of an empty provider batch. It asserts the ingestion callback receives the message and attachment and that the polling cursor advances only after processing. A companion worker unit test asserts four lease renewals in a single-message batch: before connection/provider work, before fetch, before ingestion, and after ingestion. The test is still emulator-gated; no emulator or CI run was performed in this change.
+
+
+## Provider batch bounds (2026-11-28)
+
+The polling worker now rejects malformed message objects and attachments arrays larger than the ingestion contract limit (10 per message) before calling ingestion. This prevents a provider adapter from handing an oversized attachment list into the processing path. Synthetic worker tests cover both malformed message objects and excessive attachments; failures do not advance the provider cursor.
