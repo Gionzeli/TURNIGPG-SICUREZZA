@@ -137,3 +137,27 @@ test("reclaimed lease can recover an already-created proposal without duplicatin
   assert.equal(recovered.duplicate, true);
   assert.equal(db.values.size, 3);
 });
+
+
+test("bounded additional information is stored separately and included in idempotency", async () => {
+  const { adapter, db } = harness();
+  const withInfo = { ...input, additionalInfo: ["Portare il badge", "Ingresso lato nord"] };
+  await adapter.createEmployeeProposal(withInfo);
+  const proposal = [...db.values.entries()].find(([path]) => path.includes("/employeeShiftProposals/"))[1];
+  assert.deepEqual(proposal.additionalInfo, withInfo.additionalInfo);
+  assert.equal(Object.hasOwn(proposal.changes[0].shift, "additionalInfo"), false);
+  await assert.rejects(adapter.createEmployeeProposal({
+    ...withInfo, additionalInfo: ["Nota modificata"]
+  }), { code: "failed-precondition" });
+});
+
+test("unbounded or malformed additional information is rejected before transaction", async () => {
+  const { adapter, db } = harness();
+  await assert.rejects(adapter.createEmployeeProposal({
+    ...input, additionalInfo: Array.from({ length: 9 }, () => "Nota")
+  }), { code: "invalid-argument" });
+  await assert.rejects(adapter.createEmployeeProposal({
+    ...input, additionalInfo: ["nota\\u0000non valida"]
+  }), { code: "invalid-argument" });
+  assert.equal(db.values.size, 2);
+});
