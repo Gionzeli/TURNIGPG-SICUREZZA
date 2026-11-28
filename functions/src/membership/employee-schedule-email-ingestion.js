@@ -50,6 +50,18 @@ function normalizeShift(input, { existing = false } = {}) {
   }
   return result;
 }
+function normalizeAdditionalInfo(value) {
+  if (value == null) return [];
+  if (!Array.isArray(value) || value.length > 8) fail("invalid-argument", "Additional schedule information is invalid.");
+  const items = value.map(item => {
+    if (typeof item !== "string") fail("invalid-argument", "Additional schedule information must be text.");
+    const normalized = item.replace(/[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/g, "").trim();
+    if (normalized.length > 300) fail("invalid-argument", "Additional schedule information is too long.");
+    return normalized;
+  }).filter(Boolean);
+  if (items.join("\\n").length > 1500) fail("invalid-argument", "Additional schedule information exceeds its limit.");
+  return [...new Set(items)];
+}
 function shiftKey(shift) {
   return [shift.date, shift.post.toLowerCase(), shift.start_time, shift.end_time].join("|");
 }
@@ -277,8 +289,12 @@ export function createEmployeeScheduleEmailIngestion({
               proposals.push({ employeeId: employee.employeeId, status: "unchanged", changeCount: 0 });
               continue;
             }
+            let additionalInfo;
+            try { additionalInfo = normalizeAdditionalInfo(document.additionalInfo); }
+            catch { blocked.push({ reason: "invalid_additional_information" }); continue; }
             const created = await createEmployeeProposal({
               accountId, employeeId: employee.employeeId, employeeUid: employee.employeeUid,
+              additionalInfo,
               source: "employer_email", sourceVerified: true, proposerUid: employee.employeeUid,
               ingestionJobId: claim.jobId, ingestionLeaseToken: claim.leaseToken, ingestionFencingToken: claim.fencingToken, attachmentSha256, receivedAt: message.receivedAt,
               sender, idempotencyKey: claim.jobId + "_" + employee.employeeId,
