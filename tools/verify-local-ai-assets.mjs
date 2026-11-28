@@ -36,8 +36,17 @@ try {
   process.exit();
 }
 
-if (manifest.schemaVersion !== 1 || typeof manifest.enabled !== "boolean" || !Array.isArray(manifest.assets)) {
+if (manifest.schemaVersion !== 1 || typeof manifest.enabled !== "boolean" ||
+    manifest.mode !== "bundled-offline" || !Array.isArray(manifest.assets) ||
+    !Array.isArray(manifest.requiredRoles)) {
   fail("schema manifest non valido");
+  process.exit();
+}
+const declaredRoles = manifest.requiredRoles;
+if (new Set(declaredRoles).size !== declaredRoles.length ||
+    declaredRoles.length !== requiredRoles.length ||
+    requiredRoles.some(role => !declaredRoles.includes(role))) {
+  fail("requiredRoles non corrisponde al contratto canonico degli asset AI");
   process.exit();
 }
 if (!manifest.enabled) {
@@ -56,6 +65,10 @@ for (const item of manifest.assets) {
   }
   if (!knownRoles.has(item.role)) {
     fail("ruolo asset sconosciuto: " + item.role);
+    continue;
+  }
+  if (seenRoles.has(item.role)) {
+    fail("ruolo asset duplicato: " + item.role);
     continue;
   }
   if (!/^(vendor|models)\/[a-zA-Z0-9._\/-]+$/.test(item.path) ||
