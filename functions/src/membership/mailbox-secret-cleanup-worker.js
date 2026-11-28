@@ -157,6 +157,15 @@ export function createMailboxSecretCleanupWorker({
         return summary;
       }
       for (const ticket of pendingAlerts) {
+        const alertAttempts = ticket?.alertAttempts ?? 0;
+        const alertNextAttemptAt = ticket?.alertNextAttemptAt ?? null;
+        const alertLastErrorCode = ticket?.alertLastErrorCode ?? null;
+        const validAlertRetryHistory = Number.isSafeInteger(alertAttempts) && alertAttempts >= 0 &&
+          (alertAttempts === 0
+            ? alertNextAttemptAt === null && alertLastErrorCode === null
+            : Number.isSafeInteger(alertNextAttemptAt) && alertNextAttemptAt >= 1 &&
+              typeof alertLastErrorCode === "string" &&
+              /^[a-z0-9_-]{1,64}$/.test(alertLastErrorCode));
         if (!ticket || ticket.accountId !== accountId ||
             typeof ticket.connectionId !== "string" ||
             !ID_RE.test(ticket.connectionId) ||
@@ -164,16 +173,11 @@ export function createMailboxSecretCleanupWorker({
             !Number.isSafeInteger(ticket.attempts) || ticket.attempts < MAX_ATTEMPTS ||
             typeof ticket.lastErrorCode !== "string" ||
             !/^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode) ||
-            !Number.isSafeInteger(ticket.alertAttempts ?? 0) || (ticket.alertAttempts ?? 0) < 0 ||
-            !(ticket.alertNextAttemptAt === null || ticket.alertNextAttemptAt === undefined ||
-              (Number.isSafeInteger(ticket.alertNextAttemptAt) && ticket.alertNextAttemptAt >= 1)) ||
-            !(ticket.alertLastErrorCode === null || ticket.alertLastErrorCode === undefined ||
-              (typeof ticket.alertLastErrorCode === "string" &&
-               /^[a-z0-9_-]{1,64}$/.test(ticket.alertLastErrorCode)))) continue;
+            !validAlertRetryHistory || alertAttempts === Number.MAX_SAFE_INTEGER) continue;
         let alertTimestamp;
         try { alertTimestamp = readWorkerTimestamp(now); }
         catch { return summary; }
-        if (Number.isSafeInteger(ticket.alertNextAttemptAt) && ticket.alertNextAttemptAt > alertTimestamp) continue;
+        if (Number.isSafeInteger(alertNextAttemptAt) && alertNextAttemptAt > alertTimestamp) continue;
         const alertId = accountId + ":" + ticket.connectionId + ":cleanup-exhausted";
         try {
           await alert({
