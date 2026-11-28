@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "../..");
+const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const verifier = path.join(repoRoot, "tools/verify-local-ai-assets.mjs");
 const roles = [
   "pdfjs-browser", "pdfjs-worker",
