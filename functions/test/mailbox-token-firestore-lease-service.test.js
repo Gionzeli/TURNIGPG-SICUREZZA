@@ -167,3 +167,47 @@ test('renew rejects a malformed persisted revocation marker',async()=>{
  f.record={...f.record,revocationPending:'false'};
  await assert.rejects(()=>f.service.renew({...scope,lease}),{code:'lease-lost'});
 });
+
+
+test('renew rejects corrupted persisted fencing, expiry, and owner fields', async () => {
+  for (const patch of [
+    { fencingToken: -1 },
+    { fencingToken: Number.MAX_SAFE_INTEGER + 1 },
+    { expiresAt: -1 },
+    { expiresAt: Number.NaN },
+    { ownerId: 'malformed owner' }
+  ]) {
+    const f = fixture();
+    const lease = await f.service.acquire({...scope});
+    f.record = {...f.record, ...patch};
+    await assert.rejects(() => f.service.renew({...scope, lease}), {code:'lease-lost'});
+  }
+});
+
+test('release does not mutate malformed persisted lease state', async () => {
+  for (const patch of [
+    { fencingToken: -1 },
+    { fencingToken: Number.MAX_SAFE_INTEGER + 1 },
+    { expiresAt: -1 },
+    { expiresAt: Number.NaN },
+    { ownerId: 'malformed owner' },
+    { revocationPending: 'false' }
+  ]) {
+    const f = fixture();
+    const lease = await f.service.acquire({...scope});
+    f.record = {...f.record, ...patch};
+    const before = {...f.record};
+    assert.equal(await f.service.release({...scope, lease}), false);
+    assert.deepEqual(f.record, before);
+  }
+});
+
+test('renew and release reject malformed lease proofs before transaction', async () => {
+  const f = fixture();
+  await assert.rejects(() => f.service.renew({
+    ...scope, lease:{ownerId:'bad owner',fencingToken:1}
+  }), {code:'invalid-argument'});
+  assert.equal(await f.service.release({
+    ...scope, lease:{ownerId:'bad owner',fencingToken:1}
+  }), false);
+});
