@@ -782,3 +782,8 @@ adapter validates the stored retry metadata and exhaustion/alert-state
 consistency. This prevents a completion acknowledgement from masking a malformed
 retry record. Synthetic coverage verifies an inconsistent pending retry count
 cannot be transitioned to complete.
+
+
+#### Resolved cleanup-alert terminal-state validation
+
+Resolved exhaustion alerts now validate retry-history consistency and terminal timestamps on direct cleanup-ticket reads and repeated completion. A resolved alert cannot carry a delivery timestamp, a scheduled retry, or malformed retry history; pending and delivered states likewise reject contradictory resolved timestamps. A synthetic adapter regression corrupts a resolved record and verifies it is rejected without mutation.
