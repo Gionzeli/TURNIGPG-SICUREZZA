@@ -86,3 +86,16 @@ I nomi e i campi sono una proposta, non una migrazione già autorizzata. Le scri
 - È stato aggiunto un core di ingestione provider-neutral (`employee-schedule-email-ingestion.js`): applica allowlist esatta del mittente e richiede autenticazione email verificata (DMARC pass e DKIM o SPF pass), controlla firma PDF e limite dimensione, richiede scansione antivirus pulita, usa idempotenza provider/casella/message-id/hash e valida i dati estratti. Risolve l’Employee esclusivamente tramite callback trusted di mapping canonico verificato, separa i collaboratori presenti nello stesso PDF e calcola differenze conservative. Non deduce cancellazioni dall’assenza di righe nel PDF, blocca matching ambiguo o confidenza inferiore al 98% e non interpreta campi/flag assenti come valori falsi o cancellazioni. Crea proposte `employer_email` separate, approvabili soltanto dal collaboratore vincolato al binding UID↔Employee e con provenienza/hash verificati.
 - Il core è un modulo server-side con dipendenze iniettate e test sintetici: non è ancora collegato a IMAP/OAuth/API, a un worker schedulato, a Secret Manager o a un parser PDF/OCR reale. Le caselle reali restano disabilitate; i callback di persistenza/idempotenza dovranno essere implementati con transazioni Firestore e adapter trusted prima dell’attivazione.\n- Prima di collegare caselle reali va definito e testato il processo autorizzato di associazione casella↔Employee e la gestione dei segreti.
 - Sviluppo e test esclusivamente con fixture sintetiche e Firebase Emulator. Nessuna chiamata Firebase reale, nessun accesso a caselle reali, nessun deploy, merge o attivazione produzione.
+
+## Incremento integrazione — orchestrazione worker provider-neutral
+
+È stato aggiunto `functions/src/membership/mailbox-schedule-ingestion-worker.js` con test sintetici dedicati. Il worker:
+- elenca connessioni dovute per account e rifiuta righe duplicate o fuori ambito;
+- acquisisce un lease per singola casella prima di contattare l'adapter;
+- rilegge la connessione canonica e processa soltanto connessioni attive;
+- invoca adapter provider-neutral che restituiscono messaggi normalizzati, poi delega ogni messaggio al core di ingestione già esistente;
+- avanza il cursore soltanto dopo l'elaborazione completa del batch e una seconda verifica che la casella sia ancora attiva;
+- in caso di errore non avanza il cursore, così il provider può riproporre i messaggi e l'idempotenza degli allegati evita duplicazioni;
+- rilascia il lease anche in caso di errore, lasciando la scadenza del lease come recupero se il rilascio fallisce.
+
+Questo è il primo collegamento di orchestrazione tra polling provider e pipeline di proposte; non abilita ancora provider reali. Restano da implementare e collegare adapter IMAP/Gmail/Graph, lease e checkpoint Firestore transazionali, scheduler/worker Firebase, scansione antivirus e parser PDF reali. Il worker non è esportato come callable e non viene eseguito automaticamente. Test esclusivamente sintetici; nessun account reale o deploy.
