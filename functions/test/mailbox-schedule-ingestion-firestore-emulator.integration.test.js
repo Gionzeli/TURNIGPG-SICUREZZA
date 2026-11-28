@@ -42,14 +42,24 @@ test("Firestore Emulator composes mailbox polling, fenced lease and ingestion ch
       renewLease: adapters.renewLease,
       releaseLease: adapters.releaseLease,
       providerAdapters: {
-        imap: { fetchMessages: async () => ({ messages: [], nextCursor: "synthetic-cursor-1" }) }
+        imap: { fetchMessages: async () => ({
+          messages: [{
+            message: { id: "synthetic-message-1", receivedAt: 12345 },
+            attachments: [{ id: "synthetic-attachment-1", filename: "shift.pdf" }]
+          }],
+          nextCursor: "synthetic-cursor-1"
+        }) }
       },
-      ingestMessage: async () => [],
+      ingestMessage: async ({ message, attachments }) => {
+        assert.equal(message.id, "synthetic-message-1");
+        assert.equal(attachments.length, 1);
+        return [{ status: "synthetic_processed" }];
+      },
       saveCheckpoint: adapters.saveCheckpoint
     });
     const result = await worker.run({ accountId, limit: 5 });
     assert.deepEqual(result, [{
-      connectionId, status: "processed", messageCount: 0, attachmentCount: 0
+      connectionId, status: "processed", messageCount: 1, attachmentCount: 1
     }]);
     const polling = (await pollingRef.get()).data();
     assert.equal(polling.cursor, "synthetic-cursor-1");
