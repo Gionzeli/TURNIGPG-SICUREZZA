@@ -245,7 +245,7 @@ test("audit failure keeps revocation pending and a later retry can finish it", a
     accountId: base.accountId, actorUid: base.actorUid, connectionId: "synthetic-connection"
   }), /synthetic audit outage/);
   assert.equal(calls.saved.at(-1).connection.status, "revocation_pending");
-  assert.equal(calls.saved.at(-1).connection.credentialSecretRef, "vault://synthetic/secret-1");
+  assert.equal(calls.saved.at(-1).connection.credentialSecretRef, "mailbox/synthetic-account/synthetic-connection/syntheticopaqueid123");
 
   const retry = await service.revoke({
     accountId: base.accountId, actorUid: base.actorUid, connectionId: "synthetic-connection"
