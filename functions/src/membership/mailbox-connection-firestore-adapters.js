@@ -57,7 +57,9 @@ function validPendingAlertState(value) {
   return retryScheduled;
 }
 function validExhaustedCleanupState(value) {
-  if (!Number.isSafeInteger(value.attempts) || value.attempts < 12 ||
+  if (!Number.isSafeInteger(value.createdAt) || value.createdAt < 1 ||
+      !Number.isSafeInteger(value.updatedAt) || value.updatedAt < value.createdAt ||
+      !Number.isSafeInteger(value.attempts) || value.attempts < 12 ||
       value.nextAttemptAt !== null ||
       typeof value.lastErrorCode !== "string" ||
       !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)) return false;
@@ -72,6 +74,7 @@ function validExhaustedCleanupState(value) {
         (typeof value.alertLastErrorCode === "string" &&
          /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode))) &&
       Number.isSafeInteger(value.alertDeliveredAt) && value.alertDeliveredAt >= 1 &&
+      value.alertDeliveredAt <= value.updatedAt &&
       (value.alertResolvedAt === null || value.alertResolvedAt === undefined);
   }
   if (value.alertStatus === "resolved") {
@@ -83,6 +86,7 @@ function validExhaustedCleanupState(value) {
           /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode));
     return validRetryHistory &&
       Number.isSafeInteger(value.alertResolvedAt) && value.alertResolvedAt >= 1 &&
+      value.alertResolvedAt <= value.updatedAt &&
       (value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined) &&
       (value.alertDeliveredAt === null || value.alertDeliveredAt === undefined);
   }
