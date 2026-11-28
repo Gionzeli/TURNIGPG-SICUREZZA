@@ -744,7 +744,7 @@ async function readDocumentText(f,st,kind){
     if(alt)documentText+=(documentText?"\n\n":"")+"TESTO OCR ALTERNATIVO LOCALE:\n"+alt;
    }
   }else{
-   ocr=await window.LocalDocAI.ocrImages(src.imgs,progress);
+   ocr=await window.LocalDocAI.ocrImages(src.imgs,progress,{withGeometry:kind==="t"});
    if(ocr)documentText+=(documentText?"\n\n":"")+"TESTO OCR LOCALE:\n"+ocr;
   }
   src.imgs.length=0;
