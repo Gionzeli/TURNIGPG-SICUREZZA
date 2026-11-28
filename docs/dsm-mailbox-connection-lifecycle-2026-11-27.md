@@ -804,3 +804,6 @@ Pending exhausted-cleanup alert validation now also rejects stale terminal times
 
 
 Pending exhausted-alert retry metadata now validates its persisted clock relationship as well: `updatedAt` must be a positive safe integer, and a scheduled `alertNextAttemptAt` cannot precede it. This prevents malformed persisted records from being retried or acknowledged based on a backoff timestamp that is already stale relative to the last state transition. Synthetic cases cover invalid/missing clock ordering.
+
+
+Pending credential-cleanup tickets now receive the same persisted-clock scrutiny as exhausted-alert tickets: `updatedAt` must be a positive safe integer, and a scheduled `nextAttemptAt` must not precede it. Both pending-list and single-ticket reads exclude malformed records. Synthetic regression cases cover a stale backoff timestamp and invalid update timestamps.
