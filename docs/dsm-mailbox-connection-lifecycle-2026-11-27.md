@@ -807,3 +807,6 @@ Pending exhausted-alert retry metadata now validates its persisted clock relatio
 
 
 Pending credential-cleanup tickets now receive the same persisted-clock scrutiny as exhausted-alert tickets: `updatedAt` must be a positive safe integer, and a scheduled `nextAttemptAt` must not precede it. Both pending-list and single-ticket reads exclude malformed records. Synthetic regression cases cover a stale backoff timestamp and invalid update timestamps.
+
+
+Cleanup ticket state transitions now also enforce monotonic persisted timestamps. Failure retries, exhausted-alert retry scheduling, alert delivery acknowledgement, and cleanup completion reject a transition timestamp older than the ticket's current `updatedAt`. This prevents clock regressions from rewriting the chronology of a durable outbox record. Synthetic coverage exercises stale cleanup-failure, alert-retry, and alert-delivery timestamps.
