@@ -46,8 +46,6 @@ async function installLocalAIAssets(cache){
     if(item.role==="paddle-model"&&!item.path.startsWith("models/paddleocr/pp-ocrv6/"))throw new Error("Modello PaddleOCR fuori directory");
     if(item.role==="onnxruntime-wasm"&&!item.path.startsWith("vendor/onnxruntime/"))throw new Error("ONNX Runtime fuori directory");
     if(item.role==="qwen-model"&&!item.path.startsWith("models/qwen2.5-0.5b-instruct/"))throw new Error("Modello Qwen fuori directory");
-      throw new Error("Percorso asset AI non valido");
-    }
     const url=new URL(item.path,APP_SCOPE);
     if(url.origin!==self.location.origin||!url.pathname.startsWith(APP_SCOPE.pathname)){
       throw new Error("Asset AI fuori dall'origine locale");
