@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
+  <title>Confine offline OCR/AI — test sintetico</title>
+  <style>
+    body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem}
+    pre{white-space:pre-wrap;background:#8881;padding:1rem;border-radius:8px}
+    #status{font-weight:700}
+  </style>
+</head>
+<body>
+  <h1>Test confine offline OCR/AI</h1>
+  <p>Verifica, con componenti locali volutamente assenti, che Tesseract, PaddleOCR e Qwen si fermino senza tentare caricamenti remoti.</p>
+  <button id="run" type="button">Esegui controlli</button>
+  <p id="status" role="status">In attesa</p>
+  <pre id="result">Nessun test eseguito.</pre>
+  <script type="module">
+    const status=document.querySelector("#status");
+    const result=document.querySelector("#result");
+    const externalAttempts=[];
+    const nativeFetch=window.fetch.bind(window);
+    window.fetch=(input,init)=>{
+      const raw=typeof input==="string"||input instanceof URL?String(input):input?.url||"";
+      const url=new URL(raw,location.href);
+      if(url.origin!==location.origin){externalAttempts.push("fetch "+url.href);return Promise.reject(new Error("Richiesta esterna bloccata dal test"))}
+      return nativeFetch(input,init);
+    };
+    const nativeOpen=XMLHttpRequest.prototype.open;
+    XMLHttpRequest.prototype.open=function(method,url,...rest){
+      const parsed=new URL(String(url),location.href);
+      if(parsed.origin!==location.origin){externalAttempts.push("XHR "+parsed.href);throw new Error("Richiesta XHR esterna bloccata dal test")}
+      return nativeOpen.call(this,method,url,...rest);
+    };
+    const run=async()=>{
+      try{
+        window.Tesseract=undefined;
+        window.LocalPaddleOCR=undefined;
+        const [{createLocalQwen},{default:unused}]=await Promise.all([
+          import("../../local-qwen.js"),
+          Promise.resolve({default:null})
+        ]);
+        await import("../../local-reader.js");
+        const fixture=document.createElement("canvas");
+        fixture.width=32;fixture.height=32;
+        const failures=[];
+        try{await window.LocalDocAI.ocrImages([fixture])}catch(error){if(/Tesseract offline non installato/i.test(String(error?.message||error)))failures.push("Tesseract: fail-closed");else throw error}
+        try{await window.LocalDocAI.ocrPayslipImages([fixture])}catch(error){if(/PaddleOCR offline non installato/i.test(String(error?.message||error)))failures.push("PaddleOCR: fail-closed");else throw error}
+        try{await createLocalQwen().init()}catch(error){if(/Qwen offline non installato/i.test(String(error?.message||error)))failures.push("Qwen: fail-closed");else throw error}
+        if(failures.length!==3)throw new Error("Non tutti i motori mancanti hanno interrotto il caricamento: "+failures.join(", "));
+        if(externalAttempts.length)throw new Error("Tentativi di rete esterna rilevati: "+externalAttempts.join("; "));
+        const externalResources=performance.getEntriesByType("resource").map(x=>x.name).filter(name=>{try{return new URL(name).origin!==location.origin}catch{return false}});
+        if(externalResources.length)throw new Error("Risorse esterne caricate: "+externalResources.join("; "));
+        status.textContent="PASS — tre motori assenti, tre arresti espliciti, zero richieste esterne intercettate.";
+        result.textContent=failures.join("\n")+"\nNessun PDF personale utilizzato.";
+      }catch(error){
+        status.textContent="FAIL — confine offline non rispettato.";
+        result.textContent=String(error?.stack||error?.message||error);
+      }
+    };
+    document.querySelector("#run").addEventListener("click",run);
+  </script>
+</body>
+</html>
