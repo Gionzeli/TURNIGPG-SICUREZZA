@@ -1,3 +1,4 @@
+const EXPECTED_SW_VERSION = "tg-v3.179";
 const REQUIRED_ROLES = [
   "pdfjs-browser","pdfjs-worker",
   "tesseract-browser","tesseract-worker","tesseract-core","tesseract-ita","tesseract-eng",
@@ -39,6 +40,26 @@ function loadClassicScript(src) {
   });
 }
 
+async function verifyLocalAIServiceWorker() {
+  const controller = navigator.serviceWorker?.controller;
+  if (!controller || typeof MessageChannel !== "function") return false;
+  return new Promise(resolve => {
+    const channel = new MessageChannel();
+    const timeout = setTimeout(() => {
+      channel.port1.close();
+      channel.port2.close();
+      resolve(false);
+    }, 3000);
+    channel.port1.onmessage = event => {
+      clearTimeout(timeout);
+      channel.port1.close();
+      channel.port2.close();
+      resolve(event.data?.version === EXPECTED_SW_VERSION);
+    };
+    controller.postMessage({ type: "DSM_LOCAL_AI_SW_VERSION" }, [channel.port2]);
+  });
+}
+
 async function bootstrapLocalAI() {
   const response = await fetch("./local-ai-assets.json", {
     cache: "no-store",
@@ -54,8 +75,9 @@ async function bootstrapLocalAI() {
     window.LocalAIAssets = Object.freeze({ ready: false, reason: "asset-non-distribuiti" });
     return;
   }
-  if (!navigator.serviceWorker?.controller) {
-    window.LocalAIAssets = Object.freeze({ ready: false, reason: "installazione-offline-da-completare" });
+  if (!navigator.serviceWorker?.controller ||
+      !(await verifyLocalAIServiceWorker())) {
+    window.LocalAIAssets = Object.freeze({ ready: false, reason: "service-worker-offline-non-verificato" });
     return;
   }
 
