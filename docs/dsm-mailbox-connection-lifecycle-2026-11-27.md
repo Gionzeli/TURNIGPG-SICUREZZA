@@ -831,3 +831,8 @@ must retain a valid delivered or resolved alert terminal state. Malformed
 completedAt, update ordering, or stray retry/alert fields are excluded from
 the adapter's read result. Synthetic regressions cover corrupted terminal
 records and a valid completed ticket. No live Firestore service was used.
+
+
+### Completed cleanup retry schedule normalization
+
+When vault deletion succeeds, the completed cleanup ticket now clears its obsolete `nextAttemptAt` schedule while retaining the bounded attempt count and sanitized last error code as retry history. Completed-ticket validation checks that retained history directly rather than applying the pending-ticket scheduling rule, which would incorrectly reject a valid completion occurring after its prior retry deadline. Repeated completion uses the same complete-state validator as ticket reads. Synthetic regression coverage exercises completion after a scheduled retry deadline, repeat completion, and malformed retained error metadata.
