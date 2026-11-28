@@ -981,6 +981,42 @@ test("completed cleanup reads reject malformed completion and retry history", as
   })).status, "complete");
 });
 
+test("completed cleanup clears obsolete retry schedule but retains validated retry history", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 2, nextAttemptAt: input.timestamp + 60000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 60000
+  });
+  const stored = docs.get(path);
+  assert.equal(stored.status, "complete");
+  assert.equal(stored.nextAttemptAt, null);
+  assert.equal(stored.lastErrorCode, "unavailable");
+  assert.equal((await adapters.loadSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId
+  })).status, "complete");
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 60001
+  });
+  docs.set(path, { ...stored, lastErrorCode: "INVALID CODE" });
+  assert.equal(await adapters.loadSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId
+  }), null);
+});
+
 test("exhausted cleanup terminal timestamps cannot postdate the ticket update clock", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
