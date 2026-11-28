@@ -8,6 +8,30 @@ function validSecretRef(value, accountId, connectionId) {
   return !!match && match[1] === accountId && match[2] === connectionId;
 }
 
+function validPendingTicket(ticket, accountId) {
+  if (!ticket || ticket.accountId !== accountId ||
+      typeof ticket.connectionId !== "string" || !ID_RE.test(ticket.connectionId) ||
+      !validSecretRef(ticket.secretRef, accountId, ticket.connectionId) ||
+      ticket.status !== "pending" ||
+      typeof ticket.reason !== "string" || !/^[a-z0-9_-]{1,64}$/.test(ticket.reason) ||
+      !Number.isSafeInteger(ticket.createdAt) || ticket.createdAt < 1 ||
+      !Number.isSafeInteger(ticket.updatedAt) || ticket.updatedAt < ticket.createdAt ||
+      !Number.isSafeInteger(ticket.attempts) || ticket.attempts < 1 ||
+      ticket.attempts > MAX_ATTEMPTS ||
+      !(ticket.lastErrorCode === undefined || ticket.lastErrorCode === null ||
+        (typeof ticket.lastErrorCode === "string" && /^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode)))) {
+    return false;
+  }
+  if (ticket.attempts === 1) {
+    return (ticket.nextAttemptAt === null || ticket.nextAttemptAt === undefined) &&
+      (ticket.lastErrorCode === null || ticket.lastErrorCode === undefined);
+  }
+  return ticket.attempts < MAX_ATTEMPTS
+    ? Number.isSafeInteger(ticket.nextAttemptAt) && ticket.nextAttemptAt >= ticket.updatedAt &&
+      typeof ticket.lastErrorCode === "string"
+    : ticket.nextAttemptAt === null && typeof ticket.lastErrorCode === "string";
+}
+
 function safeCode(error) {
   const value = typeof error?.code === "string" ? error.code : "unknown";
   return /^[a-z0-9_-]{1,64}$/.test(value) ? value : "unknown";
@@ -74,17 +98,7 @@ export function createMailboxSecretCleanupWorker({
       const summary = { scanned: 0, completed: 0, deferred: 0, exhausted: 0 };
       for (const ticket of tickets) {
         summary.scanned++;
-        if (!ticket || ticket.accountId !== accountId ||
-            typeof ticket.connectionId !== "string" ||
-            !ID_RE.test(ticket.connectionId) ||
-            !validSecretRef(ticket.secretRef, accountId, ticket.connectionId) ||
-            ticket.status !== "pending" ||
-            !Number.isSafeInteger(ticket.attempts) || ticket.attempts < 1 ||
-            !(ticket.nextAttemptAt === null ||
-              (Number.isSafeInteger(ticket.nextAttemptAt) && ticket.nextAttemptAt >= 1)) ||
-            !(ticket.lastErrorCode === undefined || ticket.lastErrorCode === null ||
-              (typeof ticket.lastErrorCode === "string" &&
-               /^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode)))) {
+        if (!validPendingTicket(ticket, accountId)) {
           summary.deferred++;
           continue;
         }
