@@ -18,13 +18,13 @@ Al commit di questa specifica, nell'albero del ramo non risultano directory `ven
 |---|---|---|---|
 | PDF.js browser | `vendor/pdfjs/pdf.min.js` | espone `window.pdfjsLib` | non incluso |
 | PDF.js worker | `vendor/pdfjs/pdf.worker.min.js` | worker locale same-origin | non incluso |
-| Tesseract.js 5.1.1 | `vendor/tesseract/` | espone `window.Tesseract.createWorker` | non incluso |
+| Tesseract.js 5.1.1 | `vendor/tesseract/tesseract.min.js` + worker/core/dati lingua sotto `vendor/tesseract/` | espone `window.Tesseract.createWorker` | non incluso |
 | Tesseract worker/core | `vendor/tesseract/worker.min.js`, core WASM nella stessa directory | `workerPath` e `corePath` locali | non inclusi |
 | Lingue Tesseract | `vendor/tesseract/lang/ita.traineddata.gz`, `eng.traineddata.gz` (o formato esatto supportato dalla build scelta) | `langPath` locale | non incluse |
-| Wrapper PaddleOCR | bundle locale applicativo | espone `window.LocalPaddleOCR.createOffline` | non incluso |
+| Wrapper PaddleOCR | `vendor/paddleocr/local-paddleocr.js` | espone `window.LocalPaddleOCR.createOffline` | non incluso |
 | PaddleOCR PP-OCRv6 italiano | `models/paddleocr/pp-ocrv6/` | modello/dizionari/config richiesti dalla versione fissata | non inclusi |
 | ONNX Runtime Web | `vendor/onnxruntime/` | WASM locale, nessun download automatico | non incluso |
-| Transformers.js | bundle locale applicativo | loader iniettato come `pipelineLoader`, restituisce `pipeline` ed `env` | non incluso |
+| Transformers.js | `vendor/transformers/transformers.min.js` (ES module) | esporta `pipeline` ed `env` | non incluso |
 | Qwen2.5-0.5B-Instruct | `models/qwen2.5-0.5b-instruct/` | pesi quantizzati compatibili, config e tokenizer locali | non incluso |
 
 I nomi dei file specifici di ONNX, Tesseract e dei pesi Qwen/Paddle dipendono dalla build e dalla quantizzazione selezionate: prima di fissarli occorre scegliere una release compatibile, registrarne licenza e SHA-256 e adattare i loader a quegli artefatti reali. Non creare file segnaposto che facciano apparire disponibile un motore non installato.
