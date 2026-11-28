@@ -105,3 +105,16 @@ Added `functions/src/membership/employee-schedule-pdf-column-mapper.js` as a str
 - The adapter accepts an injected `extractPdfTables` engine and returns the `documents` structure expected by `createEmployeeScheduleEmailIngestion({ extractSchedule })`.
 
 Important limitation: this does **not** implement PDF text extraction, OCR, handwriting recognition or layout detection. No PDF/OCR dependency is currently installed in the Functions package, and no real parser/provider is wired or enabled. The adapter is ready to wrap a separately selected and tested extraction engine; until then the actual PDF-reading integration remains incomplete. Synthetic unit tests have been added but were not executed in this session.
+
+
+## PDF attachment integrity gate (2026-11-28)
+
+The structured column mapper now validates the raw attachment before invoking an injected PDF/table extraction engine:
+
+- requires the PDF file signature `%PDF-`;
+- enforces the existing 10 MiB attachment ceiling;
+- bounds and validates the filename and SHA-256 syntax;
+- recomputes SHA-256 from the exact bytes and rejects mismatches before the engine is called;
+- passes only the validated bytes, filename and verified digest to the injected extractor.
+
+This is an integrity gate, not a PDF parser or OCR implementation. A separately selected extraction engine and its deployment/runtime wiring are still required. Synthetic tests cover signature and digest rejection; no real PDFs, external provider credentials or production services are used.
