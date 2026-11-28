@@ -282,14 +282,18 @@ export function createEmployeeScheduleEmailIngestion({
               sender, idempotencyKey: claim.jobId + "_" + employee.employeeId,
               changes: diff.changes, before: diff.before
             });
-            if (!created || typeof created.proposalId !== "string" || !ID.test(created.proposalId)) {
+            if (!created || typeof created.proposalId !== "string" || !ID.test(created.proposalId) ||
+                !["pending", "approved", "rejected", "superseded"].includes(created.status)) {
               blocked.push({ reason: "proposal_creation_failed" });
               continue;
             }
-            proposals.push({ employeeId: employee.employeeId, proposalId: created.proposalId, status: "pending", changeCount: diff.changes.length });
+            proposals.push({
+              employeeId: employee.employeeId, proposalId: created.proposalId,
+              status: created.status, changeCount: diff.changes.length
+            });
           }
           const status = blocked.length ? (proposals.length ? "partially_processed" : "needs_review") :
-            proposals.some(item => item.status === "pending") ? "proposals_created" : "unchanged";
+            proposals.length > 0 ? "proposals_created" : "unchanged";
           await finishIngestionJob({
             accountId, jobId: claim.jobId, leaseToken: claim.leaseToken, status, attachmentSha256,
             proposalCount: proposals.filter(item => item.status === "pending").length,
