@@ -98,6 +98,10 @@ export function createMailboxScheduleIngestionFirestoreAdapters({
         throw error;
       }
     },
+    async renewLease({ accountId, connectionId, lease }) {
+      scope(accountId, connectionId);
+      return leaseService.renew({ accountId, connectionId, lease, ttlMs: 120_000 });
+    },
     async releaseLease({ accountId, connectionId, lease }) {
       return leaseService.release({ accountId, connectionId, lease });
     },
