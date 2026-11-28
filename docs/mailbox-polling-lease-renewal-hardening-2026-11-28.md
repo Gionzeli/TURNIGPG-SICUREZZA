@@ -5,3 +5,8 @@ The scheduled polling worker now renews its account/connection-scoped fenced lea
 Renewal results must retain owner and fencing token and contain a safe expiry later than the renewal timestamp. Any renewal failure or malformed/expired proof stops processing and prevents cursor advancement. The original lease is still used for best-effort release because release ownership is keyed by owner and fencing token; the renewed proof is passed to the checkpoint transaction.
 
 This narrows stale-worker windows but is not a continuous heartbeat: a single slow provider or ingestion operation can still exceed the lease TTL. Ingestion must remain idempotent and independently fail closed, and checkpoint transaction still verifies a live lease. No real provider, credentials, or Firebase environment were used. Tests are synthetic and not executed in this environment.
+
+
+## Emulator integration follow-up (2026-11-28)
+
+The Firestore Emulator integration scenario now processes one synthetic message with one synthetic attachment instead of an empty provider batch. It asserts the ingestion callback receives the message and attachment and that the polling cursor advances only after processing. A companion worker unit test asserts four lease renewals in a single-message batch: before connection/provider work, before fetch, before ingestion, and after ingestion. The test is still emulator-gated; no emulator or CI run was performed in this change.
