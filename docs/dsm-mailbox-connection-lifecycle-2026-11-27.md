@@ -877,3 +877,8 @@ Before a pending cleanup ticket is transitioned to complete, the adapter now req
 ### Cleanup worker alert retry-history validation
 
 The worker now independently validates the relationship between alert retry count, next-attempt timestamp, and last error code before notification. Initial alerts must have zero retries and no retry metadata; retried alerts must have a positive next-attempt timestamp and a valid last error code. A maximum safe-integer retry count is rejected to prevent overflow on a further failure. Synthetic tests cover inconsistent combinations and verify no notification or acknowledgement occurs.
+
+
+### Cleanup worker validates persisted pending-ticket history
+
+The worker now independently validates the pending ticket's creation/update chronology, reason code, attempt count, and retry-history shape before checking the revocation gate or touching the credential vault. This is defense in depth for trusted adapter implementations other than the Firestore adapter. Synthetic regressions cover malformed timestamps, reason values, and inconsistent retry schedules; malformed tickets are deferred without gate or vault calls.
