@@ -316,8 +316,8 @@ function parseTurns(text){
  const lines=String(text||"").replace(/\r/g,"\n").split("\n");let currentDate="",periodStart="";
  const addShift=(date,segment,start,end,postRaw)=>{
   // Residual row text is not proof of a Postazione column: accept only an explicit label.
-  const labelled=String(postRaw||"").match(/POSTAZIONE\\s*:\\s*([^|;]+)/i);
-  const post=labelled?labelled[1].replace(/\\s+/g," ").trim().slice(0,120):"";
+  const labelled=String(postRaw||"").match(/POSTAZIONE\s*:\s*([^|;]+)/i);
+  const post=labelled?labelled[1].replace(/\s+/g," ").trim().slice(0,120):"";
   const x={date,type:"turno",post,start_time:start,end_time:end,piantonamento:false,notturno:false,ore:0};
   const key=[date,"turno",start,end,norm(post)].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}
  };
