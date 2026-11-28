@@ -820,3 +820,14 @@ update timestamp. This prevents a malformed terminal timestamp from being accept
 as historical state merely because it is a positive integer. Synthetic adapter
 regressions cover both delivered and resolved records, including direct reads
 and repeated transition acknowledgements. No live Firestore service was used.
+
+
+#### Completed cleanup ticket read validation
+
+Direct reads of completed cleanup tickets now validate their completion chronology
+and retained retry history. Ordinary completions must retain a valid pending-ticket
+retry shape without exhaustion-alert metadata; completions after retry exhaustion
+must retain a valid delivered or resolved alert terminal state. Malformed
+completedAt, update ordering, or stray retry/alert fields are excluded from
+the adapter's read result. Synthetic regressions cover corrupted terminal
+records and a valid completed ticket. No live Firestore service was used.
