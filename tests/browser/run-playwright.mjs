@@ -691,7 +691,8 @@ try {
   await qwenPage.goto("http://127.0.0.1:8000/tests/browser/qwen-smoke.html", { waitUntil: "load" });
   await qwenPage.locator("#run").click();
   await qwenPage.waitForFunction(() => /^(PASS|FAIL)/.test(document.querySelector("#status")?.textContent || ""), null, { timeout: 15000 });
-  assert.match(await qwenPage.locator("#status").textContent(), /^PASS/);
+  assert.match(await qwenPage.locator("#status").textContent(), /^PASS/,
+    (await qwenPage.locator("#result").textContent()) || "Qwen smoke test failed without diagnostics.");
   assert.equal(qwenErrors.length, 0, qwenErrors.join("; "));
   assert.ok(qwenRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
     "Il test Qwen locale ha richiesto risorse esterne.");
