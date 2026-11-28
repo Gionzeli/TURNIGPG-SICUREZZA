@@ -53,6 +53,24 @@ test("Firestore Emulator persists a fenced job and proposal only for the recipro
     });
     assert.equal(claim.duplicate, false);
 
+    await assert.rejects(persistence.createEmployeeProposal({
+      accountId, employeeId: "it_other_employee_" + suffix,
+      employeeUid: uid, proposerUid: uid,
+      source: "employer_email", sourceVerified: true,
+      ingestionJobId: claim.jobId, ingestionLeaseToken: claim.leaseToken,
+      ingestionFencingToken: claim.fencingToken, attachmentSha256,
+      receivedAt: Date.now(), sender: "turni@example.test",
+      idempotencyKey: claim.jobId + "_it_other_employee_" + suffix,
+      changes: [{
+        operation: "create",
+        shift: {
+          date: "2026-12-02", type: "turno", post: "B",
+          start_time: "09:00", end_time: "17:00", hours: 8
+        }
+      }],
+      before: [null]
+    }), { code: "permission-denied" });
+
     const created = await persistence.createEmployeeProposal({
       accountId, employeeId, employeeUid: uid, proposerUid: uid,
       source: "employer_email", sourceVerified: true,
