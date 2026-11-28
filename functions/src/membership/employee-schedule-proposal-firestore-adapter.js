@@ -94,7 +94,7 @@ export function createEmployeeScheduleProposalFirestoreAdapter({
           input?.proposerUid !== input.employeeUid ||
           !Number.isSafeInteger(input?.receivedAt) || input.receivedAt < 1 ||
           typeof input?.sender !== "string" || input.sender.length > 254 ||
-          !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(input.sender) ||
+          !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.sender) ||
           input.idempotencyKey !== input.ingestionJobId + "_" + input.employeeId) {
         fail("invalid-argument", "Verified employer proposal identity is invalid.");
       }
