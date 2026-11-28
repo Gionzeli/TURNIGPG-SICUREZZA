@@ -353,7 +353,7 @@ test("shared mailbox rejects blank or control-character employee match keys", as
   let resolutions = 0;
   const { service, calls } = harness({
     extractSchedule: async () => ({ documents: [{
-      employeeMatchKey: "  \\t",
+      employeeMatchKey: "  \t",
       confidence: 0.999,
       shifts: [{ date: "2026-06-02", type: "turno", post: "A", start_time: "08:00", end_time: "14:00", hours: 6 }]
     }] }),
@@ -490,7 +490,7 @@ test("control characters are stripped from informational notes before proposal p
     extractSchedule: async () => ({ documents: [{
       employeeMatchKey: "verified-employee-code",
       confidence: 0.999,
-      additionalInfo: ["Portare\\u0000 il badge\\u0008", "Cambio ingresso\\u001f"],
+      additionalInfo: ["Portare\u0000 il badge\u0008", "Cambio ingresso\u001f"],
       shifts: [{
         date: "2026-06-02", type: "turno", post: "Reception",
         start_time: "08:00", end_time: "14:00"
