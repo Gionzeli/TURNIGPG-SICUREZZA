@@ -40,7 +40,7 @@ Scatti anzianità</pre>
       try {
         const source = document.querySelector("#fixture").textContent;
         const safe = sanitizeLabelContext(source, "payroll");
-        if (!safe.includes("Paga base") || !safe.includes("Scatti")) {
+        if (!safe.toLocaleLowerCase("it-IT").includes("paga base") || !safe.toLocaleLowerCase("it-IT").includes("scatti")) {
           throw new Error("Etichette generiche attese non conservate.");
         }
         if (/1[.,]468|RSSMRA|mario@example|H501U|80A01/i.test(safe)) {
