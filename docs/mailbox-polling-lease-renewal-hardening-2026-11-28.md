@@ -45,3 +45,9 @@ Synthetic tests cover creation, replay, stale fencing, expired lease, inactive E
 The proposal adapter also validates calendar dates, shift types, time intervals, numeric hours, boolean flags and allowlisted fields before entering the Firestore transaction. Invalid parsed rows are rejected before any proposal write.
 
 A final validation pass aligned proposal validation with the existing employee shift service: partial updates to one side of a time interval are allowed (the other side remains unchanged), while newly created shifts require a complete start/end pair. Before snapshots must match the operation's expected revision, create operations require a null before snapshot, and duplicate shift targets or extra operation fields are rejected. This avoids rejecting ordinary one-field time corrections while preserving immutable-date and revision safeguards.
+
+## Firestore persistence composition
+
+Added `employee-schedule-email-ingestion-firestore-persistence.js` as a narrow composition helper for the existing ingestion core. It combines the durable job claim/finish adapter with the fenced proposal adapter and supplies employee authorization through `createEmployeeShiftFirestoreAuthorization` in the same Firestore transaction. The canonical authorization result now explicitly exposes `status: "active"` only after validating the account, membership permissions, reciprocal UID↔Employee bindings, Employee record and control record.
+
+The helper only constructs dependencies; it performs no Firestore reads/writes at construction and does not activate the mailbox polling composition, provider adapters, scheduled handler, Firebase trigger or callable. Callers must still inject the remaining ingestion dependencies (mailbox verification, malware scan, PDF extraction, employee resolution and existing-shift loading). This is persistence wiring, not a production-ready provider integration.
