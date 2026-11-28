@@ -612,8 +612,8 @@ test("pending cleanup query sorts never-attempted and due work ahead of future r
     });
     await adapters.recordSecretCleanupFailure({
       accountId: active.accountId, connectionId, secretRef: secretRef(active.accountId, connectionId, "opaqueidentifier" + i),
-      attempts: 2, nextAttemptAt: 900000 + i, lastErrorCode: "unavailable",
-      timestamp: 800000 + i
+      attempts: 2, nextAttemptAt: active.createdAt + 900000 + i, lastErrorCode: "unavailable",
+      timestamp: active.createdAt + i + 1
     });
   }
   await adapters.recordSecretCleanup({
@@ -732,6 +732,8 @@ test("cleanup alert retry counter is not artificially capped at one thousand", a
   await exhaustCleanup(adapters, input);
   const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
   docs.get(path).alertAttempts = 1000;
+  docs.get(path).alertNextAttemptAt = input.timestamp + 60000;
+  docs.get(path).alertLastErrorCode = "unavailable";
   await adapters.recordCleanupAlertFailure({
     accountId: input.accountId, connectionId: input.connectionId,
     attempts: 1001, nextAttemptAt: input.timestamp + 60000,
@@ -1214,7 +1216,7 @@ test("repeat completion rejects stray alert metadata when no alert status exists
     timestamp: input.timestamp + 3
   }), error => error.code === "failed-precondition");
   assert.equal(stored.status, "complete");
-  assert.equal(stored.alertStatus, null);
+  assert.equal(stored.alertStatus, undefined);
 });
 
 
