@@ -113,7 +113,13 @@ test("worker rejects malformed persisted pending-ticket history before gate or v
     { attempts: 2, nextAttemptAt: null, lastErrorCode: "unavailable" },
     { attempts: 2, nextAttemptAt: 1000, lastErrorCode: null },
     { attempts: 1, nextAttemptAt: 1000 },
-    { attempts: 12, nextAttemptAt: 2000, lastErrorCode: "unavailable" }
+    { attempts: 12, nextAttemptAt: 2000, lastErrorCode: "unavailable" },
+    { alertStatus: "pending" },
+    { alertAttempts: 0 },
+    { alertNextAttemptAt: 1000 },
+    { alertLastErrorCode: "unavailable" },
+    { alertDeliveredAt: 1000 },
+    { alertResolvedAt: 1000 }
   ];
   for (const patch of malformed) {
     let gateCalls = 0;
