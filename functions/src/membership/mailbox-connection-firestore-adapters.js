@@ -92,6 +92,17 @@ function validExhaustedCleanupState(value) {
   }
   return false;
 }
+function validCompleteCleanupState(value) {
+  if (!Number.isSafeInteger(value.createdAt) || value.createdAt < 1 ||
+      !Number.isSafeInteger(value.completedAt) || value.completedAt < value.createdAt ||
+      !Number.isSafeInteger(value.updatedAt) || value.updatedAt < value.completedAt) return false;
+  if (value.attempts >= 12) {
+    return validExhaustedCleanupState({ ...value, status: "exhausted" }) &&
+      ["delivered", "resolved"].includes(value.alertStatus);
+  }
+  if (value.alertStatus !== null && value.alertStatus !== undefined) return false;
+  return validPendingCleanupState(value);
+}
 function validateConnection(accountId, connectionId, value) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
       Object.keys(value).some(key => !CONNECTION_KEYS.has(key))) {
@@ -267,7 +278,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           !["pending", "exhausted", "complete"].includes(value.status) ||
           !Number.isSafeInteger(value.attempts) || value.attempts < 1 ||
           (value.status === "pending" && !validPendingCleanupState(value)) ||
-          (value.status === "exhausted" && !validExhaustedCleanupState(value))) return null;
+          (value.status === "exhausted" && !validExhaustedCleanupState(value)) ||
+          (value.status === "complete" && !validCompleteCleanupState(value))) return null;
       return value;
     },
 
