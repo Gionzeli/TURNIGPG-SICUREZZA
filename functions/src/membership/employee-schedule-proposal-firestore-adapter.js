@@ -14,9 +14,9 @@ function canonical(value) {
 function same(a, b) { return JSON.stringify(canonical(a)) === JSON.stringify(canonical(b)); }
 const TYPES = new Set(["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"]);
 const FLAGS = ["is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"];
-const TIME = /^(?:[01]\\d|2[0-3]):[0-5]\\d$/;
+const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 function validDate(value) {
-  if (typeof value !== "string" || !/^\\d{4}-\\d{2}-\\d{2}$/.test(value)) return false;
+  if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
   const parsed = new Date(value + "T00:00:00Z");
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
@@ -43,8 +43,7 @@ function validateChanges(changes, before) {
     if (!change || typeof change !== "object" || Array.isArray(change) ||
         !["create", "update", "delete"].includes(change.operation)) fail("invalid-argument", "Invalid proposal operation.");
     if (change.operation === "create") {
-      if (!change.shift || typeof change.shift !== "object" || Array.isArray(change.shift) ||
-          false) fail("invalid-argument", "Invalid proposed shift.");
+      if (!change.shift || typeof change.shift !== "object" || Array.isArray(change.shift)) fail("invalid-argument", "Invalid proposed shift.");
       validateFields(change.shift, { allowDate: true });
       if (!validDate(change.shift.date) || !TYPES.has(change.shift.type)) fail("invalid-argument", "Create proposal requires a valid date and type.");
     } else if (typeof change.shiftId !== "string" || !ID.test(change.shiftId) ||
