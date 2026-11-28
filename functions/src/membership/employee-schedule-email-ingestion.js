@@ -26,13 +26,14 @@ function normalizedEmail(value) {
 function normalizeShift(input, { existing = false } = {}) {
   if (!input || typeof input !== "object" || Array.isArray(input) ||
       Object.keys(input).some(key => !(existing ? SHIFT_FIELDS : PARSED_SHIFT_FIELDS).has(key))) fail("invalid-argument", "Unsupported parsed shift fields.");
-  if (!validDate(input.date) || !TYPES.has(input.type)) fail("invalid-argument", "Parsed shift has an invalid date or type.");
+  if (!validDate(input.date) || (existing && !TYPES.has(input.type))) fail("invalid-argument", "Parsed shift has an invalid date or type.");
   if (!existing && ["post", "start_time", "end_time"].some(key => !Object.hasOwn(input, key))) {
     fail("invalid-argument", "Parsed shift must explicitly include post and start/end times.");
   }
   const post = input.post ?? "";
   const start_time = input.start_time ?? "";
   const end_time = input.end_time ?? "";
+  const type = existing ? input.type : "turno";
   const hours = existing ? (input.hours ?? 0) : (() => {
     const [startHour, startMinute] = start_time.split(":").map(Number);
     const [endHour, endMinute] = end_time.split(":").map(Number);
@@ -49,7 +50,7 @@ function normalizeShift(input, { existing = false } = {}) {
       typeof hours !== "number" || !Number.isFinite(hours) || hours < 0 || hours > 48) {
     fail("invalid-argument", "Parsed shift contains invalid post, time or hours.");
   }
-  const result = { date: input.date, type: input.type, post, start_time, end_time, hours };
+  const result = { date: input.date, type, post, start_time, end_time, hours };
   for (const key of ["is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"]) {
     if (!existing) continue;
     const value = input[key] ?? false;
