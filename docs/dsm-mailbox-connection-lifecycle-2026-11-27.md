@@ -795,3 +795,6 @@ Repeated cleanup completion acknowledgements now apply the same full exhausted-a
 
 
 Completed cleanup records with no alert status (ordinary cleanup success before the alert-exhaustion path) also require alert retry counters, error codes, scheduling timestamps, delivery timestamps, and resolution timestamps to be absent/null. Repeated completion rejects stray alert metadata rather than treating a partially populated alert record as an ordinary no-alert terminal state.`;
+
+
+Repeated acknowledgement of a delivered cleanup alert now reuses the full exhausted-ticket terminal-state validator. This rejects contradictory resolution timestamps and malformed cleanup retry history, rather than validating only the delivery timestamp and alert retry counters.
