@@ -49,28 +49,34 @@ const FIELD_CUES = Object.freeze({
 });
 
 export function sanitizeLabelContext(text, kind) {
-  const cues = Object.values(FIELD_CUES[kind] || {});
-  if (!cues.length) return "";
-  const lines = String(text ?? "").split(/\r?\n/);
-  const selected = [];
-  for (const raw of lines) {
+  const fields = TARGETS[kind] || [];
+  if (!fields.length) return "";
+  const selected = new Set();
+  for (const raw of String(text ?? "").split(/\r?\n/)) {
     if (/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(raw) ||
         /\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b/i.test(raw) ||
         /\b[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b/i.test(raw) ||
         /\b[A-Z0-9]{16}\b/i.test(raw)) continue;
-    let line = raw
+    const clean = raw
       .replace(/\b\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4}\b/g, " ")
       .replace(/\b\d{4}-\d{2}-\d{2}\b/g, " ")
-      .replace(/[€$£]\s*[-+]?\s*[\d.,]+/g, " ")
+      .replace(/[€$£]/g, " ")
       .replace(/[-+]?\d[\d., ]{0,18}\d/g, " ")
-      .replace(/\b(?:codice fiscale|matricola|iban|telefono|cellulare|email|indirizzo|nome e cognome)\b[^|;]*/ig, " ")
-      .replace(/[|:;=]+/g, " ").replace(/\s+/g, " ").trim();
-    if (!line || line.length < 3 || !/[\p{L}]{3}/u.test(line)) continue;
-    if (!cues.some(re => re.test(line))) continue;
-    selected.push(line.slice(0, 100));
-    if (selected.length >= 20) break;
+      .replace(/[|:;=]+/g, " ")
+      .replace(/[^\p{L}'’.-]+/gu, " ")
+      .replace(/\s+/g, " ").trim();
+    const words = clean.split(/\s+/).filter(Boolean);
+    for (let start = 0; start < words.length; start++) {
+      for (let size = 1; size <= 6 && start + size <= words.length; size++) {
+        const phrase = words.slice(start, start + size).join(" ");
+        if (fields.some(field => isSafeLearningAlias(kind, field, phrase))) {
+          selected.add(fold(phrase));
+        }
+      }
+    }
+    if (selected.size >= 40) break;
   }
-  return selected.join("\n").slice(0, 1500);
+  return [...selected].slice(0, 40).join("\n").slice(0, 1500);
 }
 
 function safeLabel(value, source, kind, field) {
