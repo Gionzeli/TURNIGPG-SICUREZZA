@@ -322,8 +322,9 @@ export function createEmployeeScheduleEmailIngestion({
               status: created.status, changeCount: diff.changes.length
             });
           }
-          const status = blocked.length ? (proposals.length ? "partially_processed" : "needs_review") :
-            proposals.length > 0 ? "proposals_created" : "unchanged";
+          const createdProposalCount = proposals.filter(item => Object.hasOwn(item, "proposalId")).length;
+          const status = blocked.length ? (createdProposalCount > 0 ? "partially_processed" : "needs_review") :
+            createdProposalCount > 0 ? "proposals_created" : "unchanged";
           await finishIngestionJob({
             accountId, jobId: claim.jobId, leaseToken: claim.leaseToken, status, attachmentSha256,
             proposalCount: proposals.filter(item => item.status === "pending").length,
