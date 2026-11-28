@@ -1,3 +1,6 @@
+import { createHash } from "node:crypto";
+
+const MAX_PDF_BYTES = 10 * 1024 * 1024;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const IT_DATE = /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/;
 const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
@@ -134,10 +137,19 @@ export function createPdfScheduleColumnExtractor({ extractPdfTables }) {
   if (typeof extractPdfTables !== "function") throw new TypeError("PDF table extraction engine is required.");
   return async input => {
     if (!input || !(input.bytes instanceof Uint8Array) || input.bytes.length < 8 ||
-        typeof input.filename !== "string" || typeof input.sha256 !== "string") {
+        input.bytes.length > MAX_PDF_BYTES ||
+        Buffer.from(input.bytes.subarray(0, 5)).toString("ascii") !== "%PDF-" ||
+        typeof input.filename !== "string" || !input.filename.trim() || input.filename.length > 255 ||
+        typeof input.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(input.sha256)) {
       fail("Invalid PDF extraction input.");
     }
-    const extracted = await extractPdfTables(input);
+    const actualSha256 = createHash("sha256").update(input.bytes).digest("hex");
+    if (actualSha256 !== input.sha256) fail("PDF attachment digest mismatch.");
+    const extracted = await extractPdfTables({
+      bytes: input.bytes,
+      filename: input.filename,
+      sha256: actualSha256
+    });
     return mapPdfScheduleTables(extracted);
   };
 }
