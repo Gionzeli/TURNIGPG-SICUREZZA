@@ -446,6 +446,18 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           error.code = "failed-precondition";
           throw error;
         }
+        if ((previous.status === "pending" && !validPendingCleanupState(previous)) ||
+            (previous.status === "exhausted" && !validExhaustedCleanupState(previous))) {
+          const error = new Error("Cleanup ticket retry metadata is malformed.");
+          error.code = "failed-precondition";
+          throw error;
+        }
+        if (previous.status === "exhausted" &&
+            previous.alertStatus !== "pending" && previous.alertStatus !== "delivered") {
+          const error = new Error("Exhausted cleanup alert state is invalid for completion.");
+          error.code = "failed-precondition";
+          throw error;
+        }
         if (previous.alertStatus === "pending" && !validPendingAlertState(previous)) {
           const error = new Error("Pending cleanup alert metadata is malformed.");
           error.code = "failed-precondition";
