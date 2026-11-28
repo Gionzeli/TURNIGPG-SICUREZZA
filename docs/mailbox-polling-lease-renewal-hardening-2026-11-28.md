@@ -76,3 +76,8 @@ Added a regression case for the crash window where a worker has committed an emp
 ### Preserve proposal decisions during ingestion recovery
 
 The ingestion result now preserves the persisted proposal status (`pending`, `approved`, `rejected`, or `superseded`) returned by the idempotent Firestore proposal adapter. A recovered worker no longer reports an already-approved/rejected proposal as pending. The attachment job remains classified as `proposals_created` whenever at least one proposal exists, even if its decision changed while the worker was recovering. Synthetic regression coverage verifies the approved case.
+
+
+### Multi-employee partial recognition and match-key validation
+
+Added synthetic coverage for a shared-mailbox PDF containing one resolvable employee document and one unknown employee document. Only the verified employee receives a proposal; the job is marked `partially_processed` and the unknown document is reported as blocked. Employee match keys supplied by extraction are now rejected when blank or containing control characters, rather than silently treated as absent; this prevents malformed identifiers from reaching the employee resolver. No PDF omission is interpreted as a deletion. These checks do not replace a real parser's accuracy assessment or production provider integration.
