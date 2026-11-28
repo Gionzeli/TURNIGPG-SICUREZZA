@@ -170,7 +170,7 @@ export function createMailboxTokenFirestoreLeaseService({
       return await firestore.runTransaction(async transaction => {
         const snapshot = await transaction.get(ref);
         const current = snapshot?.data?.() || {};
-        if (!snapshot?.exists || current.revocationPending === true ||
+        if (!snapshot?.exists ||
             (current.revocationPending !== undefined && typeof current.revocationPending !== "boolean") ||
             typeof current.ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(current.ownerId) ||
             !Number.isSafeInteger(current.fencingToken) || current.fencingToken < 1 ||
