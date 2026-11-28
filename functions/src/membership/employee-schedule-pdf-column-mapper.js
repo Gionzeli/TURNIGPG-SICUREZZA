@@ -1,7 +1,7 @@
-const ISO_DATE = /^\\d{4}-\\d{2}-\\d{2}$/;
-const IT_DATE = /^(\\d{1,2})[/.](\\d{1,2})[/.](\\d{4})$/;
-const TIME = /^(?:[01]\\d|2[0-3]):[0-5]\\d$/;
-const RANGE = /^\\s*((?:[01]\\d|2[0-3]):[0-5]\\d)\\s*(?:-|–|—|a|alle)\\s*((?:[01]\\d|2[0-3]):[0-5]\\d)\\s*$/i;
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const IT_DATE = /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/;
+const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
+const RANGE = /^\s*((?:[01]\d|2[0-3]):[0-5]\d)\s*(?:-|–|—|a|alle)\s*((?:[01]\d|2[0-3]):[0-5]\d)\s*$/i;
 const ALIASES = Object.freeze({
   date: new Set(["data", "giorno", "date"]),
   post: new Set(["postazione", "post", "sede operativa"]),
@@ -22,8 +22,8 @@ function fail(message) {
 }
 function header(value) {
   if (typeof value !== "string" || value.length > 80) return "";
-  return value.normalize("NFD").replace(/[\\u0300-\\u036f]/g, "")
-    .toLowerCase().trim().replace(/\\s+/g, " ");
+  return value.normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase().trim().replace(/\s+/g, " ");
 }
 function dateValue(value) {
   if (typeof value !== "string") return null;
@@ -37,7 +37,7 @@ function dateValue(value) {
 }
 function cellText(value, max = 300) {
   if (typeof value !== "string" && typeof value !== "number") return "";
-  const text = String(value).replace(/[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/g, "").trim();
+  const text = String(value).replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, "").trim();
   return text.length <= max ? text : "";
 }
 function mappedColumns(headers) {
