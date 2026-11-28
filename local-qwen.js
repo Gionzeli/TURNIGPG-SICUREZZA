@@ -1,6 +1,6 @@
 import { isSafeLearningAlias } from "./local-learning.js";
 
-const DEFAULT_MODEL_ID = "onnx-community/Qwen2.5-0.5B-Instruct";
+const DEFAULT_MODEL_ID = "qwen2.5-0.5b-instruct";
 const MODEL_REVISION = "cc5cc01a65cc3ff17bdb73a7de33d879f62599b0";
 
 const TARGETS = Object.freeze({
@@ -75,12 +75,19 @@ export function createLocalQwen(options = {}) {
     if (!loading) {
       loading = (async () => {
         onProgress?.("Caricamento motore AI locale…");
-        const { pipeline, env } = options.pipelineLoader
-          ? await options.pipelineLoader()
-          : await import("https://cdn.jsdelivr.net/npm/@huggingface/transformers@4.3.0");
-        env.allowRemoteModels = true;
-        env.allowLocalModels = false;
+        // Privacy boundary: Qwen may only use a runtime and model already installed
+        // with the application. Never import a CDN or resolve remote model IDs.
+        if (typeof options.pipelineLoader !== "function") {
+          throw new Error("Runtime Qwen offline non installato: nessun download o servizio remoto è consentito.");
+        }
+        const { pipeline, env } = await options.pipelineLoader();
+        if (typeof pipeline !== "function" || !env) {
+          throw new Error("Runtime Qwen locale non valido.");
+        }
+        env.allowRemoteModels = false;
+        env.allowLocalModels = true;
         env.useBrowserCache = true;
+        env.localModelPath = options.localModelPath || "./models/";
 
         const hasGPU = !!(navigator.gpu && await navigator.gpu.requestAdapter().catch(() => null));
         const modes = hasGPU
@@ -91,7 +98,6 @@ export function createLocalQwen(options = {}) {
           try {
             onProgress?.("Preparazione Qwen sul dispositivo (" + mode.label + ")…");
             generator = await pipeline("text-generation", modelId, {
-              revision: MODEL_REVISION,
               device: mode.device,
               dtype: "q4",
               progress_callback(progress) {
