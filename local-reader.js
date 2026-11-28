@@ -4,7 +4,15 @@ import { createLocalQwen } from "./local-qwen.js";
 const ocrLearning = createLocalLearning();
 let ocrLearningAvailable = true;
 try { await ocrLearning.ready; } catch { ocrLearningAvailable = false; }
-const localQwen = createLocalQwen();
+await import("./local-ai-bootstrap.js");
+const localQwen = createLocalQwen({
+  pipelineLoader: async () => {
+    if (typeof window.LocalAIAssets?.loadQwenRuntime !== "function") {
+      throw new Error("Runtime Qwen offline non installato o pacchetto AI locale non pronto.");
+    }
+    return window.LocalAIAssets.loadQwenRuntime();
+  }
+});
 
 // Lettore locale: OCR PaddleOCR/Tesseract, parser deterministici e suggerimenti Qwen facoltativi. Nessun upload dei documenti.
 let _ocrModule=null;
