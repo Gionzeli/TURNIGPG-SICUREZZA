@@ -20,7 +20,7 @@ function dataObject(request, allowed) {
 }
 function id(value) { if (!validId(value)) fail("invalid-argument", "Invalid identifier."); return value; }
 function validDate(value) { if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) return false; const d = new Date(value + "T00:00:00Z"); return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === value; }
-const DTO_KEYS = ["date", "type", "post", "start_time", "end_time", "hours", "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"];
+const DTO_KEYS = ["date", "type", "post", "start_time", "end_time", "hours", "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher", "scheduleInfo"];
 
 const PROPOSAL_FIELDS = new Set(["date", "type", "post", "start_time", "end_time", "hours", "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"]);
 function validateProposedFields(fields, { allowDate }) {
@@ -121,6 +121,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
               placement.siteId !== shift.siteId || placement.departmentId !== shift.departmentId) continue;
           const dto = { shiftId: snapshot.id };
           for (const key of DTO_KEYS) if (Object.hasOwn(shift, key)) dto[key] = shift[key];
+          dto.scheduleInfo = safeAdditionalInfo(shift.scheduleInfo);
           dto.revision = shift.revision;
           result.push(dto);
         }
@@ -244,6 +245,7 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
               date: change.shift.date, type: change.shift.type, post: change.shift.post ?? "",
               start_time: change.shift.start_time ?? "", end_time: change.shift.end_time ?? "",
               hours: change.shift.hours ?? 0,
+              scheduleInfo: safeAdditionalInfo(proposal.additionalInfo),
               is_night: change.shift.is_night ?? false, is_sunday: change.shift.is_sunday ?? false,
               is_piantonato: change.shift.is_piantonato ?? false,
               is_rest_not_enjoyed: change.shift.is_rest_not_enjoyed ?? false,
@@ -276,7 +278,10 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
             is_sunday: current.is_sunday ?? false, is_piantonato: current.is_piantonato ?? false,
             is_rest_not_enjoyed: current.is_rest_not_enjoyed ?? false,
             has_meal_voucher: current.has_meal_voucher ?? false,
-            ...(change.operation === "update" ? change.changes : {})
+            ...(change.operation === "update" ? change.changes : {}),
+            scheduleInfo: safeAdditionalInfo(proposal.additionalInfo).length
+              ? safeAdditionalInfo(proposal.additionalInfo)
+              : safeAdditionalInfo(current.scheduleInfo)
           };
           if (change.operation === "update") {
             validateProposedFields(change.changes, { allowDate: false });
