@@ -127,3 +127,30 @@ test("lease is renewed before fetch, before ingestion, and after ingestion", asy
   assert.equal(renewalTimes.length, 4);
   assert.equal(calls.checkpoints.length, 1);
 });
+
+test("provider message with excessive attachments blocks checkpoint", async () => {
+  const { worker, calls } = harness({
+    providerAdapters: { imap: { fetchMessages: async () => ({
+      messages: [{ message: { messageId: "message-1" }, attachments: Array.from({ length: 11 }, () => ({ filename: "x.pdf" })) }],
+      nextCursor: "cursor-1"
+    }) } }
+  });
+  const result = await worker.run({ accountId });
+  assert.equal(result[0].status, "retry_required");
+  assert.equal(calls.ingested.length, 0);
+  assert.equal(calls.checkpoints.length, 0);
+  assert.equal(calls.released, 1);
+});
+
+test("provider message arrays and attachment arrays are validated", async () => {
+  const { worker, calls } = harness({
+    providerAdapters: { imap: { fetchMessages: async () => ({
+      messages: [{ message: [], attachments: [] }],
+      nextCursor: "cursor-1"
+    }) } }
+  });
+  const result = await worker.run({ accountId });
+  assert.equal(result[0].status, "retry_required");
+  assert.equal(calls.ingested.length, 0);
+  assert.equal(calls.checkpoints.length, 0);
+});
