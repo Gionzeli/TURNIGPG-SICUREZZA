@@ -798,3 +798,6 @@ Completed cleanup records with no alert status (ordinary cleanup success before 
 
 
 Repeated acknowledgement of a delivered cleanup alert now reuses the full exhausted-ticket terminal-state validator. This rejects contradictory resolution timestamps and malformed cleanup retry history, rather than validating only the delivery timestamp and alert retry counters.
+
+
+Pending exhausted-cleanup alert validation now also rejects stale terminal timestamps (`alertDeliveredAt` and `alertResolvedAt`). This applies to both retry-failure recording and delivery acknowledgement, preventing a pending record with contradictory terminal metadata from advancing to another state. Synthetic regression cases cover both timestamps.
