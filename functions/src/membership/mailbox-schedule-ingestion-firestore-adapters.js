@@ -37,6 +37,27 @@ export function createMailboxScheduleIngestionFirestoreAdapters({
     return value;
   }
   return Object.freeze({
+    async initializePollingState({ accountId, connectionId, timestamp = readNow() }) {
+      const { pollingRef, connectionRef } = scope(accountId, connectionId);
+      if (!Number.isSafeInteger(timestamp) || timestamp < 1) fail("invalid-argument", "Mailbox polling initialization time is invalid.");
+      await db.runTransaction(async tx => {
+        const [pollingSnapshot, connectionSnapshot] = await Promise.all([tx.get(pollingRef), tx.get(connectionRef)]);
+        if (!connectionSnapshot?.exists) fail("not-found", "Mailbox connection does not exist.");
+        const connection = connectionSnapshot.data();
+        if (!connection || connection.accountId !== accountId || connection.connectionId !== connectionId ||
+            connection.status !== "active") fail("failed-precondition", "Only an active mailbox can be scheduled.");
+        if (pollingSnapshot?.exists) {
+          const existing = pollingSnapshot.data();
+          if (!existing || existing.accountId !== accountId || existing.connectionId !== connectionId ||
+              !validCursor(existing.cursor) || !Number.isSafeInteger(existing.nextPollAt) || existing.nextPollAt < 1) {
+            fail("failed-precondition", "Existing mailbox polling state is malformed.");
+          }
+          return;
+        }
+        tx.create(pollingRef, { accountId, connectionId, cursor: null, nextPollAt: timestamp, updatedAt: timestamp });
+      });
+      return Object.freeze({ status: "initialized" });
+    },
     async listDueConnections({ accountId, limit = 20 }) {
       if (!ID.test(accountId ?? "") || !Number.isSafeInteger(limit) || limit < 1 || limit > MAX_BATCH) {
         fail("invalid-argument", "Mailbox due query is invalid.");
