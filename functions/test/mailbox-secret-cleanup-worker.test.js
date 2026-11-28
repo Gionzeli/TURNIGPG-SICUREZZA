@@ -366,7 +366,7 @@ test("worker skips an oversized alert batch without sending notifications", asyn
   const alertTicket = {
     accountId: "synthetic-account", connectionId: "safe-connection",
     status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12,
-    lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
+    nextAttemptAt: null, lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
     assertRevocationPending: async () => ({ status: "revocation_pending" }),
@@ -639,7 +639,7 @@ test("worker retries a delivered alert when durable acknowledgement fails, reusi
   const failures = [];
   const baseTicket = {
     accountId: "synthetic-account", connectionId: "ack-retry-connection",
-    status: "exhausted", createdAt: 500, updatedAt: 500, attempts: 12, lastErrorCode: "unavailable"
+    status: "exhausted", createdAt: 500, updatedAt: 500, attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable"
   };
   const worker = createMailboxSecretCleanupWorker({
     assertRevocationPending: async () => ({ status: "revocation_pending" }),
