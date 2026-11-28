@@ -30,6 +30,9 @@ function normalizedEmail(value) {
     value === value.trim().toLowerCase() && EMAIL.test(value);
 }
 function validPendingCleanupState(value) {
+  if (["alertStatus", "alertAttempts", "alertNextAttemptAt", "alertLastErrorCode",
+    "alertDeliveredAt", "alertResolvedAt"].some(key =>
+      value[key] !== null && value[key] !== undefined)) return false;
   if (!Number.isSafeInteger(value.createdAt) || value.createdAt < 1 ||
       !Number.isSafeInteger(value.attempts) || value.attempts < 1 || value.attempts >= 12 ||
       !Number.isSafeInteger(value.updatedAt) || value.updatedAt < value.createdAt) return false;
