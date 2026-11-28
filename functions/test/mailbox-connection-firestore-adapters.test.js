@@ -947,6 +947,40 @@ test("resolved cleanup alert terminal metadata is validated on reads and repeat 
 });
 
 
+test("completed cleanup reads reject malformed completion and retry history", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 1
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  const stored = docs.get(path);
+  for (const malformed of [
+    { completedAt: 0 },
+    { completedAt: stored.updatedAt + 1 },
+    { updatedAt: stored.completedAt - 1 },
+    { nextAttemptAt: stored.updatedAt + 1000 },
+    { alertAttempts: 1 },
+    { alertResolvedAt: stored.updatedAt + 1 }
+  ]) {
+    docs.set(path, { ...stored, ...malformed });
+    assert.equal(await adapters.loadSecretCleanup({
+      accountId: input.accountId, connectionId: input.connectionId
+    }), null);
+  }
+  docs.set(path, stored);
+  assert.equal((await adapters.loadSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId
+  })).status, "complete");
+});
+
 test("exhausted cleanup terminal timestamps cannot postdate the ticket update clock", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
