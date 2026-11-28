@@ -3,8 +3,8 @@ import { createHash } from "node:crypto";
 const MAX_PDF_BYTES = 10 * 1024 * 1024;
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
 const IT_DATE = /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/;
-const TIME = /^(?:[01]?\\d|2[0-3])[:.][0-5]\\d$/;
-const RANGE = /^\\s*((?:[01]?\\d|2[0-3])[:.][0-5]\\d)\\s*(?:-|–|—|alle|a)\\s*((?:[01]?\\d|2[0-3])[:.][0-5]\\d)\\s*$/i;
+const TIME = /^(?:[01]?\d|2[0-3])[:.][0-5]\d$/;
+const RANGE = /^\s*((?:[01]?\d|2[0-3])[:.][0-5]\d)\s*(?:-|–|—|alle|a)\s*((?:[01]?\d|2[0-3])[:.][0-5]\d)\s*$/i;
 const ALIASES = Object.freeze({
   date: new Set(["data", "giorno", "date", "data turno"]),
   post: new Set(["postazione", "post", "sede operativa", "postazione di servizio", "luogo servizio"]),
