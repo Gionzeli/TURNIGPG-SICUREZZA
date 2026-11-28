@@ -87,7 +87,7 @@ export function createEmployeeShiftFirestoreAuthorization({ db, now = () => Date
           department.siteId !== placement.siteId || department.status !== "active") deny();
     }
     return Object.freeze({
-      employeeId, uid: actorUid, accountId, permission: OPERATIONS[operation],
+      employeeId, uid: actorUid, accountId, status: "active", permission: OPERATIONS[operation],
       scopeType: principal.scopeType, scopeIds: principal.scopeIds, placement
     });
   }
