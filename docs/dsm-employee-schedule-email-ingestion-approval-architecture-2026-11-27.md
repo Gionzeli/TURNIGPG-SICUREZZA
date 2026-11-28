@@ -116,3 +116,7 @@ Questo è il primo collegamento di orchestrazione tra polling provider e pipelin
 Il servizio server-side `mailbox-connection-service.js` ora richiede `initializePollingState` e lo invoca subito dopo il salvataggio della connessione attiva, prima dell'audit di creazione. Se l'inizializzazione fallisce, il flusso esistente entra nel percorso fail-closed: marca la connessione `revocation_pending`, disabilita il refresh e avvia la pulizia delle credenziali. Il test sintetico copre anche questo rollback.
 
 L'adapter Firestore fornisce `initializePollingState`, quindi il punto di aggancio è definito; manca ancora il composition root che costruisca e inietti concretamente il servizio connessioni e gli adapter nella funzione schedulata. Nessuna funzione schedulata è stata abilitata.
+
+### Hardening del checkpoint del polling
+
+Il checkpoint usa ora l'orologio server dell'adapter Firestore per calcolare `updatedAt`, `nextPollAt` e verificare la scadenza del lease; il timestamp passato dal worker non è più autoritativo. Test sintetico aggiunto per un timestamp chiamante discrepante. Esecuzione dei test non effettuata.
