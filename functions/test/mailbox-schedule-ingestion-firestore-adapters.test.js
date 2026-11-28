@@ -136,3 +136,14 @@ test("does not initialize polling for revoked mailbox", async () => {
   await assert.rejects(adapters.initializePollingState({ accountId, connectionId, timestamp: 1000 }), { code: "failed-precondition" });
   assert.equal(db.values.has(pollingPath), false);
 });
+
+test("checkpoint uses adapter clock rather than caller timestamp", async () => {
+  const { adapters, db } = harness({ now: () => 4000 });
+  await adapters.saveCheckpoint({
+    accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1",
+    lease: { ownerId: "synthetic_owner_identifier", fencingToken: 1, expiresAt: 5000 }, timestamp: 1000
+  });
+  const state = db.values.get(pollingPath);
+  assert.equal(state.updatedAt, 4000);
+  assert.equal(state.nextPollAt, 304000);
+});
