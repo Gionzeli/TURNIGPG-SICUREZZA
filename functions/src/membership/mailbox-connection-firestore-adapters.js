@@ -392,13 +392,9 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           throw error;
         }
         if (previous.alertStatus === "delivered") {
-          const attempts = previous.alertAttempts ?? 0;
-          const validDelivered = Number.isSafeInteger(attempts) && attempts >= 0 &&
-            (previous.alertNextAttemptAt === null || previous.alertNextAttemptAt === undefined) &&
-            (previous.alertLastErrorCode === null || previous.alertLastErrorCode === undefined ||
-              (typeof previous.alertLastErrorCode === "string" &&
-               /^[a-z0-9_-]{1,64}$/.test(previous.alertLastErrorCode))) &&
-            Number.isSafeInteger(previous.alertDeliveredAt) && previous.alertDeliveredAt >= 1;
+          const validDelivered = validExhaustedCleanupState({
+            ...previous, status: "exhausted"
+          });
           if (!validDelivered) {
             const error = new Error("Delivered cleanup alert metadata is malformed.");
             error.code = "failed-precondition";
