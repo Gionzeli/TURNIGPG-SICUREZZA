@@ -846,3 +846,14 @@ Pending credential-cleanup and exhaustion-alert queries now require the Firestor
 ### Idempotent cleanup ticket validation
 
 Re-recording an existing credential-cleanup request is now idempotent only when the persisted ticket is itself structurally valid for its state (`pending`, `exhausted`, or `complete`), its reason is allowlisted by the ticket syntax, and its identity/secret reference match the request. Pending ticket validation also requires a positive `createdAt` and `updatedAt >= createdAt`. Corrupt existing outbox entries fail with a sanitized precondition error instead of being silently accepted as successful idempotent writes. Synthetic tests cover malformed chronology, reason, retry metadata, and update clock.
+
+
+### Cleanup ticket reason immutability and read validation
+
+The cleanup reason code is now part of the idempotency identity: re-enqueueing
+an existing ticket with a different reason is rejected rather than silently
+reusing the original ticket. Pending/exhausted/complete ticket reads, worker
+and alert queue listings, retry transitions, alert acknowledgements, and
+completion all validate the persisted reason-code syntax. Synthetic regressions
+cover reason substitution and malformed persisted reasons; no live Firestore,
+vault, scheduler, or notifier was used.
