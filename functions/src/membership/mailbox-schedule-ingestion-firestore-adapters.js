@@ -111,6 +111,8 @@ export function createMailboxScheduleIngestionFirestoreAdapters({
         fail("invalid-argument", "Mailbox checkpoint is invalid.");
       }
       const leaseProof = lease;
+      const serverTimestamp = readNow();
+      if (!Number.isSafeInteger(serverTimestamp + pollIntervalMs)) fail("unavailable", "Mailbox checkpoint clock is invalid.");
       try {
         await db.runTransaction(async tx => {
           const [pollingSnapshot, leaseSnapshot] = await Promise.all([tx.get(pollingRef), tx.get(leaseRef)]);
@@ -127,10 +129,10 @@ export function createMailboxScheduleIngestionFirestoreAdapters({
               typeof lease.ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(lease.ownerId) ||
               lease.ownerId !== leaseProof.ownerId || lease.fencingToken !== leaseProof.fencingToken ||
               !Number.isSafeInteger(lease.fencingToken) || lease.fencingToken < 1 ||
-              !Number.isSafeInteger(lease.expiresAt) || lease.expiresAt <= timestamp) {
+              !Number.isSafeInteger(lease.expiresAt) || lease.expiresAt <= serverTimestamp) {
             fail("failed-precondition", "Mailbox checkpoint requires a live, non-revoked lease.");
           }
-          tx.update(pollingRef, { cursor: nextCursor, nextPollAt: timestamp + pollIntervalMs, updatedAt: timestamp });
+          tx.update(pollingRef, { cursor: nextCursor, nextPollAt: serverTimestamp + pollIntervalMs, updatedAt: serverTimestamp });
         });
       } catch (error) {
         if (["invalid-argument", "failed-precondition", "conflict"].includes(error?.code)) throw error;
