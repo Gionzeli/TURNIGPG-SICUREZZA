@@ -12,7 +12,7 @@ const base = {
 };
 
 function harness(overrides = {}) {
-  const calls = { secrets: [], revoked: [], disabled: [], cleanupRecorded: [], cleanupCompleted: [], saved: [], audits: [], exchanges: 0 };
+  const calls = { secrets: [], revoked: [], disabled: [], cleanupRecorded: [], cleanupCompleted: [], saved: [], audits: [], exchanges: 0, pollingInitialized: [] };
   const principal = {
     accountId: base.accountId, uid: base.actorUid, status: "active",
     role: "member", employeeId: "synthetic-employee",
@@ -36,6 +36,7 @@ function harness(overrides = {}) {
     saveConnection: async input => { calls.saved.push(input); },
     loadConnection: async () => calls.saved.at(-1)?.connection,
     writeAudit: async input => { calls.audits.push(input); },
+    initializePollingState: async input => { calls.pollingInitialized.push(input); },
     createConnectionId: () => "synthetic-connection",
     now: () => 1795766400000,
     ...overrides
@@ -55,6 +56,7 @@ test("personal connection binds verified mailbox to the employee and stores only
   assert.equal(Object.hasOwn(stored, "secretMaterial"), false);
   assert.equal(Object.hasOwn(result, "credentialSecretRef"), false);
   assert.equal(calls.secrets.length, 1);
+  assert.deepEqual(calls.pollingInitialized, [{ accountId: base.accountId, connectionId: "synthetic-connection", timestamp: 1795766400000 }]);
   assert.deepEqual(calls.secrets[0].secretMaterial, { accessToken: "synthetic-secret" });
 });
 
@@ -308,4 +310,15 @@ test("missing or malformed refresh gate confirmation prevents credential deletio
     assert.equal(calls.cleanupRecorded.length, 0);
     assert.equal(calls.saved.at(-1).connection.status, "revocation_pending");
   }
+});
+
+test("polling initialization failure triggers fail-closed connection cleanup", async () => {
+  const { service, calls } = harness({
+    initializePollingState: async () => { const error = new Error("synthetic polling init failure"); error.code = "unavailable"; throw error; }
+  });
+  await assert.rejects(service.connect(base), /synthetic polling init failure/);
+  assert.equal(calls.saved[0].connection.status, "active");
+  assert.equal(calls.saved.at(-1).connection.status, "revocation_pending");
+  assert.equal(calls.disabled.length, 1);
+  assert.equal(calls.revoked.length, 1);
 });
