@@ -114,12 +114,19 @@ export function mapPdfScheduleTables({ documents }) {
           fail("Invalid PDF schedule table.");
         }
         const columns = mappedColumns(table.headers);
+        // Date cells in exported rosters are often merged vertically. Carry
+        // only an explicit valid date within this table; never across tables.
+        let currentDate = dateContext;
         totalRows += table.rows.length;
         if (totalRows > MAX_ROWS) fail("PDF schedule contains too many rows.");
         for (const row of table.rows) {
           if (!Array.isArray(row) || row.length !== table.headers.length) fail("Malformed PDF schedule row.");
           const rawDate = Object.hasOwn(columns, "date") ? cellText(row[columns.date], 20) : "";
-          const date = rawDate ? dateValue(rawDate) : dateContext;
+          if (rawDate) {
+            currentDate = dateValue(rawDate);
+            if (!currentDate) fail("PDF row contains an invalid calendar date.");
+          }
+          const date = currentDate;
           const post = cellText(row[columns.post], 80);
           const times = timeRange(row, columns);
           if (!date || !post || !times || times.start_time === times.end_time) {
