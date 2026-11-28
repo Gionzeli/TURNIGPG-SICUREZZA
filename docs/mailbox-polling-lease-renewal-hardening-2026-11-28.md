@@ -66,3 +66,8 @@ The synthetic persistence test now exercises the composed Firestore boundary end
 ### Firestore Emulator integration coverage for job/proposal persistence
 
 Added a separate Emulator-gated integration test for the composed persistence boundary. When `FIRESTORE_EMULATOR_HOST` is configured, it seeds a synthetic active account, member, reciprocal UID↔Employee bindings, Employee control and placement; then claims a fenced ingestion job, creates a pending proposal, and completes the job using the Firebase Admin SDK against the Emulator. Test documents are cleaned up in `finally`. The test skips when the Emulator is unavailable. It does not authenticate with a real provider, access a real mailbox, or contact production Firebase/Google Cloud.
+
+
+### Proposal recovery after ingestion lease reclamation
+
+Added a regression case for the crash window where a worker has committed an employee proposal but fails before finishing the ingestion job. After the job lease is reclaimed, the stale lease token is rejected; the new fenced worker can submit the same immutable proposal payload and receives the existing proposal as an idempotent duplicate, without creating a second document. The test also confirms the proposal count remains unchanged. This is synthetic adapter coverage; execution is still pending.
