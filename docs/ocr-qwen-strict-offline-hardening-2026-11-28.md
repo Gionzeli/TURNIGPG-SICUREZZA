@@ -5,9 +5,9 @@ PDF di turni e cedolini, immagini rasterizzate, testo OCR, output del modello e 
 
 ## Modifiche applicate
 - `local-qwen.js`: rimosso l'import dinamico di Transformers.js da jsDelivr. Qwen accetta soltanto un `pipelineLoader` fornito dall'app e configura `allowRemoteModels=false`, `allowLocalModels=true`, con percorso locale. Senza runtime locale l'inizializzazione fallisce in modo esplicito.
-- `local-reader.js`: Tesseract non inietta più SDK da CDN e usa esclusivamente percorsi locali `./vendor/tesseract/`; PaddleOCR non esegue più import dinamici da CDN e accetta soltanto `window.PaddleOCR` fornito dal pacchetto locale.
+- `local-reader.js`: Tesseract non inietta più SDK da CDN e usa esclusivamente percorsi locali `./vendor/tesseract/`; PaddleOCR non esegue più import dinamici da CDN e accetta soltanto `window.LocalPaddleOCR.createOffline`, wrapper locale che deve puntare esplicitamente ai pesi PP-OCRv6 e al runtime ONNX/WASM locali.
 - `index.html`: PDF.js non viene più scaricato da CDN; richiede una libreria già installata e punta il worker a `./vendor/pdfjs/pdf.worker.min.js`.
-- Test browser Qwen: verifica il blocco quando manca il runtime locale, senza scaricare il modello.
+- Test browser Qwen: verifica il blocco quando manca il runtime locale, senza scaricare il modello. Test browser turni: fixture sintetiche verificano che il testo residuo non diventi postazione o flag e che sia accettata soltanto l'etichetta esplicita `POSTAZIONE:`.
 - Test PaddleOCR: avvisa che usa soltanto dipendenze già installate localmente.
 - Parser turni: non usa più alias appresi per reinterpretare righe del calendario; non deduce postazione da testo residuo e non ricava flag piantonamento/notturno dal PDF. La postazione viene valorizzata soltanto se il testo contiene un'etichetta esplicita `POSTAZIONE:`. Data e coppie di orari restano i soli altri dati letti.
 
