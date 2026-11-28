@@ -118,3 +118,20 @@ test("extractor snapshots attachment bytes before asynchronous parser access", a
   await pending;
   assert.deepEqual(parserBytes, expected);
 });
+
+test("Italian 'alle' separator is parsed as a complete time-range token", () => {
+  const result = mapPdfScheduleTables({ documents: [{
+    confidence: 0.99,
+    dateContext: "2026-06-04",
+    tables: [{
+      headers: ["Postazione", "Orario"],
+      rows: [["Reception", "08:00 alle 14:00"]]
+    }]
+  }] });
+  assert.deepEqual(result.documents[0].shifts[0], {
+    date: "2026-06-04",
+    post: "Reception",
+    start_time: "08:00",
+    end_time: "14:00"
+  });
+});
