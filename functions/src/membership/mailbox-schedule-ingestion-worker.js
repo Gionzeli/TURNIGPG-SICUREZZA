@@ -49,8 +49,9 @@ export function createMailboxScheduleIngestionWorker({
           continue;
         }
         try {
-          let activeLease = await renewLease({ accountId, connectionId, lease, timestamp: now() });
-          if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt)) fail("failed-precondition", "Mailbox lease renewal failed.");
+          const renewalTime = now();
+          let activeLease = await renewLease({ accountId, connectionId, lease, timestamp: renewalTime });
+          if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt) || activeLease.expiresAt <= renewalTime) fail("failed-precondition", "Mailbox lease renewal failed.");
           const connection = await loadConnection({ accountId, connectionId });
           if (!connection || connection.accountId !== accountId ||
               connection.connectionId !== connectionId || connection.status !== "active" ||
@@ -63,8 +64,9 @@ export function createMailboxScheduleIngestionWorker({
             results.push({ connectionId, status: "provider_unavailable" });
             continue;
           }
-          activeLease = await renewLease({ accountId, connectionId, lease: activeLease, timestamp: now() });
-          if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt)) fail("failed-precondition", "Mailbox lease renewal failed.");
+          const fetchRenewalTime = now();
+          activeLease = await renewLease({ accountId, connectionId, lease: activeLease, timestamp: fetchRenewalTime });
+          if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt) || activeLease.expiresAt <= fetchRenewalTime) fail("failed-precondition", "Mailbox lease renewal failed.");
           const batch = await adapter.fetchMessages({
             accountId, connectionId, connection, cursor: candidate.cursor ?? null, limit: 50
           });
@@ -78,14 +80,16 @@ export function createMailboxScheduleIngestionWorker({
             if (!item || !item.message || !Array.isArray(item.attachments)) {
               fail("failed-precondition", "Provider returned an invalid normalized message.");
             }
-            activeLease = await renewLease({ accountId, connectionId, lease: activeLease, timestamp: now() });
-            if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt)) fail("failed-precondition", "Mailbox lease renewal failed.");
+            const messageRenewalTime = now();
+            activeLease = await renewLease({ accountId, connectionId, lease: activeLease, timestamp: messageRenewalTime });
+            if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt) || activeLease.expiresAt <= messageRenewalTime) fail("failed-precondition", "Mailbox lease renewal failed.");
             const outcomes = await ingestMessage({
               accountId, connectionId, message: item.message, attachments: item.attachments
             });
             if (!Array.isArray(outcomes)) fail("failed-precondition", "Ingestion returned an invalid result.");
-            activeLease = await renewLease({ accountId, connectionId, lease: activeLease, timestamp: now() });
-            if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt)) fail("failed-precondition", "Mailbox lease renewal failed.");
+            const postMessageRenewalTime = now();
+            activeLease = await renewLease({ accountId, connectionId, lease: activeLease, timestamp: postMessageRenewalTime });
+            if (!activeLease || activeLease.ownerId !== lease.ownerId || activeLease.fencingToken !== lease.fencingToken || !Number.isSafeInteger(activeLease.expiresAt) || activeLease.expiresAt <= postMessageRenewalTime) fail("failed-precondition", "Mailbox lease renewal failed.");
             messageCount++;
             attachmentCount += item.attachments.length;
           }
