@@ -120,3 +120,7 @@ L'adapter Firestore fornisce `initializePollingState`, quindi il punto di agganc
 ### Hardening del checkpoint del polling
 
 Il checkpoint usa ora l'orologio server dell'adapter Firestore per calcolare `updatedAt`, `nextPollAt` e verificare la scadenza del lease; il timestamp passato dal worker non è più autoritativo. Test sintetico aggiunto per un timestamp chiamante discrepante. Esecuzione dei test non effettuata.
+
+### Composition root isolato (nuovo)
+
+Creato `mailbox-schedule-ingestion-composition.js`: compone gli adapter Firestore e il worker dietro un flag esplicito `enabled` (default false). In modalità disabilitata, run e inizializzazione rifiutano l'esecuzione senza toccare Firestore. La modalità attiva richiede provider adapter e handler ingestion iniettati. Non è un trigger Firebase e non viene esportato da `src/index.js`; scheduler, provider reali, parser e AV restano non collegati. Test sintetici aggiunti, non eseguiti.
