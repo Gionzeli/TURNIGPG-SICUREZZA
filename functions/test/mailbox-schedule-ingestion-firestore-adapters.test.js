@@ -11,18 +11,21 @@ function fakeFirestore(seed = {}) {
   const db = {
     values,
     doc: path => refs(path),
-    collection: path => ({
-      where(field, op, value) { this.filter = { field, op, value }; return this; },
-      orderBy(field, direction) { this.order = { field, direction }; return this; },
-      limit(count) { this.count = count; return this; },
-      get: async () => ({
-        docs: [...values.entries()].filter(([path, value]) =>
-          path.startsWith(pathPrefix(path)) && value.nextPollAt <= db.nowValue
-        ).slice(0, 100).map(([path, value]) => ({
-          id: path.split("/").at(-1), data: () => value
-        }))
-      })
-    }),
+    collection: path => {
+      const query = { collectionPath: path, filter: null, count: 100,
+        where(field, op, value) { this.filter = { field, op, value }; return this; },
+        orderBy(field, direction) { this.order = { field, direction }; return this; },
+        limit(count) { this.count = count; return this; },
+        get: async () => ({
+          docs: [...values.entries()].filter(([docPath, data]) =>
+            docPath.startsWith(path + "/") && data[query.filter.field] <= query.filter.value
+          ).sort((a, b) => a[1][query.order.field] - b[1][query.order.field]).slice(0, query.count).map(([docPath, data]) => ({
+            id: docPath.split("/").at(-1), data: () => data
+          }))
+        })
+      };
+      return query;
+    },
     runTransaction: async callback => callback({
       get: async ref => ({ exists: values.has(ref.path), data: () => values.get(ref.path) }),
       update: (ref, patch) => values.set(ref.path, { ...values.get(ref.path), ...patch })
