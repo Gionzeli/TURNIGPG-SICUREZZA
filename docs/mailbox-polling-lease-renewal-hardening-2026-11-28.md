@@ -127,3 +127,8 @@ The Italian time-range parser now checks the full separator token `alle` before 
 
 
 A further fail-closed validation now rejects non-text postazione/time values before duration calculation. This avoids an untrusted parser value causing a runtime `split` exception and ensures the document is reported for review without creating a proposal. A synthetic ingestion regression test covers numeric time input.
+
+
+### PDF extractor and ingestion composition
+
+Added `createPdfBackedEmployeeScheduleEmailIngestion` as the explicit composition boundary between the injected PDF table engine and the existing email ingestion service. It always routes engine output through the strict column mapper and refuses an `extractSchedule` override, preventing callers from bypassing the date/postazione/time allowlist and separate informational notes. Synthetic tests exercise the composed path through proposal creation and verify that unrelated PDF columns (hours, duties) do not enter shift data while the information column remains separate. This is wiring only: a maintained PDF/OCR engine still must be selected and injected, and no provider, scheduler, callable, or production trigger is activated.
