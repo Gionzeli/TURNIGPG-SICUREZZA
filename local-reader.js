@@ -325,6 +325,42 @@ function parseTurns(text){
  // Map only explicitly labelled PDF table columns when OCR word coordinates exist.
  // Text outside the date, time and workstation columns is never used as a shift field.
  let geoHeader=null,geoTable=false,geoCurrentDate="";
+ const buildGeoHeader=(tokens,joined)=>{
+  const classifyHeader=label=>{
+   const value=norm(label);
+   if(/^(?:data|giorno|date)$/.test(value))return "date";
+   if(/^(?:inizio|dalle|ora inizio)$/.test(value))return "start";
+   if(/^(?:fine|alle|ora fine)$/.test(value))return "end";
+   if(/^(?:orario|ora|fascia|orario turno|fascia oraria)$/.test(value))return "time";
+   if(/^(?:postazione|post|sede)$/.test(value))return "post";
+   return null;
+  };
+  const columns=[],consumed=new Set();
+  for(let i=0;i<tokens.length;i++){
+   if(consumed.has(i))continue;
+   let match=null;
+   for(let width=Math.min(3,tokens.length-i);width>=2;width--){
+    const group=tokens.slice(i,i+width);
+    if(group.some((_,offset)=>consumed.has(i+offset)))continue;
+    const key=classifyHeader(group.map(x=>x.text).join(" "));
+    if(key){match={width,key,x:group.reduce((sum,x)=>sum+x.x,0)/group.length};break}
+   }
+   if(match){
+    columns.push({x:match.x,key:match.key});
+    for(let j=0;j<match.width;j++)consumed.add(i+j);
+   }else{
+    columns.push({x:tokens[i].x,key:classifyHeader(tokens[i].text)});
+    consumed.add(i);
+   }
+  }
+  columns.sort((a,b)=>a.x-b.x);
+  const known=columns.filter(c=>c.key);
+  const counts=known.reduce((acc,c)=>(acc[c.key]=(acc[c.key]||0)+1,acc),{});
+  const date=known.find(c=>c.key==="date"),start=known.find(c=>c.key==="start"),end=known.find(c=>c.key==="end"),time=known.find(c=>c.key==="time"),post=known.find(c=>c.key==="post");
+  const duplicate=Object.values(counts).some(count=>count>1);
+  if(duplicate||!(time||(start&&end))||!post||!(date||/\\bdata\\b|\\bgiorno\\b/.test(joined)))return null;
+  return {columns,dateX:date?.x??null,timeX:time?.x??null,startX:start?.x??null,endX:end?.x??null,postX:post.x};
+ };
  for(const raw of lines){
   const line=raw.replace(/^\s*(?:RIGA|Riga)\s+\d+\s*:\s*/i,"").trim();
   if(!line)continue;
@@ -332,56 +368,19 @@ function parseTurns(text){
   if(!tokens.length)continue;
   const joined=norm(tokens.map(t=>t.text).join(" "));
   if(!geoHeader){
-   const classifyHeader=label=>{
-    const value=norm(label);
-    if(/^(?:data|giorno|date)$/.test(value))return "date";
-    if(/^(?:inizio|dalle|ora inizio)$/.test(value))return "start";
-    if(/^(?:fine|alle|ora fine)$/.test(value))return "end";
-    if(/^(?:orario|ora|fascia|orario turno|fascia oraria)$/.test(value))return "time";
-    if(/^(?:postazione|post|sede)$/.test(value))return "post";
-    return null; // le intestazioni non ammesse restano colonne esplicitamente ignorate
-   };
-   // Alcune intestazioni vengono riconosciute dall'OCR in più parole
-   // (es. "Fascia oraria" o "Orario turno"). Ricomponile solo nella riga
-   // d'intestazione, conservando le colonne non ammesse come confini fisici.
-   const columns=[],consumed=new Set();
-   for(let i=0;i<tokens.length;i++){
-    if(consumed.has(i))continue;
-    let match=null;
-    for(let width=Math.min(3,tokens.length-i);width>=2;width--){
-     const group=tokens.slice(i,i+width);
-     if(group.some((_,offset)=>consumed.has(i+offset)))continue;
-     const key=classifyHeader(group.map(x=>x.text).join(" "));
-     if(key){match={width,key,x:group.reduce((sum,x)=>sum+x.x,0)/group.length};break}
-    }
-    if(match){
-     columns.push({x:match.x,key:match.key});
-     for(let j=0;j<match.width;j++)consumed.add(i+j);
-    }else{
-     columns.push({x:tokens[i].x,key:classifyHeader(tokens[i].text)});
-     consumed.add(i);
-    }
-   }
-   columns.sort((a,b)=>a.x-b.x);
-   const known=columns.filter(c=>c.key);
-   const counts=known.reduce((acc,c)=>(acc[c.key]=(acc[c.key]||0)+1,acc),{});
-   const date=known.find(c=>c.key==="date"),start=known.find(c=>c.key==="start"),end=known.find(c=>c.key==="end"),time=known.find(c=>c.key==="time"),post=known.find(c=>c.key==="post");
-   const duplicate=Object.values(counts).some(count=>count>1);
-   if(!duplicate&&(time||(start&&end))&&post&&(date||/\bdata\b|\bgiorno\b/.test(joined))){
-    geoHeader={columns,dateX:date?.x??null,timeX:time?.x??null,startX:start?.x??null,endX:end?.x??null,postX:post.x};
-    geoTable=true;
-   }
+   const candidate=buildGeoHeader(tokens,joined);
+   if(candidate){geoHeader=candidate;geoTable=true}
    continue;
   }
   // I PDF multipagina ripetono spesso l'intestazione a ogni pagina.
   // Non lasciare che una data unita della pagina precedente attraversi
   // una nuova intestazione: il nuovo blocco deve fornire una data propria.
   const repeatedHeader=norm(tokens.map(t=>t.text).join(" "));
-  if(tokens.length>=3&&/\b(?:data|giorno|date)\b/.test(repeatedHeader)&&
-     /\b(?:postazione|post|sede)\b/.test(repeatedHeader)&&
-     /\b(?:orario|ora|fascia|inizio|dalle)\b/.test(repeatedHeader)&&
-     !/\b\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4}\b/.test(repeatedHeader)&&
-     !/\b(?:[01]?\d|2[0-3])\s*[:,.]\s*[0-5]\d\b/.test(repeatedHeader)){
+  // Una nuova intestazione esplicita sostituisce sempre la geometria precedente:
+  // tabelle successive possono cambiare ordine o larghezza delle colonne.
+  const nextGeoHeader=buildGeoHeader(tokens,repeatedHeader);
+  if(nextGeoHeader){
+   geoHeader=nextGeoHeader;
    geoCurrentDate="";
    continue;
   }
