@@ -229,6 +229,34 @@ test("credential cleanup outbox persists retry state and completes monotonically
   assert.equal(docs.get(path).completedAt, "corrupt", "malformed terminal ticket is not silently acknowledged");
 });
 
+test("idempotent cleanup recording refuses malformed existing tickets", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  const original = structuredClone(docs.get(path));
+  for (const malformed of [
+    { createdAt: original.updatedAt + 1 },
+    { reason: "INVALID REASON" },
+    { attempts: 2, nextAttemptAt: null, lastErrorCode: "unavailable" },
+    { updatedAt: 0 }
+  ]) {
+    docs.set(path, { ...original, ...malformed });
+    await assert.rejects(adapters.recordSecretCleanup({
+      ...input, timestamp: input.timestamp + 10
+    }), error => error.code === "failed-precondition");
+    assert.deepEqual(docs.get(path), { ...original, ...malformed });
+  }
+  docs.set(path, original);
+  await adapters.recordSecretCleanup({ ...input, timestamp: input.timestamp + 20 });
+  assert.equal(docs.get(path).attempts, 1);
+});
+
 test("cleanup completion rejects inconsistent persisted retry counters", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
