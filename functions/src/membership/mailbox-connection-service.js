@@ -43,12 +43,14 @@ function normalizeSenders(values) {
 export function createMailboxConnectionService({
   authorizeActor, exchangeAuthorization, storeSecret, revokeSecret, disableRefresh,
   recordSecretCleanup, completeSecretCleanup, saveConnection, loadConnection, writeAudit,
+  initializePollingState,
   now = () => Date.now(),
   createConnectionId = () => randomUUID().replaceAll("-", "")
 }) {
   for (const [name, fn] of Object.entries({
     authorizeActor, exchangeAuthorization, storeSecret, revokeSecret, disableRefresh,
-    recordSecretCleanup, completeSecretCleanup, saveConnection, loadConnection, writeAudit
+    recordSecretCleanup, completeSecretCleanup, saveConnection, loadConnection, writeAudit,
+    initializePollingState
   })) if (typeof fn !== "function") throw new TypeError(name + " dependency is required.");
 
   async function disableRefreshAndConfirm({ accountId, connectionId }) {
@@ -122,6 +124,7 @@ export function createMailboxConnectionService({
       };
       try {
         await saveConnection({ accountId, connectionId, connection });
+        await initializePollingState({ accountId, connectionId, timestamp });
         await writeAudit({
           accountId, actorUid: principal.uid, action: "mailbox_connection_created",
           connectionId, mode, provider, timestamp
