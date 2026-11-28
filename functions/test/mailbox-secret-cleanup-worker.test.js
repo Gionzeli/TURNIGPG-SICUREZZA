@@ -200,6 +200,7 @@ test("worker retries failed exhaustion alert delivery on a later invocation", as
   let clock = 2000;
   let alertAttempts = 0;
   let alertNextAttemptAt = null;
+  let alertLastErrorCode = null;
   const worker = createMailboxSecretCleanupWorker({
     assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
@@ -214,6 +215,7 @@ test("worker retries failed exhaustion alert delivery on a later invocation", as
       recordCleanupAlertFailure: async input => {
         alertAttempts = input.attempts;
         alertNextAttemptAt = input.nextAttemptAt;
+        alertLastErrorCode = input.lastErrorCode;
       },
       markCleanupAlertDelivered: async () => { alertStatus = "delivered"; }
     },
@@ -251,7 +253,7 @@ test("worker passes only the alert allowlist even when an adapter returns extra 
       recordSecretCleanupFailure: async () => {},
       listPendingCleanupAlerts: async ({ accountId }) => [{
         accountId, connectionId: "safe-connection", status: "exhausted",
-        alertStatus: "pending", attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
+        alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
         alertAttempts: 0, alertNextAttemptAt: null, alertLastErrorCode: null,
         secretRef: "vault://must-not-leak", reason: "internal_reason",
         mailboxAddress: "private@example.invalid", provider: "imap",
