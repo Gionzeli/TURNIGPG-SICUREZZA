@@ -157,7 +157,7 @@ test("unbounded or malformed additional information is rejected before transacti
     ...input, additionalInfo: Array.from({ length: 9 }, () => "Nota")
   }), { code: "invalid-argument" });
   await assert.rejects(adapter.createEmployeeProposal({
-    ...input, additionalInfo: ["nota\\u0000non valida"]
+    ...input, additionalInfo: ["nota\u0000non valida"]
   }), { code: "invalid-argument" });
   assert.equal(db.values.size, 2);
 });
