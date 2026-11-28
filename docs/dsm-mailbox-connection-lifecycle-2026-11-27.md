@@ -862,3 +862,8 @@ vault, scheduler, or notifier was used.
 ### Ordinary completed cleanup alert-field integrity
 
 Ordinary cleanup completions (those below the retry-exhaustion threshold) now reject any retained exhaustion-alert counters, retry timestamps, error codes, delivery timestamps, or resolution timestamps. These fields must be absent or null when no alert status exists. This closes a gap where direct reads and repeat completion could accept stray alert metadata on an otherwise valid completed ticket. Existing synthetic regressions cover stray retry counters and resolution timestamps; no live Firestore, vault, notifier, or scheduler was used.
+
+
+### Exhausted ticket base-state validation on alert transitions
+
+Retry scheduling and delivery acknowledgement for an exhaustion alert now validate the entire persisted exhausted cleanup ticket, not only the alert-specific fields. Corrupted cleanup attempt counts, creation chronology, or cleanup error codes therefore cannot be advanced or acknowledged through the alert path. Synthetic regression cases exercise malformed base-ticket fields against both alert transitions.
