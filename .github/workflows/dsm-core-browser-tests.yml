@@ -24,6 +24,8 @@ jobs:
       - name: Verify service worker syntax and local AI package boundary
         run: |
           node --check sw.js
+          node --input-type=module --check < local-ai-bootstrap.js
+          node --check tools/verify-local-ai-assets.mjs
           node tools/verify-local-ai-assets.mjs
           if node tools/verify-local-ai-assets.mjs --require-ready; then
             echo "ERROR: AI asset verifier must block an incomplete offline package"
