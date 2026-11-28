@@ -772,3 +772,13 @@ advance exactly by one from the validated persisted state. Monotonic jumps are
 rejected, preventing caller-supplied retry counts from skipping intermediate
 attempts or reaching exhaustion prematurely. Synthetic cleanup adapter coverage
 verifies that a counter jump fails without advancing the ticket.
+
+
+
+#### Cleanup completion validates retry state
+
+Before marking a pending or exhausted cleanup ticket complete, the Firestore
+adapter validates the stored retry metadata and exhaustion/alert-state
+consistency. This prevents a completion acknowledgement from masking a malformed
+retry record. Synthetic coverage verifies an inconsistent pending retry count
+cannot be transitioned to complete.
