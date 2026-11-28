@@ -1,0 +1,77 @@
+# Multi-employer PDF format onboarding — 2026-11-28
+
+**Repository:** `Gionzeli/TURNIGPG-SICUREZZA`
+**Branch:** `codex/employee-shift-date-range-query`
+**Status:** design guardrails only; no employer-specific production parser is activated.
+
+## Purpose
+
+Prepare controlled onboarding of additional employers' shift schedules and payslips without mixing document layouts, employee identities, or payroll semantics. New documents are evidence for format analysis, not permission to import their contents into operational records.
+
+## Format registry boundary
+
+Each employer/layout must be represented by an explicit, versioned parser profile with:
+
+- a stable employer/layout key assigned by trusted configuration, not inferred solely from text inside a PDF;
+- supported document family (shift schedule or payslip), layout/version fingerprint, and parser version;
+- an allowlist of source columns/labels and a canonical output allowlist;
+- explicit date, locale, decimal, time and timezone conventions;
+- confidence thresholds and fail-closed behavior for missing, duplicated, conflicting or unreadable fields;
+- synthetic regression fixtures only, with fake identities and values;
+- review history recording which rule changed and which regression case protects it.
+
+A document must not silently fall back to another employer's profile. Unknown or ambiguous layouts are quarantined for review. A correction learned for one employer must not broaden another employer's mapping unless separately verified.
+
+## Shift schedule extraction policy
+
+The calendar projection remains restricted to:
+
+- service date;
+- postazione, only when an explicit and unambiguous source column or approved employer-specific mapping exists;
+- start and end times;
+- standard shift type assigned by application policy, not guessed from unrelated PDF columns;
+- duration derived from normalized start/end times, including overnight handling in the downstream validated calculation.
+
+Additional communications may be extracted into a separate informational field with size limits. They must never mutate date, time, postazione, shift type or calculated duration.
+
+Do not extract totals, flags, duties, customer names, operational target descriptions or free-text notes into canonical calendar fields.
+
+### GESIV sample — mapping remains incomplete
+
+The sample previously inspected appears to use service/customer/objective-style columns rather than an explicitly named `Postazione` column. Those labels are not interchangeable with postazione. Until an employer-approved semantic mapping is documented, the GESIV profile must not populate calendar postazione from customer/objective text. A row that lacks an approved postazione value must be rejected or held for review, not guessed.
+
+## Payslip handling boundary
+
+Payslips are a separate document family and must never be routed through the shift parser.
+
+Format analysis may catalogue labels, page structure, decimal conventions and repeated sections. It must not turn a label match into proof of accounting meaning. Keep these concepts distinct:
+
+- gross earnings and individual earning components;
+- overtime and premiums, including their unit and calculation basis;
+- allowances and benefits, including cash/non-cash treatment;
+- employee contributions and tax withholdings;
+- deductions, advances, reimbursements and net payment.
+
+Do not infer missing values, derive net from partial totals, or combine a rate with a period amount. Preserve source precision and mark ambiguous items as unresolved. Bank/payment details and personal identifiers are excluded from parser fixtures, logs and repository artifacts.
+
+The existing D-02 decision boundary and legacy compensation audit remain controlling: no payroll runtime schema, DTO, permission, loader, callable, migration or write path is introduced by this document. Payroll remains deny-by-default until the semantic mapping and authorization gates are separately approved.
+
+## Controlled improvement loop
+
+1. Inspect a newly supplied document without committing the original PDF or extracted personal data.
+2. Identify document family, employer/layout candidate and any ambiguous fields.
+3. Propose a narrowly scoped mapping change; do not silently apply it to operational data.
+4. Create a synthetic fixture with invented names, dates, identifiers and amounts.
+5. Add positive and negative regression cases, including cross-profile rejection and ambiguous-column rejection.
+6. Review the diff and run the relevant unit tests and Emulator tests in an explicitly synthetic environment.
+7. Record the parser/profile version and keep the new rule isolated to its verified layout.
+
+This is deterministic rule and test improvement, not model training or autonomous learning from personal documents. A user correction may inform a proposed rule, but must not automatically rewrite existing shifts or compensation records.
+
+## Integration and verification status
+
+- The current shift column mapper consumes structured tables from an injected PDF/OCR engine.
+- No PDF/OCR engine is bundled or activated by this mapper.
+- Employer-specific format registry and production document routing are not implemented here.
+- No real PDFs, payslip contents, employee records, provider credentials or production Firebase services are included.
+- This document changes no executable code and does not claim that tests have run.
