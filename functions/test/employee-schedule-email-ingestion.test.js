@@ -441,3 +441,24 @@ test("PDF parser cannot inject flags or unrelated columns into calendar shifts",
   assert.equal(result[0].blocked[0].reason, "invalid_parsed_shift");
   assert.equal(calls.proposals.length, 0);
 });
+
+
+test("PDF rows need only date context, postazione and start/end time", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [{
+      employeeMatchKey: "verified-employee-code",
+      confidence: 0.999,
+      shifts: [{
+        date: "2026-06-02", post: "Reception",
+        start_time: "08:00", end_time: "14:00"
+      }]
+    }] }),
+    loadEmployeeShifts: async () => []
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "proposals_created");
+  assert.deepEqual(calls.proposals[0].changes[0].shift, {
+    date: "2026-06-02", type: "turno", post: "Reception",
+    start_time: "08:00", end_time: "14:00", hours: 6
+  });
+});
