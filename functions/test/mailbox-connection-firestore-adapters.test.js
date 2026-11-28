@@ -929,3 +929,33 @@ test("repeat completion rejects stray alert metadata when no alert status exists
   assert.equal(stored.status, "complete");
   assert.equal(stored.alertStatus, null);
 });
+
+
+test("repeated alert delivery rejects contradictory resolved timestamp", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  await adapters.markCleanupAlertDelivered({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  const stored = docs.get(path);
+  stored.alertResolvedAt = input.timestamp + 3;
+  await assert.rejects(adapters.markCleanupAlertDelivered({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 4
+  }), error => error.code === "failed-precondition");
+  assert.equal(stored.alertStatus, "delivered");
+  assert.equal(stored.alertResolvedAt, input.timestamp + 3);
+});
