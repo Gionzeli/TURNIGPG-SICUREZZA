@@ -100,3 +100,15 @@ test("lease renewal failure blocks ingestion and checkpoint", async () => {
   assert.equal(calls.checkpoints.length, 0);
   assert.equal(calls.released, 1);
 });
+
+test("expired renewal proof blocks provider fetch", async () => {
+  const { worker, calls } = harness({
+    renewLease: async ({ lease, timestamp }) => ({ ...lease, expiresAt: timestamp })
+  });
+  const result = await worker.run({ accountId });
+  assert.equal(result[0].status, "retry_required");
+  assert.equal(calls.fetched, 0);
+  assert.equal(calls.ingested.length, 0);
+  assert.equal(calls.checkpoints.length, 0);
+  assert.equal(calls.released, 1);
+});
