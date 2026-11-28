@@ -102,7 +102,7 @@ export function createEmployeeScheduleProposalFirestoreAdapter({
       const additionalInfo = input.additionalInfo ?? [];
       if (!Array.isArray(additionalInfo) || additionalInfo.length > 8 ||
           additionalInfo.some(item => typeof item !== "string" || item.length > 300 ||
-            /[\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/.test(item) || item !== item.trim()) ||
+            /[\x00-\x08\x0b\x0c\x0e-\x1f\\x7f]/.test(item) || item !== item.trim()) ||
           additionalInfo.join("\n").length > 1500 ||
           new Set(additionalInfo).size !== additionalInfo.length) {
         fail("invalid-argument", "Additional proposal information is invalid.");
