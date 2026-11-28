@@ -20,7 +20,7 @@ function validPendingTicket(ticket, accountId) {
       !Number.isSafeInteger(ticket.createdAt) || ticket.createdAt < 1 ||
       !Number.isSafeInteger(ticket.updatedAt) || ticket.updatedAt < ticket.createdAt ||
       !Number.isSafeInteger(ticket.attempts) || ticket.attempts < 1 ||
-      ticket.attempts > MAX_ATTEMPTS ||
+      ticket.attempts >= MAX_ATTEMPTS ||
       !(ticket.lastErrorCode === undefined || ticket.lastErrorCode === null ||
         (typeof ticket.lastErrorCode === "string" && /^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode)))) {
     return false;
@@ -125,13 +125,6 @@ export function createMailboxSecretCleanupWorker({
         summary.scanned++;
         if (!validPendingTicket(ticket, accountId)) {
           summary.deferred++;
-          continue;
-        }
-        // Defensive compatibility for a pending ticket already at the retry
-        // ceiling (for example, from a legacy adapter). The Firestore adapter
-        // transitions exhausted tickets out of the pending query.
-        if (ticket.attempts >= MAX_ATTEMPTS && ticket.nextAttemptAt === null) {
-          summary.exhausted++;
           continue;
         }
         if (Number.isSafeInteger(ticket.nextAttemptAt) && ticket.nextAttemptAt > runTimestamp) {
