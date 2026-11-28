@@ -762,3 +762,13 @@ last error code. Its alert must be in a consistent pending, delivered, or
 resolved state; malformed retry metadata is excluded from worker/notifier
 DTOs and direct reads fail closed. Synthetic regression coverage corrupts an
 exhausted alert retry record and confirms it is not exposed.
+
+
+
+#### Sequential retry counter enforcement
+
+Cleanup and exhausted-alert retry transactions now require the attempt counter to
+advance exactly by one from the validated persisted state. Monotonic jumps are
+rejected, preventing caller-supplied retry counts from skipping intermediate
+attempts or reaching exhaustion prematurely. Synthetic cleanup adapter coverage
+verifies that a counter jump fails without advancing the ticket.
