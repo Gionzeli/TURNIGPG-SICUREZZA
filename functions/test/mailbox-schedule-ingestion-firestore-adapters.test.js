@@ -28,7 +28,8 @@ function fakeFirestore(seed = {}) {
     },
     runTransaction: async callback => callback({
       get: async ref => ({ exists: values.has(ref.path), data: () => values.get(ref.path) }),
-      update: (ref, patch) => values.set(ref.path, { ...values.get(ref.path), ...patch })
+      update: (ref, patch) => values.set(ref.path, { ...values.get(ref.path), ...patch }),
+      create: (ref, value) => { if (values.has(ref.path)) { const error = new Error('exists'); error.code = 'already-exists'; throw error; } values.set(ref.path, value); }
     }),
     nowValue: 1000
   };
@@ -119,4 +120,21 @@ test("checkpoint rejects a lease proof superseded by a newer fencing token", asy
     lease: { ownerId: "synthetic_owner_identifier", fencingToken: 1 }, timestamp: 1000
   }), { code: "failed-precondition" });
   assert.equal(db.values.get(pollingPath).cursor, "cursor-0");
+});
+
+test("initializes polling state only for active canonical mailbox and is idempotent", async () => {
+  const { adapters, db } = harness();
+  await adapters.initializePollingState({ accountId, connectionId, timestamp: 1000 });
+  assert.deepEqual(db.values.get(pollingPath), {
+    accountId, connectionId, cursor: null, nextPollAt: 1000, updatedAt: 1000
+  });
+  await adapters.initializePollingState({ accountId, connectionId, timestamp: 2000 });
+  assert.equal(db.values.get(pollingPath).nextPollAt, 1000);
+});
+
+test("does not initialize polling for revoked mailbox", async () => {
+  const { adapters, db } = harness();
+  db.values.set(connectionPath, { accountId, connectionId, provider: "imap", status: "revoked" });
+  await assert.rejects(adapters.initializePollingState({ accountId, connectionId, timestamp: 1000 }), { code: "failed-precondition" });
+  assert.equal(db.values.has(pollingPath), true);
 });
