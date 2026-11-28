@@ -436,13 +436,18 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           throw error;
         }
         if (previous.status === "complete") {
-          const alertStateValid = previous.alertStatus === undefined || previous.alertStatus === null ||
-            (previous.alertStatus === "delivered" && validExhaustedCleanupState({
-              ...previous, status: "exhausted"
-            })) ||
-            (previous.alertStatus === "resolved" && validExhaustedCleanupState({
-              ...previous, status: "exhausted"
-            }));
+          const alertStateValid = (previous.alertStatus === undefined || previous.alertStatus === null)
+            ? (previous.alertAttempts === null || previous.alertAttempts === undefined) &&
+              (previous.alertNextAttemptAt === null || previous.alertNextAttemptAt === undefined) &&
+              (previous.alertLastErrorCode === null || previous.alertLastErrorCode === undefined) &&
+              (previous.alertDeliveredAt === null || previous.alertDeliveredAt === undefined) &&
+              (previous.alertResolvedAt === null || previous.alertResolvedAt === undefined)
+            : (previous.alertStatus === "delivered" && validExhaustedCleanupState({
+                ...previous, status: "exhausted"
+              })) ||
+              (previous.alertStatus === "resolved" && validExhaustedCleanupState({
+                ...previous, status: "exhausted"
+              }));
           if (!Number.isSafeInteger(previous.completedAt) || previous.completedAt < 1 ||
               !Number.isSafeInteger(previous.updatedAt) || previous.updatedAt < previous.completedAt ||
               !alertStateValid) {
