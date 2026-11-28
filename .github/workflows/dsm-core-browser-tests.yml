@@ -27,6 +27,7 @@ jobs:
           node --input-type=module --check < local-ai-bootstrap.js
           node --check tools/verify-local-ai-assets.mjs
           node tools/verify-local-ai-assets.mjs
+          node tests/local-ai-assets-verifier-smoke.mjs
           if node tools/verify-local-ai-assets.mjs --require-ready; then
             echo "ERROR: AI asset verifier must block an incomplete offline package"
             exit 1
