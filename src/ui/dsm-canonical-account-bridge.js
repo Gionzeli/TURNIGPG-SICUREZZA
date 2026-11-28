@@ -326,7 +326,7 @@ export function mountDSMCanonicalAccountBridge(container, {
     const table = document.createElement("table");
     const head = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    for (const label of ["Data", "Tipo", "Postazione", "Inizio", "Fine", "Ore"]) {
+    for (const label of ["Data", "Tipo", "Postazione", "Inizio", "Fine", "Ore", "Info"]) {
       const cell = document.createElement("th");
       cell.scope = "col";
       cell.textContent = label;
@@ -348,6 +348,28 @@ export function mountDSMCanonicalAccountBridge(container, {
         const cell = document.createElement("td");
         cell.textContent = String(value ?? "");
         row.append(cell);
+      }
+      if (Array.isArray(item.scheduleInfo) && item.scheduleInfo.length) {
+        const infoCell = document.createElement("td");
+        const infoButton = document.createElement("button");
+        infoButton.type = "button";
+        infoButton.textContent = "ℹ️";
+        infoButton.setAttribute("aria-label", "Mostra informazioni aggiuntive del turno");
+        infoButton.setAttribute("aria-expanded", "false");
+        const infoContent = document.createElement("div");
+        infoContent.hidden = true;
+        for (const note of item.scheduleInfo) {
+          if (typeof note !== "string" || !note.trim()) continue;
+          const paragraph = document.createElement("p");
+          paragraph.textContent = note;
+          infoContent.append(paragraph);
+        }
+        infoButton.addEventListener("click", () => {
+          infoContent.hidden = !infoContent.hidden;
+          infoButton.setAttribute("aria-expanded", String(!infoContent.hidden));
+        });
+        infoCell.append(infoButton, infoContent);
+        row.append(infoCell);
       }
       body.append(row);
     }
