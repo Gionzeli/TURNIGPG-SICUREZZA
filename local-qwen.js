@@ -55,7 +55,7 @@ export function sanitizeLabelContext(text, kind) {
   for (const raw of String(text ?? "").split(/\r?\n/)) {
     if (/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/i.test(raw) ||
         /\b[A-Z]{2}\d{2}[A-Z0-9]{11,30}\b/i.test(raw) ||
-        /\b[A-Z]{6}[A-Z0-9]{2}(?:[A-Z0-9]{3})?\b/i.test(raw) ||
+        /\b[A-Z]{6}\d{2}[A-Z]\d{2}[A-Z]\d{3}[A-Z]\b/i.test(raw) ||
         /\b[A-Z0-9]{16}\b/i.test(raw)) continue;
     const clean = raw
       .replace(/\b\d{1,2}[/. -]\d{1,2}[/. -]\d{2,4}\b/g, " ")
