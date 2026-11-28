@@ -1,7 +1,17 @@
 /* Turni GPG/sicurezza - service worker. Gli asset AI sono preinstallati e verificati. */
-const VERSION="tg-v3.178";
+const VERSION="tg-v3.179";
 const ASSETS=["./","index.html","favicon.ico","manifest.webmanifest","updates.json","local-ai-assets.json","local-reader.js?v=2.3.87","local-qwen.js","local-ai-bootstrap.js","local-learning.js","src/ui/legacy-migration-page.js?v=1","src/ui/dsm-canonical-account-bridge.js","src/ui/dsm-canonical-account-bootstrap.js","src/ui/dsm-membership-invite-page.js","src/adapters/firebase/firebase-auth-adapter.js","src/core/legacy/legacy-read-adapter.js","favicon-32.png","icon-192.png","icon-512.png","icon.svg"];
 const REQUIRED_ROLES=["pdfjs-browser","pdfjs-worker","tesseract-browser","tesseract-worker","tesseract-core","tesseract-ita","tesseract-eng","paddle-wrapper","paddle-model","onnxruntime-wasm","transformers-runtime","qwen-model"];
+const EXPECTED_ENTRYPOINTS={
+  "pdfjs-browser":"vendor/pdfjs/pdf.min.js",
+  "pdfjs-worker":"vendor/pdfjs/pdf.worker.min.js",
+  "tesseract-browser":"vendor/tesseract/tesseract.min.js",
+  "tesseract-worker":"vendor/tesseract/worker.min.js",
+  "tesseract-ita":"vendor/tesseract/lang/ita.traineddata.gz",
+  "tesseract-eng":"vendor/tesseract/lang/eng.traineddata.gz",
+  "paddle-wrapper":"vendor/paddleocr/local-paddleocr.js",
+  "transformers-runtime":"vendor/transformers/transformers.min.js"
+};
 const APP_SCOPE=new URL("./",self.registration.scope);
 
 async function installLocalAIAssets(cache){
@@ -15,7 +25,13 @@ async function installLocalAIAssets(cache){
     if(manifest.assets.length)throw new Error("Manifest AI disabilitato ma contiene asset");
     return;
   }
-  const roles=new Set(manifest.assets.map(item=>item?.role));
+  const knownRoles=new Set(REQUIRED_ROLES);
+  for(const item of manifest.assets){
+    if(!item||typeof item.role!=="string"||!knownRoles.has(item.role)){
+      throw new Error("Ruolo asset AI sconosciuto o non valido");
+    }
+  }
+  const roles=new Set(manifest.assets.map(item=>item.role));
   const missing=REQUIRED_ROLES.filter(role=>!roles.has(role));
   if(missing.length)throw new Error("Pacchetto AI incompleto: "+missing.join(", "));
   const seen=new Set();
