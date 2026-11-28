@@ -480,6 +480,6 @@ test("non-text PDF time cells are blocked without throwing or creating a proposa
   });
   const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
   assert.equal(calls.proposals.length, 0);
-  assert.equal(result.attachments[0].status, "needs_review");
-  assert.ok(result.attachments[0].blocked.some(item => item.reason === "invalid_parsed_shift"));
+  assert.equal(result[0].status, "needs_review");
+  assert.ok(result[0].blocked.some(item => item.reason === "invalid_parsed_shift"));
 });
