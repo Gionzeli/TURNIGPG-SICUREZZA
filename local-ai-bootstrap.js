@@ -67,7 +67,7 @@ async function bootstrapLocalAI() {
     }
     byRole.set(item.role, item);
   }
-  const missing = REQUIRED_ROLES.filter(role => !byRole.has(role)?.length);
+  const missing = REQUIRED_ROLES.filter(role => !byRole.get(role)?.length);
   if (missing.length) throw new Error("Pacchetto AI incompleto: " + missing.join(", "));
   const first = role => byRole.get(role)[0];
   for (const [role, expectedPath] of Object.entries(EXPECTED_ENTRYPOINTS)) {
