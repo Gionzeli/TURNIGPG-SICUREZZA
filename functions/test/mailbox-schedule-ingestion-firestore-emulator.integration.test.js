@@ -54,6 +54,7 @@ test("Firestore Emulator composes mailbox polling, fenced lease and ingestion ch
     assert.equal(polling.cursor, "synthetic-cursor-1");
     assert.ok(polling.nextPollAt > polling.updatedAt);
 
+    await pollingRef.update({ nextPollAt: Date.now() - 1 });
     await leaseService.disable({ accountId, connectionId });
     const skipped = await worker.run({ accountId, limit: 5 });
     assert.deepEqual(skipped, [{ connectionId, status: "skipped_locked" }]);
