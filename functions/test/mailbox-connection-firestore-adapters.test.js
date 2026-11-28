@@ -1087,6 +1087,9 @@ test("repeat completion rejects corrupt resolved alert retry history", async () 
   });
   const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
   const stored = docs.get(path);
+  assert.equal((await adapters.loadSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId
+  })).status, "complete");
   stored.alertAttempts = 2;
   stored.alertLastErrorCode = null;
   await assert.rejects(adapters.completeSecretCleanup({
