@@ -6,6 +6,7 @@ const REQUIRED_ROLES = [
 ];
 
 const byRole = new Map();
+const knownRoles = new Set(REQUIRED_ROLES);
 const EXPECTED_ENTRYPOINTS = {
   "pdfjs-browser": "vendor/pdfjs/pdf.min.js",
   "pdfjs-worker": "vendor/pdfjs/pdf.worker.min.js",
@@ -58,11 +59,32 @@ async function bootstrapLocalAI() {
     return;
   }
 
+  const seenPaths = new Set();
   for (const item of manifest.assets) {
-    if (!item || !item.role) throw new Error("Ruolo AI non valido.");
+    if (!item || typeof item.role !== "string" || !knownRoles.has(item.role)) {
+      throw new Error("Ruolo AI sconosciuto o non valido.");
+    }
+    const path = localPath(item);
+    if (seenPaths.has(item.path)) throw new Error("Percorso AI duplicato: " + item.path);
+    seenPaths.add(item.path);
+    if (EXPECTED_ENTRYPOINTS[item.role] && item.path !== EXPECTED_ENTRYPOINTS[item.role]) {
+      throw new Error("Percorso entrypoint inatteso per " + item.role);
+    }
+    if ((item.role === "tesseract-core" && !item.path.startsWith("vendor/tesseract/")) ||
+        (item.role === "paddle-model" && !item.path.startsWith("models/paddleocr/pp-ocrv6/")) ||
+        (item.role === "onnxruntime-wasm" && !item.path.startsWith("vendor/onnxruntime/")) ||
+        (item.role === "qwen-model" && !item.path.startsWith("models/qwen2.5-0.5b-instruct/"))) {
+      throw new Error("Percorso fuori directory per " + item.role);
+    }
+    const url = new URL(path, location.href);
+    if (url.origin !== location.origin || !url.pathname.startsWith(new URL("./", location.href).pathname)) {
+      throw new Error("Asset AI fuori dall'origine/percorso dell'app.");
+    }
     if (!byRole.has(item.role)) byRole.set(item.role, []);
     byRole.get(item.role).push(item);
-    if (!item.version || !item.license || !item.source ||
+    if (typeof item.version !== "string" || !item.version.trim() ||
+        typeof item.license !== "string" || !item.license.trim() ||
+        typeof item.source !== "string" || !item.source.trim() ||
         !Number.isSafeInteger(item.sizeBytes) || item.sizeBytes < 1 ||
         !/^[a-f0-9]{64}$/i.test(item.sha256 || "")) {
       throw new Error("Provenienza o integrità mancante per " + (item.path || "asset"));
