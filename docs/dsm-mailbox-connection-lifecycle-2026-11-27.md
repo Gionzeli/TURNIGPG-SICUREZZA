@@ -787,3 +787,8 @@ cannot be transitioned to complete.
 #### Resolved cleanup-alert terminal-state validation
 
 Resolved exhaustion alerts now validate retry-history consistency and terminal timestamps on direct cleanup-ticket reads and repeated completion. A resolved alert cannot carry a delivery timestamp, a scheduled retry, or malformed retry history; pending and delivered states likewise reject contradictory resolved timestamps. A synthetic adapter regression corrupts a resolved record and verifies it is rejected without mutation.
+
+
+#### Repeat completion validates resolved-alert history
+
+Repeated cleanup completion acknowledgements now apply the same full exhausted-alert state validation to resolved and delivered alerts, including retry-history counters/error codes and contradictory terminal timestamps. Previously, a repeat acknowledgement only checked a subset of resolved metadata. A synthetic regression corrupts resolved retry history and confirms the acknowledgement is rejected without changing the completed record.
