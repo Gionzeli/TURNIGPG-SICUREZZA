@@ -36,8 +36,15 @@
         if(geometry.length!==1||geometry[0].date!=="2026-12-03"||geometry[0].start_time!=="06:00"||geometry[0].end_time!=="14:00"||geometry[0].post!=="Sede Beta")throw new Error("Mappatura geometrica delle colonne non riuscita: "+JSON.stringify(geometry));
         const split=parser(["RIGA 1: @100:Data | @250:Inizio | @400:Fine | @650:Postazione","RIGA 2: @100:04/12/2026 | @250:06:00 | @400:14:00 | @650:Sede Gamma"].join("\n"));
         if(split.length!==1||split[0].date!=="2026-12-04"||split[0].start_time!=="06:00"||split[0].end_time!=="14:00"||split[0].post!=="Sede Gamma")throw new Error("Mappatura colonne Inizio/Fine non riuscita: "+JSON.stringify(split));
-        status.textContent="PASS — mappatura colonne con coordinate OCR; testo residuo e flag ignorati."; 
-        result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0],geometryColumns:geometry[0],splitTimeColumns:split[0]},null,2);
+        const excluded=parser([
+          "RIGA 1: @100:Data | @300:Orario | @600:Postazione | @780:Totale | @930:Note | @1120:Notturno",
+          "RIGA 2: @100:05/12/2026 | @300:06:00 | @360:14:00 | @600:Sede Delta | @780:8,00 | @930:Cliente Zeta PIANTONAMENTO | @1120:SI"
+        ].join("\n"));
+        if(excluded.length!==1||excluded[0].date!=="2026-12-05"||excluded[0].start_time!=="06:00"||excluded[0].end_time!=="14:00"||excluded[0].post!=="Sede Delta"||excluded[0].piantonamento!==false||excluded[0].notturno!==false){
+          throw new Error("Le colonne escluse sono confluite nei dati turno: "+JSON.stringify(excluded));
+        }
+        status.textContent="PASS — coordinate OCR: solo data, orari e Postazione; Totale, Note e flag esclusi.";
+        result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0],geometryColumns:geometry[0],splitTimeColumns:split[0],excludedColumns:excluded[0]},null,2);
       }catch(error){
         status.textContent="FAIL — controllo parser non superato.";
         result.textContent=String(error?.stack||error?.message||error);
