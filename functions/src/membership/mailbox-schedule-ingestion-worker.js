@@ -35,7 +35,8 @@ export function createMailboxScheduleIngestionWorker({
       const seen = new Set();
       for (const candidate of due) {
         if (!candidate || candidate.accountId !== accountId ||
-            !ID.test(candidate.connectionId ?? "") || seen.has(candidate.connectionId)) {
+            !ID.test(candidate.connectionId ?? "") || seen.has(candidate.connectionId) ||
+            (candidate.cursor != null && (typeof candidate.cursor !== "string" || candidate.cursor.length > 2048))) {
           fail("failed-precondition", "Mailbox due-list contains an invalid or duplicate connection.");
         }
         seen.add(candidate.connectionId);
