@@ -27,12 +27,13 @@ function normalizedEmail(value) {
     value === value.trim().toLowerCase() && EMAIL.test(value);
 }
 function validPendingCleanupState(value) {
-  if (!Number.isSafeInteger(value.attempts) || value.attempts < 1 || value.attempts >= 12) return false;
+  if (!Number.isSafeInteger(value.attempts) || value.attempts < 1 || value.attempts >= 12 ||
+      !Number.isSafeInteger(value.updatedAt) || value.updatedAt < 1) return false;
   if (value.attempts === 1) {
     return (value.nextAttemptAt === null || value.nextAttemptAt === undefined) &&
       (value.lastErrorCode === null || value.lastErrorCode === undefined);
   }
-  return Number.isSafeInteger(value.nextAttemptAt) && value.nextAttemptAt >= 1 &&
+  return Number.isSafeInteger(value.nextAttemptAt) && value.nextAttemptAt >= value.updatedAt &&
     typeof value.lastErrorCode === "string" &&
     /^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode);
 }
