@@ -36,7 +36,16 @@ async function installLocalAIAssets(cache){
   if(missing.length)throw new Error("Pacchetto AI incompleto: "+missing.join(", "));
   const seen=new Set();
   for(const item of manifest.assets){
-    if(!item||typeof item.path!=="string"||! /^(vendor|models)\/[a-zA-Z0-9._/-]+$/.test(item.path)||item.path.split("/").includes("..")){
+    if(!item||typeof item.path!=="string"||! /^(vendor|models)\\/[a-zA-Z0-9._/-]+$/.test(item.path)||item.path.split("/").some(segment=>!segment||segment==="."||segment==="..")){
+      throw new Error("Percorso asset AI non valido");
+    }
+    if(EXPECTED_ENTRYPOINTS[item.role]&&item.path!==EXPECTED_ENTRYPOINTS[item.role]){
+      throw new Error("Percorso entrypoint AI inatteso per "+item.role);
+    }
+    if(item.role==="tesseract-core"&&!item.path.startsWith("vendor/tesseract/"))throw new Error("Core Tesseract fuori directory");
+    if(item.role==="paddle-model"&&!item.path.startsWith("models/paddleocr/pp-ocrv6/"))throw new Error("Modello PaddleOCR fuori directory");
+    if(item.role==="onnxruntime-wasm"&&!item.path.startsWith("vendor/onnxruntime/"))throw new Error("ONNX Runtime fuori directory");
+    if(item.role==="qwen-model"&&!item.path.startsWith("models/qwen2.5-0.5b-instruct/"))throw new Error("Modello Qwen fuori directory");
       throw new Error("Percorso asset AI non valido");
     }
     const url=new URL(item.path,APP_SCOPE);
