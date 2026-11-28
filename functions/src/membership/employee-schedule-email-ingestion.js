@@ -34,6 +34,9 @@ function normalizeShift(input, { existing = false } = {}) {
   const start_time = input.start_time ?? "";
   const end_time = input.end_time ?? "";
   const type = existing ? input.type : "turno";
+  if (typeof post !== "string" || typeof start_time !== "string" || typeof end_time !== "string") {
+    fail("invalid-argument", "Parsed shift post and time values must be text.");
+  }
   const hours = existing ? (input.hours ?? 0) : (() => {
     const [startHour, startMinute] = start_time.split(":").map(Number);
     const [endHour, endMinute] = end_time.split(":").map(Number);
