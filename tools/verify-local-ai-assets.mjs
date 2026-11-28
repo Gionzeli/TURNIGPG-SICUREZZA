@@ -12,6 +12,16 @@ const requiredRoles = [
   "transformers-runtime", "qwen-model"
 ];
 const requireReady = process.argv.includes("--require-ready");
+const exactPaths = {
+  "pdfjs-browser": "vendor/pdfjs/pdf.min.js",
+  "pdfjs-worker": "vendor/pdfjs/pdf.worker.min.js",
+  "tesseract-browser": "vendor/tesseract/tesseract.min.js",
+  "tesseract-worker": "vendor/tesseract/worker.min.js",
+  "tesseract-ita": "vendor/tesseract/lang/ita.traineddata.gz",
+  "tesseract-eng": "vendor/tesseract/lang/eng.traineddata.gz",
+  "paddle-wrapper": "vendor/paddleocr/local-paddleocr.js",
+  "transformers-runtime": "vendor/transformers/transformers.min.js"
+};
 
 function fail(message) {
   console.error("ERRORE PACCHETTO AI LOCALE:", message);
@@ -53,6 +63,13 @@ for (const item of manifest.assets) {
   }
   seenPaths.add(item.path);
   seenRoles.add(item.role);
+  if (exactPaths[item.role] && item.path !== exactPaths[item.role]) {
+    fail("percorso inatteso per " + item.role + ": " + item.path);
+  }
+  if (item.role === "tesseract-core" && !item.path.startsWith("vendor/tesseract/")) fail("core Tesseract fuori directory");
+  if (item.role === "paddle-model" && !item.path.startsWith("models/paddleocr/pp-ocrv6/")) fail("modello PaddleOCR fuori directory");
+  if (item.role === "onnxruntime-wasm" && !item.path.startsWith("vendor/onnxruntime/")) fail("ONNX Runtime fuori directory");
+  if (item.role === "qwen-model" && !item.path.startsWith("models/qwen2.5-0.5b-instruct/")) fail("modello Qwen fuori directory");
   if (!Number.isSafeInteger(item.sizeBytes) || item.sizeBytes < 1 ||
       !/^[a-f0-9]{64}$/i.test(item.sha256 || "") ||
       !item.version || !item.license || !item.source) {
