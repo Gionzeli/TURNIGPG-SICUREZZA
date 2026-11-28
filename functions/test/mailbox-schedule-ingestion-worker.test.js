@@ -80,3 +80,13 @@ test("invalid batch bounds are rejected", async () => {
   const { worker } = harness();
   await assert.rejects(worker.run({ accountId, limit: 101 }), { code: "invalid-argument" });
 });
+
+test("invalid persisted cursor is rejected before acquiring a lease", async () => {
+  const calls = { leases: 0 };
+  const { worker } = harness({
+    listDueConnections: async () => [{ accountId, connectionId, cursor: { unsafe: true } }],
+    acquireLease: async () => { calls.leases++; return { acquired: true }; }
+  });
+  await assert.rejects(worker.run({ accountId }), { code: "failed-precondition" });
+  assert.equal(calls.leases, 0);
+});
