@@ -38,21 +38,25 @@ function validateChanges(changes, before) {
       !Array.isArray(before) || before.length !== changes.length) {
     fail("invalid-argument", "Proposal changes and before snapshots are invalid.");
   }
-  for (const change of changes) {
+  const seen = new Set();
+  for (const [index, change] of changes.entries()) {
     if (!change || typeof change !== "object" || Array.isArray(change) ||
         !["create", "update", "delete"].includes(change.operation)) fail("invalid-argument", "Invalid proposal operation.");
     if (change.operation === "create") {
-      if (!change.shift || typeof change.shift !== "object" || Array.isArray(change.shift)) fail("invalid-argument", "Invalid proposed shift.");
+      if (Object.keys(change).some(key => !["operation", "shift"].includes(key)) ||
+          !change.shift || typeof change.shift !== "object" || Array.isArray(change.shift)) fail("invalid-argument", "Invalid proposed shift.");
       validateFields(change.shift, { allowDate: true, requireCompleteInterval: true });
       if (!validDate(change.shift.date) || !TYPES.has(change.shift.type)) fail("invalid-argument", "Create proposal requires a valid date and type.");
-    } else if (typeof change.shiftId !== "string" || !ID.test(change.shiftId) ||
+    } else if (Object.keys(change).some(key => !["operation", "shiftId", "expectedRevision", "changes"].includes(key)) ||
+      typeof change.shiftId !== "string" || !ID.test(change.shiftId) || seen.has(change.shiftId) ||
       !Number.isSafeInteger(change.expectedRevision) || change.expectedRevision < 1 ||
       (change.operation === "update" && (!change.changes || typeof change.changes !== "object" || Array.isArray(change.changes) ||
         Object.keys(change.changes).length < 1)) ||
       (change.operation === "delete" && Object.hasOwn(change, "changes"))) {
       fail("invalid-argument", "Invalid proposed shift target.");
     }
-    const snapshot = before[changes.indexOf(change)];
+    if (change.operation !== "create") seen.add(change.shiftId);
+    const snapshot = before[index];
     if (change.operation === "create" && snapshot !== null) {
       fail("invalid-argument", "Create proposal must not include a before snapshot.");
     }
