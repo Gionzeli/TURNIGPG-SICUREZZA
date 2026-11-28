@@ -12,7 +12,9 @@ const EXPECTED_ENTRYPOINTS = {
   "tesseract-browser": "vendor/tesseract/tesseract.min.js",
   "tesseract-worker": "vendor/tesseract/worker.min.js",
   "tesseract-ita": "vendor/tesseract/lang/ita.traineddata.gz",
-  "tesseract-eng": "vendor/tesseract/lang/eng.traineddata.gz"
+  "tesseract-eng": "vendor/tesseract/lang/eng.traineddata.gz",
+  "paddle-wrapper": "vendor/paddleocr/local-paddleocr.js",
+  "transformers-runtime": "vendor/transformers/transformers.min.js"
 };
 let runtimeModule = null;
 
