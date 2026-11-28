@@ -872,3 +872,8 @@ Retry scheduling and delivery acknowledgement for an exhaustion alert now valida
 ### Pending cleanup completion rejects stray alert metadata
 
 Before a pending cleanup ticket is transitioned to complete, the adapter now requires all exhaustion-alert fields to be absent or null. This prevents malformed alert counters, timestamps, error codes, or status values from being copied into a completed ordinary ticket that would then fail its own terminal-state reader. Synthetic tests verify each stray field is rejected without changing the pending status, while a clean pending ticket still completes.
+
+
+### Cleanup worker alert retry-history validation
+
+The worker now independently validates the relationship between alert retry count, next-attempt timestamp, and last error code before notification. Initial alerts must have zero retries and no retry metadata; retried alerts must have a positive next-attempt timestamp and a valid last error code. A maximum safe-integer retry count is rejected to prevent overflow on a further failure. Synthetic tests cover inconsistent combinations and verify no notification or acknowledgement occurs.
