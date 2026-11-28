@@ -114,6 +114,7 @@ test("worker rejects malformed persisted pending-ticket history before gate or v
     { attempts: 2, nextAttemptAt: 1000, lastErrorCode: null },
     { attempts: 1, nextAttemptAt: 1000 },
     { attempts: 12, nextAttemptAt: 2000, lastErrorCode: "unavailable" },
+    { attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable" },
     { alertStatus: "pending" },
     { alertAttempts: 0 },
     { alertNextAttemptAt: 1000 },
