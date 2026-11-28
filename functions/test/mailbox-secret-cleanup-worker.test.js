@@ -7,7 +7,8 @@ function scopedSecretRef(accountId, connectionId, opaqueId = "syntheticopaqueid1
 const ticket = {
   accountId: "synthetic-account", connectionId: "synthetic-connection",
   secretRef: scopedSecretRef("synthetic-account", "synthetic-connection"),
-  status: "pending", attempts: 1, nextAttemptAt: null
+  status: "pending", reason: "connection_revoked",
+  createdAt: 500, updatedAt: 500, attempts: 1, nextAttemptAt: null
 };
 
 test("worker deletes secret and marks durable ticket complete", async () => {
@@ -100,6 +101,41 @@ test("worker validates batch bounds and ignores malformed tickets", async () => 
   await assert.rejects(worker.runOnce({ accountId: "synthetic-account", limit: 101 }), error => error.code === "invalid-argument");
   await assert.rejects(worker.runOnce(), error => error.code === "invalid-argument");
   assert.deepEqual(await worker.runOnce({ accountId: "synthetic-account" }), { scanned: 1, completed: 0, deferred: 1, exhausted: 0 });
+});
+
+
+test("worker rejects malformed persisted pending-ticket history before gate or vault access", async () => {
+  const malformed = [
+    { createdAt: 0 },
+    { updatedAt: 499 },
+    { reason: "INVALID REASON" },
+    { attempts: 2, nextAttemptAt: 900, updatedAt: 1000, lastErrorCode: "unavailable" },
+    { attempts: 2, nextAttemptAt: null, lastErrorCode: "unavailable" },
+    { attempts: 2, nextAttemptAt: 1000, lastErrorCode: null },
+    { attempts: 1, nextAttemptAt: 1000 },
+    { attempts: 12, nextAttemptAt: 2000, lastErrorCode: "unavailable" }
+  ];
+  for (const patch of malformed) {
+    let gateCalls = 0;
+    let vaultCalls = 0;
+    const worker = createMailboxSecretCleanupWorker({
+      assertRevocationPending: async () => { gateCalls++; return { status: "revocation_pending" }; },
+      cleanupAdapters: {
+        listPendingSecretCleanup: async () => [{ ...ticket, ...patch }],
+        completeSecretCleanup: async () => assert.fail("must not complete"),
+        recordSecretCleanupFailure: async () => {},
+        listPendingCleanupAlerts: async () => [],
+        recordCleanupAlertFailure: async () => {},
+        markCleanupAlertDelivered: async () => {}
+      },
+      credentialVault: { revokeSecret: async () => { vaultCalls++; } },
+      alert: async () => {}, now: () => 2000
+    });
+    const result = await worker.runOnce({ accountId: ticket.accountId });
+    assert.equal(result.deferred, 1);
+    assert.equal(gateCalls, 0);
+    assert.equal(vaultCalls, 0);
+  }
 });
 
 
