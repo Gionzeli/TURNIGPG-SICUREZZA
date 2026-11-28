@@ -5,6 +5,7 @@ const DATE = /^\d{4}-\d{2}-\d{2}$/;
 const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const TYPES = new Set(["turno", "turno_riposo", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"]);
 const SHIFT_FIELDS = new Set(["date", "type", "post", "start_time", "end_time", "hours", "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"]);
+const PARSED_SHIFT_FIELDS = new Set(["date", "type", "post", "start_time", "end_time"]);
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 function fail(code, message) {
@@ -24,15 +25,21 @@ function normalizedEmail(value) {
 }
 function normalizeShift(input, { existing = false } = {}) {
   if (!input || typeof input !== "object" || Array.isArray(input) ||
-      Object.keys(input).some(key => !SHIFT_FIELDS.has(key))) fail("invalid-argument", "Unsupported parsed shift fields.");
+      Object.keys(input).some(key => !(existing ? SHIFT_FIELDS : PARSED_SHIFT_FIELDS).has(key))) fail("invalid-argument", "Unsupported parsed shift fields.");
   if (!validDate(input.date) || !TYPES.has(input.type)) fail("invalid-argument", "Parsed shift has an invalid date or type.");
-  if (!existing && ["post", "start_time", "end_time", "hours"].some(key => !Object.hasOwn(input, key))) {
-    fail("invalid-argument", "Parsed shift must explicitly include post, start/end times and hours.");
+  if (!existing && ["post", "start_time", "end_time"].some(key => !Object.hasOwn(input, key))) {
+    fail("invalid-argument", "Parsed shift must explicitly include post and start/end times.");
   }
   const post = input.post ?? "";
   const start_time = input.start_time ?? "";
   const end_time = input.end_time ?? "";
-  const hours = input.hours ?? 0;
+  const hours = existing ? (input.hours ?? 0) : (() => {
+    const [startHour, startMinute] = start_time.split(":").map(Number);
+    const [endHour, endMinute] = end_time.split(":").map(Number);
+    let minutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+    if (minutes < 0) minutes += 24 * 60;
+    return minutes / 60;
+  })();
   if (typeof post !== "string" || post.length > 80 ||
       (start_time !== "" && (typeof start_time !== "string" || !TIME.test(start_time))) ||
       (end_time !== "" && (typeof end_time !== "string" || !TIME.test(end_time))) ||
@@ -43,7 +50,7 @@ function normalizeShift(input, { existing = false } = {}) {
   }
   const result = { date: input.date, type: input.type, post, start_time, end_time, hours };
   for (const key of ["is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"]) {
-    if (!existing && !Object.hasOwn(input, key)) continue;
+    if (!existing) continue;
     const value = input[key] ?? false;
     if (typeof value !== "boolean") fail("invalid-argument", "Parsed shift contains an invalid flag.");
     result[key] = value;
