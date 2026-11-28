@@ -298,11 +298,7 @@ test("successful deletion resolves an exhausted cleanup ticket and its pending a
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId,
-    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
-    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
   assert.equal(docs.get(path).status, "exhausted");
   assert.equal(docs.get(path).alertStatus, "pending");
@@ -333,11 +329,7 @@ test("exhausted cleanup reads reject malformed alert terminal metadata", async (
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId,
-    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
-    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
   docs.get(path).alertAttempts = 2;
   docs.get(path).alertNextAttemptAt = null;
@@ -580,11 +572,7 @@ test("pending cleanup alert listing rejects document IDs that disagree with tick
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
-    timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const correctPath = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
   const wrongPath = "accounts/synthetic-account/mailboxCredentialCleanup/other-connection";
   const ticket = docs.get(correctPath);
@@ -604,11 +592,7 @@ test("cleanup retry ceiling moves tickets out of the pending queue", async () =>
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
-    timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   assert.equal(docs.get("accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection").status, "exhausted");
   assert.deepEqual(await adapters.listPendingSecretCleanup({ accountId: active.accountId }), []);
   assert.equal((await adapters.loadSecretCleanup({
@@ -652,11 +636,7 @@ test("exhausted cleanup alert is durably queued and acknowledged", async () => {
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
-    timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const queued = await adapters.listPendingCleanupAlerts({ accountId: input.accountId });
   assert.equal(queued.length, 1);
   assert.equal(queued[0].alertStatus, "pending");
@@ -698,11 +678,7 @@ test("pending cleanup alert listing excludes malformed retry metadata", async ()
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
-    timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
   const valid = docs.get(path);
   docs.set(path, { ...valid, alertAttempts: "many" });
@@ -722,11 +698,7 @@ test("exhausted cleanup alert retries persist backoff and reject stale attempts"
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
-    timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
   assert.equal(docs.get(path).alertAttempts, 0);
   await adapters.recordCleanupAlertFailure({
@@ -757,11 +729,7 @@ test("cleanup alert retry counter is not artificially capped at one thousand", a
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
-    timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
   docs.get(path).alertAttempts = 1000;
   await adapters.recordCleanupAlertFailure({
@@ -862,11 +830,7 @@ test("stale alert failure cannot revert a delivered exhaustion notification", as
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId,
-    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
-    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   await adapters.markCleanupAlertDelivered({
     accountId: input.accountId, connectionId: input.connectionId,
     timestamp: input.timestamp + 2
@@ -1029,11 +993,7 @@ test("resolved cleanup alert terminal metadata is validated on reads and repeat 
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId,
-    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
-    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
   await adapters.completeSecretCleanup({
     accountId: input.accountId, connectionId: input.connectionId,
@@ -1166,11 +1126,7 @@ test("exhausted cleanup terminal timestamps cannot postdate the ticket update cl
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId,
-    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
-    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
   const exhausted = docs.get(path);
   exhausted.alertStatus = "delivered";
@@ -1216,11 +1172,7 @@ test("repeat completion rejects corrupt resolved alert retry history", async () 
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId,
-    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
-    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   await adapters.completeSecretCleanup({
     accountId: input.accountId, connectionId: input.connectionId,
     timestamp: input.timestamp + 2
@@ -1275,11 +1227,7 @@ test("repeated alert delivery rejects contradictory resolved timestamp", async (
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId,
-    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
-    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   await adapters.markCleanupAlertDelivered({
     accountId: input.accountId, connectionId: input.connectionId,
     timestamp: input.timestamp + 2
