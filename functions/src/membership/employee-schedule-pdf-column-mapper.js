@@ -106,7 +106,8 @@ export function mapPdfScheduleTables({ documents }) {
         if (totalRows > MAX_ROWS) fail("PDF schedule contains too many rows.");
         for (const row of table.rows) {
           if (!Array.isArray(row) || row.length !== table.headers.length) fail("Malformed PDF schedule row.");
-          const date = (Object.hasOwn(columns, "date") ? dateValue(row[columns.date]) : null) ?? dateContext;
+          const rawDate = Object.hasOwn(columns, "date") ? cellText(row[columns.date], 20) : "";
+          const date = rawDate ? dateValue(rawDate) : dateContext;
           const post = cellText(row[columns.post], 80);
           const times = timeRange(row, columns);
           if (!date || !post || !times || times.start_time === times.end_time) {
