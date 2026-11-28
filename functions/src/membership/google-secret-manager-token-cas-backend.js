@@ -87,11 +87,13 @@ export function createGoogleSecretManagerTokenCasBackend({
           if(leaseRef) {
             const current=leaseSnapshot?.data?.()||{};
             const checkedAt=now();
-            if(!leaseSnapshot?.exists || current.revocationPending === true ||
+            if(!leaseSnapshot?.exists ||
+               (current.revocationPending !== undefined && typeof current.revocationPending !== "boolean") ||
+               current.revocationPending === true ||
                current.ownerId!==leaseProof.ownerId ||
                current.fencingToken!==leaseProof.fencingToken ||
-               !Number.isSafeInteger(current.expiresAt) ||
-               !Number.isSafeInteger(checkedAt) || current.expiresAt<=checkedAt) throw conflict();
+               !Number.isSafeInteger(current.expiresAt) || current.expiresAt < 0 ||
+               !Number.isSafeInteger(checkedAt) || checkedAt < 0 || current.expiresAt<=checkedAt) throw conflict();
           }
           transaction.update(pointerRef,{version:newVersion});
         });
