@@ -290,12 +290,10 @@ try {
     await window.LocalDocAI.learning.clear();
   });
 
-  await run("il parser turni applica alias appresi senza inventare date", async () => {
+  await run("gli alias appresi non trasformano note o causali in turni calendario", async () => {
     await window.LocalDocAI.learning.addAlias({ kind: "turns", field: "riposo_compensativo", alias: "riposo recupero" });
     const shifts = window.LocalDocAI.parseTurns("10/03/2026 riposo recupero");
-    assert.equal(shifts.length, 1);
-    assert.equal(shifts[0].type, "riposo_compensativo");
-    assert.equal(shifts[0].date, "2026-03-10");
+    assert.equal(shifts.length, 0);
     await window.LocalDocAI.learning.clear();
   });
 
