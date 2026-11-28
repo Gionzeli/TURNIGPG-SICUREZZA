@@ -118,3 +118,6 @@ The structured column mapper now validates the raw attachment before invoking an
 - passes only the validated bytes, filename and verified digest to the injected extractor.
 
 This is an integrity gate, not a PDF parser or OCR implementation. A separately selected extraction engine and its deployment/runtime wiring are still required. Synthetic tests cover signature and digest rejection; no real PDFs, external provider credentials or production services are used.
+
+
+The PDF extractor also snapshots the supplied attachment bytes before hashing and awaiting the injected parser. This prevents a caller from mutating a shared Buffer between digest verification and parser consumption (time-of-check/time-of-use mismatch). A synthetic regression test mutates the caller's original buffer while the parser is suspended and verifies that the parser's snapshot remains unchanged.
