@@ -68,7 +68,7 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
         departmentId: "synthetic-range-department", revision: 1, hours: 8,
         ownerUid: "must-not-leak", compensation: 9999, medicalReason: "synthetic-sensitive",
         absenceNotes: "must-not-leak", internalAudit: { actorUid: "must-not-leak" },
-        scheduleInfo: ["Portare il badge", "Ingresso lato nord", "Nota\\u0000non valida"]
+        scheduleInfo: ["Portare il badge", "Ingresso lato nord", "Nota\u0000non valida"]
       });
     }
     await batch.commit();
