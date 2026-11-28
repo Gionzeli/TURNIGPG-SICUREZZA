@@ -107,6 +107,10 @@ function validCompleteCleanupState(value) {
       ["delivered", "resolved"].includes(value.alertStatus);
   }
   if (value.alertStatus !== null && value.alertStatus !== undefined) return false;
+  // Ordinary completions must not retain partial exhaustion-alert metadata.
+  if (["alertAttempts", "alertNextAttemptAt", "alertLastErrorCode",
+    "alertDeliveredAt", "alertResolvedAt"].some(key =>
+      value[key] !== null && value[key] !== undefined)) return false;
   if (value.attempts === 1) {
     return value.lastErrorCode === null || value.lastErrorCode === undefined;
   }
