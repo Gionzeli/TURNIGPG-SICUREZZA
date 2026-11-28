@@ -59,6 +59,16 @@
           "order": "ASCENDING"
         }
       ]
+    },
+    {
+      "collectionGroup": "mailboxPolling",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "nextPollAt",
+          "order": "ASCENDING"
+        }
+      ]
     }
   ],
   "fieldOverrides": []
