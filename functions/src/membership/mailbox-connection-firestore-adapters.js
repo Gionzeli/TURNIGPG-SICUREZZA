@@ -97,12 +97,12 @@ function validCompleteCleanupState(value) {
       !Number.isSafeInteger(value.completedAt) || value.completedAt < value.createdAt ||
       !Number.isSafeInteger(value.updatedAt) || value.updatedAt < value.completedAt) return false;
   if (!Number.isSafeInteger(value.attempts) || value.attempts < 1 ||
-      value.nextAttemptAt !== null ||
-      (value.alertStatus !== null && value.alertStatus !== undefined)) return false;
+      value.nextAttemptAt !== null) return false;
   if (value.attempts >= 12) {
     return validExhaustedCleanupState({ ...value, status: "exhausted" }) &&
       ["delivered", "resolved"].includes(value.alertStatus);
   }
+  if (value.alertStatus !== null && value.alertStatus !== undefined) return false;
   if (value.attempts === 1) {
     return value.lastErrorCode === null || value.lastErrorCode === undefined;
   }
