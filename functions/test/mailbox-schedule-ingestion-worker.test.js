@@ -11,7 +11,7 @@ function harness(overrides = {}) {
   const worker = createMailboxScheduleIngestionWorker({
     listDueConnections: async () => [{ accountId, connectionId, cursor: "cursor-0" }],
     loadConnection: async () => connection,
-    acquireLease: async () => ({ acquired: true, ownerId: "synthetic-worker" }),
+    acquireLease: async () => ({ acquired: true, ownerId: "synthetic_worker_identifier", fencingToken: 1, expiresAt: 5000 }),
     releaseLease: async () => { calls.released++; },
     providerAdapters: { imap: { fetchMessages: async () => {
       calls.fetched++;
@@ -31,7 +31,7 @@ test("worker processes messages and advances cursor only after ingestion", async
   assert.deepEqual(result, [{ connectionId, status: "processed", messageCount: 1, attachmentCount: 1 }]);
   assert.equal(calls.ingested.length, 1);
   assert.deepEqual(calls.checkpoints[0], {
-    accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1", timestamp: 100
+    accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1", lease: { acquired: true, ownerId: "synthetic_worker_identifier", fencingToken: 1, expiresAt: 5000 }, timestamp: 100
   });
   assert.equal(calls.released, 1);
 });
