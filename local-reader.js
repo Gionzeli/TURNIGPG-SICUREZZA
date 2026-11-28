@@ -333,7 +333,7 @@ function parseTurns(text){
   const headers=[{key:"date",x:geoHeader.dateX},{key:"time",x:geoHeader.timeX},{key:"post",x:geoHeader.postX}].filter(h=>h.x!==null).sort((a,b)=>a.x-b.x);
   const cells={date:[],time:[],post:[]};
   for(const token of tokens){let best=headers[0],distance=Infinity;for(const header of headers){const d=Math.abs(token.x-header.x);if(d<distance){best=header;distance=d}}if(best)cells[best.key].push(token.text)}
-  const dateCell=cells.date.join(" "),timeCell=cells.time.join(" "),postCell=cells.post.join(" ").replace(/^(?:postazione|post|sede)\s*:?\s*/i,"").trim();
+  const dateCell=cells.date.join(" "),timeCell=cells.time.join(" "),postCell=cells.post.join(" ").trim();
   const date=fullDate(dateCell)||(!geoHeader.dateX?fullDate(line):"");
   const times=[...timeCell.matchAll(timeRe)];
   if(date&&times.length>=2&&postCell){
