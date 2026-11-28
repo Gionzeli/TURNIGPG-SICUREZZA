@@ -947,6 +947,56 @@ test("resolved cleanup alert terminal metadata is validated on reads and repeat 
 });
 
 
+test("exhausted cleanup terminal timestamps cannot postdate the ticket update clock", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  const exhausted = docs.get(path);
+  exhausted.alertStatus = "delivered";
+  exhausted.alertDeliveredAt = exhausted.updatedAt + 1;
+  assert.equal(await adapters.loadSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId
+  }), null);
+  await assert.rejects(adapters.markCleanupAlertDelivered({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  }), error => error.code === "failed-precondition");
+  await assert.rejects(adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  }), error => error.code === "failed-precondition");
+
+  exhausted.alertStatus = "pending";
+  exhausted.alertAttempts = 0;
+  exhausted.alertNextAttemptAt = null;
+  exhausted.alertLastErrorCode = null;
+  exhausted.alertDeliveredAt = null;
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 3
+  });
+  const completed = docs.get(path);
+  completed.alertResolvedAt = completed.updatedAt + 1;
+  assert.equal(await adapters.loadSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId
+  }), null);
+  await assert.rejects(adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 4
+  }), error => error.code === "failed-precondition");
+});
+
 test("repeat completion rejects corrupt resolved alert retry history", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
