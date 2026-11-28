@@ -892,3 +892,8 @@ Before alert delivery, the worker independently checks exhausted-ticket chronolo
 ### Alert outbox DTO and worker contract
 
 The Firestore alert-list adapter now includes only the cleanup ticket's validated creation/update timestamps and terminal cleanup retry deadline in addition to its existing minimal alert fields. These fields let the worker independently validate chronology and exhausted state without exposing the credential secret reference, reason, or provider metadata. The adapter regression asserts the added fields and continues to assert secret-reference omission.
+
+
+### Pending cleanup tickets reject alert-state contamination
+
+Pending cleanup tickets are now rejected by both the worker and Firestore adapter if any alert lifecycle field is populated. Alert metadata belongs only to exhausted cleanup tickets; allowing it on pending tickets could otherwise let secret deletion run before completion rejects the inconsistent record. Synthetic tests cover each alert field at both validation boundaries.
