@@ -132,3 +132,10 @@ A further fail-closed validation now rejects non-text postazione/time values bef
 ### PDF extractor and ingestion composition
 
 Added `createPdfBackedEmployeeScheduleEmailIngestion` as the explicit composition boundary between the injected PDF table engine and the existing email ingestion service. It always routes engine output through the strict column mapper and refuses an `extractSchedule` override, preventing callers from bypassing the date/postazione/time allowlist and separate informational notes. Synthetic tests exercise the composed path through proposal creation and verify that unrelated PDF columns (hours, duties) do not enter shift data while the information column remains separate. This is wiring only: a maintained PDF/OCR engine still must be selected and injected, and no provider, scheduler, callable, or production trigger is activated.
+
+
+### Correzioni progressive della lettura e scrittura
+
+Le correzioni confermate vengono trasformate in casi di regressione sintetici: il parser viene migliorato con regole esplicite e test ripetibili, non addestrato automaticamente sui PDF o sui dati personali dei dipendenti. Questa iterazione amplia la normalizzazione di intestazioni italiane (maiuscole, accenti e punteggiatura), alias frequenti di data/postazione/orario e orari con ora a una cifra o separatore punto (ad esempio `8.00 alle 14.00`). Le colonne estranee restano escluse.
+
+Sul lato scrittura, il risultato corretto continua a diventare una proposta verificabile: non viene applicato al calendario finché l'approvazione autorizzata non supera i controlli di identità, revisione e transazione. Una correzione umana non deve mai addestrare il sistema a modificare automaticamente turni futuri. Ogni nuovo errore riproducibile deve aggiungere un test sintetico prima di ampliare le regole del parser.
