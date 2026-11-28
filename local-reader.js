@@ -329,7 +329,7 @@ function parseTurns(text){
    const end=tokens.find(t=>/^(?:fine|alle)$/i.test(norm(t.text)));
    const time=tokens.find(t=>/^(?:orario|ora|fascia)$/i.test(norm(t.text)));
    const post=tokens.find(t=>/^(?:postazione|post|sede)$/i.test(norm(t.text)));
-   if((time||(start&&end))&&post&&(date||/\\bdata\\b|\\bgiorno\\b/.test(joined))){geoHeader={dateX:date?.x??null,timeX:time?.x??null,startX:start?.x??null,endX:end?.x??null,postX:post.x};geoTable=true}
+   if((time||(start&&end))&&post&&(date||/\bdata\b|\bgiorno\b/.test(joined))){geoHeader={dateX:date?.x??null,timeX:time?.x??null,startX:start?.x??null,endX:end?.x??null,postX:post.x};geoTable=true}
    continue;
   }
   const headers=[{key:"date",x:geoHeader.dateX},{key:"time",x:geoHeader.timeX},{key:"start",x:geoHeader.startX},{key:"end",x:geoHeader.endX},{key:"post",x:geoHeader.postX}].filter(h=>h.x!==null).sort((a,b)=>a.x-b.x);
@@ -342,8 +342,6 @@ function parseTurns(text){
   if(date&&pair.length===2&&postCell){
    const start=String(pair[0][1]).padStart(2,"0")+":"+pair[0][2],end=String(pair[1][1]).padStart(2,"0")+":"+pair[1][2];
    const item={date,type:"turno",post:postCell.slice(0,120),start_time:start,end_time:end,piantonamento:false,notturno:false,ore:0};
-   const key=[date,"turno",start,end,norm(postCell)].join("|");if(!seen.has(key)){seen.add(key);out.push(item)}
-  }
    const key=[date,"turno",start,end,norm(postCell)].join("|");if(!seen.has(key)){seen.add(key);out.push(item)}
   }
  }
