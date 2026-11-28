@@ -902,3 +902,14 @@ Pending cleanup tickets are now rejected by both the worker and Firestore adapte
 ### Retry-ceiling tickets cannot remain in the pending worker queue
 
 The worker now rejects a pending ticket already at the cleanup retry ceiling instead of silently counting it as exhausted while leaving it pending. The Firestore adapter's pending query excludes exhausted records; other adapters must preserve the same state transition contract. This prevents a permanently stranded ticket from being reported as exhausted without a durable exhausted-state transition or alert outbox entry.
+
+
+### Lease renewal and release reject malformed persisted ownership
+
+The Firestore lease service now validates the persisted owner identifier, fencing
+counter, expiry, and revocation marker before renewing or releasing a refresh
+lease. Invalid lease proofs are rejected before transaction work; malformed
+stored state cannot be rewritten by a release operation. Synthetic regressions
+cover invalid owners, negative/unsafe fencing counters, malformed expiry values,
+and malformed revocation markers. No live Firestore, provider, or production
+credential service was used.
