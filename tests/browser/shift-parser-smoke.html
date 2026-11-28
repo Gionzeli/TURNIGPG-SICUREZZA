@@ -43,8 +43,15 @@
         if(excluded.length!==1||excluded[0].date!=="2026-12-05"||excluded[0].start_time!=="06:00"||excluded[0].end_time!=="14:00"||excluded[0].post!=="Sede Delta"||excluded[0].piantonamento!==false||excluded[0].notturno!==false){
           throw new Error("Le colonne escluse sono confluite nei dati turno: "+JSON.stringify(excluded));
         }
-        status.textContent="PASS — coordinate OCR: solo data, orari e Postazione; Totale, Note e flag esclusi.";
-        result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0],geometryColumns:geometry[0],splitTimeColumns:split[0],excludedColumns:excluded[0]},null,2);
+        const multiword=parser([
+          "RIGA 1: @100:Data | @300:Fascia | @345:oraria | @650:Postazione | @820:Totale ore",
+          "RIGA 2: @100:06/12/2026 | @300:06:00 | @360:14:00 | @650:Sede Epsilon | @820:8,00"
+        ].join("\n"));
+        if(multiword.length!==1||multiword[0].date!=="2026-12-06"||multiword[0].start_time!=="06:00"||multiword[0].end_time!=="14:00"||multiword[0].post!=="Sede Epsilon"){
+          throw new Error("Intestazione OCR multi-parola non riconosciuta: "+JSON.stringify(multiword));
+        }
+        status.textContent="PASS — coordinate OCR: solo data, orari e Postazione; intestazioni multi-parola e colonne escluse verificate.";
+        result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0],geometryColumns:geometry[0],splitTimeColumns:split[0],excludedColumns:excluded[0],multiwordHeader:multiword[0]},null,2);
       }catch(error){
         status.textContent="FAIL — controllo parser non superato.";
         result.textContent=String(error?.stack||error?.message||error);
