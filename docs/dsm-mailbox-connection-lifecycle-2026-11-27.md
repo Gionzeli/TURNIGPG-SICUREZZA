@@ -792,3 +792,6 @@ Resolved exhaustion alerts now validate retry-history consistency and terminal t
 #### Repeat completion validates resolved-alert history
 
 Repeated cleanup completion acknowledgements now apply the same full exhausted-alert state validation to resolved and delivered alerts, including retry-history counters/error codes and contradictory terminal timestamps. Previously, a repeat acknowledgement only checked a subset of resolved metadata. A synthetic regression corrupts resolved retry history and confirms the acknowledgement is rejected without changing the completed record.
+
+
+Completed cleanup records with no alert status (ordinary cleanup success before the alert-exhaustion path) also require alert retry counters, error codes, scheduling timestamps, delivery timestamps, and resolution timestamps to be absent/null. Repeated completion rejects stray alert metadata rather than treating a partially populated alert record as an ordinary no-alert terminal state.`;
