@@ -71,6 +71,17 @@ function fakeFirestore() {
   return { db, docs };
 }
 
+async function exhaustCleanup(adapters, input) {
+  for (let attempts = 2; attempts <= 12; attempts++) {
+    await adapters.recordSecretCleanupFailure({
+      accountId: input.accountId, connectionId: input.connectionId,
+      secretRef: input.secretRef, attempts,
+      nextAttemptAt: attempts >= 12 ? null : input.timestamp + 60000,
+      lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+    });
+  }
+}
+
 const active = {
   accountId: "synthetic-account",
   connectionId: "synthetic-connection",
@@ -951,10 +962,7 @@ test("pending cleanup alert retries require a valid scheduled timestamp", async 
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
   for (const nextAttemptAt of [null, input.timestamp, input.timestamp - 1]) {
     await assert.rejects(adapters.recordCleanupAlertFailure({
@@ -976,10 +984,7 @@ test("cleanup alert transitions reject malformed persisted retry metadata", asyn
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
   const original = docs.get(path);
   for (const malformed of [
@@ -1332,10 +1337,7 @@ test("exhausted cleanup alert query and acknowledgement reject malformed ticket 
     timestamp: active.createdAt + 1
   };
   await adapters.recordSecretCleanup(input);
-  await adapters.recordSecretCleanupFailure({
-    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
-    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable", timestamp: input.timestamp + 1
-  });
+  await exhaustCleanup(adapters, input);
   const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
   docs.set(path, { ...docs.get(path), reason: "BAD REASON" });
   assert.deepEqual(await adapters.listPendingCleanupAlerts({ accountId: input.accountId }), []);
