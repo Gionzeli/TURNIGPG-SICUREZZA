@@ -882,3 +882,8 @@ The worker now independently validates the relationship between alert retry coun
 ### Cleanup worker validates persisted pending-ticket history
 
 The worker now independently validates the pending ticket's creation/update chronology, reason code, attempt count, and retry-history shape before checking the revocation gate or touching the credential vault. This is defense in depth for trusted adapter implementations other than the Firestore adapter. Synthetic regressions cover malformed timestamps, reason values, and inconsistent retry schedules; malformed tickets are deferred without gate or vault calls.
+
+
+### Cleanup worker validates exhausted alert tickets
+
+Before alert delivery, the worker independently checks exhausted-ticket chronology, terminal cleanup state, alert retry counters/schedule, and absence of delivered/resolved timestamps on pending alerts. Malformed alert records are skipped without delivery or acknowledgement. Synthetic regressions cover inconsistent timestamps, retry history, and terminal metadata.
