@@ -89,7 +89,7 @@ export function createMailboxScheduleIngestionWorker({
           }
           await saveCheckpoint({
             accountId, connectionId, expectedCursor: candidate.cursor ?? null,
-            nextCursor: batch.nextCursor, timestamp: now()
+            nextCursor: batch.nextCursor, lease, timestamp: now()
           });
           results.push({ connectionId, status: "processed", messageCount, attachmentCount });
         } catch {
