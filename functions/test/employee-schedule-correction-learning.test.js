@@ -10,7 +10,7 @@ function harness() {
       const duplicate = records.some(item =>
         item.accountId === record.accountId &&
         item.fingerprint === record.fingerprint &&
-        item.corrected === record.corrected
+        item.corrected === record.corrected && item.actorUid === record.actorUid
       );
       if (!duplicate) records.push(record);
       return { duplicate };
