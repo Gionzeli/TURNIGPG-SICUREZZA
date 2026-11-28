@@ -359,14 +359,14 @@ try {
     assert.equal(training.hours, 8);
   });
 
-  await run("parser turni non inventa un turno senza data e riconosce un notturno", async () => {
+  await run("parser turni non inventa un turno senza data e non deduce il flag notturno", async () => {
     assert.equal(window.LocalDocAI.parseTurns("22:00 06:00 servizio").length, 0);
     const shifts = window.LocalDocAI.parseTurns("14/05/2026 22:00 06:00 servizio notturno");
     assert.equal(shifts.length, 1);
     assert.equal(shifts[0].date, "2026-05-14");
     assert.equal(shifts[0].start_time, "22:00");
     assert.equal(shifts[0].end_time, "06:00");
-    assert.equal(shifts[0].notturno, true);
+    assert.equal(shifts[0].notturno, false);
   });
 
   summary.dataset.result = "pass";
