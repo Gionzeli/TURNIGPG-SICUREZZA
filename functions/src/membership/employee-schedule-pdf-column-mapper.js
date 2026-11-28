@@ -143,10 +143,12 @@ export function createPdfScheduleColumnExtractor({ extractPdfTables }) {
         typeof input.sha256 !== "string" || !/^[a-f0-9]{64}$/.test(input.sha256)) {
       fail("Invalid PDF extraction input.");
     }
-    const actualSha256 = createHash("sha256").update(input.bytes).digest("hex");
+    // Snapshot once so the digest and parser always operate on identical bytes.
+    const stableBytes = Buffer.from(input.bytes);
+    const actualSha256 = createHash("sha256").update(stableBytes).digest("hex");
     if (actualSha256 !== input.sha256) fail("PDF attachment digest mismatch.");
     const extracted = await extractPdfTables({
-      bytes: input.bytes,
+      bytes: stableBytes,
       filename: input.filename,
       sha256: actualSha256
     });
