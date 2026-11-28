@@ -32,6 +32,7 @@ Scatti anzianità</pre>
   </main>
   <script type="module">
     import { createLocalQwen, sanitizeLabelContext } from "../../local-qwen.js";
+    import { isSafeLearningAlias } from "../../local-learning.js";
     const button = document.querySelector("#run");
     const status = document.querySelector("#status");
     const result = document.querySelector("#result");
@@ -41,7 +42,7 @@ Scatti anzianità</pre>
         const source = document.querySelector("#fixture").textContent;
         const safe = sanitizeLabelContext(source, "payroll");
         if (!safe.toLocaleLowerCase("it-IT").includes("paga base") || !safe.toLocaleLowerCase("it-IT").includes("scatti")) {
-          throw new Error("Etichette generiche attese non conservate. Contesto ridotto: " + JSON.stringify(safe));
+          throw new Error("Etichette generiche attese non conservate. Contesto ridotto: " + JSON.stringify(safe) + "; alias scatti=" + isSafeLearningAlias("payroll", "scatti", "Scatti anzianità") + "; alias semplice=" + isSafeLearningAlias("payroll", "scatti", "Scatti"));
         }
         if (/1[.,]468|RSSMRA|mario@example|H501U|80A01/i.test(safe)) {
           throw new Error("Il contesto ridotto contiene ancora dati numerici o identificativi.");
