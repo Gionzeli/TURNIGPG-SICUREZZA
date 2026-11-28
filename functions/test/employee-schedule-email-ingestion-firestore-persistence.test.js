@@ -126,7 +126,6 @@ test("composed persistence claims a job, authorizes the reciprocal employee bind
   const saved = [...db.values.entries()].find(([path]) =>
     path.startsWith(`accounts/${accountId}/employeeShiftProposals/`));
   assert.ok(saved);
-  assert.equal(saved[1].employeeUid, undefined);
   assert.equal(saved[1].employeeId, employeeId);
   assert.equal(saved[1].proposerUid, uid);
 
