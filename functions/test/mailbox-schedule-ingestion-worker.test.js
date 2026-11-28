@@ -112,3 +112,18 @@ test("expired renewal proof blocks provider fetch", async () => {
   assert.equal(calls.checkpoints.length, 0);
   assert.equal(calls.released, 1);
 });
+
+test("lease is renewed before fetch, before ingestion, and after ingestion", async () => {
+  const renewalTimes = [];
+  const { worker, calls } = harness({
+    renewLease: async ({ lease, timestamp }) => {
+      renewalTimes.push(timestamp);
+      return { ...lease, expiresAt: timestamp + 120000 };
+    }
+    , now: (() => { let n = 100; return () => n++; })()
+  });
+  const result = await worker.run({ accountId });
+  assert.equal(result[0].status, "processed");
+  assert.equal(renewalTimes.length, 4);
+  assert.equal(calls.checkpoints.length, 1);
+});
