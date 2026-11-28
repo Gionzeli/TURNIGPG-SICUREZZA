@@ -86,6 +86,15 @@
           changedGeometry[1].end_time!=="22:00"||changedGeometry[1].post!=="Sede Mu"){
           throw new Error("La nuova tabella non ha aggiornato la geometria delle colonne: "+JSON.stringify(changedGeometry));
         }
+        const ambiguousHeader=parser([
+          "RIGA 1: @100:Data | @300:Orario | @600:Postazione",
+          "RIGA 2: @100:12/12/2026 | @300:06:00 | @360:14:00 | @600:Sede Nu",
+          "RIGA 3: @100:Data | @300:Orario | @450:Orario | @600:Postazione",
+          "RIGA 4: @100: | @300:14:00 | @450:22:00 | @600:Sede Xi"
+        ].join("\\n"));
+        if(ambiguousHeader.length!==1||ambiguousHeader[0].date!=="2026-12-12"||ambiguousHeader[0].post!=="Sede Nu"){
+          throw new Error("Un'intestazione ambigua ha riutilizzato la data o la geometria precedente: "+JSON.stringify(ambiguousHeader));
+        }
         status.textContent="PASS — coordinate OCR: solo data, orari e Postazione; date unite, intestazioni ripetute e colonne escluse verificate.";
         result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0],geometryColumns:geometry[0],splitTimeColumns:split[0],excludedColumns:excluded[0],multiwordHeader:multiword[0],splitStartEndLabels:splitLabels[0],mergedDateRows:mergedDate,repeatedHeader,changedGeometry},null,2);
       }catch(error){
