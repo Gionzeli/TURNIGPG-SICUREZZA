@@ -53,7 +53,7 @@ for (const item of manifest.assets) {
     fail("voce asset incompleta");
     continue;
   }
-  if (!/^(vendor|models)\/[a-zA-Z0-9._/-]+$/.test(item.path) ||
+  if (!/^(vendor|models)\/[a-zA-Z0-9._\/-]+$/.test(item.path) ||
       item.path.split("/").some(segment => !segment || segment === "." || segment === "..")) {
     fail("percorso non consentito: " + item.path);
     continue;
