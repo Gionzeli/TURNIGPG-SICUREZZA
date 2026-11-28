@@ -21,7 +21,7 @@ let runtimeModule = null;
 function localPath(item) {
   if (!item || typeof item.path !== "string" ||
       !/^(vendor|models)\/[a-zA-Z0-9._/-]+$/.test(item.path) ||
-      item.path.split("/").includes("..")) {
+      item.path.split("/").some(segment => !segment || segment === "." || segment === "..")) {
     throw new Error("Percorso asset AI non valido.");
   }
   return "./" + item.path;
