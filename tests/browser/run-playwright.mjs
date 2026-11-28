@@ -683,6 +683,21 @@ try {
   console.log("PASS — offline AI boundary: missing local engines fail closed without external requests");
   await offlineAIPage.close();
 
+  const qwenPage = await browser.newPage();
+  const qwenErrors = [];
+  const qwenRequests = [];
+  qwenPage.on("pageerror", error => qwenErrors.push(error.message));
+  qwenPage.on("request", request => qwenRequests.push(request.url()));
+  await qwenPage.goto("http://127.0.0.1:8000/tests/browser/qwen-smoke.html", { waitUntil: "load" });
+  await qwenPage.locator("#run").click();
+  await qwenPage.waitForFunction(() => /^(PASS|FAIL)/.test(document.querySelector("#status")?.textContent || ""), null, { timeout: 15000 });
+  assert.match(await qwenPage.locator("#status").textContent(), /^PASS/);
+  assert.equal(qwenErrors.length, 0, qwenErrors.join("; "));
+  assert.ok(qwenRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "Il test Qwen locale ha richiesto risorse esterne.");
+  console.log("PASS — Qwen local runtime contract, remote models disabled, sanitized suggestion allowlist, no external requests");
+  await qwenPage.close();
+
   console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
   await reportPage.close();
 } finally {
