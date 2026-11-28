@@ -89,3 +89,6 @@ The ingestion contract now keeps calendar changes separate from optional documen
 
 
 The ingestion normalizer now accepts date context, postazione and start/end time from each parsed shift row. The shift type is assigned the standard `turno` value rather than extracted from another PDF column. Duration is calculated from the time interval (including overnight shifts), never trusted from a PDF-supplied hours field. Parsed flags and unrelated columns are rejected. This keeps calendar proposals limited to the time/postazione columns while preserving separate document notes for the ℹ️ view.
+
+
+The employee calendar table has also been simplified to show only date, postazione, start time and end time, plus the optional ℹ️ control. Type and total-hours columns are no longer displayed in the employee-facing calendar. A Firestore Emulator integration assertion now checks that bounded additional notes survive employee approval, are stored separately as `scheduleInfo`, and are returned by the employee's own calendar query; malformed note text is filtered from the DTO. The test is emulator-gated and has not been run in this work session.
