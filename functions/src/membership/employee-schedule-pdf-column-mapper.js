@@ -6,11 +6,11 @@ const IT_DATE = /^(\d{1,2})[/.](\d{1,2})[/.](\d{4})$/;
 const TIME = /^(?:[01]\d|2[0-3]):[0-5]\d$/;
 const RANGE = /^\s*((?:[01]\d|2[0-3]):[0-5]\d)\s*(?:-|–|—|alle|a)\s*((?:[01]\d|2[0-3]):[0-5]\d)\s*$/i;
 const ALIASES = Object.freeze({
-  date: new Set(["data", "giorno", "date"]),
-  post: new Set(["postazione", "post", "sede operativa"]),
-  range: new Set(["orario", "ora", "orario turno", "fascia oraria"]),
-  start: new Set(["inizio", "ora inizio", "dalle"]),
-  end: new Set(["fine", "ora fine", "alle"]),
+  date: new Set(["data", "giorno", "date", "data turno"]),
+  post: new Set(["postazione", "post", "sede operativa", "postazione di servizio", "luogo servizio"]),
+  range: new Set(["orario", "ora", "orario turno", "fascia oraria", "orario di lavoro"]),
+  start: new Set(["inizio", "ora inizio", "inizio turno", "dalle"]),
+  end: new Set(["fine", "ora fine", "fine turno", "alle"]),
   info: new Set(["info", "informazioni", "note", "comunicazioni"])
 });
 const MAX_DOCUMENTS = 100;
@@ -37,6 +37,12 @@ function dateValue(value) {
   if (!ISO_DATE.test(normalized)) return null;
   const parsed = new Date(normalized + "T00:00:00Z");
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === normalized ? normalized : null;
+}
+function normalizeTime(value) {
+  const raw = cellText(value, 10).replace(".", ":");
+  if (!TIME.test(raw)) return null;
+  const [hour, minute] = raw.split(":");
+  return hour.padStart(2, "0") + ":" + minute;
 }
 function cellText(value, max = 300) {
   if (typeof value !== "string" && typeof value !== "number") return "";
@@ -66,11 +72,14 @@ function mappedColumns(headers) {
 function timeRange(row, columns) {
   if (Object.hasOwn(columns, "range")) {
     const match = RANGE.exec(cellText(row[columns.range], 40));
-    return match ? { start_time: match[1], end_time: match[2] } : null;
+    if (!match) return null;
+    const start_time = normalizeTime(match[1]);
+    const end_time = normalizeTime(match[2]);
+    return start_time && end_time ? { start_time, end_time } : null;
   }
-  const start_time = cellText(row[columns.start], 10);
-  const end_time = cellText(row[columns.end], 10);
-  return TIME.test(start_time) && TIME.test(end_time) ? { start_time, end_time } : null;
+  const start_time = normalizeTime(row[columns.start]);
+  const end_time = normalizeTime(row[columns.end]);
+  return start_time && end_time ? { start_time, end_time } : null;
 }
 function safeInfo(value) {
   const text = cellText(value, 300);
