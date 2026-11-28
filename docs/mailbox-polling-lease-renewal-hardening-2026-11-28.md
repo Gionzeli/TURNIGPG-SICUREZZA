@@ -81,3 +81,8 @@ The ingestion result now preserves the persisted proposal status (`pending`, `ap
 ### Multi-employee partial recognition and match-key validation
 
 Added synthetic coverage for a shared-mailbox PDF containing one resolvable employee document and one unknown employee document. Only the verified employee receives a proposal; the job is marked `partially_processed` and the unknown document is reported as blocked. Employee match keys supplied by extraction are now rejected when blank or containing control characters, rather than silently treated as absent; this prevents malformed identifiers from reaching the employee resolver. No PDF omission is interpreted as a deletion. These checks do not replace a real parser's accuracy assessment or production provider integration.
+
+
+### PDF shift columns versus optional information (2026-11-28)
+
+The ingestion contract now keeps calendar changes separate from optional document notes. The parser may return a document-level `additionalInfo` array for the employee's information view (ℹ️); it is normalized to at most 8 plain-text entries, 300 characters each and 1,500 characters total, with control characters removed/rejected. This field is persisted on the employee proposal and participates in idempotency, but is never copied into shift create/update fields. Calendar diffs continue to contain only structured shift data; optional notes do not change a shift. Synthetic tests cover separation, limits and idempotency. The UI's ℹ️ rendering and real PDF parser mapping still need integration; no claim is made that the live screen already displays these notes.
