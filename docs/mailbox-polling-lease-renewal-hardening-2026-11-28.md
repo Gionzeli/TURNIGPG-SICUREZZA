@@ -124,3 +124,6 @@ The PDF extractor also snapshots the supplied attachment bytes before hashing an
 
 
 The Italian time-range parser now checks the full separator token `alle` before the shorter `a`, so a value such as `08:00 alle 14:00` is parsed without being rejected by a partial-token match. A synthetic regression test covers this format.
+
+
+A further fail-closed validation now rejects non-text postazione/time values before duration calculation. This avoids an untrusted parser value causing a runtime `split` exception and ensures the document is reported for review without creating a proposal. A synthetic ingestion regression test covers numeric time input.
