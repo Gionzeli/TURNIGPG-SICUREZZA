@@ -41,7 +41,7 @@ function harness(overrides = {}) {
     }],
     claimIngestionJob: async input => {
       calls.claims.push(input);
-      return { jobId: "synthetic-job-01", duplicate: false };
+      return { jobId: "synthetic-job-01", duplicate: false, leaseToken: "a".repeat(64), fencingToken: 1 };
     },
     createEmployeeProposal: async input => {
       calls.proposals.push(input);
@@ -128,6 +128,8 @@ test("trusted email ingestion creates per-employee proposals but never mutates t
   assert.equal(proposal.proposerUid, "synthetic-employee-uid");
   assert.equal(proposal.employeeId, "synthetic-employee");
   assert.match(proposal.idempotencyKey, /^synthetic-job-01_synthetic-employee$/);
+  assert.equal(proposal.ingestionLeaseToken, "a".repeat(64));
+  assert.equal(proposal.ingestionFencingToken, 1);
   assert.match(proposal.attachmentSha256, /^[a-f0-9]{64}$/);
   assert.equal(Object.hasOwn(proposal, "bytes"), false, "raw PDF bytes must not enter the proposal record");
   assert.equal(proposal.changes.length, 2);
@@ -280,7 +282,7 @@ test("replayed ingestion presents the same stable employee proposal idempotency 
   const { service, calls } = harness({
     claimIngestionJob: async input => {
       calls.claims.push(input);
-      return { jobId: "stable-replay-job", duplicate: false };
+      return { jobId: "stable-replay-job", duplicate: false, leaseToken: "b".repeat(64), fencingToken: 1 };
     },
     createEmployeeProposal: async input => {
       calls.proposals.push(input);
