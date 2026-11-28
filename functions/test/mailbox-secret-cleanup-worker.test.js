@@ -36,8 +36,8 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
   const retries = [], alerts = [];
   let records = [
     { ...ticket, attempts: 1 },
-    { ...ticket, connectionId: "synthetic-exhausted", attempts: 11, nextAttemptAt: 1000, lastErrorCode: "unavailable" },
-    { ...ticket, connectionId: "future", attempts: 2, nextAttemptAt: 9000, lastErrorCode: "unavailable" }
+    { ...ticket, connectionId: "synthetic-exhausted", secretRef: scopedSecretRef("synthetic-account", "synthetic-exhausted"), attempts: 11, nextAttemptAt: 1000, lastErrorCode: "unavailable" },
+    { ...ticket, connectionId: "future", secretRef: scopedSecretRef("synthetic-account", "future"), attempts: 2, nextAttemptAt: 9000, lastErrorCode: "unavailable" }
   ];
   const worker = createMailboxSecretCleanupWorker({
     assertRevocationPending: async () => ({ status: "revocation_pending" }),
@@ -251,7 +251,7 @@ test("worker passes only the alert allowlist even when an adapter returns extra 
       recordSecretCleanupFailure: async () => {},
       listPendingCleanupAlerts: async ({ accountId }) => [{
         accountId, connectionId: "safe-connection", status: "exhausted",
-        alertStatus: "pending", attempts: 12, lastErrorCode: "unavailable",
+        alertStatus: "pending", attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
         alertAttempts: 0, alertNextAttemptAt: null, alertLastErrorCode: null,
         secretRef: "vault://must-not-leak", reason: "internal_reason",
         mailboxAddress: "private@example.invalid", provider: "imap",
@@ -293,7 +293,7 @@ test("worker rejects inconsistent alert retry history before notification", asyn
         recordSecretCleanupFailure: async () => {},
         listPendingCleanupAlerts: async ({ accountId }) => [{
           accountId, connectionId: "safe-alert", status: "exhausted",
-          alertStatus: "pending", attempts: 12, lastErrorCode: "unavailable",
+          alertStatus: "pending", attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
           ...metadata
         }],
         recordCleanupAlertFailure: async () => {},
@@ -320,7 +320,7 @@ test("worker rejects malformed connection ids before vault or alert side effects
       recordSecretCleanupFailure: async () => {},
       listPendingCleanupAlerts: async ({ accountId }) => [{
         accountId, connectionId: "bad\nalert", status: "exhausted",
-        alertStatus: "pending", attempts: 12, lastErrorCode: "unavailable",
+        alertStatus: "pending", attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable",
         alertAttempts: 0, alertNextAttemptAt: null
       }],
       recordCleanupAlertFailure: async () => {},
@@ -365,7 +365,7 @@ test("worker skips an oversized alert batch without sending notifications", asyn
   let alertCalls = 0;
   const alertTicket = {
     accountId: "synthetic-account", connectionId: "safe-connection",
-    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12,
+    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12, nextAttemptAt: null,
     nextAttemptAt: null, lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
@@ -417,7 +417,7 @@ test("worker does not send duplicate alert tickets from a malformed adapter batc
   let alertCalls = 0;
   const alertTicket = {
     accountId: "synthetic-account", connectionId: "same-connection",
-    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12,
+    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12, nextAttemptAt: null,
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
@@ -543,7 +543,7 @@ test("worker timestamps alert acknowledgement after notification completes", asy
   let deliveredAt = null;
   const alertTicket = {
     accountId: "synthetic-account", connectionId: "safe-connection",
-    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12,
+    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12, nextAttemptAt: null,
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
@@ -572,7 +572,7 @@ test("worker leaves a sent alert pending if acknowledgement clock validation fai
   let failureWrites = 0;
   const alertTicket = {
     accountId: "synthetic-account", connectionId: "safe-connection",
-    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12,
+    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12, nextAttemptAt: null,
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
@@ -603,7 +603,7 @@ test("worker schedules alert retry from the time a failed send completes", async
   let recorded = null;
   const alertTicket = {
     accountId: "synthetic-account", connectionId: "safe-connection",
-    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12,
+    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12, nextAttemptAt: null,
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
@@ -693,7 +693,7 @@ test("worker rejects malformed exhausted alert ticket chronology and retry metad
     { updatedAt: 499 },
     { attempts: 11 },
     { nextAttemptAt: 1000 },
-    { alertAttempts: 1, alertNextAttemptAt: 900, alertLastErrorCode: "unavailable" },
+    { alertAttempts: 1, alertNextAttemptAt: 499, alertLastErrorCode: "unavailable" },
     { alertAttempts: 1, alertNextAttemptAt: null, alertLastErrorCode: "unavailable" },
     { alertAttempts: 0, alertNextAttemptAt: 1000 },
     { alertDeliveredAt: 1000 },
@@ -757,7 +757,7 @@ test("worker fails closed when the clock becomes invalid before alert delivery",
   let alertCalls = 0;
   const alertTicket = {
     accountId: "synthetic-account", connectionId: "clock-alert",
-    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12,
+    status: "exhausted", alertStatus: "pending", createdAt: 500, updatedAt: 500, attempts: 12, nextAttemptAt: null,
     lastErrorCode: "unavailable", alertAttempts: 0, alertNextAttemptAt: null
   };
   const worker = createMailboxSecretCleanupWorker({
