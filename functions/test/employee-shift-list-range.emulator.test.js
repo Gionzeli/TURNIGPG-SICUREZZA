@@ -67,7 +67,7 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
         placementId: "range-placement", siteId: "synthetic-range-site",
         departmentId: "synthetic-range-department", revision: 1, hours: 8,
         ownerUid: "must-not-leak", compensation: 9999, medicalReason: "synthetic-sensitive",
-        absenceNotes: "must-not-leak", internalAudit: { actorUid: "must-not-leak" }
+        absenceNotes: "must-not-leak", internalAudit: { actorUid: "must-not-leak" },\n        scheduleInfo: ["Portare il badge", "Ingresso lato nord"]
       });
     }
     await batch.commit();
@@ -79,7 +79,7 @@ test("Firestore Emulator: listOwn applies the requested date range before the 20
     assert.deepEqual(result.map(item => item.date), ["2026-06-04", "2026-06-18"]);
     assert.equal(result.length, 2);
     const allowedDtoKeys = [
-      "shiftId", "date", "type", "post", "start_time", "end_time", "hours",
+      "shiftId", "date", "type", "post", "start_time", "end_time", "hours", "scheduleInfo",
       "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed",
       "has_meal_voucher", "revision"
     ];
