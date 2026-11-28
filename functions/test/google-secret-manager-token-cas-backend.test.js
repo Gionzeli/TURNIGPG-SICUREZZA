@@ -148,3 +148,39 @@ test('requires a lease proof by default',async()=>{
   secretRef:ref,payload:{},expectedVersion:'1'
  }),{code:'failed-precondition'});
 });
+
+
+test('CAS rejects malformed revocation marker and negative or unsafe lease expiry', async () => {
+ for (const patch of [
+  {revocationPending:'false'},
+  {expiresAt:-1},
+  {expiresAt:Number.MAX_SAFE_INTEGER+1}
+ ]) {
+  let activeVersion='1';
+  let lease={ownerId:'owner_identifier_123',fencingToken:7,expiresAt:50000};
+  const pointerRef={get:async()=>({exists:true,data:()=>({version:activeVersion})})};
+  const leaseRef={get:async()=>({exists:true,data:()=>lease})};
+  const firestore={runTransaction:async callback=>{
+   const writes=[];
+   const tx={get:async ref=>ref.get(),update:(ref,value)=>writes.push([ref,value])};
+   await callback(tx);
+   for(const [ref,value] of writes) if(ref===pointerRef) activeVersion=value.version;
+  }};
+  let next=2;
+  const secretManager={
+   addSecretVersion:async({parent})=>[{name:parent+'/versions/'+(next++)}],
+   accessSecretVersion:async()=>[]
+  };
+  const backend=createGoogleSecretManagerTokenCasBackend({
+   secretManager,firestore,now:()=>10000,
+   secretNameForRef:()=> 'projects/test-project/secrets/mailbox-test',
+   pointerRefForRef:()=>pointerRef,leaseRefForConnection:()=>leaseRef
+  });
+  lease={...lease,...patch};
+  await assert.rejects(()=>backend.replaceSecret({
+   secretRef:ref,payload:{accessToken:'synthetic-access-token-0002'},expectedVersion:'1',
+   leaseProof:{ownerId:'owner_identifier_123',fencingToken:7}
+  }),{code:'conflict'});
+  assert.equal(activeVersion,'1');
+ }
+});
