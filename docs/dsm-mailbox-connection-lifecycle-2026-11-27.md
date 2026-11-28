@@ -801,3 +801,6 @@ Repeated acknowledgement of a delivered cleanup alert now reuses the full exhaus
 
 
 Pending exhausted-cleanup alert validation now also rejects stale terminal timestamps (`alertDeliveredAt` and `alertResolvedAt`). This applies to both retry-failure recording and delivery acknowledgement, preventing a pending record with contradictory terminal metadata from advancing to another state. Synthetic regression cases cover both timestamps.
+
+
+Pending exhausted-alert retry metadata now validates its persisted clock relationship as well: `updatedAt` must be a positive safe integer, and a scheduled `alertNextAttemptAt` cannot precede it. This prevents malformed persisted records from being retried or acknowledged based on a backoff timestamp that is already stale relative to the last state transition. Synthetic cases cover invalid/missing clock ordering.
