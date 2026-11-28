@@ -324,17 +324,40 @@ function parseTurns(text){
   if(!tokens.length)continue;
   const joined=norm(tokens.map(t=>t.text).join(" "));
   if(!geoHeader){
-   const date=tokens.find(t=>/^(?:data|giorno|date)$/i.test(norm(t.text)));
-   const start=tokens.find(t=>/^(?:inizio|dalle)$/i.test(norm(t.text)));
-   const end=tokens.find(t=>/^(?:fine|alle)$/i.test(norm(t.text)));
-   const time=tokens.find(t=>/^(?:orario|ora|fascia)$/i.test(norm(t.text)));
-   const post=tokens.find(t=>/^(?:postazione|post|sede)$/i.test(norm(t.text)));
-   if((time||(start&&end))&&post&&(date||/\bdata\b|\bgiorno\b/.test(joined))){geoHeader={dateX:date?.x??null,timeX:time?.x??null,startX:start?.x??null,endX:end?.x??null,postX:post.x};geoTable=true}
+   const classifyHeader=label=>{
+    const value=norm(label);
+    if(/^(?:data|giorno|date)$/.test(value))return "date";
+    if(/^(?:inizio|dalle)$/.test(value))return "start";
+    if(/^(?:fine|alle)$/.test(value))return "end";
+    if(/^(?:orario|ora|fascia|orario turno|fascia oraria)$/.test(value))return "time";
+    if(/^(?:postazione|post|sede)$/.test(value))return "post";
+    return null; // le intestazioni non ammesse restano colonne esplicitamente ignorate
+   };
+   const columns=tokens.map(t=>({x:t.x,key:classifyHeader(t.text)})).sort((a,b)=>a.x-b.x);
+   const known=columns.filter(c=>c.key);
+   const counts=known.reduce((acc,c)=>(acc[c.key]=(acc[c.key]||0)+1,acc),{});
+   const date=known.find(c=>c.key==="date"),start=known.find(c=>c.key==="start"),end=known.find(c=>c.key==="end"),time=known.find(c=>c.key==="time"),post=known.find(c=>c.key==="post");
+   const duplicate=Object.values(counts).some(count=>count>1);
+   if(!duplicate&&(time||(start&&end))&&post&&(date||/\bdata\b|\bgiorno\b/.test(joined))){
+    geoHeader={columns,dateX:date?.x??null,timeX:time?.x??null,startX:start?.x??null,endX:end?.x??null,postX:post.x};
+    geoTable=true;
+   }
    continue;
   }
-  const headers=[{key:"date",x:geoHeader.dateX},{key:"time",x:geoHeader.timeX},{key:"start",x:geoHeader.startX},{key:"end",x:geoHeader.endX},{key:"post",x:geoHeader.postX}].filter(h=>h.x!==null).sort((a,b)=>a.x-b.x);
+  // Associa ogni parola alla colonna fisica più vicina, incluse le colonne
+  // non consentite. Le colonne sconosciute vengono scartate, mai riversate
+  // nella colonna consentita più vicina (es. Note/Totale -> Postazione).
+  const headers=geoHeader.columns;
   const cells={date:[],time:[],start:[],end:[],post:[]};
-  for(const token of tokens){let best=headers[0],distance=Infinity;for(const header of headers){const d=Math.abs(token.x-header.x);if(d<distance){best=header;distance=d}}if(best)cells[best.key].push(token.text)}
+  for(const token of tokens){
+   let best=null,distance=Infinity,ambiguous=false;
+   for(const header of headers){
+    const d=Math.abs(token.x-header.x);
+    if(d<distance){best=header;distance=d;ambiguous=false}
+    else if(d===distance&&best&&header.key!==best.key){ambiguous=true}
+   }
+   if(best&&!ambiguous&&best.key&&Object.prototype.hasOwnProperty.call(cells,best.key))cells[best.key].push(token.text);
+  }
   const dateCell=cells.date.join(" "),timeCell=cells.time.join(" "),startCell=cells.start.join(" "),endCell=cells.end.join(" "),postCell=cells.post.join(" ").trim();
   const date=fullDate(dateCell)||(!geoHeader.dateX?fullDate(line):"");
   const times=[...timeCell.matchAll(timeRe)],starts=[...startCell.matchAll(timeRe)],ends=[...endCell.matchAll(timeRe)];
