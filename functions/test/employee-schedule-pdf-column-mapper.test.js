@@ -28,6 +28,27 @@ test("PDF table mapper extracts only date, postazione, time and optional info", 
   assert.equal(Object.hasOwn(result.documents[0].shifts[0], "is_night"), false);
 });
 
+test("PDF table mapper carries merged date cells only within the current table", () => {
+  const result = mapPdfScheduleTables({ documents: [{
+    confidence: 0.99,
+    dateContext: "2026-06-01",
+    tables: [
+      { headers: ["Data", "Postazione", "Orario"], rows: [
+        ["07/06/2026", "Reception", "08:00-14:00"],
+        ["", "Ingresso nord", "14:00-20:00"]
+      ] },
+      { headers: ["Postazione", "Orario"], rows: [
+        ["Magazzino", "22:00-06:00"]
+      ] }
+    ]
+  }] });
+  assert.deepEqual(result.documents[0].shifts.map(({date,post}) => ({date,post})), [
+    {date:"2026-06-07",post:"Reception"},
+    {date:"2026-06-07",post:"Ingresso nord"},
+    {date:"2026-06-01",post:"Magazzino"}
+  ]);
+});
+
 test("PDF table mapper supports separate start and end columns and date context", () => {
   const result = mapPdfScheduleTables({ documents: [{
     confidence: 0.99, dateContext: "2026-06-03",
