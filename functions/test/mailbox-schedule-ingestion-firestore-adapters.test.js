@@ -89,7 +89,7 @@ test("lease contention and revocation fail closed as a skipped mailbox", async (
 
 test("checkpoint advances cursor transactionally only with current cursor and live lease", async () => {
   const { adapters, db } = harness();
-  await adapters.saveCheckpoint({ accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1", timestamp: 1000 });
+  await adapters.saveCheckpoint({ accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1", lease: { ownerId: "synthetic_owner_identifier", fencingToken: 1 }, timestamp: 1000 });
   assert.equal(db.values.get(pollingPath).cursor, "cursor-1");
   assert.equal(db.values.get(pollingPath).nextPollAt, 301000);
 });
@@ -97,16 +97,26 @@ test("checkpoint advances cursor transactionally only with current cursor and li
 test("stale cursor, expired lease and revocation marker block checkpoint", async () => {
   const stale = harness();
   await assert.rejects(stale.adapters.saveCheckpoint({
-    accountId, connectionId, expectedCursor: "old-cursor", nextCursor: "cursor-1", timestamp: 1000
+    accountId, connectionId, expectedCursor: "old-cursor", nextCursor: "cursor-1", lease: { ownerId: "synthetic_owner_identifier", fencingToken: 1 }, timestamp: 1000
   }), { code: "conflict" });
   const expired = harness();
   expired.db.values.set(leasePath, { ownerId: "synthetic_owner_identifier", fencingToken: 1, expiresAt: 999 });
   await assert.rejects(expired.adapters.saveCheckpoint({
-    accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1", timestamp: 1000
+    accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1", lease: { ownerId: "synthetic_owner_identifier", fencingToken: 1 }, timestamp: 1000
   }), { code: "failed-precondition" });
   const revoked = harness();
   revoked.db.values.set(leasePath, { ownerId: "synthetic_owner_identifier", fencingToken: 1, expiresAt: 5000, revocationPending: true });
   await assert.rejects(revoked.adapters.saveCheckpoint({
-    accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1", timestamp: 1000
+    accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1", lease: { ownerId: "synthetic_owner_identifier", fencingToken: 1 }, timestamp: 1000
   }), { code: "failed-precondition" });
+});
+
+test("checkpoint rejects a lease proof superseded by a newer fencing token", async () => {
+  const { adapters, db } = harness();
+  db.values.set(leasePath, { ownerId: "successor_owner_identifier", fencingToken: 2, expiresAt: 5000 });
+  await assert.rejects(adapters.saveCheckpoint({
+    accountId, connectionId, expectedCursor: "cursor-0", nextCursor: "cursor-1",
+    lease: { ownerId: "synthetic_owner_identifier", fencingToken: 1 }, timestamp: 1000
+  }), { code: "failed-precondition" });
+  assert.equal(db.values.get(pollingPath).cursor, "cursor-0");
 });
