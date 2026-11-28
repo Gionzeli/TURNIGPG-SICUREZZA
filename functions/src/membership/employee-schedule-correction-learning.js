@@ -88,7 +88,9 @@ export function createScheduleCorrectionLearning({
             item.stage !== stage || item.issueCode !== issueCode || item.field !== field ||
             item.observed !== normalizedObserved || typeof item.corrected !== "string" ||
             item.status !== "captured") continue;
-        const actors = outcomes.get(item.corrected) ?? new Set();\n        actors.add(item.actorUid);\n        outcomes.set(item.corrected, actors);
+        const actors = outcomes.get(item.corrected) ?? new Set();
+        actors.add(item.actorUid);
+        outcomes.set(item.corrected, actors);
       }
       const ranked = [...outcomes.entries()].map(([value, actors]) => [value, actors.size]).sort((a, b) => b[1] - a[1]);
       if (!ranked.length || ranked[0][1] < minimumExamples ||
