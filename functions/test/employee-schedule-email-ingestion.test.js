@@ -462,3 +462,24 @@ test("PDF rows need only date context, postazione and start/end time", async () 
     start_time: "08:00", end_time: "14:00", hours: 6
   });
 });
+
+test("non-text PDF time cells are blocked without throwing or creating a proposal", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({
+      documents: [{
+        employeeMatchKey: "verified-employee-code",
+        confidence: 0.999,
+        shifts: [{
+          date: "2026-06-02",
+          post: "Reception",
+          start_time: 800,
+          end_time: "14:00"
+        }]
+      }]
+    })
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(calls.proposals.length, 0);
+  assert.equal(result.attachments[0].status, "needs_review");
+  assert.ok(result.attachments[0].blocked.some(item => item.reason === "invalid_parsed_shift"));
+});
