@@ -45,7 +45,7 @@ function harness(overrides = {}) {
     },
     createEmployeeProposal: async input => {
       calls.proposals.push(input);
-      return { proposalId: "synthetic-proposal-01" };
+      return { proposalId: "synthetic-proposal-01", status: "pending", duplicate: false };
     },
     finishIngestionJob: async input => { calls.finished.push(input); },
     ...overrides
@@ -163,7 +163,7 @@ test("a PDF containing multiple collaborators is partitioned into separate perso
     }],
     createEmployeeProposal: async input => {
       calls.proposals.push(input);
-      return { proposalId: "proposal-" + input.employeeId };
+      return { proposalId: "proposal-" + input.employeeId, status: "pending", duplicate: false };
     }
   });
   const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
@@ -286,7 +286,7 @@ test("replayed ingestion presents the same stable employee proposal idempotency 
     },
     createEmployeeProposal: async input => {
       calls.proposals.push(input);
-      return { proposalId: "stable-proposal" };
+      return { proposalId: "stable-proposal", status: "pending", duplicate: false };
     }
   });
   const first = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
@@ -296,4 +296,18 @@ test("replayed ingestion presents the same stable employee proposal idempotency 
   assert.equal(calls.claims[0].idempotencyKey, calls.claims[1].idempotencyKey);
   assert.equal(calls.proposals[0].idempotencyKey, "stable-replay-job_synthetic-employee");
   assert.equal(calls.proposals[1].idempotencyKey, calls.proposals[0].idempotencyKey);
+});
+
+
+test("recovered proposal keeps its current decision status in the ingestion result", async () => {
+  const { service, calls } = harness({
+    createEmployeeProposal: async input => {
+      calls.proposals.push(input);
+      return { proposalId: "already-decided-proposal", status: "approved", duplicate: true };
+    }
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "proposals_created");
+  assert.equal(result[0].proposals[0].status, "approved");
+  assert.equal(calls.finished[0].status, "proposals_created");
 });
