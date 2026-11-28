@@ -39,6 +39,7 @@ test("Firestore Emulator composes mailbox polling, fenced lease and ingestion ch
       listDueConnections: adapters.listDueConnections,
       loadConnection: adapters.loadConnection,
       acquireLease: adapters.acquireLease,
+      renewLease: adapters.renewLease,
       releaseLease: adapters.releaseLease,
       providerAdapters: {
         imap: { fetchMessages: async () => ({ messages: [], nextCursor: "synthetic-cursor-1" }) }
