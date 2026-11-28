@@ -38,10 +38,11 @@ function validPendingCleanupState(value) {
 }
 function validPendingAlertState(value) {
   const attempts = value.alertAttempts ?? 0;
-  if (!Number.isSafeInteger(attempts) || attempts < 0) return false;
+  if (!Number.isSafeInteger(attempts) || attempts < 0 ||
+      !Number.isSafeInteger(value.updatedAt) || value.updatedAt < 1) return false;
   const initial = attempts === 0;
   const retryScheduled = Number.isSafeInteger(value.alertNextAttemptAt) &&
-    value.alertNextAttemptAt >= 1 &&
+    value.alertNextAttemptAt >= value.updatedAt &&
     typeof value.alertLastErrorCode === "string" &&
     /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode);
   const noTerminalTimestamp =
