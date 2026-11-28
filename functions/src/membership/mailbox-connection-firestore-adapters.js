@@ -44,6 +44,10 @@ function validPendingAlertState(value) {
     value.alertNextAttemptAt >= 1 &&
     typeof value.alertLastErrorCode === "string" &&
     /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode);
+  const noTerminalTimestamp =
+    (value.alertDeliveredAt === null || value.alertDeliveredAt === undefined) &&
+    (value.alertResolvedAt === null || value.alertResolvedAt === undefined);
+  if (!noTerminalTimestamp) return false;
   if (initial) {
     return (value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined) &&
       (value.alertLastErrorCode === null || value.alertLastErrorCode === undefined);
