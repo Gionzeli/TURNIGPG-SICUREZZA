@@ -15,3 +15,10 @@ The Firestore Emulator integration scenario now processes one synthetic message 
 ## Provider batch bounds (2026-11-28)
 
 The polling worker now rejects malformed message objects and attachments arrays larger than the ingestion contract limit (10 per message) before calling ingestion. This prevents a provider adapter from handing an oversized attachment list into the processing path. Synthetic worker tests cover both malformed message objects and excessive attachments; failures do not advance the provider cursor.
+
+
+## Idempotent recovery contract (2026-11-28)
+
+The ingestion core derives an attachment identity from provider, mailbox connection, provider message ID and SHA-256 of the PDF. The resulting job ID is supplied to proposal creation, and each employee proposal receives the stable key `{jobId}_{employeeId}`. A duplicate completed job is skipped before scanning/parsing; proposal persistence must enforce uniqueness on that stable key.
+
+A remaining integration requirement is durable claim recovery: the injected `claimIngestionJob` implementation must distinguish a completed duplicate from an abandoned/in-progress job and atomically reclaim only jobs whose processing lease expired. It must not report every existing job as a completed duplicate. Proposal creation must be transactionally idempotent on the stable employee key, so a crash after proposal persistence but before job completion can safely resume. No concrete Firestore job/proposal adapter is wired yet; this behavior is a required contract, not a claim of completed integration.
