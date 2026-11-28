@@ -841,3 +841,8 @@ When vault deletion succeeds, the completed cleanup ticket now clears its obsole
 ### Cleanup queue document identity binding
 
 Pending credential-cleanup and exhaustion-alert queries now require the Firestore document ID to equal the persisted `connectionId`, in addition to validating account scope, secret-reference scope (for credential cleanup), status, and retry metadata. This prevents a malformed or misplaced queue document from being acted on under an identity different from its storage path. Synthetic tests move otherwise valid tickets to a mismatched document ID and confirm both queue readers exclude them.
+
+
+### Idempotent cleanup ticket validation
+
+Re-recording an existing credential-cleanup request is now idempotent only when the persisted ticket is itself structurally valid for its state (`pending`, `exhausted`, or `complete`), its reason is allowlisted by the ticket syntax, and its identity/secret reference match the request. Pending ticket validation also requires a positive `createdAt` and `updatedAt >= createdAt`. Corrupt existing outbox entries fail with a sanitized precondition error instead of being silently accepted as successful idempotent writes. Synthetic tests cover malformed chronology, reason, retry metadata, and update clock.
