@@ -22,6 +22,9 @@ function validSecretRef(value, accountId, connectionId) {
   const match = /^mailbox\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{1,128})\/([A-Za-z0-9_-]{16,128})$/.exec(value);
   return !!match && match[1] === accountId && match[2] === connectionId;
 }
+function validCleanupReason(value) {
+  return typeof value === "string" && /^[a-z0-9_-]{1,64}$/.test(value);
+}
 function normalizedEmail(value) {
   return typeof value === "string" && value.length <= 254 &&
     value === value.trim().toLowerCase() && EMAIL.test(value);
@@ -225,7 +228,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
     async recordSecretCleanup({ accountId, connectionId, secretRef, reason, timestamp = Date.now() }) {
       if (!validId(accountId) || !validId(connectionId) ||
           !validSecretRef(secretRef, accountId, connectionId) ||
-          typeof reason !== "string" || !/^[a-z0-9_-]{1,64}$/.test(reason) ||
+          !validCleanupReason(reason) ||
           !Number.isSafeInteger(timestamp) || timestamp < 1) {
         invalid("Mailbox secret cleanup record is malformed.");
       }
@@ -239,8 +242,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
             (previous.status === "exhausted" && validExhaustedCleanupState(previous)) ||
             (previous.status === "complete" && validCompleteCleanupState(previous));
           if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
-              previous.secretRef !== secretRef || typeof previous.reason !== "string" ||
-              !/^[a-z0-9_-]{1,64}$/.test(previous.reason) || !validExisting) {
+              previous.secretRef !== secretRef || previous.reason !== reason ||
+              !validCleanupReason(previous.reason) || !validExisting) {
             const error = new Error("A conflicting cleanup record already exists.");
             error.code = "failed-precondition";
             throw error;
@@ -274,7 +277,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
             typeof value.connectionId !== "string" || !validId(value.connectionId) ||
             doc.id !== value.connectionId ||
             !validSecretRef(value.secretRef, accountId, value.connectionId) ||
-            value.status !== "pending" || !validPendingCleanupState(value)) return null;
+            !validCleanupReason(value.reason) || value.status !== "pending" || !validPendingCleanupState(value)) return null;
         return value;
       }).filter(Boolean);
     },
@@ -288,7 +291,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
       const value = snapshot.data();
       if (!value || value.accountId !== accountId || value.connectionId !== connectionId ||
           !validSecretRef(value.secretRef, accountId, connectionId) ||
-          !["pending", "exhausted", "complete"].includes(value.status) ||
+          !validCleanupReason(value.reason) || !["pending", "exhausted", "complete"].includes(value.status) ||
           !Number.isSafeInteger(value.attempts) || value.attempts < 1 ||
           (value.status === "pending" && !validPendingCleanupState(value)) ||
           (value.status === "exhausted" && !validExhaustedCleanupState(value)) ||
@@ -317,8 +320,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         }
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
-            previous.secretRef !== secretRef || previous.status !== "pending" ||
-            !validPendingCleanupState(previous) || timestamp < previous.updatedAt ||
+            previous.secretRef !== secretRef || !validCleanupReason(previous.reason) ||
+            previous.status !== "pending" || !validPendingCleanupState(previous) || timestamp < previous.updatedAt ||
             attempts !== previous.attempts + 1) {
           const error = new Error("Cleanup retry ticket is stale or conflicting.");
           error.code = "failed-precondition";
@@ -358,7 +361,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const value = doc.data();
         if (!value || value.accountId !== accountId ||
             typeof value.connectionId !== "string" || !validId(value.connectionId) ||
-            doc.id !== value.connectionId ||
+            doc.id !== value.connectionId || !validCleanupReason(value.reason) ||
             value.status !== "exhausted" || value.alertStatus !== "pending" ||
             !validExhaustedCleanupState(value)) return null;
         // Alert consumers receive a strict DTO; never expose secretRef,
@@ -395,7 +398,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         }
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
-            previous.status !== "exhausted" || previous.alertStatus !== "pending" ||
+            !validCleanupReason(previous.reason) || previous.status !== "exhausted" || previous.alertStatus !== "pending" ||
             !validPendingAlertState(previous) || timestamp < previous.updatedAt ||
             attempts !== (previous.alertAttempts ?? 0) + 1) {
           const error = new Error("Cleanup alert retry is stale or conflicting.");
@@ -424,7 +427,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         }
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
-            previous.status !== "exhausted") {
+            !validCleanupReason(previous.reason) || previous.status !== "exhausted") {
           const error = new Error("Cleanup alert ticket is not exhausted.");
           error.code = "failed-precondition";
           throw error;
@@ -465,6 +468,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         }
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
+            !validCleanupReason(previous.reason) ||
             !validSecretRef(previous.secretRef, accountId, connectionId)) {
           const error = new Error("Cleanup record is malformed.");
           error.code = "failed-precondition";
