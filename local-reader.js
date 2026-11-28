@@ -41,15 +41,15 @@ async function loadPaddleOCR(onProgress){
  // PaddleOCR is accepted only from a locally bundled module exposed by the app.
  // No dynamic CDN import, remote model resolution or network fallback is allowed.
  if(!_paddleCtor){
-  _paddleCtor=Promise.resolve(window.PaddleOCR||null).then(m=>{
-   if(!m||typeof m.create!=="function")throw new Error("SDK PaddleOCR offline non installato.");
+  _paddleCtor=Promise.resolve(window.LocalPaddleOCR||null).then(m=>{
+   if(!m||typeof m.createOffline!=="function")throw new Error("Wrapper PaddleOCR offline non installato.");
    return m;
   }).catch(e=>{_paddleCtor=null;throw e});
  }
  const PaddleOCR=await _paddleCtor;
  if(!_paddleInstance){
   onProgress?.({phase:"paddle",detail:"Caricamento modello PaddleOCR italiano sul dispositivo…"});
-  _paddleInstance=PaddleOCR.create({lang:"it",ocrVersion:"PP-OCRv6",ortOptions:{backend:"wasm"}})
+  _paddleInstance=PaddleOCR.createOffline({lang:"it",ocrVersion:"PP-OCRv6",modelPath:"./models/paddleocr/pp-ocrv6/",ortWasmPath:"./vendor/onnxruntime/",backend:"wasm"})
    .catch(e=>{_paddleInstance=null;throw e});
  }
  return await _paddleInstance;
