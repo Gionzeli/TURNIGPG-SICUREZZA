@@ -61,3 +61,8 @@ A review found that terminal job completion clears the lease token, while the co
 ### Composed ingestion persistence regression coverage
 
 The synthetic persistence test now exercises the composed Firestore boundary end to end with an in-memory transaction store: it claims an account-scoped ingestion job, validates the canonical active membership and reciprocal UID-to-Employee binding, creates a pending employee proposal, and marks the job terminal. A negative case confirms that a UID cannot create a proposal for a different Employee ID. This is a deterministic fake-store test, not a Firebase Emulator execution; production provider, parser, scheduler and callable wiring remain disabled.
+
+
+### Firestore Emulator integration coverage for job/proposal persistence
+
+Added a separate Emulator-gated integration test for the composed persistence boundary. When `FIRESTORE_EMULATOR_HOST` is configured, it seeds a synthetic active account, member, reciprocal UID↔Employee bindings, Employee control and placement; then claims a fenced ingestion job, creates a pending proposal, and completes the job using the Firebase Admin SDK against the Emulator. Test documents are cleaned up in `finally`. The test skips when the Emulator is unavailable. It does not authenticate with a real provider, access a real mailbox, or contact production Firebase/Google Cloud.
