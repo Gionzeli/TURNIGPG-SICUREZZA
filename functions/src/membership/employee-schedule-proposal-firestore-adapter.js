@@ -2,7 +2,6 @@ import { createHash } from "node:crypto";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
 const HASH = /^[a-f0-9]{64}$/;
-const TERMINAL = new Set(["quarantined", "needs_review", "partially_processed", "proposals_created", "unchanged", "failed"]);
 const SHIFT_FIELDS = new Set(["date", "type", "post", "start_time", "end_time", "hours", "is_night", "is_sunday", "is_piantonato", "is_rest_not_enjoyed", "has_meal_voucher"]);
 
 function fail(code, message) { const error = new Error(message); error.code = code; throw error; }
@@ -20,7 +19,7 @@ function validDate(value) {
   const parsed = new Date(value + "T00:00:00Z");
   return Number.isFinite(parsed.getTime()) && parsed.toISOString().slice(0, 10) === value;
 }
-function validateFields(fields, { allowDate }) {
+function validateFields(fields, { allowDate, requireCompleteInterval = false }) {
   if (!fields || typeof fields !== "object" || Array.isArray(fields)) fail("invalid-argument", "Shift fields are invalid.");
   for (const [key, value] of Object.entries(fields)) {
     if (!SHIFT_FIELDS.has(key) || (!allowDate && key === "date")) fail("invalid-argument", "Unsupported shift field.");
@@ -31,7 +30,7 @@ function validateFields(fields, { allowDate }) {
     if (key === "hours" && (typeof value !== "number" || !Number.isFinite(value) || value < 0 || value > 48)) fail("invalid-argument", "Invalid shift hours.");
     if (FLAGS.includes(key) && typeof value !== "boolean") fail("invalid-argument", "Invalid shift flag.");
   }
-  if (Object.hasOwn(fields, "start_time") !== Object.hasOwn(fields, "end_time") ||
+  if ((requireCompleteInterval && Object.hasOwn(fields, "start_time") !== Object.hasOwn(fields, "end_time")) ||
       (fields.start_time && fields.end_time && fields.start_time === fields.end_time)) fail("invalid-argument", "Invalid shift interval.");
 }
 function validateChanges(changes, before) {
@@ -44,7 +43,7 @@ function validateChanges(changes, before) {
         !["create", "update", "delete"].includes(change.operation)) fail("invalid-argument", "Invalid proposal operation.");
     if (change.operation === "create") {
       if (!change.shift || typeof change.shift !== "object" || Array.isArray(change.shift)) fail("invalid-argument", "Invalid proposed shift.");
-      validateFields(change.shift, { allowDate: true });
+      validateFields(change.shift, { allowDate: true, requireCompleteInterval: true });
       if (!validDate(change.shift.date) || !TYPES.has(change.shift.type)) fail("invalid-argument", "Create proposal requires a valid date and type.");
     } else if (typeof change.shiftId !== "string" || !ID.test(change.shiftId) ||
       !Number.isSafeInteger(change.expectedRevision) || change.expectedRevision < 1 ||
@@ -53,7 +52,20 @@ function validateChanges(changes, before) {
       (change.operation === "delete" && Object.hasOwn(change, "changes"))) {
       fail("invalid-argument", "Invalid proposed shift target.");
     }
-    if (change.operation === "update") validateFields(change.changes, { allowDate: false });
+    const snapshot = before[changes.indexOf(change)];
+    if (change.operation === "create" && snapshot !== null) {
+      fail("invalid-argument", "Create proposal must not include a before snapshot.");
+    }
+    if (change.operation === "update") {
+      validateFields(change.changes, { allowDate: false });
+    }
+    if (change.operation === "update" || change.operation === "delete") {
+      if (!snapshot || typeof snapshot !== "object" || Array.isArray(snapshot) ||
+          !Number.isSafeInteger(snapshot.revision) || snapshot.revision !== change.expectedRevision ||
+          !validDate(snapshot.date) || !TYPES.has(snapshot.type)) {
+        fail("invalid-argument", "Existing shift before snapshot does not match the expected revision.");
+      }
+    }
   }
 }
 
