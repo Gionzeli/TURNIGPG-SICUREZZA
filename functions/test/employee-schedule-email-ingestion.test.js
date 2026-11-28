@@ -483,3 +483,21 @@ test("non-text PDF time cells are blocked without throwing or creating a proposa
   assert.equal(result[0].status, "needs_review");
   assert.ok(result[0].blocked.some(item => item.reason === "invalid_parsed_shift"));
 });
+
+
+test("control characters are stripped from informational notes before proposal persistence", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [{
+      employeeMatchKey: "verified-employee-code",
+      confidence: 0.999,
+      additionalInfo: ["Portare\\u0000 il badge\\u0008", "Cambio ingresso\\u001f"],
+      shifts: [{
+        date: "2026-06-02", type: "turno", post: "Reception",
+        start_time: "08:00", end_time: "14:00"
+      }]
+    }] })
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "proposals_created");
+  assert.deepEqual(calls.proposals[0].additionalInfo, ["Portare il badge", "Cambio ingresso"]);
+});
