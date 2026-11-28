@@ -55,7 +55,9 @@ function validExhaustedCleanupState(value) {
       value.nextAttemptAt !== null ||
       typeof value.lastErrorCode !== "string" ||
       !/^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode)) return false;
-  if (value.alertStatus === "pending") return validPendingAlertState(value);
+  if (value.alertStatus === "pending") return validPendingAlertState(value) &&
+    (value.alertDeliveredAt === null || value.alertDeliveredAt === undefined) &&
+    (value.alertResolvedAt === null || value.alertResolvedAt === undefined);
   if (value.alertStatus === "delivered") {
     const attempts = value.alertAttempts ?? 0;
     return Number.isSafeInteger(attempts) && attempts >= 0 &&
@@ -63,11 +65,20 @@ function validExhaustedCleanupState(value) {
       (value.alertLastErrorCode === null || value.alertLastErrorCode === undefined ||
         (typeof value.alertLastErrorCode === "string" &&
          /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode))) &&
-      Number.isSafeInteger(value.alertDeliveredAt) && value.alertDeliveredAt >= 1;
+      Number.isSafeInteger(value.alertDeliveredAt) && value.alertDeliveredAt >= 1 &&
+      (value.alertResolvedAt === null || value.alertResolvedAt === undefined);
   }
   if (value.alertStatus === "resolved") {
-    return Number.isSafeInteger(value.alertResolvedAt) && value.alertResolvedAt >= 1 &&
-      (value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined);
+    const attempts = value.alertAttempts ?? 0;
+    const validRetryHistory = Number.isSafeInteger(attempts) && attempts >= 0 &&
+      (attempts === 0
+        ? (value.alertLastErrorCode === null || value.alertLastErrorCode === undefined)
+        : typeof value.alertLastErrorCode === "string" &&
+          /^[a-z0-9_-]{1,64}$/.test(value.alertLastErrorCode));
+    return validRetryHistory &&
+      Number.isSafeInteger(value.alertResolvedAt) && value.alertResolvedAt >= 1 &&
+      (value.alertNextAttemptAt === null || value.alertNextAttemptAt === undefined) &&
+      (value.alertDeliveredAt === null || value.alertDeliveredAt === undefined);
   }
   return false;
 }
