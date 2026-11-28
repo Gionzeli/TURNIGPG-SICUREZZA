@@ -36,8 +36,8 @@ test("worker persists exponential retry delay and alerts at retry ceiling", asyn
   const retries = [], alerts = [];
   let records = [
     { ...ticket, attempts: 1 },
-    { ...ticket, connectionId: "synthetic-exhausted", attempts: 11 },
-    { ...ticket, connectionId: "future", nextAttemptAt: 9000 }
+    { ...ticket, connectionId: "synthetic-exhausted", attempts: 11, nextAttemptAt: 1000, lastErrorCode: "unavailable" },
+    { ...ticket, connectionId: "future", attempts: 2, nextAttemptAt: 9000, lastErrorCode: "unavailable" }
   ];
   const worker = createMailboxSecretCleanupWorker({
     assertRevocationPending: async () => ({ status: "revocation_pending" }),
@@ -88,7 +88,7 @@ test("worker validates batch bounds and ignores malformed tickets", async () => 
   const worker = createMailboxSecretCleanupWorker({
     assertRevocationPending: async () => ({ status: "revocation_pending" }),
     cleanupAdapters: {
-      listPendingSecretCleanup: async () => [{ secretRef: "invalid" }],
+      listPendingSecretCleanup: async () => [{ accountId: "synthetic-account", connectionId: "malformed-ticket", secretRef: "invalid" }],
       completeSecretCleanup: async () => {},
       recordSecretCleanupFailure: async () => {},
       listPendingCleanupAlerts: async () => [],
