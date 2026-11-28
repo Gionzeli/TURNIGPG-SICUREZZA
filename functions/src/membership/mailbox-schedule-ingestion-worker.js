@@ -77,7 +77,8 @@ export function createMailboxScheduleIngestionWorker({
           let messageCount = 0;
           let attachmentCount = 0;
           for (const item of batch.messages) {
-            if (!item || !item.message || !Array.isArray(item.attachments)) {
+            if (!item || !item.message || typeof item.message !== "object" || Array.isArray(item.message) ||
+                !Array.isArray(item.attachments) || item.attachments.length > 10) {
               fail("failed-precondition", "Provider returned an invalid normalized message.");
             }
             const messageRenewalTime = now();
