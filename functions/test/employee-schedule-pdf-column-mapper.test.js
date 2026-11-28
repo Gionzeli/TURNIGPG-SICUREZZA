@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import { createPdfScheduleColumnExtractor, mapPdfScheduleTables } from "../src/membership/employee-schedule-pdf-column-mapper.js";
 
 const tableDocument = {
@@ -69,7 +70,9 @@ test("extractor delegates PDF/OCR to an injected engine then applies strict colu
   const extract = createPdfScheduleColumnExtractor({
     extractPdfTables: async input => { calls.push(input.filename); return { documents: [tableDocument] }; }
   });
-  const result = await extract({ bytes: Buffer.from("%PDF-synthetic"), filename: "turni.pdf", sha256: "a".repeat(64) });
+  const bytes = Buffer.from("%PDF-synthetic");
+  const sha256 = createHash("sha256").update(bytes).digest("hex");
+  const result = await extract({ bytes, filename: "turni.pdf", sha256 });
   assert.deepEqual(calls, ["turni.pdf"]);
   assert.equal(result.documents[0].shifts.length, 2);
   assert.deepEqual(result.documents[0].additionalInfo, ["Portare il badge", "Cambio ingresso"]);
@@ -77,4 +80,20 @@ test("extractor delegates PDF/OCR to an injected engine then applies strict colu
 
 test("extractor refuses to pretend that a PDF engine exists", () => {
   assert.throws(() => createPdfScheduleColumnExtractor({}));
+});
+
+test("extractor verifies PDF signature and content digest before calling the engine", async () => {
+  let calls = 0;
+  const extract = createPdfScheduleColumnExtractor({
+    extractPdfTables: async () => { calls += 1; return { documents: [tableDocument] }; }
+  });
+  const validBytes = Buffer.from("%PDF-synthetic");
+  const validHash = createHash("sha256").update(validBytes).digest("hex");
+  await assert.rejects(
+    extract({ bytes: Buffer.from("not-a-pdf"), filename: "turni.pdf", sha256: validHash })
+  );
+  await assert.rejects(
+    extract({ bytes: validBytes, filename: "turni.pdf", sha256: "a".repeat(64) })
+  );
+  assert.equal(calls, 0);
 });
