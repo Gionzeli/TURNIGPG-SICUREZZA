@@ -1225,3 +1225,58 @@ test("repeated alert delivery rejects contradictory resolved timestamp", async (
   assert.equal(stored.alertStatus, "delivered");
   assert.equal(stored.alertResolvedAt, input.timestamp + 3);
 });
+
+
+test("cleanup ticket reason is immutable across idempotent enqueue and validated at every read boundary", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await assert.rejects(adapters.recordSecretCleanup({ ...input, reason: "setup_failed" }),
+    error => error.code === "failed-precondition");
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  assert.equal(docs.get(path).reason, "connection_revoked");
+
+  docs.set(path, { ...docs.get(path), reason: "INVALID REASON" });
+  assert.equal(await adapters.loadSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId
+  }), null);
+  assert.deepEqual(await adapters.listPendingSecretCleanup({ accountId: input.accountId }), []);
+  await assert.rejects(adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    secretRef: input.secretRef, attempts: 2, nextAttemptAt: input.timestamp + 1000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  }), error => error.code === "failed-precondition");
+  await assert.rejects(adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  }), error => error.code === "failed-precondition");
+  assert.equal(docs.get(path).status, "pending");
+});
+
+
+test("exhausted cleanup alert query and acknowledgement reject malformed ticket reason", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 12, nextAttemptAt: null, lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  docs.set(path, { ...docs.get(path), reason: "BAD REASON" });
+  assert.deepEqual(await adapters.listPendingCleanupAlerts({ accountId: input.accountId }), []);
+  await assert.rejects(adapters.markCleanupAlertDelivered({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  }), error => error.code === "failed-precondition");
+});
