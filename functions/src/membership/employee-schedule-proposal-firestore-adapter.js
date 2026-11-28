@@ -99,6 +99,14 @@ export function createEmployeeScheduleProposalFirestoreAdapter({
         fail("invalid-argument", "Verified employer proposal identity is invalid.");
       }
       validateChanges(input.changes, input.before);
+      const additionalInfo = input.additionalInfo ?? [];
+      if (!Array.isArray(additionalInfo) || additionalInfo.length > 8 ||
+          additionalInfo.some(item => typeof item !== "string" || item.length > 300 ||
+            /[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/.test(item) || item !== item.trim()) ||
+          additionalInfo.join("\\n").length > 1500 ||
+          new Set(additionalInfo).size !== additionalInfo.length) {
+        fail("invalid-argument", "Additional proposal information is invalid.");
+      }
       const proposalKey = createHash("sha256").update(input.idempotencyKey).digest("hex");
       const jobRef = jobRefForKey({ accountId: input.accountId, jobId: input.ingestionJobId });
       const proposalRef = proposalRefForKey({ accountId: input.accountId, proposalKey });
@@ -133,7 +141,8 @@ export function createEmployeeScheduleProposalFirestoreAdapter({
           accountId: input.accountId, employeeId: input.employeeId, proposerUid: input.proposerUid,
           source: "employer_email", sourceVerified: true, ingestionJobId: input.ingestionJobId,
           attachmentSha256: input.attachmentSha256, receivedAt: input.receivedAt,
-          sender: input.sender, changes: input.changes, before: input.before
+          sender: input.sender, changes: input.changes, before: input.before,
+          additionalInfo
         };
         if (proposalSnap?.exists) {
           const existing = proposalSnap.data();
