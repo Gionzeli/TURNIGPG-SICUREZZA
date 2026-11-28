@@ -250,7 +250,7 @@ export function mountDSMCanonicalAccountBridge(container, {
             line.textContent = "Nuovo turno: " + (change.shift?.date ?? "") + " — " + (change.shift?.post ?? "") + " — " + (change.shift?.start_time ?? "") + "-" + (change.shift?.end_time ?? "");
             article.append(line);
           } else if (change.operation === "delete") {
-            line.textContent = "Eliminazione turno: " + (before?.date ?? "") + ", " + (before?.type ?? "") + ", " + (before?.post ?? "") + ", " + (before?.start_time ?? "") + "-" + (before?.end_time ?? "");
+            line.textContent = "Eliminazione turno: " + (before?.date ?? "") + " — " + (before?.post ?? "") + " — " + (before?.start_time ?? "") + "-" + (before?.end_time ?? "");
             article.append(line);
           } else {
             line.textContent = "Modifica turno del " + (before?.date ?? "") + " (revisione " + change.expectedRevision + ")";
@@ -317,7 +317,7 @@ export function mountDSMCanonicalAccountBridge(container, {
     latestShiftItems = Array.isArray(items) ? items : [];
     targetInput.replaceChildren();
     const emptyTarget = document.createElement("option"); emptyTarget.value = ""; emptyTarget.textContent = latestShiftItems.length ? "Seleziona il turno" : "Cerca prima i tuoi turni"; targetInput.append(emptyTarget);
-    for (const shift of latestShiftItems) { const option = document.createElement("option"); option.value = shift.shiftId; option.textContent = shift.date + " — " + shift.type + " — " + (shift.post ?? "") + " — rev. " + shift.revision; targetInput.append(option); }
+    for (const shift of latestShiftItems) { const option = document.createElement("option"); option.value = shift.shiftId; option.textContent = shift.date + " — " + (shift.post ?? "") + " — " + (shift.start_time ?? "") + "-" + (shift.end_time ?? "") + " — rev. " + shift.revision; targetInput.append(option); }
     clearShiftResults();
     if (!items.length) {
       shiftsResults.append(document.createTextNode("Nessun turno trovato nell'intervallo selezionato."));
@@ -326,7 +326,7 @@ export function mountDSMCanonicalAccountBridge(container, {
     const table = document.createElement("table");
     const head = document.createElement("thead");
     const headerRow = document.createElement("tr");
-    for (const label of ["Data", "Tipo", "Postazione", "Inizio", "Fine", "Ore", "Info"]) {
+    for (const label of ["Data", "Postazione", "Inizio", "Fine", "Info"]) {
       const cell = document.createElement("th");
       cell.scope = "col";
       cell.textContent = label;
@@ -338,11 +338,9 @@ export function mountDSMCanonicalAccountBridge(container, {
       const row = document.createElement("tr");
       const values = [
         item.date,
-        item.type,
         item.post ?? "",
         item.start_time ?? "",
         item.end_time ?? "",
-        typeof item.hours === "number" ? String(item.hours) : ""
       ];
       for (const value of values) {
         const cell = document.createElement("td");
