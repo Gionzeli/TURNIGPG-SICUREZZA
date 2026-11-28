@@ -21,7 +21,7 @@ function harness({ employeeStatus = "active" } = {}) {
   const values = new Map([
     [`accounts/${accountId}`, { status: "active" }],
     [`accounts/${accountId}/scheduleIngestionJobs/${jobId}`, {
-      jobId, accountId, status: "processing", leaseToken, fencingToken: 2, leaseExpiresAt: 20_000
+      jobId, idempotencyKey: jobId, attachmentSha256: input.attachmentSha256, accountId, status: "processing", leaseToken, fencingToken: 2, leaseExpiresAt: 20_000
     }]
   ]);
   const db = {
