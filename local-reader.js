@@ -310,7 +310,7 @@ function fullDate(line){
  m=s.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);if(m){const d=+m[3],mo=+m[2],y=+m[1],dt=new Date(y,mo-1,d);if(dt.getFullYear()===y&&dt.getMonth()===mo-1&&dt.getDate()===d)return m[0]}return "";
 }
 function parseTurns(text){
- if(ocrLearningAvailable&&ocrLearning.applyEnabled)text=ocrLearning.applyAliases(text,"turns");
+ // Turni: nessuna etichetta appresa può trasformare note/flag in campi calendario.
  const out=[],seen=new Set(),dateRe=/\b(?:\d{1,2}[/. -]\d{1,2}[/. -](?:\d{2}|\d{4})|\d{4}-\d{2}-\d{2})\b/g;
  const timeRe=/\b([01]?\d|2[0-3])\s*[:,.]\s*([0-5]\d)\b/g;
  const lines=String(text||"").replace(/\r/g,"\n").split("\n");let currentDate="",periodStart="";
