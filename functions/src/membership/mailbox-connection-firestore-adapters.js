@@ -403,7 +403,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
             !validCleanupReason(previous.reason) || previous.status !== "exhausted" || previous.alertStatus !== "pending" ||
-            !validPendingAlertState(previous) || timestamp < previous.updatedAt ||
+            !validExhaustedCleanupState(previous) || !validPendingAlertState(previous) ||
+            timestamp < previous.updatedAt ||
             attempts !== (previous.alertAttempts ?? 0) + 1) {
           const error = new Error("Cleanup alert retry is stale or conflicting.");
           error.code = "failed-precondition";
@@ -447,8 +448,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           }
           return;
         }
-        if (previous.alertStatus !== "pending" || !validPendingAlertState(previous) ||
-            timestamp < previous.updatedAt) {
+        if (previous.alertStatus !== "pending" || !validExhaustedCleanupState(previous) ||
+            !validPendingAlertState(previous) || timestamp < previous.updatedAt) {
           const error = new Error("Cleanup alert is not pending.");
           error.code = "failed-precondition";
           throw error;
