@@ -13,6 +13,9 @@ function validPendingTicket(ticket, accountId) {
       typeof ticket.connectionId !== "string" || !ID_RE.test(ticket.connectionId) ||
       !validSecretRef(ticket.secretRef, accountId, ticket.connectionId) ||
       ticket.status !== "pending" ||
+      ["alertStatus", "alertAttempts", "alertNextAttemptAt", "alertLastErrorCode",
+        "alertDeliveredAt", "alertResolvedAt"].some(key =>
+          ticket[key] !== null && ticket[key] !== undefined) ||
       typeof ticket.reason !== "string" || !/^[a-z0-9_-]{1,64}$/.test(ticket.reason) ||
       !Number.isSafeInteger(ticket.createdAt) || ticket.createdAt < 1 ||
       !Number.isSafeInteger(ticket.updatedAt) || ticket.updatedAt < ticket.createdAt ||
