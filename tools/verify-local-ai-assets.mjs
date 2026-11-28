@@ -53,7 +53,8 @@ for (const item of manifest.assets) {
     fail("voce asset incompleta");
     continue;
   }
-  if (!/^(vendor|models)\/[a-zA-Z0-9._/-]+$/.test(item.path) ||\n      item.path.split("/").some(segment => !segment || segment === "." || segment === "..")) {
+  if (!/^(vendor|models)\/[a-zA-Z0-9._/-]+$/.test(item.path) ||
+      item.path.split("/").some(segment => !segment || segment === "." || segment === "..")) {
     fail("percorso non consentito: " + item.path);
     continue;
   }
@@ -72,7 +73,9 @@ for (const item of manifest.assets) {
   if (item.role === "qwen-model" && !item.path.startsWith("models/qwen2.5-0.5b-instruct/")) fail("modello Qwen fuori directory");
   if (!Number.isSafeInteger(item.sizeBytes) || item.sizeBytes < 1 ||
       !/^[a-f0-9]{64}$/i.test(item.sha256 || "") ||
-      typeof item.version !== "string" || !item.version.trim() ||\n      typeof item.license !== "string" || !item.license.trim() ||\n      typeof item.source !== "string" || !item.source.trim()) {
+      typeof item.version !== "string" || !item.version.trim() ||
+      typeof item.license !== "string" || !item.license.trim() ||
+      typeof item.source !== "string" || !item.source.trim()) {
     fail("metadati/versione/licenza/origine/hash mancanti: " + item.path);
     continue;
   }
@@ -82,8 +85,8 @@ for (const item of manifest.assets) {
     continue;
   }
   try {
-    const fileStat = await stat(absolute);
-    if (!fileStat.isFile() || fileStat.size !== item.sizeBytes) {
+    const fileStat = await lstat(absolute);
+    if (fileStat.isSymbolicLink() || !fileStat.isFile() || fileStat.size !== item.sizeBytes) {
       fail("dimensione o tipo file errato: " + item.path);
       continue;
     }
