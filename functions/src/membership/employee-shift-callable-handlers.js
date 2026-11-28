@@ -76,6 +76,13 @@ function isVerifiedEmployerProposal(proposal) {
 function canEmployeeDecideProposal(proposal) {
   return proposal?.source === "employee_manual" || isVerifiedEmployerProposal(proposal);
 }
+function safeAdditionalInfo(value) {
+  if (!Array.isArray(value) || value.length > 8) return [];
+  const items = value.filter(item => typeof item === "string" && item.length <= 300 &&
+    item === item.trim() && !/[\\x00-\\x08\\x0b\\x0c\\x0e-\\x1f\\x7f]/.test(item));
+  const unique = [...new Set(items)];
+  return unique.join("\\n").length <= 1500 ? unique : [];
+}
 
 export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () => Date.now() }) {
   if (!db || typeof verifyToken !== "function") throw new TypeError("Trusted Firestore and token verifier required.");
@@ -192,7 +199,8 @@ export function createEmployeeShiftCallableHandlers({ db, verifyToken, now = () 
             source: proposal.source === "employee_manual" || isVerifiedEmployerProposal(proposal) ? proposal.source : "unverified",
             canDecide: proposal.status === "pending" && canEmployeeDecideProposal(proposal),
             createdAt: proposal.createdAt, changeCount: safeChanges.length,
-            changes: safeChanges, before: safeBefore
+            changes: safeChanges, before: safeBefore,
+            additionalInfo: safeAdditionalInfo(proposal.additionalInfo)
           };
         }).filter(Boolean).sort((a, b) => b.createdAt - a.createdAt);
       });
