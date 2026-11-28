@@ -53,7 +53,7 @@
         const splitLabels=parser([
           "RIGA 1: @100:Data | @250:Ora | @290:inizio | @420:Ora | @460:fine | @680:Postazione",
           "RIGA 2: @100:07/12/2026 | @250:06:00 | @420:14:00 | @680:Sede Zeta"
-        ].join("\\n"));
+        ].join("\n"));
         if(splitLabels.length!==1||splitLabels[0].date!=="2026-12-07"||splitLabels[0].start_time!=="06:00"||splitLabels[0].end_time!=="14:00"||splitLabels[0].post!=="Sede Zeta"){
           throw new Error("Intestazioni Ora inizio/Ora fine non riconosciute: "+JSON.stringify(splitLabels));
         }
