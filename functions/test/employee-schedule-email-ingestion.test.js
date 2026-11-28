@@ -365,3 +365,43 @@ test("shared mailbox rejects blank or control-character employee match keys", as
   assert.equal(resolutions, 0);
   assert.equal(calls.proposals.length, 0);
 });
+
+
+test("PDF extra notes are kept separate from calendar shift fields for the info control", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [{
+      employeeMatchKey: "verified-employee-code",
+      confidence: 0.999,
+      additionalInfo: ["Portare il badge", "Cambio ingresso dalle 18:00"],
+      shifts: [{
+        date: "2026-06-02", type: "turno", post: "Reception",
+        start_time: "08:00", end_time: "14:00", hours: 6
+      }]
+    }] })
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "proposals_created");
+  const proposal = calls.proposals[0];
+  assert.deepEqual(proposal.additionalInfo, ["Portare il badge", "Cambio ingresso dalle 18:00"]);
+  assert.equal(proposal.changes.some(change => JSON.stringify(change).includes("badge")), false);
+  assert.equal(proposal.changes.some(change => Object.hasOwn(change.shift ?? change.changes ?? {}, "additionalInfo")), false);
+  assert.deepEqual(Object.keys(proposal.changes[0].changes).sort(), ["start_time"]);
+});
+
+test("excessive PDF extra notes are blocked instead of entering a proposal", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [{
+      employeeMatchKey: "verified-employee-code",
+      confidence: 0.999,
+      additionalInfo: Array.from({ length: 9 }, (_, i) => "Nota " + i),
+      shifts: [{
+        date: "2026-06-02", type: "turno", post: "Reception",
+        start_time: "08:00", end_time: "14:00", hours: 6
+      }]
+    }] })
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "needs_review");
+  assert.equal(result[0].blocked[0].reason, "invalid_additional_information");
+  assert.equal(calls.proposals.length, 0);
+});
