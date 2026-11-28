@@ -21,6 +21,15 @@ jobs:
         uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 22
+      - name: Verify local AI package remains fail-closed when assets are absent
+        run: |
+          node tools/verify-local-ai-assets.mjs
+          if node tools/verify-local-ai-assets.mjs --require-ready; then
+            echo "ERROR: AI asset verifier must block an incomplete offline package"
+            exit 1
+          else
+            echo "PASS: offline AI package is correctly blocked until all assets are bundled"
+          fi
       - name: Install Playwright
         run: |
           npm install --no-save playwright@1.56.1
