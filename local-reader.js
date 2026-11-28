@@ -314,7 +314,6 @@ function parseTurns(text){
  const out=[],seen=new Set(),dateRe=/\b(?:\d{1,2}[/. -]\d{1,2}[/. -](?:\d{2}|\d{4})|\d{4}-\d{2}-\d{2})\b/g;
  const timeRe=/\b([01]?\d|2[0-3])\s*[:,.]\s*([0-5]\d)\b/g;
  const lines=String(text||"").replace(/\r/g,"\n").split("\n");let currentDate="",periodStart="";
- const addRest=(date,type,raw)=>{const x={date,type,post:"",start_time:"",end_time:"",piantonamento:false,notturno:false,ore:0};const key=[date,type,norm(raw)].join("|");if(!seen.has(key)){seen.add(key);out.push(x)}};
  const addShift=(date,segment,start,end,postRaw)=>{
   // Residual row text is not proof of a Postazione column: accept only an explicit label.
   const labelled=String(postRaw||"").match(/POSTAZIONE\\s*:\\s*([^|;]+)/i);
@@ -332,12 +331,6 @@ function parseTurns(text){
   if(!currentDate||!segment.trim())continue;
   const matches=[...segment.matchAll(timeRe)];
   if(matches.length>=2){const sharedPost=segment.replace(timeRe," ").replace(/\s+/g," ").trim();for(let i=0;i+1<matches.length;i+=2){const a=matches[i],b=matches[i+1],next=matches[i+2],start=String(a[1]).padStart(2,"0")+":"+a[2],end=String(b[1]).padStart(2,"0")+":"+b[2],localPost=segment.slice(b.index+b[0].length,next?next.index:segment.length);addShift(currentDate,segment,start,end,localPost.trim()?localPost:sharedPost)}continue}
-  const n=norm(segment.replace(/\s*\|\s*/g," "));
-  if(/\briposo\s+compensativo\b/.test(n)){addRest(currentDate,"riposo_compensativo",segment);continue}
-  if(/\bferie\b/.test(n)){addRest(currentDate,"ferie",segment);continue}
-  if(/\b(?:turno\s+di\s+riposo|riposo\s+semplice|\briposo\b)/.test(n)){addRest(currentDate,"riposo",segment);continue}
-  if(/\bpermesso\b/.test(n)){addRest(currentDate,"permesso",segment);continue}
-  if(/\bmalattia\b/.test(n)){addRest(currentDate,"malattia",segment);continue}
  }
  return out;
 }
