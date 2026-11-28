@@ -82,7 +82,8 @@ export function createMailboxTokenFirestoreLeaseService({
   }
 
   async function renew({accountId, connectionId, lease, ttlMs = 60_000}) {
-    if (!lease || typeof lease.ownerId !== "string" || !Number.isSafeInteger(lease.fencingToken)) {
+    if (!lease || typeof lease.ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(lease.ownerId) ||
+        !Number.isSafeInteger(lease.fencingToken) || lease.fencingToken < 1) {
       throw leaseError("invalid-argument", "Mailbox lease renewal is invalid.");
     }
     validateTtl(ttlMs);
@@ -98,9 +99,10 @@ export function createMailboxTokenFirestoreLeaseService({
         const current = snapshot?.data?.() || {};
         if (!snapshot?.exists || current.revocationPending === true ||
             (current.revocationPending !== undefined && typeof current.revocationPending !== "boolean") ||
-            current.ownerId !== lease.ownerId ||
-            current.fencingToken !== lease.fencingToken ||
-            !Number.isSafeInteger(current.expiresAt) || current.expiresAt <= renewedAt) {
+            typeof current.ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(current.ownerId) ||
+            !Number.isSafeInteger(current.fencingToken) || current.fencingToken < 1 ||
+            current.ownerId !== lease.ownerId || current.fencingToken !== lease.fencingToken ||
+            !Number.isSafeInteger(current.expiresAt) || current.expiresAt < 0 || current.expiresAt <= renewedAt) {
           throw leaseError("lease-lost", "Mailbox lease is no longer owned.");
         }
         transaction.update(ref, {expiresAt: next.expiresAt});
@@ -161,14 +163,19 @@ export function createMailboxTokenFirestoreLeaseService({
   }
 
   async function release({accountId, connectionId, lease}) {
-    if (!lease || typeof lease.ownerId !== "string" || !Number.isSafeInteger(lease.fencingToken)) return false;
+    if (!lease || typeof lease.ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(lease.ownerId) ||
+        !Number.isSafeInteger(lease.fencingToken) || lease.fencingToken < 1) return false;
     const ref = getRef(accountId, connectionId);
     try {
       return await firestore.runTransaction(async transaction => {
         const snapshot = await transaction.get(ref);
         const current = snapshot?.data?.() || {};
-        if (!snapshot?.exists || current.ownerId !== lease.ownerId ||
-            current.fencingToken !== lease.fencingToken) return false;
+        if (!snapshot?.exists || current.revocationPending === true ||
+            (current.revocationPending !== undefined && typeof current.revocationPending !== "boolean") ||
+            typeof current.ownerId !== "string" || !/^[A-Za-z0-9_-]{16,128}$/.test(current.ownerId) ||
+            !Number.isSafeInteger(current.fencingToken) || current.fencingToken < 1 ||
+            !Number.isSafeInteger(current.expiresAt) || current.expiresAt < 0 ||
+            current.ownerId !== lease.ownerId || current.fencingToken !== lease.fencingToken) return false;
         transaction.update(ref, {ownerId: null, expiresAt: 0});
         return true;
       });
