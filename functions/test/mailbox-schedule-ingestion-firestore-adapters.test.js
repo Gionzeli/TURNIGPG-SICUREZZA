@@ -47,9 +47,10 @@ function harness(overrides = {}) {
     [connectionPath]: { accountId, connectionId, provider: "imap", status: "active" },
     [leasePath]: { ownerId: "synthetic_owner_identifier", fencingToken: 1, expiresAt: 5000 }
   });
-  const leaseCalls = { acquired: 0, released: 0 };
+  const leaseCalls = { acquired: 0, renewed: 0, released: 0 };
   const leaseService = {
     acquire: async () => { leaseCalls.acquired++; return { ownerId: "synthetic_owner_identifier", fencingToken: 1, expiresAt: 5000 }; },
+    renew: async ({ lease, ttlMs }) => { leaseCalls.renewed++; return { ...lease, expiresAt: 1000 + ttlMs }; },
     release: async () => { leaseCalls.released++; return true; }
   };
   const adapters = createMailboxScheduleIngestionFirestoreAdapters({
@@ -72,8 +73,10 @@ test("loads canonical mailbox metadata and acquires/releases fenced lease", asyn
   assert.equal((await adapters.loadConnection({ accountId, connectionId })).status, "active");
   const lease = await adapters.acquireLease({ accountId, connectionId });
   assert.equal(lease.acquired, true);
+  const renewed = await adapters.renewLease({ accountId, connectionId, lease });
+  assert.equal(renewed.expiresAt, 121000);
   assert.equal(await adapters.releaseLease({ accountId, connectionId, lease }), true);
-  assert.deepEqual(leaseCalls, { acquired: 1, released: 1 });
+  assert.deepEqual(leaseCalls, { acquired: 1, renewed: 1, released: 1 });
 });
 
 test("lease contention and revocation fail closed as a skipped mailbox", async () => {
