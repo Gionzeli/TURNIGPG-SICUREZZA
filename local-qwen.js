@@ -1,8 +1,6 @@
 import { isSafeLearningAlias } from "./local-learning.js";
 
 const DEFAULT_MODEL_ID = "qwen2.5-0.5b-instruct";
-const MODEL_REVISION = "cc5cc01a65cc3ff17bdb73a7de33d879f62599b0";
-
 const TARGETS = Object.freeze({
   payroll: ["paga_base", "scatti", "altre_fisse", "ore_mensili", "ore_turno", "straordinario_perc", "straordinario_ora", "notturno_turno", "piantonato_turno", "domenica_ora", "riposo_non_goduto", "buono_pasto", "inps_rate", "irpef_rate", "sindacato", "cessione", "altre_trattenute"],
   turns: ["turno", "riposo", "riposo_compensativo", "ferie", "permesso", "malattia"],
