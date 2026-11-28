@@ -229,6 +229,27 @@ test("credential cleanup outbox persists retry state and completes monotonically
   assert.equal(docs.get(path).completedAt, "corrupt", "malformed terminal ticket is not silently acknowledged");
 });
 
+test("cleanup completion rejects inconsistent persisted retry counters", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  const path = "accounts/synthetic-account/mailboxCredentialCleanup/synthetic-connection";
+  docs.get(path).attempts = 2;
+  docs.get(path).nextAttemptAt = null;
+  docs.get(path).lastErrorCode = null;
+  await assert.rejects(adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 1
+  }), error => error.code === "failed-precondition");
+  assert.equal(docs.get(path).status, "pending", "malformed ticket remains unchanged");
+});
+
+
 test("successful deletion resolves an exhausted cleanup ticket and its pending alert", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
