@@ -92,3 +92,16 @@ The ingestion normalizer now accepts date context, postazione and start/end time
 
 
 The employee calendar table has also been simplified to show only date, postazione, start time and end time, plus the optional ℹ️ control. Type and total-hours columns are no longer displayed in the employee-facing calendar. A Firestore Emulator integration assertion now checks that bounded additional notes survive employee approval, are stored separately as `scheduleInfo`, and are returned by the employee's own calendar query; malformed note text is filtered from the DTO. The test is emulator-gated and has not been run in this work session.
+
+
+## PDF schedule column mapper (2026-11-28)
+
+Added `functions/src/membership/employee-schedule-pdf-column-mapper.js` as a strict adapter between an injected PDF table/OCR engine and the existing email-ingestion contract.
+
+- Recognizes date/date context, postazione, either one combined time-range column or paired start/end columns, and optional info/note text.
+- Ignores unrelated columns such as hours totals, task descriptions and flags; emits only date, post and start/end in each calendar shift.
+- Additional info is returned separately as document-level `additionalInfo`, bounded to eight items and 300 characters per item.
+- Handles Italian date strings and continuation rows using the document date context; malformed explicit dates, ambiguous column layouts, unreadable time ranges, malformed rows and excessive row counts fail closed.
+- The adapter accepts an injected `extractPdfTables` engine and returns the `documents` structure expected by `createEmployeeScheduleEmailIngestion({ extractSchedule })`.
+
+Important limitation: this does **not** implement PDF text extraction, OCR, handwriting recognition or layout detection. No PDF/OCR dependency is currently installed in the Functions package, and no real parser/provider is wired or enabled. The adapter is ready to wrap a separately selected and tested extraction engine; until then the actual PDF-reading integration remains incomplete. Synthetic unit tests have been added but were not executed in this session.
