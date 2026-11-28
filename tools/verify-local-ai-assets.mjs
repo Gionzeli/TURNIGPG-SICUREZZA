@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFile, stat } from "node:fs/promises";
+import { readFile, lstat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -53,7 +53,7 @@ for (const item of manifest.assets) {
     fail("voce asset incompleta");
     continue;
   }
-  if (!/^(vendor|models)\/[a-zA-Z0-9._/-]+$/.test(item.path) || item.path.split("/").includes("..")) {
+  if (!/^(vendor|models)\/[a-zA-Z0-9._/-]+$/.test(item.path) ||\n      item.path.split("/").some(segment => !segment || segment === "." || segment === "..")) {
     fail("percorso non consentito: " + item.path);
     continue;
   }
@@ -72,7 +72,7 @@ for (const item of manifest.assets) {
   if (item.role === "qwen-model" && !item.path.startsWith("models/qwen2.5-0.5b-instruct/")) fail("modello Qwen fuori directory");
   if (!Number.isSafeInteger(item.sizeBytes) || item.sizeBytes < 1 ||
       !/^[a-f0-9]{64}$/i.test(item.sha256 || "") ||
-      !item.version || !item.license || !item.source) {
+      typeof item.version !== "string" || !item.version.trim() ||\n      typeof item.license !== "string" || !item.license.trim() ||\n      typeof item.source !== "string" || !item.source.trim()) {
     fail("metadati/versione/licenza/origine/hash mancanti: " + item.path);
     continue;
   }
