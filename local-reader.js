@@ -335,9 +335,9 @@ function parseTurns(text){
    const classifyHeader=label=>{
     const value=norm(label);
     if(/^(?:data|giorno|date)$/.test(value))return "date";
-    if(/^(?:inizio|dalle)$/.test(value))return "start";
-    if(/^(?:fine|alle)$/.test(value))return "end";
-    if(/^(?:orario|ora|fascia|orario turno|fascia oraria|ora inizio fine)$/.test(value))return "time";
+    if(/^(?:inizio|dalle|ora inizio)$/.test(value))return "start";
+    if(/^(?:fine|alle|ora fine)$/.test(value))return "end";
+    if(/^(?:orario|ora|fascia|orario turno|fascia oraria)$/.test(value))return "time";
     if(/^(?:postazione|post|sede)$/.test(value))return "post";
     return null; // le intestazioni non ammesse restano colonne esplicitamente ignorate
    };
