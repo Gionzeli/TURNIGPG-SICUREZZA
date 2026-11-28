@@ -34,3 +34,10 @@ The ingestion core now requires the lease token/fencing token from active claims
 ### Job adapter consistency hardening
 
 The job adapter now uses the same injected document-reference factory for both claim and completion, so custom account-scoped storage paths cannot strand a claimed job in `processing`. Initial lease expiry is checked for safe-integer overflow before any Firestore write, and existing records must have `jobId` equal to the idempotency key. Synthetic regression cases cover custom references and unsafe initial expiry. These tests have been added but were not executed here.
+
+
+## Fenced Firestore proposal persistence
+
+Added `createEmployeeScheduleProposalFirestoreAdapter`. It derives a deterministic proposal document ID from `{jobId}_{employeeId}`, and in one Firestore transaction reads the durable ingestion job, account and existing proposal before writing. It requires the exact current processing lease token and fencing token, a live lease, matching attachment/job identity, an active account, and a canonical Employee UID↔Employee authorization callback. The proposal is immutable with respect to the idempotency identity and parsed changes; a retry returns the existing proposal instead of creating another. A conflicting payload under the same idempotency key fails closed.
+
+Synthetic tests cover creation, replay, stale fencing, expired lease, inactive Employee binding and conflicting replay. The adapter is a standalone dependency and is not yet wired to a production callable, provider, or scheduled composition. The caller must inject an authorization callback that reads canonical membership and reciprocal Employee binding through the same transaction. This closes the durable proposal persistence contract in code, but does not constitute end-to-end exactly-once processing or production readiness.
