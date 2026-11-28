@@ -36,6 +36,12 @@ Additional communications may be extracted into a separate informational field w
 
 Do not extract totals, flags, duties, customer names, operational target descriptions or free-text notes into canonical calendar fields.
 
+### Legacy OCR path — not an approved strict schedule source
+
+The active legacy `local-reader.js` exposes a line-oriented `parseTurns(text)` routine. It identifies dates and time pairs from OCR text and infers post text from the remaining line content; it does not receive a verified table-column map or employer/layout profile. Consequently it cannot prove that the inferred post came from the dedicated postazione column or that unrelated columns were excluded.
+
+Do not treat this legacy line parser as satisfying the strict PDF column policy above, and do not route its inferred post values into the canonical employee-shift ingestion path. Keep it separate from the injected-table column mapper until it is replaced or constrained by verified column geometry and employer-specific profiles. This audit does not disable the existing legacy feature or change its local data behavior.
+
 ### GESIV sample — mapping remains incomplete
 
 The sample previously inspected appears to use service/customer/objective-style columns rather than an explicitly named `Postazione` column. Those labels are not interchangeable with postazione. Until an employer-approved semantic mapping is documented, the GESIV profile must not populate calendar postazione from customer/objective text. A row that lacks an approved postazione value must be rejected or held for review, not guessed.
@@ -55,6 +61,10 @@ Format analysis may catalogue labels, page structure, decimal conventions and re
 Do not infer missing values, derive net from partial totals, or combine a rate with a period amount. Preserve source precision and mark ambiguous items as unresolved. Bank/payment details and personal identifiers are excluded from parser fixtures, logs and repository artifacts.
 
 The existing D-02 decision boundary and legacy compensation audit remain controlling: no payroll runtime schema, DTO, permission, loader, callable, migration or write path is introduced by this document. Payroll remains deny-by-default until the semantic mapping and authorization gates are separately approved.
+
+## Approved-shift informational metadata
+
+The canonical callable currently sanitizes and returns `scheduleInfo` separately from the calendar fields, and carries existing information forward when an approved update contains no replacement notes. This is a backend data contract only: the legacy calendar's `i` dialog is a separate UI and does not yet display this canonical field. Do not copy informational text into `post`, time, date, duration or shift-type fields to compensate for the missing UI integration. The future calendar UI must render notes as escaped text in a separate informational section.
 
 ## Controlled improvement loop
 
