@@ -867,3 +867,8 @@ Ordinary cleanup completions (those below the retry-exhaustion threshold) now re
 ### Exhausted ticket base-state validation on alert transitions
 
 Retry scheduling and delivery acknowledgement for an exhaustion alert now validate the entire persisted exhausted cleanup ticket, not only the alert-specific fields. Corrupted cleanup attempt counts, creation chronology, or cleanup error codes therefore cannot be advanced or acknowledged through the alert path. Synthetic regression cases exercise malformed base-ticket fields against both alert transitions.
+
+
+### Pending cleanup completion rejects stray alert metadata
+
+Before a pending cleanup ticket is transitioned to complete, the adapter now requires all exhaustion-alert fields to be absent or null. This prevents malformed alert counters, timestamps, error codes, or status values from being copied into a completed ordinary ticket that would then fail its own terminal-state reader. Synthetic tests verify each stray field is rejected without changing the pending status, while a clean pending ticket still completes.
