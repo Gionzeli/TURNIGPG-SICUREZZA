@@ -810,3 +810,13 @@ Pending credential-cleanup tickets now receive the same persisted-clock scrutiny
 
 
 Cleanup ticket state transitions now also enforce monotonic persisted timestamps. Failure retries, exhausted-alert retry scheduling, alert delivery acknowledgement, and cleanup completion reject a transition timestamp older than the ticket's current `updatedAt`. This prevents clock regressions from rewriting the chronology of a durable outbox record. Synthetic coverage exercises stale cleanup-failure, alert-retry, and alert-delivery timestamps.
+
+
+#### Exhausted cleanup terminal clock consistency
+
+Exhausted cleanup tickets now require a valid creation/update clock relationship, and
+delivered or resolved alert timestamps may not postdate the ticket's persisted
+update timestamp. This prevents a malformed terminal timestamp from being accepted
+as historical state merely because it is a positive integer. Synthetic adapter
+regressions cover both delivered and resolved records, including direct reads
+and repeated transition acknowledgements. No live Firestore service was used.
