@@ -96,6 +96,11 @@ function validExhaustedCleanupState(value) {
   }
   return false;
 }
+function hasNoCleanupAlertMetadata(value) {
+  return !["alertStatus", "alertAttempts", "alertNextAttemptAt", "alertLastErrorCode",
+    "alertDeliveredAt", "alertResolvedAt"].some(key =>
+      value[key] !== null && value[key] !== undefined);
+}
 function validCompleteCleanupState(value) {
   if (!Number.isSafeInteger(value.createdAt) || value.createdAt < 1 ||
       !Number.isSafeInteger(value.completedAt) || value.completedAt < value.createdAt ||
@@ -106,11 +111,8 @@ function validCompleteCleanupState(value) {
     return validExhaustedCleanupState({ ...value, status: "exhausted" }) &&
       ["delivered", "resolved"].includes(value.alertStatus);
   }
-  if (value.alertStatus !== null && value.alertStatus !== undefined) return false;
   // Ordinary completions must not retain partial exhaustion-alert metadata.
-  if (["alertAttempts", "alertNextAttemptAt", "alertLastErrorCode",
-    "alertDeliveredAt", "alertResolvedAt"].some(key =>
-      value[key] !== null && value[key] !== undefined)) return false;
+  if (!hasNoCleanupAlertMetadata(value)) return false;
   if (value.attempts === 1) {
     return value.lastErrorCode === null || value.lastErrorCode === undefined;
   }
@@ -492,7 +494,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           error.code = "failed-precondition";
           throw error;
         }
-        if ((previous.status === "pending" && !validPendingCleanupState(previous)) ||
+        if ((previous.status === "pending" &&
+             (!validPendingCleanupState(previous) || !hasNoCleanupAlertMetadata(previous))) ||
             (previous.status === "exhausted" && !validExhaustedCleanupState(previous)) ||
             timestamp < previous.updatedAt) {
           const error = new Error("Cleanup ticket retry metadata is malformed.");
