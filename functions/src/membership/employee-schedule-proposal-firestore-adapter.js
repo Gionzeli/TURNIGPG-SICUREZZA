@@ -73,7 +73,8 @@ export function createEmployeeScheduleProposalFirestoreAdapter({
         ]);
         if (!jobSnap?.exists) fail("failed-precondition", "Current ingestion job is unavailable.");
         const job = jobSnap.data();
-        if (!job || job.accountId !== input.accountId || job.jobId !== input.ingestionJobId ||
+        if (!job || job.accountId !== input.accountId || job.jobId !== input.ingestionJobId || job.idempotencyKey !== input.ingestionJobId ||
+            job.attachmentSha256 !== input.attachmentSha256 ||
             job.status !== "processing" || job.leaseToken !== input.ingestionLeaseToken ||
             job.fencingToken !== input.ingestionFencingToken ||
             !Number.isSafeInteger(job.leaseExpiresAt) || job.leaseExpiresAt <= timestamp) {
