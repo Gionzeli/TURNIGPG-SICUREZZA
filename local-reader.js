@@ -22,17 +22,17 @@ async function loadOCR(onProgress){
   logger:m=>onProgress?.({phase:"ocr",progress:Number.isFinite(m?.progress)?Math.round(m.progress*100):null,status:m?.status||"",detail:m?.status?("OCR: "+m.status):"Preparazione OCR…"})
  });
 }
-function rowsFromWords(words){
+function rowsFromWords(words,withGeometry=false){
  const clean=(words||[]).filter(w=>String(w.text||"").trim()&&w.bbox),hs=clean.map(w=>Math.max(1,w.bbox.y1-w.bbox.y0)).sort((a,b)=>a-b),tol=Math.max(2.5,(hs[Math.floor(hs.length/2)]||14)*.34),rows=[];
  clean.sort((a,b)=>((a.bbox.y0+a.bbox.y1)/2)-((b.bbox.y0+b.bbox.y1)/2)||a.bbox.x0-b.bbox.x0);
  // Raggruppa rispetto alla coordinata della prima parola, non alla media:
  // la media mobile poteva trascinare parole di righe vicine nello stesso turno.
  for(const w of clean){const y=(w.bbox.y0+w.bbox.y1)/2;let r=rows.find(x=>Math.abs(x.anchor-y)<=tol);if(!r){r={anchor:y,y,words:[]};rows.push(r)}r.words.push(w)}
- return rows.sort((a,b)=>a.y-b.y).map((r,i)=>"RIGA "+(i+1)+": "+r.words.sort((a,b)=>a.bbox.x0-b.bbox.x0).map(w=>String(w.text).trim()).join(" | ")).join("\n");
+ return rows.sort((a,b)=>a.y-b.y).map((r,i)=>"RIGA "+(i+1)+": "+r.words.sort((a,b)=>a.bbox.x0-b.bbox.x0).map(w=>(withGeometry?"@"+Math.round(w.bbox.x0)+":":"")+String(w.text).trim()).join(" | ")).join("\n");
 }
-async function ocrImages(images,onProgress){
+async function ocrImages(images,onProgress,options={}){
  if(!images?.length)return "";const w=await loadOCR(onProgress),pages=[];
- try{for(let i=0;i<images.length;i++){onProgress?.({phase:"ocr-page",page:i+1,total:images.length});const r=await w.recognize(images[i]),structured=rowsFromWords(r?.data?.words),plain=String(r?.data?.text||"").trim(),t=[structured,plain?"TESTO OCR COMPLETO:\n"+plain:""].filter(Boolean).join("\n");if(t)pages.push("PAGINA "+(i+1)+":\n"+t)}}finally{try{await w.terminate()}catch(e){}}
+ try{for(let i=0;i<images.length;i++){onProgress?.({phase:"ocr-page",page:i+1,total:images.length});const r=await w.recognize(images[i]),structured=rowsFromWords(r?.data?.words,options?.withGeometry===true),plain=String(r?.data?.text||"").trim(),t=[structured,plain?"TESTO OCR COMPLETO:\n"+plain:""].filter(Boolean).join("\n");if(t)pages.push("PAGINA "+(i+1)+":\n"+t)}}finally{try{await w.terminate()}catch(e){}}
  return pages.join("\n\n").slice(0,60000);
 }
 
@@ -314,6 +314,35 @@ function parseTurns(text){
  const out=[],seen=new Set(),dateRe=/\b(?:\d{1,2}[/. -]\d{1,2}[/. -](?:\d{2}|\d{4})|\d{4}-\d{2}-\d{2})\b/g;
  const timeRe=/\b([01]?\d|2[0-3])\s*[:,.]\s*([0-5]\d)\b/g;
  const lines=String(text||"").replace(/\r/g,"\n").split("\n");let currentDate="",periodStart="";
+ // Map only explicitly labelled PDF table columns when OCR word coordinates exist.
+ // Text outside the date, time and workstation columns is never used as a shift field.
+ let geoHeader=null,geoTable=false;
+ for(const raw of lines){
+  const line=raw.replace(/^\\s*(?:RIGA|Riga)\\s+\\d+\\s*:\\s*/i,"").trim();
+  if(!line)continue;
+  const tokens=line.split("|").map(cell=>{const m=cell.trim().match(/^@(\\d+):\\s*(.*)$/);return m?{x:Number(m[1]),text:m[2].trim()}:null}).filter(Boolean);
+  if(!tokens.length)continue;
+  const joined=norm(tokens.map(t=>t.text).join(" "));
+  if(!geoHeader){
+   const date=tokens.find(t=>/^(?:data|giorno|date)$/i.test(norm(t.text)));
+   const time=tokens.find(t=>/^(?:orario|ora|fascia|dalle|inizio)$/i.test(norm(t.text)));
+   const post=tokens.find(t=>/^(?:postazione|post|sede)$/i.test(norm(t.text)));
+   if(time&&post&&(date||/\\bdata\\b|\\bgiorno\\b/.test(joined))){geoHeader={dateX:date?.x??null,timeX:time.x,postX:post.x};geoTable=true}
+   continue;
+  }
+  const headers=[{key:"date",x:geoHeader.dateX},{key:"time",x:geoHeader.timeX},{key:"post",x:geoHeader.postX}].filter(h=>h.x!==null).sort((a,b)=>a.x-b.x);
+  const cells={date:[],time:[],post:[]};
+  for(const token of tokens){let best=headers[0],distance=Infinity;for(const header of headers){const d=Math.abs(token.x-header.x);if(d<distance){best=header;distance=d}}if(best)cells[best.key].push(token.text)}
+  const dateCell=cells.date.join(" "),timeCell=cells.time.join(" "),postCell=cells.post.join(" ").replace(/^(?:postazione|post|sede)\\s*:?\\s*/i,"").trim();
+  const date=fullDate(dateCell)||(!geoHeader.dateX?fullDate(line):"");
+  const times=[...timeCell.matchAll(timeRe)];
+  if(date&&times.length>=2&&postCell){
+   const start=String(times[0][1]).padStart(2,"0")+":"+times[0][2],end=String(times[1][1]).padStart(2,"0")+":"+times[1][2];
+   const item={date,type:"turno",post:postCell.slice(0,120),start_time:start,end_time:end,piantonamento:false,notturno:false,ore:0};
+   const key=[date,"turno",start,end,norm(postCell)].join("|");if(!seen.has(key)){seen.add(key);out.push(item)}
+  }
+ }
+ if(geoTable)return out;
  const addShift=(date,segment,start,end,postRaw)=>{
   // Residual row text is not proof of a Postazione column: accept only an explicit label.
   const labelled=String(postRaw||"").match(/POSTAZIONE\s*:\s*([^|;]+)/i);
