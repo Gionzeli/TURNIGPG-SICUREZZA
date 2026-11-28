@@ -922,3 +922,9 @@ markers and negative expiry values, in addition to requiring the matching live
 owner/fencing proof and unexpired lease. This keeps malformed lease metadata
 from being interpreted as an active lease during credential-pointer promotion.
 Synthetic tests verify that rejected writes leave the active pointer unchanged.
+
+## Polling orchestration progress
+
+The connection service now requires a server-side `initializePollingState` dependency and calls it after persisting an active connection. The Firestore polling adapter stores cursor/next-poll metadata separately from immutable connection metadata, delegates lease operations to the fenced Firestore lease service, and commits cursors transactionally only for the current lease owner/fencing token. The provider-neutral worker composes these boundaries and invokes the existing message-ingestion core.
+
+This remains an integration scaffold, not an enabled mailbox service: no composition root injects the dependencies yet, no scheduled Firebase worker is exported, and no IMAP/Gmail/Graph provider adapter or real parser is configured. A Firebase Emulator integration test has been added but has not been run in this session.
