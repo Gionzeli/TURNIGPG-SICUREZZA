@@ -266,6 +266,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const value = doc.data();
         if (!value || value.accountId !== accountId ||
             typeof value.connectionId !== "string" || !validId(value.connectionId) ||
+            doc.id !== value.connectionId ||
             !validSecretRef(value.secretRef, accountId, value.connectionId) ||
             value.status !== "pending" || !validPendingCleanupState(value)) return null;
         return value;
@@ -351,6 +352,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const value = doc.data();
         if (!value || value.accountId !== accountId ||
             typeof value.connectionId !== "string" || !validId(value.connectionId) ||
+            doc.id !== value.connectionId ||
             value.status !== "exhausted" || value.alertStatus !== "pending" ||
             !validExhaustedCleanupState(value)) return null;
         // Alert consumers receive a strict DTO; never expose secretRef,
