@@ -399,7 +399,7 @@ function mountLocalLearningUI(){
  const qwenAutoLabel=document.createElement("label");const qwenAuto=document.createElement("input");qwenAuto.type="checkbox";qwenAuto.disabled=true;
  qwenAutoLabel.append(qwenAuto,document.createTextNode(" Suggerisci etichette durante la lettura"));
  qwenRow.append(qwenInit,qwenAutoLabel);panel.append(qwenRow);
- const qwenStatus=document.createElement("p");qwenStatus.className="hint";qwenStatus.textContent="Qwen è facoltativo. Al primo avvio scarica i pesi del modello; l'inferenza resta sul dispositivo.";
+ const qwenStatus=document.createElement("p");qwenStatus.className="hint";qwenStatus.textContent="Qwen è facoltativo e funziona soltanto con runtime e modello già installati localmente. Nessun download, CDN o servizio remoto è consentito.";
  panel.append(qwenStatus);
  const suggestions=document.createElement("div");suggestions.className="hint";panel.append(suggestions);
  const status=document.createElement("p");status.className="hint";status.setAttribute("role","status");panel.append(status);
