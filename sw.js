@@ -20,7 +20,7 @@ async function installLocalAIAssets(cache){
   if(missing.length)throw new Error("Pacchetto AI incompleto: "+missing.join(", "));
   const seen=new Set();
   for(const item of manifest.assets){
-    if(!item||typeof item.path!=="string"||! /^(vendor|models)\\/[a-zA-Z0-9._/-]+$/.test(item.path)||item.path.split("/").includes("..")){
+    if(!item||typeof item.path!=="string"||! /^(vendor|models)\/[a-zA-Z0-9._/-]+$/.test(item.path)||item.path.split("/").includes("..")){
       throw new Error("Percorso asset AI non valido");
     }
     const url=new URL(item.path,APP_SCOPE);
