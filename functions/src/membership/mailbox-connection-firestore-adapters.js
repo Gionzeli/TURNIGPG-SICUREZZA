@@ -27,8 +27,9 @@ function normalizedEmail(value) {
     value === value.trim().toLowerCase() && EMAIL.test(value);
 }
 function validPendingCleanupState(value) {
-  if (!Number.isSafeInteger(value.attempts) || value.attempts < 1 || value.attempts >= 12 ||
-      !Number.isSafeInteger(value.updatedAt) || value.updatedAt < 1) return false;
+  if (!Number.isSafeInteger(value.createdAt) || value.createdAt < 1 ||
+      !Number.isSafeInteger(value.attempts) || value.attempts < 1 || value.attempts >= 12 ||
+      !Number.isSafeInteger(value.updatedAt) || value.updatedAt < value.createdAt) return false;
   if (value.attempts === 1) {
     return (value.nextAttemptAt === null || value.nextAttemptAt === undefined) &&
       (value.lastErrorCode === null || value.lastErrorCode === undefined);
@@ -233,8 +234,13 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const snapshot = await tx.get(ref);
         if (snapshot.exists) {
           const previous = snapshot.data();
+          const validExisting =
+            (previous.status === "pending" && validPendingCleanupState(previous)) ||
+            (previous.status === "exhausted" && validExhaustedCleanupState(previous)) ||
+            (previous.status === "complete" && validCompleteCleanupState(previous));
           if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
-              previous.secretRef !== secretRef) {
+              previous.secretRef !== secretRef || typeof previous.reason !== "string" ||
+              !/^[a-z0-9_-]{1,64}$/.test(previous.reason) || !validExisting) {
             const error = new Error("A conflicting cleanup record already exists.");
             error.code = "failed-precondition";
             throw error;
