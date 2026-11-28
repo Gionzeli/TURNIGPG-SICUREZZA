@@ -324,7 +324,7 @@ function parseTurns(text){
  const lines=String(text||"").replace(/\r/g,"\n").split("\n");let currentDate="",periodStart="";
  // Map only explicitly labelled PDF table columns when OCR word coordinates exist.
  // Text outside the date, time and workstation columns is never used as a shift field.
- let geoHeader=null,geoTable=false;
+ let geoHeader=null,geoTable=false,geoCurrentDate="";
  for(const raw of lines){
   const line=raw.replace(/^\s*(?:RIGA|Riga)\s+\d+\s*:\s*/i,"").trim();
   if(!line)continue;
@@ -388,7 +388,11 @@ function parseTurns(text){
    if(best&&!ambiguous&&best.key&&Object.prototype.hasOwnProperty.call(cells,best.key))cells[best.key].push(token.text);
   }
   const dateCell=cells.date.join(" "),timeCell=cells.time.join(" "),startCell=cells.start.join(" "),endCell=cells.end.join(" "),postCell=cells.post.join(" ").trim();
-  const date=fullDate(dateCell)||(!geoHeader.dateX?fullDate(line):"");
+  const parsedDate=fullDate(dateCell)||(!geoHeader.dateX?fullDate(line):"");
+  // Nei PDF le date sono spesso celle unite: la data vale anche per le righe
+  // successive finché una nuova data esplicita non la sostituisce.
+  if(parsedDate)geoCurrentDate=parsedDate;
+  const date=parsedDate||geoCurrentDate;
   const times=[...timeCell.matchAll(timeRe)],starts=[...startCell.matchAll(timeRe)],ends=[...endCell.matchAll(timeRe)];
   const pair=times.length>=2?[times[0],times[1]]:starts.length>=1&&ends.length>=1?[starts[0],ends[0]]:[];
   if(date&&pair.length===2&&postCell){
