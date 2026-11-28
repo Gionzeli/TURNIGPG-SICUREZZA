@@ -110,3 +110,9 @@ Questo è il primo collegamento di orchestrazione tra polling provider e pipelin
 - pianifica il prossimo polling dopo il completamento del batch.
 
 È stato aggiunto l'indice Firestore per `mailboxPolling.nextPollAt`. L'inizializzazione dello stato deve essere invocata dal flusso di creazione connessione prima che la casella entri nel polling; questa invocazione e il worker schedulato Firebase non sono ancora cablati. Il test harness è sintetico: l'esecuzione Emulator resta da fare.
+
+## Collegamento alla creazione della casella
+
+Il servizio server-side `mailbox-connection-service.js` ora richiede `initializePollingState` e lo invoca subito dopo il salvataggio della connessione attiva, prima dell'audit di creazione. Se l'inizializzazione fallisce, il flusso esistente entra nel percorso fail-closed: marca la connessione `revocation_pending`, disabilita il refresh e avvia la pulizia delle credenziali. Il test sintetico copre anche questo rollback.
+
+L'adapter Firestore fornisce `initializePollingState`, quindi il punto di aggancio è definito; manca ancora il composition root che costruisca e inietti concretamente il servizio connessioni e gli adapter nella funzione schedulata. Nessuna funzione schedulata è stata abilitata.
