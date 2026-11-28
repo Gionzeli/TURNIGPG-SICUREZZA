@@ -2,7 +2,7 @@
 <html lang="it">
 <head>
   <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Qwen offline — test privacy sintetico</title>
   <title>Qwen locale — prova sintetica</title>
   <style>
     :root { color-scheme: light dark; font: 16px/1.5 system-ui, sans-serif; }
@@ -18,34 +18,39 @@
 <body>
   <main>
     <h1>Prova manuale Qwen locale</h1>
-    <p>Questa pagina è un banco di prova isolato: usa soltanto il testo sintetico qui sotto. Non caricare documenti, immagini o dati personali.</p>
-    <p class="warning"><strong>Attenzione:</strong> questa prova richiede che runtime Transformers.js e modello Qwen siano già distribuiti localmente nell'app. Il caricamento da CDN e il download automatico sono disabilitati per rispettare il vincolo offline. Senza il pacchetto locale la prova deve fermarsi senza effettuare richieste di rete.</p>
-    <h2>Testo sintetico usato</h2>
-    <pre id="fixture"></pre>
-    <button id="run" type="button">Avvia prova reale</button>
-    <p id="status" role="status" aria-live="polite">In attesa. Nessun modello remoto verrà scaricato.</p>
+    <h1>Test privacy Qwen offline</h1>
+    <p>La prova verifica il blocco fail-closed e la riduzione del testo a sole etichette generiche. Non esegue inferenza reale e non carica documenti.</p>
+    <p class="warning"><strong>Offline:</strong> Qwen richiede runtime e modello già installati localmente. Nessun CDN o download automatico è consentito.</p>
+    <h2>Fixture sintetica</h2>
+    <pre id="fixture">Paga base 1.468,80 €\nCodice fiscale RSSMRA80A01H501U\nEmail mario@example.test\nScatti anzianità</pre>
+    <button id="run" type="button">Esegui controlli locali</button>
     <h2>Risultato</h2>
     <pre id="result">Nessuna inferenza eseguita.</pre>
     <p id="metrics"></p>
   </main>
   <script type="module">
-    import { createLocalQwen } from "../../local-qwen.js";
+    import { createLocalQwen, sanitizeLabelContext } from "../../local-qwen.js";
     const button = document.querySelector("#run");
     const status = document.querySelector("#status");
     const result = document.querySelector("#result");
     button.addEventListener("click", async () => {
       button.disabled = true;
       try {
-        await createLocalQwen().init();
-        status.textContent = "FAIL — Qwen si è avviato senza un runtime locale esplicito.";
-        result.textContent = "Il controllo privacy non è stato rispettato.";
+        const source = document.querySelector("#fixture").textContent;
+        const safe = sanitizeLabelContext(source, "payroll");
+        if (!safe.includes("Paga base") || !safe.includes("Scatti")) throw new Error("Etichette generiche attese non conservate.");
+        if (/1\\.468|RSSMRA|mario@example|H501U|80A01/i.test(safe)) throw new Error("Il contesto ridotto contiene ancora dati numerici o identificativi.");
+        let refused = false;
+        try { await createLocalQwen().init(); } catch (error) { refused = /offline non installato/i.test(String(error?.message || error)); }
+        if (!refused) throw new Error("Qwen senza runtime locale non si è bloccato.");
+        status.textContent = "PASS — contesto OCR ridotto e Qwen bloccato senza runtime locale.";
+        result.textContent = "Contesto minimo per eventuale inferenza locale:\\n" + safe;
       } catch (error) {
-        const message = String(error?.message || error);
-        const blocked = /offline non installato/i.test(message);
-        status.textContent = blocked ? "PASS — Qwen si blocca senza runtime locale; nessun CDN o download consentito." : "FAIL — errore inatteso.";
-        result.textContent = message;
+        status.textContent = "FAIL — controllo privacy non superato.";
+        result.textContent = String(error?.stack || error?.message || error);
       } finally { button.disabled = false; }
     });
+  </script>
   </script>
 </body>
 </html>
