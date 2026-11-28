@@ -6,6 +6,14 @@ const REQUIRED_ROLES = [
 ];
 
 const byRole = new Map();
+const EXPECTED_ENTRYPOINTS = {
+  "pdfjs-browser": "vendor/pdfjs/pdf.min.js",
+  "pdfjs-worker": "vendor/pdfjs/pdf.worker.min.js",
+  "tesseract-browser": "vendor/tesseract/tesseract.min.js",
+  "tesseract-worker": "vendor/tesseract/worker.min.js",
+  "tesseract-ita": "vendor/tesseract/lang/ita.traineddata.gz",
+  "tesseract-eng": "vendor/tesseract/lang/eng.traineddata.gz"
+};
 let runtimeModule = null;
 
 function localPath(item) {
@@ -49,9 +57,9 @@ async function bootstrapLocalAI() {
   }
 
   for (const item of manifest.assets) {
-    if (!item || !item.role || byRole.has(item.role)) {
-      throw new Error("Ruolo AI duplicato o non valido.");
-    }
+    if (!item || !item.role) throw new Error("Ruolo AI non valido.");
+    if (!byRole.has(item.role)) byRole.set(item.role, []);
+    byRole.get(item.role).push(item);
     if (!item.version || !item.license || !item.source ||
         !Number.isSafeInteger(item.sizeBytes) || item.sizeBytes < 1 ||
         !/^[a-f0-9]{64}$/i.test(item.sha256 || "")) {
@@ -59,15 +67,28 @@ async function bootstrapLocalAI() {
     }
     byRole.set(item.role, item);
   }
-  const missing = REQUIRED_ROLES.filter(role => !byRole.has(role));
+  const missing = REQUIRED_ROLES.filter(role => !byRole.has(role)?.length);
   if (missing.length) throw new Error("Pacchetto AI incompleto: " + missing.join(", "));
+  const first = role => byRole.get(role)[0];
+  for (const [role, expectedPath] of Object.entries(EXPECTED_ENTRYPOINTS)) {
+    if (!byRole.get(role).some(item => item.path === expectedPath)) {
+      throw new Error("Percorso asset non coerente per " + role + ": atteso " + expectedPath);
+    }
+  }
+  if (!byRole.get("paddle-model").every(item => item.path.startsWith("models/paddleocr/pp-ocrv6/")) ||
+      !byRole.get("onnxruntime-wasm").every(item => item.path.startsWith("vendor/onnxruntime/")) ||
+      !byRole.get("tesseract-core").every(item => item.path.startsWith("vendor/tesseract/")) ||
+      !byRole.get("transformers-runtime").some(item => item.path === "vendor/transformers/transformers.min.js") ||
+      !byRole.get("qwen-model").every(item => item.path.startsWith("models/qwen2.5-0.5b-instruct/"))) {
+    throw new Error("Percorsi di modello/runtime non coerenti con il contratto offline.");
+  }
 
   // Gli script classici espongono le API browser richieste dai lettori.
-  await loadClassicScript(localPath(byRole.get("pdfjs-browser")));
-  await loadClassicScript(localPath(byRole.get("tesseract-browser")));
-  await loadClassicScript(localPath(byRole.get("paddle-wrapper")));
+  await loadClassicScript(localPath(first("pdfjs-browser")));
+  await loadClassicScript(localPath(first("tesseract-browser")));
+  await loadClassicScript(localPath(first("paddle-wrapper")));
 
-  const transformerUrl = new URL(localPath(byRole.get("transformers-runtime")), location.href);
+  const transformerUrl = new URL(localPath(first("transformers-runtime")), location.href);
   runtimeModule = await import(transformerUrl.href);
   if (runtimeModule?.env?.backends?.onnx?.wasm) {
     runtimeModule.env.backends.onnx.wasm.wasmPaths = "./vendor/onnxruntime/";
