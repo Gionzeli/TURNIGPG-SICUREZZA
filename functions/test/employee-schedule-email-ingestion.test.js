@@ -405,3 +405,39 @@ test("excessive PDF extra notes are blocked instead of entering a proposal", asy
   assert.equal(result[0].blocked[0].reason, "invalid_additional_information");
   assert.equal(calls.proposals.length, 0);
 });
+
+
+test("PDF calendar extraction derives duration from the time column and ignores supplied hours", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [{
+      employeeMatchKey: "verified-employee-code",
+      confidence: 0.999,
+      shifts: [{
+        date: "2026-06-02", type: "turno", post: "Reception",
+        start_time: "22:00", end_time: "06:00", hours: 99
+      }]
+    }] }),
+    loadEmployeeShifts: async () => []
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "proposals_created");
+  assert.equal(calls.proposals[0].changes[0].shift.hours, 8);
+  assert.equal(Object.keys(calls.proposals[0].changes[0].shift).some(key => key.startsWith("is_")), false);
+});
+
+test("PDF parser cannot inject flags or unrelated columns into calendar shifts", async () => {
+  const { service, calls } = harness({
+    extractSchedule: async () => ({ documents: [{
+      employeeMatchKey: "verified-employee-code",
+      confidence: 0.999,
+      shifts: [{
+        date: "2026-06-02", type: "turno", post: "Reception",
+        start_time: "08:00", end_time: "14:00", is_night: true
+      }]
+    }] })
+  });
+  const result = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(result[0].status, "needs_review");
+  assert.equal(result[0].blocked[0].reason, "invalid_parsed_shift");
+  assert.equal(calls.proposals.length, 0);
+});
