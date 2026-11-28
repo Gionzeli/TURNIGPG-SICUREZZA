@@ -99,3 +99,20 @@ test("invalid calendar dates and shift fields are rejected before transaction", 
   }), { code: "invalid-argument" });
   assert.equal(db.values.size, 2);
 });
+
+
+test("single-field time edits remain valid and require a matching before revision", async () => {
+  const { adapter, db } = harness();
+  const update = {
+    ...input,
+    changes: [{ operation: "update", shiftId: "existing-shift", expectedRevision: 4, changes: { start_time: "09:00" } }],
+    before: [{ date: "2026-12-01", type: "turno", post: "A", start_time: "08:00", end_time: "16:00", hours: 8, revision: 4 }]
+  };
+  const result = await adapter.createEmployeeProposal(update);
+  assert.equal(result.status, "pending");
+  assert.equal(db.values.size, 3);
+  const { adapter: other } = harness();
+  await assert.rejects(other.createEmployeeProposal({
+    ...update, before: [{ ...update.before[0], revision: 3 }]
+  }), { code: "invalid-argument" });
+});
