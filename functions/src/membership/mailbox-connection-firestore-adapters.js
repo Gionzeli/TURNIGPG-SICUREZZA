@@ -289,7 +289,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
             previous.secretRef !== secretRef || previous.status !== "pending" ||
-            !validPendingCleanupState(previous) || attempts !== previous.attempts + 1) {
+            !validPendingCleanupState(previous) || timestamp < previous.updatedAt ||
+            attempts !== previous.attempts + 1) {
           const error = new Error("Cleanup retry ticket is stale or conflicting.");
           error.code = "failed-precondition";
           throw error;
@@ -365,7 +366,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         const previous = snapshot.data();
         if (previous.accountId !== accountId || previous.connectionId !== connectionId ||
             previous.status !== "exhausted" || previous.alertStatus !== "pending" ||
-            !validPendingAlertState(previous) || attempts !== (previous.alertAttempts ?? 0) + 1) {
+            !validPendingAlertState(previous) || timestamp < previous.updatedAt ||
+            attempts !== (previous.alertAttempts ?? 0) + 1) {
           const error = new Error("Cleanup alert retry is stale or conflicting.");
           error.code = "failed-precondition";
           throw error;
@@ -408,7 +410,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           }
           return;
         }
-        if (previous.alertStatus !== "pending" || !validPendingAlertState(previous)) {
+        if (previous.alertStatus !== "pending" || !validPendingAlertState(previous) ||
+            timestamp < previous.updatedAt) {
           const error = new Error("Cleanup alert is not pending.");
           error.code = "failed-precondition";
           throw error;
@@ -465,7 +468,8 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           throw error;
         }
         if ((previous.status === "pending" && !validPendingCleanupState(previous)) ||
-            (previous.status === "exhausted" && !validExhaustedCleanupState(previous))) {
+            (previous.status === "exhausted" && !validExhaustedCleanupState(previous)) ||
+            timestamp < previous.updatedAt) {
           const error = new Error("Cleanup ticket retry metadata is malformed.");
           error.code = "failed-precondition";
           throw error;
