@@ -1021,6 +1021,41 @@ test("resolved cleanup alert terminal metadata is validated on reads and repeat 
 });
 
 
+test("completion rejects stray alert metadata on a pending cleanup ticket", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  const original = docs.get(path);
+  for (const malformed of [
+    { alertAttempts: 1 },
+    { alertNextAttemptAt: input.timestamp + 1000 },
+    { alertLastErrorCode: "unavailable" },
+    { alertDeliveredAt: input.timestamp + 1 },
+    { alertResolvedAt: input.timestamp + 1 },
+    { alertStatus: "pending" }
+  ]) {
+    docs.set(path, { ...original, ...malformed });
+    await assert.rejects(adapters.completeSecretCleanup({
+      accountId: input.accountId, connectionId: input.connectionId,
+      timestamp: input.timestamp + 2
+    }), error => error.code === "failed-precondition");
+    assert.equal(docs.get(path).status, "pending");
+  }
+  docs.set(path, original);
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  });
+  assert.equal(docs.get(path).status, "complete");
+});
+
+
 test("completed cleanup reads reject malformed completion and retry history", async () => {
   const { db, docs } = fakeFirestore();
   const adapters = createMailboxConnectionFirestoreAdapters(db);
