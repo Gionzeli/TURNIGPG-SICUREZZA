@@ -913,3 +913,12 @@ stored state cannot be rewritten by a release operation. Synthetic regressions
 cover invalid owners, negative/unsafe fencing counters, malformed expiry values,
 and malformed revocation markers. No live Firestore, provider, or production
 credential service was used.
+
+
+### Secret pointer CAS validates the complete lease gate shape
+
+The Secret Manager pointer transaction now rejects malformed persisted revocation
+markers and negative expiry values, in addition to requiring the matching live
+owner/fencing proof and unexpired lease. This keeps malformed lease metadata
+from being interpreted as an active lease during credential-pointer promotion.
+Synthetic tests verify that rejected writes leave the active pointer unchanged.
