@@ -358,7 +358,9 @@ function parseTurns(text){
   const counts=known.reduce((acc,c)=>(acc[c.key]=(acc[c.key]||0)+1,acc),{});
   const date=known.find(c=>c.key==="date"),start=known.find(c=>c.key==="start"),end=known.find(c=>c.key==="end"),time=known.find(c=>c.key==="time"),post=known.find(c=>c.key==="post");
   const duplicate=Object.values(counts).some(count=>count>1);
-  if(duplicate||!(time||(start&&end))||!post||!(date||/\bdata\b|\bgiorno\b/.test(joined)))return null;
+  const hasDate=known.some(c=>c.key==="date"),hasTime=known.some(c=>["time","start","end"].includes(c.key)),hasPost=known.some(c=>c.key==="post");
+  const headerLike=hasDate&&hasTime&&(hasPost||known.length>=3);
+  if(duplicate||!(time||(start&&end))||!post||!(date||/\bdata\b|\bgiorno\b/.test(joined)))return headerLike?{invalid:true}:null;
   return {columns,dateX:date?.x??null,timeX:time?.x??null,startX:start?.x??null,endX:end?.x??null,postX:post.x};
  };
  for(const raw of lines){
@@ -369,6 +371,7 @@ function parseTurns(text){
   const joined=norm(tokens.map(t=>t.text).join(" "));
   if(!geoHeader){
    const candidate=buildGeoHeader(tokens,joined);
+   if(candidate?.invalid){geoCurrentDate="";geoTable=true;continue}
    if(candidate){geoHeader=candidate;geoTable=true}
    continue;
   }
@@ -379,6 +382,13 @@ function parseTurns(text){
   // Una nuova intestazione esplicita sostituisce sempre la geometria precedente:
   // tabelle successive possono cambiare ordine o larghezza delle colonne.
   const nextGeoHeader=buildGeoHeader(tokens,repeatedHeader);
+  if(nextGeoHeader?.invalid){
+   // Un'intestazione riconoscibile ma ambigua interrompe il blocco: non
+   // riutilizzare geometria o data della tabella precedente.
+   geoHeader=null;
+   geoCurrentDate="";
+   continue;
+  }
   if(nextGeoHeader){
    geoHeader=nextGeoHeader;
    geoCurrentDate="";
