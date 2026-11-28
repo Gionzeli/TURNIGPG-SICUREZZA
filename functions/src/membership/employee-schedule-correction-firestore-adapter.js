@@ -1,3 +1,4 @@
+import { createScheduleCorrectionLearning } from "./employee-schedule-correction-learning.js";
 import { createHash } from "node:crypto";
 
 const ID = /^[A-Za-z0-9_-]{1,128}$/;
@@ -66,5 +67,16 @@ export function createScheduleCorrectionFirestoreAdapter({ db }) {
         return value;
       });
     }
+  });
+}
+
+ 
+export function createFirestoreScheduleCorrectionLearning(options) {
+  const adapter = createScheduleCorrectionFirestoreAdapter(options);
+  return createScheduleCorrectionLearning({
+    recordCorrection: adapter.recordCorrection,
+    listCorrections: adapter.listCorrections,
+    now: options.now,
+    minimumExamples: options.minimumExamples
   });
 }
