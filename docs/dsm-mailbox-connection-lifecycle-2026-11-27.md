@@ -897,3 +897,8 @@ The Firestore alert-list adapter now includes only the cleanup ticket's validate
 ### Pending cleanup tickets reject alert-state contamination
 
 Pending cleanup tickets are now rejected by both the worker and Firestore adapter if any alert lifecycle field is populated. Alert metadata belongs only to exhausted cleanup tickets; allowing it on pending tickets could otherwise let secret deletion run before completion rejects the inconsistent record. Synthetic tests cover each alert field at both validation boundaries.
+
+
+### Retry-ceiling tickets cannot remain in the pending worker queue
+
+The worker now rejects a pending ticket already at the cleanup retry ceiling instead of silently counting it as exhausted while leaving it pending. The Firestore adapter's pending query excludes exhausted records; other adapters must preserve the same state transition contract. This prevents a permanently stranded ticket from being reported as exhausted without a durable exhausted-state transition or alert outbox entry.
