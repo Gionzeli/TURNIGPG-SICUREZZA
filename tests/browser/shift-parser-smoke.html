@@ -74,8 +74,20 @@
         if(repeatedHeader.length!==1||repeatedHeader[0].date!=="2026-12-09"||repeatedHeader[0].post!=="Sede Iota"){
           throw new Error("La data della pagina precedente è stata ereditata oltre una nuova intestazione: "+JSON.stringify(repeatedHeader));
         }
+        const changedGeometry=parser([
+          "RIGA 1: @100:Data | @300:Orario | @600:Postazione",
+          "RIGA 2: @100:10/12/2026 | @300:06:00 | @360:14:00 | @600:Sede Lambda",
+          "RIGA 3: @100:Data | @300:Postazione | @650:Orario",
+          "RIGA 4: @100:11/12/2026 | @300:Sede Mu | @650:14:00 | @710:22:00"
+        ].join("\n"));
+        if(changedGeometry.length!==2||
+          changedGeometry[0].date!=="2026-12-10"||changedGeometry[0].post!=="Sede Lambda"||
+          changedGeometry[1].date!=="2026-12-11"||changedGeometry[1].start_time!=="14:00"||
+          changedGeometry[1].end_time!=="22:00"||changedGeometry[1].post!=="Sede Mu"){
+          throw new Error("La nuova tabella non ha aggiornato la geometria delle colonne: "+JSON.stringify(changedGeometry));
+        }
         status.textContent="PASS — coordinate OCR: solo data, orari e Postazione; date unite, intestazioni ripetute e colonne escluse verificate.";
-        result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0],geometryColumns:geometry[0],splitTimeColumns:split[0],excludedColumns:excluded[0],multiwordHeader:multiword[0],splitStartEndLabels:splitLabels[0],mergedDateRows:mergedDate,repeatedHeader},null,2);
+        result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0],geometryColumns:geometry[0],splitTimeColumns:split[0],excludedColumns:excluded[0],multiwordHeader:multiword[0],splitStartEndLabels:splitLabels[0],mergedDateRows:mergedDate,repeatedHeader,changedGeometry},null,2);
       }catch(error){
         status.textContent="FAIL — controllo parser non superato.";
         result.textContent=String(error?.stack||error?.message||error);
