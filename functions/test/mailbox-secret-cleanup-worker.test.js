@@ -209,8 +209,8 @@ test("worker retries failed exhaustion alert delivery on a later invocation", as
       recordSecretCleanupFailure: async () => {},
       listPendingCleanupAlerts: async ({ accountId }) => alertStatus === "pending"
         ? [{ accountId, connectionId: "exhausted-connection", status: "exhausted",
-            alertStatus, attempts, lastErrorCode: "unavailable",
-            alertAttempts, alertNextAttemptAt }]
+            alertStatus, createdAt: 500, updatedAt: 500, attempts, nextAttemptAt: null, lastErrorCode: "unavailable",
+            alertAttempts, alertNextAttemptAt, alertLastErrorCode }]
         : [],
       recordCleanupAlertFailure: async input => {
         alertAttempts = input.attempts;
@@ -627,7 +627,7 @@ test("worker schedules alert retry from the time a failed send completes", async
   });
   await worker.runOnce({ accountId: "synthetic-account" });
   assert.equal(recorded.timestamp, 7000);
-  assert.equal(recorded.nextAttemptAt, 127000);
+  assert.equal(recorded.nextAttemptAt, 67000);
 });
 
 
@@ -636,6 +636,7 @@ test("worker retries a delivered alert when durable acknowledgement fails, reusi
   let alertStatus = "pending";
   let alertAttempts = 0;
   let alertNextAttemptAt = null;
+  let alertLastErrorCode = null;
   let acknowledgementCalls = 0;
   const sentIds = [];
   const failures = [];
@@ -650,12 +651,13 @@ test("worker retries a delivered alert when durable acknowledgement fails, reusi
       completeSecretCleanup: async () => {},
       recordSecretCleanupFailure: async () => {},
       listPendingCleanupAlerts: async () => alertStatus === "pending" ? [{
-        ...baseTicket, alertStatus, alertAttempts, alertNextAttemptAt
+        ...baseTicket, alertStatus, alertAttempts, alertNextAttemptAt, alertLastErrorCode
       }] : [],
       recordCleanupAlertFailure: async input => {
         failures.push(input);
         alertAttempts = input.attempts;
         alertNextAttemptAt = input.nextAttemptAt;
+        alertLastErrorCode = input.lastErrorCode;
       },
       markCleanupAlertDelivered: async () => {
         acknowledgementCalls++;
