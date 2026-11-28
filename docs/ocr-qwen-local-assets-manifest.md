@@ -56,7 +56,7 @@ I nomi dei file specifici di ONNX, Tesseract e dei pesi Qwen/Paddle dipendono da
 1. Registrare per ogni artefatto versione upstream, licenza, origine, dimensione e SHA-256; nessun artefatto senza provenienza verificabile.
 2. Includere SDK, worker, WASM, tokenizer, dizionari e pesi nel pacchetto pubblicato e nella cache PWA. Non scaricarli al primo avvio.
 3. Verificare che ogni percorso richiesto esista e che l'hash corrisponda prima di abilitare la funzione.
-4. Eseguire i test in browser con rete disabilitata e intercettazione di `fetch`, XHR, WebSocket e richieste worker; nessuna richiesta verso origini esterne deve essere generata dalla lettura.
+4. Eseguire `tests/browser/offline-ai-boundary-smoke.html` con componenti assenti e i test dei motori con gli asset presenti. In browser/CI, intercettare anche `fetch`, XHR, WebSocket e richieste worker; nessuna richiesta verso origini esterne deve essere generata dalla lettura.
 5. Verificare separatamente PDF.js, Tesseract, PaddleOCR, Qwen WebGPU e Qwen CPU/WASM con sole fixture sintetiche.
 6. Verificare memoria, tempi, cancellazione dei buffer temporanei e comportamento quando un asset è mancante/corrotto.
 7. Non abilitare la lettura automatica agli utenti finché tutti i gate pertinenti non sono passati.
