@@ -39,6 +39,34 @@ console.log("PASS — CSV serializer: formula prefixes, quotes, and invalid inpu
 const browser = await chromium.launch({ headless: true });
 let pageErrors = [];
 try {
+  // Verify the actual installed service worker version handshake used by the local AI bootstrap.
+  const swContext = await browser.newContext();
+  const swPage = await swContext.newPage();
+  await swPage.goto("http://127.0.0.1:8000/", { waitUntil: "domcontentloaded" });
+  await swPage.evaluate(async () => {
+    await navigator.serviceWorker.register("/sw.js?v=tg-v3.180", { updateViaCache: "none" });
+    await navigator.serviceWorker.ready;
+  });
+  await swPage.reload({ waitUntil: "domcontentloaded" });
+  const swVersion = await swPage.evaluate(() => new Promise((resolve, reject) => {
+    const controller = navigator.serviceWorker?.controller;
+    if (!controller) return reject(new Error("Service worker non controlla la pagina dopo l'installazione."));
+    const channel = new MessageChannel();
+    const timeout = setTimeout(() => {
+      channel.port1.close();
+      reject(new Error("Timeout handshake versione service worker."));
+    }, 5000);
+    channel.port1.onmessage = event => {
+      clearTimeout(timeout);
+      channel.port1.close();
+      resolve(event.data?.version || null);
+    };
+    controller.postMessage({ type: "DSM_LOCAL_AI_SW_VERSION" }, [channel.port2]);
+  }));
+  assert.equal(swVersion, "tg-v3.180", "La versione service worker non coincide con quella richiesta dal bootstrap AI.");
+  await swContext.close();
+  console.log("PASS — service worker installed version handshake matches local AI bootstrap");
+
   const page = await browser.newPage();
   page.on("pageerror", error => pageErrors.push(error.stack || error.message));
   const fixtureRequests = [];
