@@ -121,3 +121,6 @@ This is an integrity gate, not a PDF parser or OCR implementation. A separately 
 
 
 The PDF extractor also snapshots the supplied attachment bytes before hashing and awaiting the injected parser. This prevents a caller from mutating a shared Buffer between digest verification and parser consumption (time-of-check/time-of-use mismatch). A synthetic regression test mutates the caller's original buffer while the parser is suspended and verifies that the parser's snapshot remains unchanged.
+
+
+The Italian time-range parser now checks the full separator token `alle` before the shorter `a`, so a value such as `08:00 alle 14:00` is parsed without being rejected by a partial-token match. A synthetic regression test covers this format.
