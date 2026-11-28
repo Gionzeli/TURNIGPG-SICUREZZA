@@ -957,6 +957,9 @@ test("cleanup alert transitions reject malformed persisted retry metadata", asyn
   const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
   const original = docs.get(path);
   for (const malformed of [
+    { attempts: 11 },
+    { lastErrorCode: "INVALID CODE" },
+    { createdAt: 0 },
     { alertAttempts: "0" },
     { alertAttempts: -1 },
     { alertNextAttemptAt: -1 },
