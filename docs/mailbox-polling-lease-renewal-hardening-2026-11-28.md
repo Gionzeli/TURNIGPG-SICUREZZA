@@ -29,3 +29,8 @@ A remaining integration requirement is durable claim recovery: the injected `cla
 Added `createEmployeeScheduleIngestionJobFirestoreAdapter` for durable attachment-job claims. The job document is scoped to the account and keyed by the SHA-256 idempotency key. A live processing lease and terminal job are treated as duplicates; an expired processing lease is reclaimed transactionally with a new random lease token and incremented fencing token. Completion requires the current lease token and a still-live lease; stale workers cannot finish a reclaimed job. Terminal completion is idempotent for the same result.
 
 The ingestion core now requires the lease token/fencing token from active claims, passes them into employee proposal persistence, and supplies the token for every terminal job transition. The proposal persistence adapter must atomically enforce uniqueness on `{jobId}_{employeeId}` and reject stale fencing tokens in the same transaction as proposal creation. That proposal adapter and production wiring are still outstanding; until they exist, this is a durable job-claim adapter plus an explicit fencing contract, not end-to-end exactly-once delivery.
+
+
+### Job adapter consistency hardening
+
+The job adapter now uses the same injected document-reference factory for both claim and completion, so custom account-scoped storage paths cannot strand a claimed job in `processing`. Initial lease expiry is checked for safe-integer overflow before any Firestore write, and existing records must have `jobId` equal to the idempotency key. Synthetic regression cases cover custom references and unsafe initial expiry. These tests have been added but were not executed here.
