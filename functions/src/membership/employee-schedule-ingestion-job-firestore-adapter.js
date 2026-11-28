@@ -106,11 +106,15 @@ export function createEmployeeScheduleIngestionJobFirestoreAdapter({
         const snapshot = await tx.get(ref);
         if (!snapshot?.exists) fail("not-found", "Ingestion job does not exist.");
         const current = snapshot.data();
-        if (!current || current.accountId !== input.accountId || current.jobId !== input.jobId ||
-            current.leaseToken !== input.leaseToken) fail("failed-precondition", "Stale ingestion worker cannot finish this job.");
+        if (!current || current.accountId !== input.accountId || current.jobId !== input.jobId) {
+          fail("failed-precondition", "Ingestion job identity does not match.");
+        }
         if (TERMINAL.has(current.status)) {
           if (current.status !== input.status) fail("failed-precondition", "Ingestion job already has a different terminal result.");
           return Object.freeze({ status: current.status, duplicate: true });
+        }
+        if (current.leaseToken !== input.leaseToken) {
+          fail("failed-precondition", "Stale ingestion worker cannot finish this job.");
         }
         if (current.status !== "processing" || !Number.isSafeInteger(current.leaseExpiresAt) ||
             current.leaseExpiresAt <= timestamp) fail("failed-precondition", "Ingestion job lease expired before completion.");
