@@ -19,11 +19,11 @@
   <main>
     <h1>Prova manuale Qwen locale</h1>
     <p>Questa pagina è un banco di prova isolato: usa soltanto il testo sintetico qui sotto. Non caricare documenti, immagini o dati personali.</p>
-    <p class="warning"><strong>Attenzione:</strong> il primo avvio scarica il modello Q4 (circa 786 MB) e la libreria Transformers.js da CDN. Il download richiede rete, spazio cache e memoria; l'inferenza resta sul dispositivo.</p>
+    <p class="warning"><strong>Attenzione:</strong> questa prova richiede che runtime Transformers.js e modello Qwen siano già distribuiti localmente nell'app. Il caricamento da CDN e il download automatico sono disabilitati per rispettare il vincolo offline. Senza il pacchetto locale la prova deve fermarsi senza effettuare richieste di rete.</p>
     <h2>Testo sintetico usato</h2>
     <pre id="fixture"></pre>
     <button id="run" type="button">Avvia prova reale</button>
-    <p id="status" role="status" aria-live="polite">In attesa. Nessun modello è stato scaricato.</p>
+    <p id="status" role="status" aria-live="polite">In attesa. Nessun modello remoto verrà scaricato.</p>
     <h2>Risultato</h2>
     <pre id="result">Nessuna inferenza eseguita.</pre>
     <p id="metrics"></p>
