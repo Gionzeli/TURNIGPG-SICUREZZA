@@ -40,8 +40,8 @@ function normalizeShift(input, { existing = false } = {}) {
     if (minutes < 0) minutes += 24 * 60;
     return minutes / 60;
   })();
-  if ((!existing && (post.trim().length === 0 || start_time === "" || end_time === "")) ||
-      typeof post !== "string" || post.length > 80 ||
+  if (typeof post !== "string" || post.length > 80 ||
+      (!existing && (post.trim().length === 0 || start_time === "" || end_time === "")) ||
       (start_time !== "" && (typeof start_time !== "string" || !TIME.test(start_time))) ||
       (end_time !== "" && (typeof end_time !== "string" || !TIME.test(end_time))) ||
       ((start_time === "") !== (end_time === "")) ||
