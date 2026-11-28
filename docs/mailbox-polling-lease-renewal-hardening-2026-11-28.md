@@ -71,3 +71,8 @@ Added a separate Emulator-gated integration test for the composed persistence bo
 ### Proposal recovery after ingestion lease reclamation
 
 Added a regression case for the crash window where a worker has committed an employee proposal but fails before finishing the ingestion job. After the job lease is reclaimed, the stale lease token is rejected; the new fenced worker can submit the same immutable proposal payload and receives the existing proposal as an idempotent duplicate, without creating a second document. The test also confirms the proposal count remains unchanged. This is synthetic adapter coverage; execution is still pending.
+
+
+### Preserve proposal decisions during ingestion recovery
+
+The ingestion result now preserves the persisted proposal status (`pending`, `approved`, `rejected`, or `superseded`) returned by the idempotent Firestore proposal adapter. A recovered worker no longer reports an already-approved/rejected proposal as pending. The attachment job remains classified as `proposals_created` whenever at least one proposal exists, even if its decision changed while the worker was recovering. Synthetic regression coverage verifies the approved case.
