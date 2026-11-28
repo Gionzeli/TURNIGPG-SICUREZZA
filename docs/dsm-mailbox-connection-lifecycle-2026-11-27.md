@@ -857,3 +857,8 @@ and alert queue listings, retry transitions, alert acknowledgements, and
 completion all validate the persisted reason-code syntax. Synthetic regressions
 cover reason substitution and malformed persisted reasons; no live Firestore,
 vault, scheduler, or notifier was used.
+
+
+### Ordinary completed cleanup alert-field integrity
+
+Ordinary cleanup completions (those below the retry-exhaustion threshold) now reject any retained exhaustion-alert counters, retry timestamps, error codes, delivery timestamps, or resolution timestamps. These fields must be absent or null when no alert status exists. This closes a gap where direct reads and repeat completion could accept stray alert metadata on an otherwise valid completed ticket. Existing synthetic regressions cover stray retry counters and resolution timestamps; no live Firestore, vault, notifier, or scheduler was used.
