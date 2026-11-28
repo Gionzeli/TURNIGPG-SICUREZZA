@@ -337,11 +337,32 @@ function parseTurns(text){
     if(/^(?:data|giorno|date)$/.test(value))return "date";
     if(/^(?:inizio|dalle)$/.test(value))return "start";
     if(/^(?:fine|alle)$/.test(value))return "end";
-    if(/^(?:orario|ora|fascia|orario turno|fascia oraria)$/.test(value))return "time";
+    if(/^(?:orario|ora|fascia|orario turno|fascia oraria|ora inizio fine)$/.test(value))return "time";
     if(/^(?:postazione|post|sede)$/.test(value))return "post";
     return null; // le intestazioni non ammesse restano colonne esplicitamente ignorate
    };
-   const columns=tokens.map(t=>({x:t.x,key:classifyHeader(t.text)})).sort((a,b)=>a.x-b.x);
+   // Alcune intestazioni vengono riconosciute dall'OCR in più parole
+   // (es. "Fascia oraria" o "Orario turno"). Ricomponile solo nella riga
+   // d'intestazione, conservando le colonne non ammesse come confini fisici.
+   const columns=[],consumed=new Set();
+   for(let i=0;i<tokens.length;i++){
+    if(consumed.has(i))continue;
+    let match=null;
+    for(let width=Math.min(3,tokens.length-i);width>=2;width--){
+     const group=tokens.slice(i,i+width);
+     if(group.some((_,offset)=>consumed.has(i+offset)))continue;
+     const key=classifyHeader(group.map(x=>x.text).join(" "));
+     if(key){match={width,key,x:group.reduce((sum,x)=>sum+x.x,0)/group.length};break}
+    }
+    if(match){
+     columns.push({x:match.x,key:match.key});
+     for(let j=0;j<match.width;j++)consumed.add(i+j);
+    }else{
+     columns.push({x:tokens[i].x,key:classifyHeader(tokens[i].text)});
+     consumed.add(i);
+    }
+   }
+   columns.sort((a,b)=>a.x-b.x);
    const known=columns.filter(c=>c.key);
    const counts=known.reduce((acc,c)=>(acc[c.key]=(acc[c.key]||0)+1,acc),{});
    const date=known.find(c=>c.key==="date"),start=known.find(c=>c.key==="start"),end=known.find(c=>c.key==="end"),time=known.find(c=>c.key==="time"),post=known.find(c=>c.key==="post");
