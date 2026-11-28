@@ -204,7 +204,7 @@ export function createEmployeeScheduleEmailIngestion({
           const parsed = await extractSchedule({ bytes, filename: attachment.filename, sha256: attachmentSha256 });
           if (!parsed || !Array.isArray(parsed.documents) || parsed.documents.length < 1 || parsed.documents.length > 100 ||
               (connection.mode === "personal" && parsed.documents.length !== 1)) {
-            await finishIngestionJob({ accountId, jobId: claim.jobId, status: "needs_review", reason: "no_structured_schedule_or_personal_mailbox_mismatch" });
+            await finishIngestionJob({ accountId, jobId: claim.jobId, leaseToken: claim.leaseToken, status: "needs_review", reason: "no_structured_schedule_or_personal_mailbox_mismatch" });
             results.push({ status: "needs_review", jobId: claim.jobId, reason: "no_structured_schedule_or_personal_mailbox_mismatch" });
             continue;
           }
@@ -297,7 +297,7 @@ export function createEmployeeScheduleEmailIngestion({
           });
           results.push({ status, jobId: claim.jobId, proposals, blocked });
         } catch (error) {
-          await finishIngestionJob({ accountId, jobId: claim.jobId, status: "failed", reason: "processing_error" });
+          await finishIngestionJob({ accountId, jobId: claim.jobId, leaseToken: claim.leaseToken, status: "failed", reason: "processing_error" });
           throw error;
         }
       }
