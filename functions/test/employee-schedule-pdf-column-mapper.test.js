@@ -48,6 +48,13 @@ test("unreadable rows, ambiguous columns and conflicting time layouts fail close
   }
 });
 
+test("invalid calendar dates are not hidden by a document date context", () => {
+  assert.throws(() => mapPdfScheduleTables({ documents: [{
+    confidence: 1, dateContext: "2026-06-02",
+    tables: [{ headers: ["Data", "Postazione", "Orario"], rows: [["31/02/2026", "A", "08:00-09:00"]] }]
+  }] }));
+});
+
 test("invalid calendar dates and excessive PDF rows are rejected", () => {
   assert.throws(() => mapPdfScheduleTables({ documents: [{
     confidence: 1, tables: [{ headers: ["Data", "Postazione", "Orario"], rows: [["31/02/2026", "A", "08:00-09:00"]] }]
