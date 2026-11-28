@@ -78,10 +78,25 @@ The canonical callable currently sanitizes and returns `scheduleInfo` separately
 
 This is deterministic rule and test improvement, not model training or autonomous learning from personal documents. A user correction may inform a proposed rule, but must not automatically rewrite existing shifts or compensation records.
 
+## Existing browser OCR engine and remaining integration gap
+
+The repository already contains a browser-side document-reading stack; it must be maintained rather than replaced:
+
+- PDF.js 3.11.174 extracts selectable PDF text and rasterizes pages when OCR is required.
+- PaddleOCR.js 0.4.2 with PP-OCRv6 Italian and ONNX Runtime WASM is the primary OCR path for payslips.
+- Tesseract.js 5.1.1 with Italian and English data is the alternate OCR path for payslips and the current OCR path for shift documents.
+- `local-reader.js` contains deterministic payslip and shift parsers, and `index.html` connects them to the preview-before-save flow.
+- `local-qwen.js` is optional assistance for suggesting generic OCR label aliases; it is not the OCR engine and suggestions require approval.
+
+The backend `employee-schedule-pdf-column-mapper.js` is a separate strict mapper. It consumes structured tables from an injected extraction engine; the browser-side Paddle/Tesseract stack is not currently wired into that backend composition. Do not confuse this backend boundary with absence of OCR in the application.
+
+The legacy shift path still needs repair: it uses Tesseract rather than PaddleOCR and its line-oriented `parseTurns(text)` can infer a post from residual row text instead of proving that the text came from a dedicated `Postazione` column. It must not be treated as satisfying the strict shift-column policy. The PDF reader has also been adjusted to avoid rasterizing pages for which selectable text already contains a date and two times; payslip pages still use the PaddleOCR path.
+
 ## Integration and verification status
 
-- The current shift column mapper consumes structured tables from an injected PDF/OCR engine.
-- No PDF/OCR engine is bundled or activated by this mapper.
+- Browser OCR engines are already present and connected to the legacy local import preview.
+- PaddleOCR is currently used for payslips; Tesseract is currently used for shift OCR and as payslip fallback.
+- The backend shift column mapper still requires an injected structured-table extraction engine and is not connected to the browser OCR stack.
 - Employer-specific format registry and production document routing are not implemented here.
 - No real PDFs, payslip contents, employee records, provider credentials or production Firebase services are included.
-- This document changes no executable code and does not claim that tests have run.
+- The latest PDF rasterization change has not been executed in a browser test in this session.
