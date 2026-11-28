@@ -20,9 +20,9 @@
 </head>
 <body>
 <main>
-  <h1>Prova OCR reale per cedolini</h1>
+  <h1>Prova OCR Paddle — verifica dipendenze offline</h1>
   <p>Banco di prova isolato: genera una pagina di cedolino sintetica nel browser e la passa al percorso <code>LocalDocAI.ocrPayslipImages</code>, poi al parser deterministico <code>parsePayslip</code>. Nessun file esterno o documento personale viene caricato.</p>
-  <p class="warning"><strong>Dipendenze remote:</strong> il primo avvio carica SDK e modello PaddleOCR da CDN. Il codice di terze parti viene eseguito nella pagina e può tecnicamente accedere al contenuto in memoria. Usare soltanto questa fixture sintetica; non usare documenti reali in questo banco di prova.</p>
+  <p class="warning"><strong>Modalità offline rigorosa:</strong> PaddleOCR deve essere già installato nell’app come dipendenza locale. Questa prova usa soltanto una fixture sintetica; se l’SDK locale manca, il motore deve fermarsi senza scaricare componenti o effettuare richieste di rete.</p>
   <h2>Fixture immagine usata</h2>
   <canvas id="fixture" width="1600" height="1500" aria-label="Cedolino sintetico per il test OCR"></canvas>
   <p><button id="run" type="button">Avvia OCR Paddle + parser</button></p>
