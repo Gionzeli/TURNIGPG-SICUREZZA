@@ -318,22 +318,22 @@ function parseTurns(text){
  // Text outside the date, time and workstation columns is never used as a shift field.
  let geoHeader=null,geoTable=false;
  for(const raw of lines){
-  const line=raw.replace(/^\\s*(?:RIGA|Riga)\\s+\\d+\\s*:\\s*/i,"").trim();
+  const line=raw.replace(/^\s*(?:RIGA|Riga)\s+\d+\s*:\s*/i,"").trim();
   if(!line)continue;
-  const tokens=line.split("|").map(cell=>{const m=cell.trim().match(/^@(\\d+):\\s*(.*)$/);return m?{x:Number(m[1]),text:m[2].trim()}:null}).filter(Boolean);
+  const tokens=line.split("|").map(cell=>{const m=cell.trim().match(/^@(\d+):\s*(.*)$/);return m?{x:Number(m[1]),text:m[2].trim()}:null}).filter(Boolean);
   if(!tokens.length)continue;
   const joined=norm(tokens.map(t=>t.text).join(" "));
   if(!geoHeader){
    const date=tokens.find(t=>/^(?:data|giorno|date)$/i.test(norm(t.text)));
    const time=tokens.find(t=>/^(?:orario|ora|fascia|dalle|inizio)$/i.test(norm(t.text)));
    const post=tokens.find(t=>/^(?:postazione|post|sede)$/i.test(norm(t.text)));
-   if(time&&post&&(date||/\\bdata\\b|\\bgiorno\\b/.test(joined))){geoHeader={dateX:date?.x??null,timeX:time.x,postX:post.x};geoTable=true}
+   if(time&&post&&(date||/\bdata\b|\bgiorno\b/.test(joined))){geoHeader={dateX:date?.x??null,timeX:time.x,postX:post.x};geoTable=true}
    continue;
   }
   const headers=[{key:"date",x:geoHeader.dateX},{key:"time",x:geoHeader.timeX},{key:"post",x:geoHeader.postX}].filter(h=>h.x!==null).sort((a,b)=>a.x-b.x);
   const cells={date:[],time:[],post:[]};
   for(const token of tokens){let best=headers[0],distance=Infinity;for(const header of headers){const d=Math.abs(token.x-header.x);if(d<distance){best=header;distance=d}}if(best)cells[best.key].push(token.text)}
-  const dateCell=cells.date.join(" "),timeCell=cells.time.join(" "),postCell=cells.post.join(" ").replace(/^(?:postazione|post|sede)\\s*:?\\s*/i,"").trim();
+  const dateCell=cells.date.join(" "),timeCell=cells.time.join(" "),postCell=cells.post.join(" ").replace(/^(?:postazione|post|sede)\s*:?\s*/i,"").trim();
   const date=fullDate(dateCell)||(!geoHeader.dateX?fullDate(line):"");
   const times=[...timeCell.matchAll(timeRe)];
   if(date&&times.length>=2&&postCell){
