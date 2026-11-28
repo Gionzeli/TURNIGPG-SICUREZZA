@@ -873,3 +873,34 @@ test("resolved cleanup alert terminal metadata is validated on reads and repeat 
   }), error => error.code === "failed-precondition");
   assert.equal(stored.alertStatus, "resolved", "corrupt terminal record remains unchanged");
 });
+
+
+test("repeat completion rejects corrupt resolved alert retry history", async () => {
+  const { db, docs } = fakeFirestore();
+  const adapters = createMailboxConnectionFirestoreAdapters(db);
+  const input = {
+    accountId: active.accountId, connectionId: active.connectionId,
+    secretRef: active.credentialSecretRef, reason: "connection_revoked",
+    timestamp: active.createdAt + 1
+  };
+  await adapters.recordSecretCleanup(input);
+  await adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId,
+    secretRef: input.secretRef, attempts: 12, nextAttemptAt: null,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 1
+  });
+  await adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 2
+  });
+  const path = "accounts/" + input.accountId + "/mailboxCredentialCleanup/" + input.connectionId;
+  const stored = docs.get(path);
+  stored.alertAttempts = 2;
+  stored.alertLastErrorCode = null;
+  await assert.rejects(adapters.completeSecretCleanup({
+    accountId: input.accountId, connectionId: input.connectionId,
+    timestamp: input.timestamp + 3
+  }), error => error.code === "failed-precondition");
+  assert.equal(stored.status, "complete");
+  assert.equal(stored.alertStatus, "resolved");
+});
