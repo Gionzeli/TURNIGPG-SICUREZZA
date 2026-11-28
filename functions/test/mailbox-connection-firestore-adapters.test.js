@@ -827,6 +827,9 @@ test("cleanup alert transitions reject malformed persisted retry metadata", asyn
     { alertNextAttemptAt: input.timestamp + 5000 },
     { alertAttempts: 1, alertNextAttemptAt: input.timestamp + 5000 },
     { alertAttempts: 1, alertNextAttemptAt: input.timestamp + 5000, alertLastErrorCode: null },
+    { alertAttempts: 1, alertNextAttemptAt: input.timestamp, alertLastErrorCode: "unavailable" },
+    { alertAttempts: 1, alertNextAttemptAt: input.timestamp + 5000, alertLastErrorCode: "unavailable", updatedAt: "invalid" },
+    { alertAttempts: 1, alertNextAttemptAt: input.timestamp + 5000, alertLastErrorCode: "unavailable", updatedAt: input.timestamp + 6000 },
     { alertDeliveredAt: input.timestamp + 1 },
     { alertResolvedAt: input.timestamp + 1 }
   ]) {
