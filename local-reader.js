@@ -325,20 +325,25 @@ function parseTurns(text){
   const joined=norm(tokens.map(t=>t.text).join(" "));
   if(!geoHeader){
    const date=tokens.find(t=>/^(?:data|giorno|date)$/i.test(norm(t.text)));
-   const time=tokens.find(t=>/^(?:orario|ora|fascia|dalle|inizio)$/i.test(norm(t.text)));
+   const start=tokens.find(t=>/^(?:inizio|dalle)$/i.test(norm(t.text)));
+   const end=tokens.find(t=>/^(?:fine|alle)$/i.test(norm(t.text)));
+   const time=tokens.find(t=>/^(?:orario|ora|fascia)$/i.test(norm(t.text)));
    const post=tokens.find(t=>/^(?:postazione|post|sede)$/i.test(norm(t.text)));
-   if(time&&post&&(date||/\bdata\b|\bgiorno\b/.test(joined))){geoHeader={dateX:date?.x??null,timeX:time.x,postX:post.x};geoTable=true}
+   if((time||(start&&end))&&post&&(date||/\\bdata\\b|\\bgiorno\\b/.test(joined))){geoHeader={dateX:date?.x??null,timeX:time?.x??null,startX:start?.x??null,endX:end?.x??null,postX:post.x};geoTable=true}
    continue;
   }
-  const headers=[{key:"date",x:geoHeader.dateX},{key:"time",x:geoHeader.timeX},{key:"post",x:geoHeader.postX}].filter(h=>h.x!==null).sort((a,b)=>a.x-b.x);
-  const cells={date:[],time:[],post:[]};
+  const headers=[{key:"date",x:geoHeader.dateX},{key:"time",x:geoHeader.timeX},{key:"start",x:geoHeader.startX},{key:"end",x:geoHeader.endX},{key:"post",x:geoHeader.postX}].filter(h=>h.x!==null).sort((a,b)=>a.x-b.x);
+  const cells={date:[],time:[],start:[],end:[],post:[]};
   for(const token of tokens){let best=headers[0],distance=Infinity;for(const header of headers){const d=Math.abs(token.x-header.x);if(d<distance){best=header;distance=d}}if(best)cells[best.key].push(token.text)}
-  const dateCell=cells.date.join(" "),timeCell=cells.time.join(" "),postCell=cells.post.join(" ").trim();
+  const dateCell=cells.date.join(" "),timeCell=cells.time.join(" "),startCell=cells.start.join(" "),endCell=cells.end.join(" "),postCell=cells.post.join(" ").trim();
   const date=fullDate(dateCell)||(!geoHeader.dateX?fullDate(line):"");
-  const times=[...timeCell.matchAll(timeRe)];
-  if(date&&times.length>=2&&postCell){
-   const start=String(times[0][1]).padStart(2,"0")+":"+times[0][2],end=String(times[1][1]).padStart(2,"0")+":"+times[1][2];
+  const times=[...timeCell.matchAll(timeRe)],starts=[...startCell.matchAll(timeRe)],ends=[...endCell.matchAll(timeRe)];
+  const pair=times.length>=2?[times[0],times[1]]:starts.length>=1&&ends.length>=1?[starts[0],ends[0]]:[];
+  if(date&&pair.length===2&&postCell){
+   const start=String(pair[0][1]).padStart(2,"0")+":"+pair[0][2],end=String(pair[1][1]).padStart(2,"0")+":"+pair[1][2];
    const item={date,type:"turno",post:postCell.slice(0,120),start_time:start,end_time:end,piantonamento:false,notturno:false,ore:0};
+   const key=[date,"turno",start,end,norm(postCell)].join("|");if(!seen.has(key)){seen.add(key);out.push(item)}
+  }
    const key=[date,"turno",start,end,norm(postCell)].join("|");if(!seen.has(key)){seen.add(key);out.push(item)}
   }
  }
