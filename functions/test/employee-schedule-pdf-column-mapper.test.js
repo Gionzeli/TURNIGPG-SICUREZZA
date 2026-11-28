@@ -135,3 +135,37 @@ test("Italian 'alle' separator is parsed as a complete time-range token", () => 
     end_time: "14:00"
   });
 });
+
+test("learned PDF format regressions: punctuated headers and unpadded dotted times", () => {
+  const result = mapPdfScheduleTables({ documents: [{
+    confidence: 0.99,
+    tables: [{
+      headers: ["Data turno", "Postazione:", "Orario di lavoro", "Ore", "Mansione"],
+      rows: [["04/06/2026", "Reception", "8.00 alle 14.00", "6", "Accoglienza"]]
+    }]
+  }] });
+  assert.deepEqual(result.documents[0].shifts[0], {
+    date: "2026-06-04",
+    post: "Reception",
+    start_time: "08:00",
+    end_time: "14:00"
+  });
+});
+
+test("separate start/end columns normalize one-digit hour values", () => {
+  const result = mapPdfScheduleTables({ documents: [{
+    confidence: 0.99,
+    dateContext: "2026-06-05",
+    tables: [{
+      headers: ["Postazione", "Ora inizio", "Ora fine", "Note"],
+      rows: [["Portineria", "7:30", "15:00", "Cambio ingresso"]]
+    }]
+  }] });
+  assert.deepEqual(result.documents[0].shifts[0], {
+    date: "2026-06-05",
+    post: "Portineria",
+    start_time: "07:30",
+    end_time: "15:00"
+  });
+  assert.deepEqual(result.documents[0].additionalInfo, ["Cambio ingresso"]);
+});
