@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="it">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Parser turni — test sintetico colonne consentite</title>
+  <style>
+    body{font:16px/1.5 system-ui,sans-serif;max-width:760px;margin:2rem auto;padding:0 1rem}
+    pre{white-space:pre-wrap;background:#8881;padding:1rem;border-radius:8px}
+    #status{font-weight:700}
+  </style>
+</head>
+<body>
+  <h1>Test sintetico parser turni</h1>
+  <p>Usa soltanto righe inventate. Verifica che il parser non deduca postazione, piantonamento o notturno da testo residuo.</p>
+  <button id="run" type="button">Esegui controlli</button>
+  <p id="status" role="status">In attesa</p>
+  <pre id="result">Nessun test eseguito.</pre>
+  <script type="module">
+    import "../../local-reader.js";
+    const status=document.querySelector("#status");
+    const result=document.querySelector("#result");
+    document.querySelector("#run").addEventListener("click",()=>{
+      try{
+        const parser=window.LocalDocAI?.parseTurns;
+        if(typeof parser!=="function")throw new Error("Parser turni non disponibile");
+        const inferred=parser("01/12/2026 06:00 14:00 Cliente Alfa PIANTONAMENTO NOTTURNO");
+        if(inferred.length!==1)throw new Error("Atteso un solo turno sintetico");
+        const a=inferred[0];
+        if(a.date!=="2026-12-01"||a.start_time!=="06:00"||a.end_time!=="14:00"||a.post!==""||a.piantonamento!==false||a.notturno!==false||a.type!=="turno"){
+          throw new Error("Il parser ha inferito campi non consentiti: "+JSON.stringify(a));
+        }
+        const labelled=parser("02/12/2026 POSTAZIONE: Sede Alfa 14:00 22:00");
+        if(labelled.length!==1||labelled[0].post!=="Sede Alfa")throw new Error("Etichetta esplicita POSTAZIONE non riconosciuta");
+        status.textContent="PASS — date, orari e postazione esplicita; testo residuo e flag ignorati.";
+        result.textContent=JSON.stringify({withoutPostazione:a,withPostazione:labelled[0]},null,2);
+      }catch(error){
+        status.textContent="FAIL — controllo parser non superato.";
+        result.textContent=String(error?.stack||error?.message||error);
+      }
+    });
+  </script>
+</body>
+</html>
