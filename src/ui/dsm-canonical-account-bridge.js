@@ -227,13 +227,27 @@ export function mountDSMCanonicalAccountBridge(container, {
         const origin = proposal.source === "employer_email" ? "PDF da email aziendale verificata" : proposal.source === "employee_manual" ? "inserimento manuale" : "origine non riconosciuta";
         const detail = document.createElement("p"); detail.textContent = proposal.status + " — " + proposal.changeCount + " variazioni — origine: " + origin;
         article.append(heading, detail);
+        if (Array.isArray(proposal.additionalInfo) && proposal.additionalInfo.length) {
+          const infoButton = document.createElement("button"); infoButton.type = "button"; infoButton.textContent = "ℹ️ Informazioni";
+          infoButton.setAttribute("aria-expanded", "false");
+          const infoContent = document.createElement("div"); infoContent.hidden = true;
+          infoContent.setAttribute("aria-label", "Informazioni aggiuntive dal PDF");
+          for (const note of proposal.additionalInfo) {
+            if (typeof note !== "string" || !note.trim()) continue;
+            const paragraph = document.createElement("p"); paragraph.textContent = note; infoContent.append(paragraph);
+          }
+          infoButton.addEventListener("click", () => {
+            infoContent.hidden = !infoContent.hidden;
+            infoButton.setAttribute("aria-expanded", String(!infoContent.hidden));
+          });
+          article.append(infoButton, infoContent);
+        }
         for (let changeIndex = 0; changeIndex < (proposal.changes ?? []).length; changeIndex++) {
           const change = proposal.changes[changeIndex];
           const before = proposal.before?.[changeIndex] ?? null;
           const line = document.createElement("p");
           if (change.operation === "create") {
-            const extra = Object.entries(change.shift ?? {}).filter(([key]) => !["date", "type", "post", "start_time", "end_time"].includes(key)).map(([key, value]) => key + ": " + String(value)).join(", ");
-            line.textContent = "Nuovo turno: " + (change.shift?.date ?? "") + ", " + (change.shift?.type ?? "") + ", " + (change.shift?.post ?? "") + ", " + (change.shift?.start_time ?? "") + "-" + (change.shift?.end_time ?? "") + (extra ? " — " + extra : "");
+            line.textContent = "Nuovo turno: " + (change.shift?.date ?? "") + " — " + (change.shift?.post ?? "") + " — " + (change.shift?.start_time ?? "") + "-" + (change.shift?.end_time ?? "");
             article.append(line);
           } else if (change.operation === "delete") {
             line.textContent = "Eliminazione turno: " + (before?.date ?? "") + ", " + (before?.type ?? "") + ", " + (before?.post ?? "") + ", " + (before?.start_time ?? "") + "-" + (before?.end_time ?? "");
@@ -241,9 +255,12 @@ export function mountDSMCanonicalAccountBridge(container, {
           } else {
             line.textContent = "Modifica turno del " + (before?.date ?? "") + " (revisione " + change.expectedRevision + ")";
             article.append(line);
+            const visibleFields = new Set(["post", "start_time", "end_time"]);
             for (const [field, value] of Object.entries(change.changes ?? {})) {
+              if (!visibleFields.has(field)) continue;
               const diff = document.createElement("p");
-              diff.textContent = field + ": " + String(before?.[field] ?? "—") + " → " + String(value);
+              const label = field === "post" ? "Postazione" : field === "start_time" ? "Ora inizio" : "Ora fine";
+              diff.textContent = label + ": " + String(before?.[field] ?? "—") + " → " + String(value);
               article.append(diff);
             }
           }
