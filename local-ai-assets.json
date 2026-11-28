@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "enabled": false,
+  "mode": "bundled-offline",
+  "requiredRoles": [
+    "pdfjs-browser",
+    "pdfjs-worker",
+    "tesseract-browser",
+    "tesseract-worker",
+    "tesseract-core",
+    "tesseract-ita",
+    "tesseract-eng",
+    "paddle-wrapper",
+    "paddle-model",
+    "onnxruntime-wasm",
+    "transformers-runtime",
+    "qwen-model"
+  ],
+  "assets": [],
+  "note": "Non abilitare finché tutti i ruoli richiesti non sono presenti con percorso same-origin, dimensione e SHA-256 verificati."
+}
