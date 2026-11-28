@@ -32,6 +32,28 @@ function validPendingTicket(ticket, accountId) {
     : ticket.nextAttemptAt === null && typeof ticket.lastErrorCode === "string";
 }
 
+function validPendingAlertTicket(ticket, accountId) {
+  const attempts = ticket?.alertAttempts ?? 0;
+  const nextAttemptAt = ticket?.alertNextAttemptAt ?? null;
+  const lastErrorCode = ticket?.alertLastErrorCode ?? null;
+  if (!ticket || ticket.accountId !== accountId ||
+      typeof ticket.connectionId !== "string" || !ID_RE.test(ticket.connectionId) ||
+      ticket.status !== "exhausted" || ticket.alertStatus !== "pending" ||
+      !Number.isSafeInteger(ticket.createdAt) || ticket.createdAt < 1 ||
+      !Number.isSafeInteger(ticket.updatedAt) || ticket.updatedAt < ticket.createdAt ||
+      !Number.isSafeInteger(ticket.attempts) || ticket.attempts < MAX_ATTEMPTS ||
+      ticket.nextAttemptAt !== null ||
+      typeof ticket.lastErrorCode !== "string" || !/^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode) ||
+      !Number.isSafeInteger(attempts) || attempts < 0 || attempts >= Number.MAX_SAFE_INTEGER ||
+      (attempts === 0
+        ? nextAttemptAt !== null || lastErrorCode !== null
+        : !Number.isSafeInteger(nextAttemptAt) || nextAttemptAt < ticket.updatedAt ||
+          typeof lastErrorCode !== "string" || !/^[a-z0-9_-]{1,64}$/.test(lastErrorCode)) ||
+      (ticket.alertDeliveredAt !== null && ticket.alertDeliveredAt !== undefined) ||
+      (ticket.alertResolvedAt !== null && ticket.alertResolvedAt !== undefined)) return false;
+  return true;
+}
+
 function safeCode(error) {
   const value = typeof error?.code === "string" ? error.code : "unknown";
   return /^[a-z0-9_-]{1,64}$/.test(value) ? value : "unknown";
@@ -171,23 +193,9 @@ export function createMailboxSecretCleanupWorker({
         return summary;
       }
       for (const ticket of pendingAlerts) {
-        const alertAttempts = ticket?.alertAttempts ?? 0;
-        const alertNextAttemptAt = ticket?.alertNextAttemptAt ?? null;
-        const alertLastErrorCode = ticket?.alertLastErrorCode ?? null;
-        const validAlertRetryHistory = Number.isSafeInteger(alertAttempts) && alertAttempts >= 0 &&
-          (alertAttempts === 0
-            ? alertNextAttemptAt === null && alertLastErrorCode === null
-            : Number.isSafeInteger(alertNextAttemptAt) && alertNextAttemptAt >= 1 &&
-              typeof alertLastErrorCode === "string" &&
-              /^[a-z0-9_-]{1,64}$/.test(alertLastErrorCode));
-        if (!ticket || ticket.accountId !== accountId ||
-            typeof ticket.connectionId !== "string" ||
-            !ID_RE.test(ticket.connectionId) ||
-            ticket.status !== "exhausted" || ticket.alertStatus !== "pending" ||
-            !Number.isSafeInteger(ticket.attempts) || ticket.attempts < MAX_ATTEMPTS ||
-            typeof ticket.lastErrorCode !== "string" ||
-            !/^[a-z0-9_-]{1,64}$/.test(ticket.lastErrorCode) ||
-            !validAlertRetryHistory || alertAttempts === Number.MAX_SAFE_INTEGER) continue;
+        if (!validPendingAlertTicket(ticket, accountId)) continue;
+        const alertAttempts = ticket.alertAttempts ?? 0;
+        const alertNextAttemptAt = ticket.alertNextAttemptAt ?? null;
         let alertTimestamp;
         try { alertTimestamp = readWorkerTimestamp(now); }
         catch { return summary; }
