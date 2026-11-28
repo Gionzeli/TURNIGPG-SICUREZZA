@@ -96,12 +96,18 @@ function validCompleteCleanupState(value) {
   if (!Number.isSafeInteger(value.createdAt) || value.createdAt < 1 ||
       !Number.isSafeInteger(value.completedAt) || value.completedAt < value.createdAt ||
       !Number.isSafeInteger(value.updatedAt) || value.updatedAt < value.completedAt) return false;
+  if (!Number.isSafeInteger(value.attempts) || value.attempts < 1 ||
+      value.nextAttemptAt !== null ||
+      (value.alertStatus !== null && value.alertStatus !== undefined)) return false;
   if (value.attempts >= 12) {
     return validExhaustedCleanupState({ ...value, status: "exhausted" }) &&
       ["delivered", "resolved"].includes(value.alertStatus);
   }
-  if (value.alertStatus !== null && value.alertStatus !== undefined) return false;
-  return validPendingCleanupState(value);
+  if (value.attempts === 1) {
+    return value.lastErrorCode === null || value.lastErrorCode === undefined;
+  }
+  return typeof value.lastErrorCode === "string" &&
+    /^[a-z0-9_-]{1,64}$/.test(value.lastErrorCode);
 }
 function validateConnection(accountId, connectionId, value) {
   if (!value || typeof value !== "object" || Array.isArray(value) ||
@@ -457,21 +463,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
           throw error;
         }
         if (previous.status === "complete") {
-          const alertStateValid = (previous.alertStatus === undefined || previous.alertStatus === null)
-            ? (previous.alertAttempts === null || previous.alertAttempts === undefined) &&
-              (previous.alertNextAttemptAt === null || previous.alertNextAttemptAt === undefined) &&
-              (previous.alertLastErrorCode === null || previous.alertLastErrorCode === undefined) &&
-              (previous.alertDeliveredAt === null || previous.alertDeliveredAt === undefined) &&
-              (previous.alertResolvedAt === null || previous.alertResolvedAt === undefined)
-            : (previous.alertStatus === "delivered" && validExhaustedCleanupState({
-                ...previous, status: "exhausted"
-              })) ||
-              (previous.alertStatus === "resolved" && validExhaustedCleanupState({
-                ...previous, status: "exhausted"
-              }));
-          if (!Number.isSafeInteger(previous.completedAt) || previous.completedAt < 1 ||
-              !Number.isSafeInteger(previous.updatedAt) || previous.updatedAt < previous.completedAt ||
-              !alertStateValid) {
+          if (!validCompleteCleanupState(previous)) {
             const error = new Error("Completed cleanup record metadata is malformed.");
             error.code = "failed-precondition";
             throw error;
@@ -518,6 +510,7 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         // automated retry ceiling. Resolve its undelivered exhaustion alert.
         tx.set(ref, {
           ...previous, status: "complete", completedAt: timestamp, updatedAt: timestamp,
+          nextAttemptAt: null,
           ...(previous.alertStatus === "pending"
             ? {alertStatus: "resolved", alertResolvedAt: timestamp, alertNextAttemptAt: null}
             : {})
