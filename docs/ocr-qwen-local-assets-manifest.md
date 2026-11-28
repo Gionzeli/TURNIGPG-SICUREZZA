@@ -51,6 +51,13 @@ I nomi dei file specifici di ONNX, Tesseract e dei pesi Qwen/Paddle dipendono da
 - Il ruolo attuale di Qwen è limitato a suggerire alias di etichette generiche sanificate. Non corregge ancora segmenti OCR incerti e non deve essere presentato come un correttore OCR già integrato.
 - Una futura assistenza agli errori OCR dovrà ricevere solo ritagli/testo strettamente necessari e sanificati, mantenere il testo originale e le bbox, restituire alternative con confidenza e motivazione, e lasciare la decisione a controlli deterministici e revisione umana. Vietato applicare direttamente correzioni a importi, date, orari o colonne.
 
+## Avvio e cache PWA
+
+- `local-ai-bootstrap.js` legge il manifest same-origin e carica soltanto gli script locali dichiarati per PDF.js, Tesseract e PaddleOCR; importa il runtime Transformers.js locale e disabilita i modelli remoti.
+- `local-reader.js` inietta il loader Qwen locale nel client `createLocalQwen`; se il pacchetto non è pronto, Qwen resta disabilitato senza fallback remoto.
+- Il service worker verifica i file prima della cache PWA. Un pacchetto abilitato ma incompleto o con hash errato non viene attivato.
+- `node tools/verify-local-ai-assets.mjs` controlla manifest, file, dimensioni, provenienza, licenza e SHA-256; `--require-ready` blocca la build se i modelli non sono tutti presenti.
+
 ## Gate prima di dichiarare "offline pronto"
 
 1. Registrare per ogni artefatto versione upstream, licenza, origine, dimensione e SHA-256; nessun artefatto senza provenienza verificabile.
