@@ -369,6 +369,11 @@ test("cleanup retry metadata persists backoff and rejects stale attempts", async
   assert.equal(docs.get(ticketPath).lastErrorCode, "unavailable");
   await assert.rejects(adapters.recordSecretCleanupFailure({
     accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
+    attempts: 4, nextAttemptAt: input.timestamp + 90000,
+    lastErrorCode: "unavailable", timestamp: input.timestamp + 3
+  }), error => error.code === "failed-precondition", "retry counters cannot skip a failure");
+  await assert.rejects(adapters.recordSecretCleanupFailure({
+    accountId: input.accountId, connectionId: input.connectionId, secretRef: input.secretRef,
     attempts: 2, nextAttemptAt: input.timestamp + 30000,
     lastErrorCode: "unavailable", timestamp: input.timestamp + 3
   }), error => error.code === "failed-precondition");
