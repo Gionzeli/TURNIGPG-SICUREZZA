@@ -212,10 +212,12 @@ export function createEmployeeScheduleEmailIngestion({
           const blocked = [];
           const resolvedEmployeeIds = new Set();
           for (const document of parsed.documents) {
+            const hasRawMatchKey = !!document && Object.hasOwn(document, "employeeMatchKey");
             const hasMatchKey = typeof document?.employeeMatchKey === "string" &&
-              document.employeeMatchKey.length >= 1 && document.employeeMatchKey.length <= 128;
+              document.employeeMatchKey.length >= 1 && document.employeeMatchKey.length <= 128 &&
+              document.employeeMatchKey.trim().length > 0 && !/[\\x00-\\x1f\\x7f]/.test(document.employeeMatchKey);
             if (!document || (connection.mode === "shared" && !hasMatchKey) ||
-                (hasMatchKey && (document.employeeMatchKey.length < 1 || document.employeeMatchKey.length > 128)) ||
+                (hasRawMatchKey && !hasMatchKey) ||
                 !Number.isFinite(document.confidence) || document.confidence < minConfidence ||
                 !Array.isArray(document.shifts) || document.shifts.length < 1 || document.shifts.length > 62) {
               blocked.push({ reason: "low_confidence_or_invalid_document" });
