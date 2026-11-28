@@ -116,3 +116,24 @@ test("single-field time edits remain valid and require a matching before revisio
     ...update, before: [{ ...update.before[0], revision: 3 }]
   }), { code: "invalid-argument" });
 });
+
+
+test("reclaimed lease can recover an already-created proposal without duplicating it", async () => {
+  const { adapter, db } = harness();
+  const first = await adapter.createEmployeeProposal(input);
+  const jobPath = `accounts/${accountId}/scheduleIngestionJobs/${jobId}`;
+  db.values.set(jobPath, {
+    ...db.values.get(jobPath),
+    leaseToken: "d".repeat(64),
+    fencingToken: 3,
+    leaseExpiresAt: 30_000
+  });
+
+  await assert.rejects(adapter.createEmployeeProposal(input), { code: "failed-precondition" });
+  const recovered = await adapter.createEmployeeProposal({
+    ...input, ingestionLeaseToken: "d".repeat(64), ingestionFencingToken: 3
+  });
+  assert.equal(recovered.proposalId, first.proposalId);
+  assert.equal(recovered.duplicate, true);
+  assert.equal(db.values.size, 3);
+});
