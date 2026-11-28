@@ -77,6 +77,12 @@ self.addEventListener("install",event=>{
   })());
 });
 
+self.addEventListener("message",event=>{
+  if(event.data?.type==="DSM_LOCAL_AI_SW_VERSION"){
+    event.ports?.[0]?.postMessage({version:VERSION});
+  }
+});
+
 self.addEventListener("activate",event=>{
   event.waitUntil(caches.keys().then(keys=>Promise.all(
     keys.filter(key=>key!==VERSION).map(key=>caches.delete(key))
