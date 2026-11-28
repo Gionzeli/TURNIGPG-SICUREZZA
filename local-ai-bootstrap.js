@@ -1,4 +1,4 @@
-const EXPECTED_SW_VERSION = "tg-v3.179";
+const EXPECTED_SW_VERSION = "tg-v3.180";
 const REQUIRED_ROLES = [
   "pdfjs-browser","pdfjs-worker",
   "tesseract-browser","tesseract-worker","tesseract-core","tesseract-ita","tesseract-eng",
