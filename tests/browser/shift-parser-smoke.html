@@ -91,7 +91,7 @@
           "RIGA 2: @100:12/12/2026 | @300:06:00 | @360:14:00 | @600:Sede Nu",
           "RIGA 3: @100:Data | @300:Orario | @450:Orario | @600:Postazione",
           "RIGA 4: @100: | @300:14:00 | @450:22:00 | @600:Sede Xi"
-        ].join("\\n"));
+        ].join("\n"));
         if(ambiguousHeader.length!==1||ambiguousHeader[0].date!=="2026-12-12"||ambiguousHeader[0].post!=="Sede Nu"){
           throw new Error("Un'intestazione ambigua ha riutilizzato la data o la geometria precedente: "+JSON.stringify(ambiguousHeader));
         }
