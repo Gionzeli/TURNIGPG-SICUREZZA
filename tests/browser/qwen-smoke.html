@@ -53,8 +53,34 @@ Scatti anzianità</pre>
           refused = /offline non installato/i.test(String(error?.message || error));
         }
         if (!refused) throw new Error("Qwen senza runtime locale non si è bloccato.");
-        status.textContent = "PASS — contesto OCR ridotto e Qwen bloccato senza runtime locale.";
-        result.textContent = "Contesto minimo per eventuale inferenza locale:\n" + safe;
+
+        let pipelineArgs = null, runtimeEnv = {};
+        const local = createLocalQwen({
+          pipelineLoader: async () => ({
+            env: runtimeEnv,
+            pipeline: async (...args) => {
+              pipelineArgs = args;
+              return async () => [{ generated_text: JSON.stringify({ aliases: [
+                { field: "paga_base", label: "Paga base" },
+                { field: "scatti", label: "Scatti anzianità" },
+                { field: "paga_base", label: "Mario Rossi" }
+              ] }) }];
+            }
+          })
+        });
+        const initialized = await local.init();
+        if (!initialized.ready || !pipelineArgs || pipelineArgs[0] !== "text-generation" ||
+            pipelineArgs[1] !== "qwen2.5-0.5b-instruct" ||
+            runtimeEnv.allowRemoteModels !== false || runtimeEnv.allowLocalModels !== true ||
+            runtimeEnv.useBrowserCache !== true) {
+          throw new Error("Configurazione runtime locale Qwen non conforme: " + JSON.stringify({ initialized, pipelineArgs, runtimeEnv }));
+        }
+        const suggestions = await local.suggestAliases(safe, "payroll");
+        if (suggestions.length !== 2 || suggestions.some(x => /Mario|Rossi/i.test(x.alias))) {
+          throw new Error("Filtro delle proposte Qwen non ha escluso etichette non sicure: " + JSON.stringify(suggestions));
+        }
+        status.textContent = "PASS — fail-closed, runtime locale, modelli remoti disabilitati e proposte filtrate.";
+        result.textContent = JSON.stringify({ safeContext: safe, pipeline: pipelineArgs.slice(0, 2), remoteModels: runtimeEnv.allowRemoteModels, suggestions }, null, 2);
       } catch (error) {
         status.textContent = "FAIL — controllo privacy non superato.";
         result.textContent = String(error?.stack || error?.message || error);
