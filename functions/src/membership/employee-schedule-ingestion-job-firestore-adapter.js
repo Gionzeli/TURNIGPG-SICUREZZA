@@ -42,6 +42,7 @@ export function createEmployeeScheduleIngestionJobFirestoreAdapter({
       validateScope(input);
       const ref = jobRefForKey({ accountId: input.accountId, idempotencyKey: input.idempotencyKey });
       const timestamp = clock();
+      if (!Number.isSafeInteger(timestamp + leaseMs)) fail("unavailable", "Ingestion job lease expiry is outside the safe clock range.");
       const leaseToken = createLeaseToken();
       if (typeof leaseToken !== "string" || !/^[a-f0-9]{32,128}$/.test(leaseToken)) {
         fail("unavailable", "Ingestion job lease token is invalid.");
@@ -65,6 +66,7 @@ export function createEmployeeScheduleIngestionJobFirestoreAdapter({
             current.provider !== input.provider || current.messageId !== input.messageId ||
             current.attachmentSha256 !== input.attachmentSha256 ||
             current.idempotencyKey !== input.idempotencyKey ||
+            current.jobId !== input.idempotencyKey ||
             !Number.isSafeInteger(current.fencingToken) || current.fencingToken < 1 ||
             !Number.isSafeInteger(current.attempt) || current.attempt < 1 ||
             !Number.isSafeInteger(current.updatedAt) || current.updatedAt < 1) {
@@ -98,7 +100,7 @@ export function createEmployeeScheduleIngestionJobFirestoreAdapter({
       if (!ID.test(input?.accountId ?? "") || !ID.test(input?.jobId ?? "") ||
           !/^[a-f0-9]{32,128}$/.test(input?.leaseToken ?? "") ||
           !TERMINAL.has(input?.status)) fail("invalid-argument", "Ingestion job completion is invalid.");
-      const ref = db.doc(`accounts/${input.accountId}/scheduleIngestionJobs/${input.jobId}`);
+      const ref = jobRefForKey({ accountId: input.accountId, idempotencyKey: input.jobId });
       const timestamp = clock();
       return db.runTransaction(async tx => {
         const snapshot = await tx.get(ref);
