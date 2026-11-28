@@ -275,3 +275,23 @@ test("non-PDF and malformed PDF attachments never reach the parser", async () =>
   assert.equal(calls.proposals.length, 0);
   assert.equal(calls.scans, 0);
 });
+
+test("replayed ingestion presents the same stable employee proposal idempotency key", async () => {
+  const { service, calls } = harness({
+    claimIngestionJob: async input => {
+      calls.claims.push(input);
+      return { jobId: "stable-replay-job", duplicate: false };
+    },
+    createEmployeeProposal: async input => {
+      calls.proposals.push(input);
+      return { proposalId: "stable-proposal" };
+    }
+  });
+  const first = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  const second = await service.ingest({ accountId, connectionId, message, attachments: [attachment] });
+  assert.equal(first[0].status, "proposals_created");
+  assert.equal(second[0].status, "proposals_created");
+  assert.equal(calls.claims[0].idempotencyKey, calls.claims[1].idempotencyKey);
+  assert.equal(calls.proposals[0].idempotencyKey, "stable-replay-job_synthetic-employee");
+  assert.equal(calls.proposals[1].idempotencyKey, calls.proposals[0].idempotencyKey);
+});
