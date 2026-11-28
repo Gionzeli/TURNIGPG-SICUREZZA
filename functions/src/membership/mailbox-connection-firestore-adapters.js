@@ -437,12 +437,12 @@ export function createMailboxConnectionFirestoreAdapters(db) {
         }
         if (previous.status === "complete") {
           const alertStateValid = previous.alertStatus === undefined || previous.alertStatus === null ||
-            (previous.alertStatus === "delivered" &&
-              Number.isSafeInteger(previous.alertDeliveredAt) && previous.alertDeliveredAt >= 1 &&
-              (previous.alertNextAttemptAt === null || previous.alertNextAttemptAt === undefined)) ||
-            (previous.alertStatus === "resolved" &&
-              Number.isSafeInteger(previous.alertResolvedAt) && previous.alertResolvedAt >= 1 &&
-              (previous.alertNextAttemptAt === null || previous.alertNextAttemptAt === undefined));
+            (previous.alertStatus === "delivered" && validExhaustedCleanupState({
+              ...previous, status: "exhausted"
+            })) ||
+            (previous.alertStatus === "resolved" && validExhaustedCleanupState({
+              ...previous, status: "exhausted"
+            }));
           if (!Number.isSafeInteger(previous.completedAt) || previous.completedAt < 1 ||
               !Number.isSafeInteger(previous.updatedAt) || previous.updatedAt < previous.completedAt ||
               !alertStateValid) {
