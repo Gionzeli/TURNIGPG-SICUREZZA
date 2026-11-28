@@ -653,6 +653,36 @@ try {
   console.log(await invitePage.locator("#summary").textContent());
   await invitePage.close();
 
+  const shiftParserPage = await browser.newPage();
+  const shiftParserErrors = [];
+  const shiftParserRequests = [];
+  shiftParserPage.on("pageerror", error => shiftParserErrors.push(error.message));
+  shiftParserPage.on("request", request => shiftParserRequests.push(request.url()));
+  await shiftParserPage.goto("http://127.0.0.1:8000/tests/browser/shift-parser-smoke.html", { waitUntil: "load" });
+  await shiftParserPage.locator("#run").click();
+  await shiftParserPage.waitForFunction(() => /^(PASS|FAIL)/.test(document.querySelector("#status")?.textContent || ""), null, { timeout: 10000 });
+  assert.match(await shiftParserPage.locator("#status").textContent(), /^PASS/);
+  assert.equal(shiftParserErrors.length, 0, shiftParserErrors.join("; "));
+  assert.ok(shiftParserRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "Il parser turni ha richiesto risorse esterne.");
+  console.log("PASS — shift PDF parser: only date/time/explicit workstation; totals, notes and flags excluded");
+  await shiftParserPage.close();
+
+  const offlineAIPage = await browser.newPage();
+  const offlineAIErrors = [];
+  const offlineAIRequests = [];
+  offlineAIPage.on("pageerror", error => offlineAIErrors.push(error.message));
+  offlineAIPage.on("request", request => offlineAIRequests.push(request.url()));
+  await offlineAIPage.goto("http://127.0.0.1:8000/tests/browser/offline-ai-boundary-smoke.html", { waitUntil: "load" });
+  await offlineAIPage.locator("#run").click();
+  await offlineAIPage.waitForFunction(() => /^(PASS|FAIL)/.test(document.querySelector("#status")?.textContent || ""), null, { timeout: 15000 });
+  assert.match(await offlineAIPage.locator("#status").textContent(), /^PASS/);
+  assert.equal(offlineAIErrors.length, 0, offlineAIErrors.join("; "));
+  assert.ok(offlineAIRequests.every(url => url.startsWith("http://127.0.0.1:8000/")),
+    "Il test confine OCR/AI ha richiesto risorse esterne.");
+  console.log("PASS — offline AI boundary: missing local engines fail closed without external requests");
+  await offlineAIPage.close();
+
   console.log("PASS — local legacy report page: privacy, quarantine, sanitized download, single preview, invalid JSON, duplicate names, and file limits");
   await reportPage.close();
 } finally {
