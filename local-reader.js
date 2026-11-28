@@ -404,7 +404,7 @@ function mountLocalLearningUI(){
  const qwenAutoLabel=document.createElement("label");const qwenAuto=document.createElement("input");qwenAuto.type="checkbox";qwenAuto.disabled=true;
  qwenAutoLabel.append(qwenAuto,document.createTextNode(" Suggerisci etichette durante la lettura"));
  qwenRow.append(qwenInit,qwenAutoLabel);panel.append(qwenRow);
- const qwenStatus=document.createElement("p");qwenStatus.className="hint";qwenStatus.textContent="Qwen è facoltativo e funziona soltanto con runtime e modello già installati localmente. Nessun download, CDN o servizio remoto è consentito.";
+ const qwenStatus=document.createElement("p");qwenStatus.className="hint";qwenStatus.textContent="Qwen è facoltativo e funziona soltanto con runtime e modello locali. Riceve esclusivamente etichette generiche filtrate, mai righe complete o valori del documento. Nessun download o servizio remoto.";
  panel.append(qwenStatus);
  const suggestions=document.createElement("div");suggestions.className="hint";panel.append(suggestions);
  const status=document.createElement("p");status.className="hint";status.setAttribute("role","status");panel.append(status);
@@ -437,7 +437,7 @@ function mountLocalLearningUI(){
  });
  qwenInit.addEventListener("click",async()=>{
   qwenInit.disabled=true;qwenStatus.textContent="Avvio Qwen locale…";
-  try{const result=await localQwen.init(message=>{qwenStatus.textContent=message});qwenStatus.textContent="Qwen pronto su "+result.backend+". Il testo dei documenti viene elaborato localmente.";qwenAuto.disabled=false;qwenInit.textContent="Qwen locale pronto"}
+  try{const result=await localQwen.init(message=>{qwenStatus.textContent=message});qwenStatus.textContent="Qwen pronto su "+result.backend+". Riceverà soltanto frammenti di etichette generiche filtrate sul dispositivo.";qwenAuto.disabled=false;qwenInit.textContent="Qwen locale pronto"}
   catch(error){qwenStatus.textContent="Qwen non disponibile: "+String(error?.message||error).slice(0,160);qwenInit.disabled=false}
  });
  const originalRead=window.readDocumentText;
@@ -446,7 +446,9 @@ function mountLocalLearningUI(){
    const text=await originalRead.apply(this,arguments);
    lastKind=documentKind==="p"?"payroll":documentKind==="t"?"turns":"training";
    suggestions.replaceChildren();
-   if(qwenAuto.checked&&localQwen.ready){
+   if(qwenAuto.checked&&localQwen.ready&&lastKind==="turns"){
+    qwenStatus.textContent="Per i turni Qwen non interpreta il documento: vengono mantenuti soltanto data, orari e postazione esplicita, senza inferenze sulle altre colonne.";
+   }else if(qwenAuto.checked&&localQwen.ready){
     try{
      const proposed=await localQwen.suggestAliases(text,lastKind,message=>{qwenStatus.textContent=message});
      if(proposed.length){
